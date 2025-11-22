@@ -2,12 +2,18 @@
 
 import { useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebaseClient";
+import { getDb } from "@/lib/firebaseClient";
 // test
 
 export default function TestPage() {
   useEffect(() => {
     const load = async () => {
+      const db = getDb();
+      if (!db) {
+        console.warn("Skipping Firestore call because Firebase is not configured.");
+        return;
+      }
+
       const snap = await getDocs(collection(db, "products"));
       console.log("Products:", snap.docs.map((d) => d.data()));
     };

@@ -1,6 +1,6 @@
 "use client";
 
-import { app } from "./firebaseClient";
+import { getFirebaseApp } from "./firebaseClient";
 import { getAnalytics, logEvent, isSupported } from "firebase/analytics";
 
 let analyticsInstance: ReturnType<typeof getAnalytics> | null = null;
@@ -11,8 +11,11 @@ export async function getAnalyticsInstance() {
   const supported = await isSupported().catch(() => false);
   if (!supported) return null;
 
+  const firebaseApp = getFirebaseApp();
+  if (!firebaseApp) return null;
+
   if (!analyticsInstance) {
-    analyticsInstance = getAnalytics(app);
+    analyticsInstance = getAnalytics(firebaseApp);
   }
 
   return analyticsInstance;
