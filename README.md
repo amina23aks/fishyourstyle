@@ -34,3 +34,12 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Cloudflare Pages deployment tips
+
+This project is configured for Cloudflare Pages (`wrangler.toml` sets `pages_build_output_dir`). If a preview URL works but the main `*.pages.dev` domain is blank or times out, make sure a production build exists.
+
+1. Push to the production branch (usually `main`) so Cloudflare Pages triggers a **Production** deployment instead of a Preview build.
+2. In the Cloudflare Pages dashboard, open the project and confirm the latest Production deployment succeeded.
+3. Verify that the production domain (e.g., `fishyourstyle.pages.dev` or any custom domain) is attached and active in the **Domains** tab.
+4. If the domain still fails to load, rerun the Production deployment from the dashboard to regenerate the site output.
