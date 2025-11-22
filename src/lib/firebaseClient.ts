@@ -1,4 +1,3 @@
-// src/lib/firebaseClient.ts
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
@@ -9,7 +8,6 @@ const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  // measurementId نخلّيه في env لكن ما نستخدمه هنا
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();

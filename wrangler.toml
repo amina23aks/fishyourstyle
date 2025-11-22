@@ -1,11 +1,7 @@
 name = "fishyourstyle"
 
-# تاريخ توافق الـ Workers (أي تاريخ في الماضي عادي)
 compatibility_date = "2024-11-22"
 
-# هنا نفعّل دعم node.js داخل الـ Worker
 compatibility_flags = ["nodejs_compat"]
 
-# هذا أهم سطر ل Cloudflare Pages مع next-on-pages
-# لازم يطابق Build output directory في لوحة Cloudflare
 pages_build_output_dir = ".vercel/output/static"
