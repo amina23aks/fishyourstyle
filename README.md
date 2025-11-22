@@ -39,6 +39,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 This project is configured for Cloudflare Pages (`wrangler.toml` sets `pages_build_output_dir`). Use `npm run build` (which executes `npx @cloudflare/next-on-pages --experimental-minify`) as the build command in Pages so the `.vercel/output/static` bundle is generated for both Preview and Production environments.
 
+See `DEPLOYMENT_HISTORY.md` for a summary of the most recent production deployment, including the command used and the routes that were prerendered.
+
 If a preview URL works but the main `*.pages.dev` domain is blank or times out, make sure a production build exists.
 
 1. Push to the production branch (usually `main`) so Cloudflare Pages triggers a **Production** deployment instead of a Preview build.
