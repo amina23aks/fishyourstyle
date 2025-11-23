@@ -47,3 +47,9 @@ If a preview URL works but the main `*.pages.dev` domain is blank or times out, 
 2. In the Cloudflare Pages dashboard, open the project and confirm the latest Production deployment succeeded.
 3. Verify that the production domain (e.g., `fishyourstyle.pages.dev` or any custom domain) is attached and active in the **Domains** tab.
 4. If the domain still fails to load, rerun the Production deployment from the dashboard to regenerate the site output.
+
+### Keeping the production domain up to date
+
+- Confirm that the **Production branch** in the Pages project settings matches the branch you are pushing (currently `master` for this repo). Commits to other branches will deploy to preview URLs like `https://<hash>.fishyourstyle.pages.dev/` instead of `https://fishyourstyle.pages.dev/`.
+- The build output directory for Pages is `.vercel/output/static`. Ensure `npm run build:pages` succeeds so that folder contains your latest static assets before deployment.
+- If the production domain still shows old content after a successful deploy, trigger a new **Production** redeploy from the dashboard and hard-refresh your browser (or use a private window) to bypass cached assets.
