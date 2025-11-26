@@ -2,8 +2,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617;
+  --foreground: #e2f3ff;
+  --ocean-gradient: radial-gradient(
+      circle at 10% 0%,
+      rgba(56, 189, 248, 0.4) 0,
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(56, 189, 248, 0.25) 0,
+      transparent 40%
+    ),
+    linear-gradient(to bottom, #38bdf8 0%, #0f4c81 35%, #020617 100%);
 }
 
 @theme inline {
@@ -24,6 +35,50 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+@keyframes oceanShift {
+  0% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+  50% {
+    background-position: 8px 14px, -12px 24px, 0 0;
+  }
+  100% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+}
+
+@keyframes bubbleDrift {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-120vh) translateX(40px);
+    opacity: 0;
+  }
+}
+
+.ocean-page {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.ocean-bg {
+  background-image: var(--ocean-gradient);
+  background-size: 140% 140%;
+  animation: oceanShift 20s ease-in-out infinite alternate;
+}
+
+.bubble {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.85);
+  animation: bubbleDrift linear infinite;
 }
 
 @keyframes float {
