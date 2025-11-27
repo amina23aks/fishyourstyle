@@ -10,7 +10,7 @@ export default function ShopPage() {
     <section className="w-full space-y-4">
       <div className="space-y-2">
         <p className="text-sm uppercase tracking-[0.28em] text-sky-700">Shop</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Collections</h1>
+        <h1 className="text-3xl font-semibold text-slate-900">Collections amina</h1>
         <p className="max-w-2xl text-slate-600">
           Product cards will live here once Firestore is connected. For now this
           page validates routing and layout, so we can plug data in next.
