@@ -13,7 +13,7 @@ export default function Hero() {
       <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-16 md:grid-cols-2 md:px-10 lg:px-14">
         <div className="space-y-6">
           <p className="text-sm uppercase tracking-[0.28em] text-sky-700">
-            Fish Your Style
+            Fish Your Style amina
           </p>
           <h1 className="text-4xl font-semibold text-slate-900 md:text-5xl">
             Luxury sea-inspired streetwear for the modern explorer.
