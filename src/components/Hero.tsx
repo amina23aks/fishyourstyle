@@ -16,7 +16,7 @@ export default function Hero() {
             Fish Your Style amina
           </p>
           <h1 className="text-4xl font-semibold text-slate-900 md:text-5xl">
-            Luxury sea-inspired streetwear for the modern explorer.
+            Luxury sea-inspired streetwear for the modern explorer hhhhhh .
           </h1>
           <p className="max-w-xl text-lg text-slate-700">
             We are starting with the essentials: structure, navigation, and a
