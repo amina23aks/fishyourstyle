@@ -21,7 +21,7 @@ export default function Hero() {
           <p className="max-w-xl text-lg text-slate-700">
             We are starting with the essentials: structure, navigation, and a
             hero that sets the ocean mood. The shop, cart, and admin flows will
-            plug into this shell step by step.hhh
+            plug into this shell step by step. 
           </p>
 
           <div className="flex flex-col gap-3 text-sm text-sky-900 sm:flex-row sm:flex-wrap sm:items-center">
