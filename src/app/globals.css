@@ -70,6 +70,20 @@ body {
   animation: bubbleDrift linear infinite;
 }
 
+@keyframes rod-swing {
+  0% {
+    transform: rotate(-4deg);
+  }
+  100% {
+    transform: rotate(4deg);
+  }
+}
+
+.animate-rod-swing {
+  animation: rod-swing 3.6s ease-in-out infinite alternate;
+  transform-origin: 420px 140px;
+}
+
 @keyframes float {
   0% {
     transform: translateY(0px);
