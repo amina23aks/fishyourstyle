@@ -19,7 +19,7 @@ const particles = [
 
 export default function HeroFishing() {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#8bd1ff] via-[#5799de] to-[#04142c] shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#8bd1ff] via-[#5799de] to-[#04142c]">
       <div
         className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.22),transparent_35%),radial-gradient(circle_at_78%_16%,rgba(255,255,255,0.18),transparent_32%),radial-gradient(circle_at_50%_-10%,rgba(255,255,255,0.2),transparent_40%)] opacity-70 mix-blend-screen animate-aurora"
         aria-hidden
@@ -44,7 +44,6 @@ export default function HeroFishing() {
       <div className="absolute inset-x-0 top-0 h-[18%] bg-gradient-to-b from-white/45 via-white/10 to-transparent blur-2xl" aria-hidden />
 
       <div className="relative px-6 pb-24 pt-16 sm:px-10 lg:px-16">
-        <div className="absolute inset-x-0 bottom-24 h-px bg-gradient-to-r from-transparent via-sky-100/60 to-transparent" aria-hidden />
 
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
           <div className="relative order-2 w-full space-y-5 text-left text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.32)] lg:order-1 lg:max-w-xl lg:space-y-6">
