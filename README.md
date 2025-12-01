@@ -16,6 +16,32 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Updating your local copy
+
+If `git pull` asks you to resolve changes before pulling:
+
+1. Check `git status` and commit or stash any local edits.
+2. Pull again once the working tree is clean.
+3. If conflicts remain, open the flagged files in VS Code, pick the correct versions, then commit the resolution.
+
+### Pulling updates in VS Code (master branch)
+
+1. Open the Command Palette (`Ctrl/Cmd` + `Shift` + `P`) and run **Git: Checkout to...**, then pick `master` so you are on the main branch.
+2. Save or commit any local edits so the working tree is clean (check the Source Control panel for pending changes).
+3. Run **Git: Pull** from the Command Palette. VS Code will fetch and merge the latest commits into `master`.
+4. If conflicts appear, click each conflicted file in the Source Control panel, choose **Accept Current/Incoming/Both** in the inline toolbar to fix the markers, then save the file.
+5. After resolving, click **+** to stage the files, then **Commit**. Repeat the pull if needed to finish merging.
+
+### Moving a branch change onto `master` in VS Code
+
+If someone shared updates on another branch and you want those changes on `master` without using the terminal:
+
+1. Open the Command Palette (`Ctrl/Cmd` + `Shift` + `P`) and run **Git: Pull** to fetch the latest refs.
+2. Run **Git: Checkout to...** and pick `master` so you are on the main branch locally.
+3. Open the branch list in the Source Control side bar (three-dot menu → **Branches**) and choose **Merge Branch...**, then select the branch that has the updates you want.
+4. If conflicts appear, click each conflicted file, choose the right version with **Accept Current/Incoming/Both**, then save.
+5. Stage the resolved files, commit the merge, and run **Git: Push** to publish `master` with the merged changes.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
