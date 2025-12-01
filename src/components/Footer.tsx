@@ -17,7 +17,7 @@ export default function Footer() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 text-sm md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-6 text-sm md:grid-cols-4">
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-white">Navigate</h3>
             <ul className="space-y-2 text-sky-200">
@@ -65,6 +65,31 @@ export default function Footer() {
               <li>TikTok</li>
               <li>Behance</li>
             </ul>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-white">Wishlist email</h3>
+            <p className="text-sky-200">
+              Drop your email to be the first to know when new drops hit your
+              wishlist.
+            </p>
+            <form className="space-y-2">
+              <label className="sr-only" htmlFor="wishlist-email">
+                Email address
+              </label>
+              <input
+                id="wishlist-email"
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                className="w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-sky-200 focus:border-white/40 focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="w-full rounded-md bg-gradient-to-r from-sky-400 to-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:-translate-y-0.5"
+              >
+                Join wishlist
+              </button>
+            </form>
           </div>
         </div>
       </div>

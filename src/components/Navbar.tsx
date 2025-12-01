@@ -55,11 +55,10 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 text-white">
         <Link href="/" className="group flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 shadow-inner shadow-white/20">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-white/20 bg-white/5 shadow-inner shadow-white/10">
             <model-viewer
               src="/logo-3d.glb"
               loading="lazy"
-              auto-rotate
               camera-controls
               disable-zoom
               shadow-intensity="1"
@@ -94,20 +93,20 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/account"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"
-            aria-label="Account"
-          >
-            <AccountIcon />
-            <span className="sr-only">Account</span>
-          </Link>
-          <Link
             href="/cart"
             className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-blue-700 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:translate-y-[-2px]"
             aria-label="Cart"
           >
             <CartIcon />
             <span className="sr-only">Cart</span>
+          </Link>
+          <Link
+            href="/account"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"
+            aria-label="Account"
+          >
+            <AccountIcon />
+            <span className="sr-only">Account</span>
           </Link>
         </div>
       </div>
