@@ -23,38 +23,38 @@ export default function HeroFishing() {
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute inset-x-[-6%] top-6 h-64 light-rays" />
 
-        <div className="absolute inset-x-[-8%] top-[44%] h-32 opacity-85">
+        <div className="absolute inset-x-[-8%] top-[46%] h-28 opacity-85">
           <svg
-            className="absolute bottom-[-4px] left-0 w-[200%] animate-wave origin-bottom scale-y-[0.6]"
+            className="absolute bottom-[-2px] left-0 w-[200%] animate-wave origin-bottom scale-y-[0.45]"
             viewBox="0 0 1440 320"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
               fill="url(#waveGradient1)"
-              d="M0,240L60,229.3C120,219,240,197,360,170.7C480,144,600,112,720,122.7C840,133,960,187,1080,186.7C1200,187,1320,133,1380,106.7L1440,80L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
+              d="M0,228C80,222 160,212 240,214C320,216 400,230 480,232C560,234 640,226 720,220C800,214 880,212 960,220C1040,228 1120,240 1200,244C1280,248 1360,242 1440,236V320H0Z"
             />
             <defs>
               <linearGradient id="waveGradient1" x1="0" x2="0" y1="0" y2="1">
-                <stop stopColor="#8bd3ff" stopOpacity="0.95" />
-                <stop offset="1" stopColor="#3f92e2" stopOpacity="0.8" />
+                <stop stopColor="#8bd3ff" stopOpacity="0.88" />
+                <stop offset="1" stopColor="#3f92e2" stopOpacity="0.72" />
               </linearGradient>
             </defs>
           </svg>
           <svg
-            className="absolute bottom-1 left-0 w-[200%] animate-wave-slower origin-bottom scale-y-[0.6]"
+            className="absolute bottom-0 left-0 w-[200%] animate-wave-slower origin-bottom scale-y-[0.42]"
             viewBox="0 0 1440 320"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
               fill="url(#waveGradient2)"
-              d="M0,256L60,234.7C120,213,240,171,360,181.3C480,192,600,256,720,272C840,288,960,256,1080,208C1200,160,1320,96,1380,64L1440,32L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
+              d="M0,234C96,226 192,216 288,220C384,224 480,240 576,242C672,244 768,232 864,224C960,216 1056,214 1152,222C1248,230 1344,246 1440,250V320H0Z"
             />
             <defs>
               <linearGradient id="waveGradient2" x1="0" x2="0" y1="0" y2="1">
-                <stop stopColor="#66b2f2" stopOpacity="0.9" />
-                <stop offset="1" stopColor="#2c6fb9" stopOpacity="0.82" />
+                <stop stopColor="#66b2f2" stopOpacity="0.85" />
+                <stop offset="1" stopColor="#2c6fb9" stopOpacity="0.75" />
               </linearGradient>
             </defs>
           </svg>
