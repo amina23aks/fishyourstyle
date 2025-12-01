@@ -93,31 +93,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.25);
   animation: heroBubbleUp ease-in infinite;
 }
-
-@keyframes seaBubbleFloat {
-  0% {
-    background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
-  }
-  50% {
-    background-position: -12px -10px, 10px 6px, -8px 12px, 6px -8px, -10px 4px;
-  }
-  100% {
-    background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
-  }
-}
-
-.sea-bubbles {
-  background-image:
-    radial-gradient(circle at 20% 68%, rgba(255, 255, 255, 0.12) 0 6px, transparent 12px),
-    radial-gradient(circle at 62% 82%, rgba(255, 255, 255, 0.1) 0 7px, transparent 13px),
-    radial-gradient(circle at 82% 58%, rgba(255, 255, 255, 0.09) 0 5px, transparent 11px),
-    radial-gradient(circle at 36% 52%, rgba(255, 255, 255, 0.08) 0 6px, transparent 12px),
-    radial-gradient(circle at 12% 40%, rgba(255, 255, 255, 0.1) 0 4px, transparent 10px);
-  background-size: 120% 120%;
-  opacity: 0.45;
-  animation: seaBubbleFloat 18s ease-in-out infinite;
-  mix-blend-mode: screen;
-}
 @keyframes rod-swing {
   0% {
     transform: rotate(-4deg);

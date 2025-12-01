@@ -60,9 +60,7 @@ export default function HeroFishing() {
         </div>
 
         <div className="absolute inset-x-0 top-[48%] bottom-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#3f92e2] via-[#2c6fb9] to-[#0c2f57]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#3f92e2]/18 via-[#3f92e2]/12 to-transparent" />
-          <div className="absolute inset-0 sea-bubbles" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-sky-200/10 to-transparent" />
 
           {lightColumns.map((beam, index) => (
             <div
