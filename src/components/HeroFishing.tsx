@@ -26,6 +26,43 @@ export default function HeroFishing() {
         <div className="absolute inset-x-0 top-[48%] h-px bg-gradient-to-r from-transparent via-white/70 to-transparent blur-sm" />
         <div className="absolute inset-x-0 top-[48%] h-12 bg-gradient-to-b from-white/35 via-white/12 to-transparent blur-2xl" />
 
+        <div className="absolute inset-x-[-8%] top-[44%] h-32 opacity-85">
+          <svg
+            className="absolute bottom-[-4px] left-0 w-[200%] animate-wave origin-bottom scale-y-[0.6]"
+            viewBox="0 0 1440 320"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill="url(#waveGradient1)"
+              d="M0,240L60,229.3C120,219,240,197,360,170.7C480,144,600,112,720,122.7C840,133,960,187,1080,186.7C1200,187,1320,133,1380,106.7L1440,80L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
+            />
+            <defs>
+              <linearGradient id="waveGradient1" x1="0" x2="0" y1="0" y2="1">
+                <stop stopColor="#5bb5f7" stopOpacity="0.9" />
+                <stop offset="1" stopColor="#1b5da6" stopOpacity="0.75" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <svg
+            className="absolute bottom-1 left-0 w-[200%] animate-wave-slower origin-bottom scale-y-[0.6]"
+            viewBox="0 0 1440 320"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill="url(#waveGradient2)"
+              d="M0,256L60,234.7C120,213,240,171,360,181.3C480,192,600,256,720,272C840,288,960,256,1080,208C1200,160,1320,96,1380,64L1440,32L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
+            />
+            <defs>
+              <linearGradient id="waveGradient2" x1="0" x2="0" y1="0" y2="1">
+                <stop stopColor="#3c8fe0" stopOpacity="0.85" />
+                <stop offset="1" stopColor="#0f3b7a" stopOpacity="0.8" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
         <div className="absolute inset-x-0 top-[48%] bottom-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-sky-200/10 to-transparent" />
 
