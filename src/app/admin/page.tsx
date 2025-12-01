@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PageShell from "@/components/PageShell";
 
 export const metadata: Metadata = {
   title: "Admin | Fish Your Style",
@@ -7,18 +8,20 @@ export const metadata: Metadata = {
 
 export default function AdminPage() {
   return (
-    <section className="w-full space-y-4">
-      <div className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.28em] text-sky-700">Admin</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Admin dashboard</h1>
-        <p className="max-w-2xl text-slate-600">
-          This page will be protected by admin roles. We will add orders and
-          product management once Firestore and Auth are ready.
-        </p>
-      </div>
-      <div className="rounded-2xl border border-dashed border-sky-200 bg-white/60 p-6 text-slate-600">
-        <p>🛠️ Orders list, status updates, and product CRUD plug in here.</p>
-      </div>
-    </section>
+    <PageShell>
+      <section className="w-full space-y-4 rounded-3xl bg-white/10 p-6 text-sky-50 shadow-lg shadow-sky-900/30 backdrop-blur">
+        <div className="space-y-2">
+          <p className="text-sm uppercase tracking-[0.28em] text-sky-200">Admin</p>
+          <h1 className="text-3xl font-semibold text-white">Admin dashboard</h1>
+          <p className="max-w-2xl text-sky-100">
+            This page will be protected by admin roles. We will add orders and
+            product management once Firestore and Auth are ready.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-6 text-sky-100">
+          <p>🛠️ Orders list, status updates, and product CRUD plug in here.</p>
+        </div>
+      </section>
+    </PageShell>
   );
 }

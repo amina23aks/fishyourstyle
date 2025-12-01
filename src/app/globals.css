@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #051634;
+  --background: #0a2f63;
   --foreground: #e2f3ff;
 }
 
@@ -59,17 +59,18 @@ body {
 
 .ocean-bg {
   background-image:
-    radial-gradient(circle at 16% 12%, rgba(255, 255, 255, 0.08), transparent 22%),
-    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.06), transparent 26%),
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.12), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.1), transparent 30%),
     linear-gradient(
       to bottom,
-      #5fb0f1 0%,
-      #4ba1e8 26%,
-      #2d7bc6 52%,
-      #0f4e95 78%,
-      #0a2b63 100%
+      #6ebaf8 0%,
+      #55a7ed 18%,
+      #3a86d0 46%,
+      #1f5fa7 70%,
+      #0d3a78 90%,
+      #082c5f 100%
     );
-  background-size: 140% 160%, 140% 180%, 100% 240%;
+  background-size: 120% 140%, 120% 160%, 100% 220%;
   background-position: top left, top right, top center;
   background-repeat: no-repeat;
 }
