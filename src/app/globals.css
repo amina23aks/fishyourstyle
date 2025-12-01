@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #b5d8ff;
+  --background: #a7c7f0;
   --foreground: #e2f3ff;
 }
 
@@ -59,7 +59,7 @@ body {
 
 
 .ocean-bg {
-  background-image: linear-gradient(to bottom, #b5d8ff 0%, #1d4f7c 48%, #020617 100%);
+  background-image: linear-gradient(to bottom, #a7c7f0 0%, #1d4f7c 48%, #020617 100%);
   background-size: 100% 100%;
 }
 
