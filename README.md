@@ -16,6 +16,14 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Updating your local copy
+
+If `git pull` asks you to resolve changes before pulling:
+
+1. Check `git status` and commit or stash any local edits.
+2. Pull again once the working tree is clean.
+3. If conflicts remain, open the flagged files in VS Code, pick the correct versions, then commit the resolution.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
