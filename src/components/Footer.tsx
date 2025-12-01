@@ -17,7 +17,7 @@ export default function Footer() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 text-sm md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-6 text-sm md:grid-cols-4">
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-white">Navigate</h3>
             <ul className="space-y-2 text-sky-200">
@@ -60,11 +60,90 @@ export default function Footer() {
           </div>
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-white">Follow</h3>
-            <ul className="space-y-2 text-sky-200">
-              <li>Instagram</li>
-              <li>TikTok</li>
-              <li>Behance</li>
-            </ul>
+            <div className="flex gap-3 text-sky-200">
+              <Link
+                href="https://www.instagram.com"
+                aria-label="Instagram"
+                className="rounded-full border border-white/10 bg-white/5 p-2 transition hover:border-white/30 hover:bg-white/1"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-5 w-5"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="5" ry="5" />
+                  <circle cx="12" cy="12" r="3.5" />
+                  <circle cx="17.2" cy="6.8" r="0.9" />
+                </svg>
+              </Link>
+              <Link
+                href="https://www.tiktok.com"
+                aria-label="TikTok"
+                className="rounded-full border border-white/10 bg-white/5 p-2 transition hover:border-white/30 hover:bg-white/1"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-5 w-5"
+                >
+                  <path d="M14 4.5v9a3.5 3.5 0 1 1-3.5-3.5h.5" />
+                  <path d="M14 7.5c.9.9 2.5 2 4 2" />
+                </svg>
+              </Link>
+              <Link
+                href="https://www.facebook.com"
+                aria-label="Facebook"
+                className="rounded-full border border-white/10 bg-white/5 p-2 transition hover:border-white/30 hover:bg-white/1"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-5 w-5"
+                >
+                  <path d="M14 10h2V7h-2c-1.1 0-2 .9-2 2v2H10v3h2v4h3v-4h2.1l.4-3H15V9.5c0-.3.2-.5.5-.5Z" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-white">Wishlist email</h3>
+            <p className="text-sky-200">
+              Drop your email to be the first to know when new drops hit your
+              wishlist.
+            </p>
+            <form className="space-y-2">
+              <label className="sr-only" htmlFor="wishlist-email">
+                Email address
+              </label>
+              <input
+                id="wishlist-email"
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                className="w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-sky-200 focus:border-white/40 focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="w-full rounded-md bg-gradient-to-r from-sky-400 to-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:-translate-y-0.5"
+              >
+                Join wishlist
+              </button>
+            </form>
           </div>
         </div>
       </div>

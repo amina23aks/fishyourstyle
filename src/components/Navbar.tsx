@@ -6,21 +6,70 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
-  { href: "/collections", label: "Collections" },
-  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/orders", label: "Orders" },
 ];
+
+const iconStyles = "h-5 w-5";
+
+function CartIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className={iconStyles}
+      aria-hidden
+    >
+      <path d="M4 5h18l-1.8 8.1a2 2 0 0 1-2 1.6H8.1a2 2 0 0 1-2-1.6L4 3H1" />
+      <circle cx="9" cy="20" r="1.2" />
+      <circle cx="17" cy="20" r="1.2" />
+    </svg>
+  );
+}
+
+function AccountIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className={iconStyles}
+      aria-hidden
+    >
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5.5 19a6.5 6.5 0 0 1 13 0" />
+    </svg>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
 
   return (
-    
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 text-white">
         <Link href="/" className="group flex items-center gap-3">
-          
-        
+          <model-viewer
+            src="/logo-3d.glb"
+            loading="lazy"
+            camera-controls
+            auto-rotate
+            rotation-per-second="120deg"
+            disable-zoom
+            shadow-intensity="1"
+            className="h-16 w-16"
+            aria-label="Fish Your Style 3D logo"
+          />
+          <div className="leading-tight">
+            <p className="text-base font-semibold text-white">Fish Your Style</p>
+            <span className="text-xs text-sky-100">Sea streetwear</span>
+          </div>
         </Link>
 
         <nav className="hidden items-center gap-2 text-sm font-medium text-sky-100 md:flex">
@@ -44,15 +93,20 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/account"
-             className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"
+            href="/cart"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-blue-700 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:translate-y-[-2px]"
+            aria-label="Cart"
           >
-            Account
+            <CartIcon />
+            <span className="sr-only">Cart</span>
           </Link>
           <Link
-            href="/cart"
-              className="rounded-full bg-gradient-to-r from-cyan-400 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:translate-y-[-2px]">
-            Cart
+            href="/account"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"
+            aria-label="Account"
+          >
+            <AccountIcon />
+            <span className="sr-only">Account</span>
           </Link>
         </div>
       </div>

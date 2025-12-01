@@ -1,46 +1,71 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const particles = [
-  { id: 0, left: "12%", size: 8, delay: 0, duration: 8 },
-  { id: 1, left: "22%", size: 10, delay: 1.2, duration: 9.5 },
-  { id: 2, left: "34%", size: 6, delay: 2.4, duration: 7.5 },
-  { id: 3, left: "46%", size: 12, delay: 0.8, duration: 10 },
-  { id: 4, left: "58%", size: 7, delay: 3.2, duration: 8.5 },
-  { id: 5, left: "66%", size: 9, delay: 1.8, duration: 9 },
-  { id: 6, left: "74%", size: 5, delay: 2.1, duration: 7.8 },
-  { id: 7, left: "82%", size: 11, delay: 0.6, duration: 8.8 },
-  { id: 8, left: "8%", size: 6, delay: 4.2, duration: 8 },
-  { id: 9, left: "28%", size: 7, delay: 5, duration: 7.2 },
-  { id: 10, left: "52%", size: 5, delay: 4.6, duration: 8.4 },
-  { id: 11, left: "70%", size: 9, delay: 5.4, duration: 9.6 },
-  { id: 12, left: "90%", size: 6, delay: 3.8, duration: 8.2 },
-];
-
 export default function HeroFishing() {
+  const heroBubbles = [
+    { size: 10, left: "48%", delay: "0s", duration: "8s" },
+    { size: 8, left: "42%", delay: "2s", duration: "9s" },
+    { size: 12, left: "55%", delay: "1s", duration: "10s" },
+    { size: 6, left: "58%", delay: "3s", duration: "7s" },
+    { size: 9, left: "46%", delay: "4s", duration: "9s" },
+  ];
+
   return (
     <section className="relative overflow-hidden">
-      <div className="absolute inset-0 opacity-60 mix-blend-screen" aria-hidden>
-        {particles.map((bubble) => (
-          <span
-            key={bubble.id}
-            className="bubble"
-            style={{
-              left: bubble.left,
-              width: bubble.size,
-              height: bubble.size,
-              animationDelay: `${bubble.delay}s`,
-              animationDuration: `${bubble.duration}s`,
-            }}
+      <div className="absolute inset-x-[-8%] bottom-[-12px] h-32 opacity-90" aria-hidden>
+        <svg
+          className="absolute bottom-0 left-0 w-[200%] animate-wave origin-bottom scale-y-[0.7]"
+          viewBox="0 0 1440 320"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill="url(#waveGradient1)"
+            d="M0,240L60,229.3C120,219,240,197,360,170.7C480,144,600,112,720,122.7C840,133,960,187,1080,186.7C1200,187,1320,133,1380,106.7L1440,80L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
           />
-        ))}
+          <defs>
+            <linearGradient id="waveGradient1" x1="0" x2="0" y1="0" y2="1">
+              <stop stopColor="#5bb5f7" stopOpacity="0.9" />
+              <stop offset="1" stopColor="#1b5da6" stopOpacity="0.8" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <svg
+          className="absolute bottom-2 left-0 w-[200%] animate-wave-slower origin-bottom scale-y-[0.7]"
+          viewBox="0 0 1440 320"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill="url(#waveGradient2)"
+            d="M0,256L60,234.7C120,213,240,171,360,181.3C480,192,600,256,720,272C840,288,960,256,1080,208C1200,160,1320,96,1380,64L1440,32L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
+          />
+          <defs>
+            <linearGradient id="waveGradient2" x1="0" x2="0" y1="0" y2="1">
+              <stop stopColor="#3c8fe0" stopOpacity="0.85" />
+              <stop offset="1" stopColor="#0f3b7a" stopOpacity="0.82" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="pointer-events-none absolute inset-x-10 bottom-6 h-20 overflow-hidden">
+          {heroBubbles.map((bubble, index) => (
+            <span
+              key={index}
+              className="hero-bubble"
+              style={{
+                width: `${bubble.size}px`,
+                height: `${bubble.size}px`,
+                left: bubble.left,
+                animationDelay: bubble.delay,
+                animationDuration: bubble.duration,
+              }}
+            />
+          ))}
+        </div>
       </div>
-
-      <div className="relative px-6 pb-20 pt-14 sm:px-10 lg:px-16">
-        <div className="absolute inset-x-0 bottom-20 h-px bg-gradient-to-r from-transparent via-sky-200/50 to-transparent" aria-hidden />
-
+      <div className="relative px-6 pb-24 pt-16 sm:px-10 lg:px-16">
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
-          <div className="relative order-2 w-full space-y-5 text-left text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.32)] lg:order-1 lg:max-w-xl lg:space-y-6">
+          <div className="relative order-2 w-full space-y-5 text-left text-white lg:order-1 lg:max-w-xl lg:space-y-6">
             <p className="text-xs uppercase tracking-[0.32em] text-sky-100">Premium drop</p>
             <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">Fish Your Style</h1>
             <p className="text-lg text-sky-50/90">
@@ -61,7 +86,7 @@ export default function HeroFishing() {
               </Link>
             </div>
           </div>
-          <div className="relative order-1 w-full max-w-2xl lg:order-2 lg:max-w-[640px] aspect-[16/9]">
+          <div className="relative order-1 aspect-[16/9] w-full max-w-2xl lg:order-2 lg:max-w-[640px]">
             <div className="absolute inset-0 float-slow">
               <Image
                 src="/hero/cat.png"

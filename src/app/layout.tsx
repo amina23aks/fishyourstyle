@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import OceanBackdrop from "@/components/OceanBackdrop";
@@ -33,12 +34,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
+          type="module"
+          strategy="afterInteractive"
+        />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ocean-page min-h-screen antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ocean-page relative min-h-screen overflow-x-hidden antialiased`}
       >
         <OceanBackdrop />
         <Navbar />
-        <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        <main className="relative z-10 flex w-full flex-1 flex-col">
           {children}
         </main>
         <Footer />
