@@ -59,6 +59,8 @@ export function Navbar() {
             src="/logo-3d.glb"
             loading="lazy"
             camera-controls
+            auto-rotate
+            rotation-per-second="120deg"
             disable-zoom
             shadow-intensity="1"
             className="h-16 w-16"

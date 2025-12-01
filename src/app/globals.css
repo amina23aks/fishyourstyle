@@ -97,3 +97,36 @@ body {
 .float-slow {
   animation: float 6s ease-in-out infinite;
 }
+
+@keyframes auroraWave {
+  0% {
+    transform: translateX(0px) translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateX(-16px) translateY(8px) scale(1.04);
+  }
+  100% {
+    transform: translateX(0px) translateY(0px) scale(1);
+  }
+}
+
+.animate-aurora {
+  animation: auroraWave 8s ease-in-out infinite;
+}
+
+@keyframes waveScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-wave {
+  animation: waveScroll 9s ease-in-out infinite;
+}
+
+.animate-wave-slower {
+  animation: waveScroll 14s ease-in-out infinite;
+}
