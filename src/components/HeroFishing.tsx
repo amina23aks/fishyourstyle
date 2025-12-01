@@ -3,13 +3,7 @@ import Link from "next/link";
 
 export default function HeroFishing() {
   return (
-    <section className="relative overflow-hidden">
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sky-100/60 via-sky-200/50 to-transparent"
-        aria-hidden
-      />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0a325a] via-[#0c4579] to-transparent" aria-hidden />
-
+    <section className="relative">
       <div className="relative px-6 pb-24 pt-16 sm:px-10 lg:px-16">
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
           <div className="relative order-2 w-full space-y-5 text-left text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.32)] lg:order-1 lg:max-w-xl lg:space-y-6">
