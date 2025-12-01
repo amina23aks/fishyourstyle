@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a2f63;
+  --background: #b5d8ff;
   --foreground: #e2f3ff;
 }
 
@@ -57,22 +57,10 @@ body {
   color: var(--foreground);
 }
 
+
 .ocean-bg {
-  background-image:
-    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.12), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.1), transparent 30%),
-    linear-gradient(
-      to bottom,
-      #6ebaf8 0%,
-      #55a7ed 18%,
-      #3a86d0 46%,
-      #1f5fa7 70%,
-      #0d3a78 90%,
-      #082c5f 100%
-    );
-  background-size: 120% 140%, 120% 160%, 100% 220%;
-  background-position: top left, top right, top center;
-  background-repeat: no-repeat;
+  background-image: linear-gradient(to bottom, #b5d8ff 0%, #1d4f7c 48%, #020617 100%);
+  background-size: 100% 100%;
 }
 
 .bubble {
@@ -98,10 +86,11 @@ body {
 
 .hero-bubble {
   position: absolute;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.7);
+  bottom: -16px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.05) 70%);
   border-radius: 9999px;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   animation: heroBubbleUp ease-in infinite;
 }
 @keyframes rod-swing {
@@ -164,4 +153,66 @@ body {
 
 .animate-wave-slower {
   animation: waveScroll 14s ease-in-out infinite;
+}
+
+@keyframes softRay {
+  0% {
+    transform: translate3d(-6px, 0, 0) skewX(-1deg);
+  }
+  50% {
+    transform: translate3d(6px, -8px, 0) skewX(1.5deg);
+  }
+  100% {
+    transform: translate3d(-6px, 0, 0) skewX(-1deg);
+  }
+}
+
+.light-rays {
+  background-image:
+    linear-gradient(102deg, rgba(255, 255, 255, 0.08), transparent 35%),
+    linear-gradient(80deg, rgba(255, 255, 255, 0.05), transparent 42%),
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.08), transparent 65%);
+  mix-blend-mode: screen;
+  filter: blur(12px);
+  opacity: 0.5;
+  animation: softRay 14s ease-in-out infinite;
+}
+
+@keyframes vortexDrift {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(4px) rotate(8deg) scale(1.04);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+
+.underwater-vortex {
+  background: radial-gradient(circle at 50% 50%, rgba(119, 199, 255, 0.24), transparent 55%),
+    radial-gradient(circle at 40% 60%, rgba(43, 141, 213, 0.2), transparent 60%);
+  filter: blur(22px);
+  opacity: 0.7;
+  animation: vortexDrift 12s ease-in-out infinite;
+}
+
+@keyframes beamFloat {
+  0% {
+    transform: translateX(-10px);
+  }
+  50% {
+    transform: translateX(12px);
+  }
+  100% {
+    transform: translateX(-10px);
+  }
+}
+
+.light-column {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.02));
+  filter: blur(18px);
+  opacity: 0.28;
+  animation: beamFloat 16s ease-in-out infinite;
 }
