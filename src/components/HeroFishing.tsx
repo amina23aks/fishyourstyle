@@ -22,10 +22,6 @@ export default function HeroFishing() {
     <section className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute inset-x-[-6%] top-6 h-64 light-rays" />
-
-        <div className="absolute inset-x-0 top-[48%] h-px bg-gradient-to-r from-transparent via-white/70 to-transparent blur-sm" />
-        <div className="absolute inset-x-0 top-[48%] h-12 bg-gradient-to-b from-white/35 via-white/12 to-transparent blur-2xl" />
-
         <div className="absolute inset-x-[-8%] top-[46%] h-28 opacity-85">
           <svg
             className="absolute bottom-[-2px] left-0 w-[200%] animate-wave origin-bottom scale-y-[0.45]"
