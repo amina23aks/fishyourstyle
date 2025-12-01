@@ -60,13 +60,13 @@ body {
 .ocean-bg {
   background-image: linear-gradient(
     to bottom,
-    #8abff7 0%,
-    #5a9de2 40%,
-    #1e5fae 62%,
-    #0b2f63 100%
+    #66b0f3 0%,
+    #3f92e0 42%,
+    #1b5da6 68%,
+    #0a2b63 100%
   );
-  background-size: 140% 140%;
-  animation: oceanShift 20s ease-in-out infinite alternate;
+  background-size: 100% 140%;
+  background-repeat: no-repeat;
 }
 
 .bubble {
