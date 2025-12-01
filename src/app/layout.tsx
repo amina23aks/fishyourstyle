@@ -42,7 +42,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ocean-page min-h-screen antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ocean-page relative min-h-screen overflow-hidden antialiased`}
       >
         <OceanBackdrop />
         <Navbar />
