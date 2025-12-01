@@ -16,14 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fish Your Style | موضة البحر للمستكشفين",
-  description:
-    "Sea-inspired streetwear crafted with Next.js + Firebase. ملابس مستوحاة من البحر بلمسة تقنية.",
+  title: "FishYourStyle – Streetwear for Sea Lovers",
+  description: "Algerian streetwear brand inspired by the sea.",
   keywords: [
     "fish your style",
     "sea streetwear",
-    "nextjs ecommerce",
-    "موضة البحر",
     "تيشيرتات",
     "هودي",
   ],
