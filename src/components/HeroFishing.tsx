@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 
 const particles = [
   { id: 0, left: "12%", size: 8, delay: 0, duration: 8 },
@@ -19,33 +18,8 @@ const particles = [
 ];
 
 export default function HeroFishing() {
-  const illustrationRef = useRef<HTMLDivElement>(null);
-  const leftEyeRef = useRef<HTMLImageElement>(null);
-  const rightEyeRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      const wrapper = illustrationRef.current;
-      if (!wrapper || !leftEyeRef.current || !rightEyeRef.current) return;
-
-      const rect = wrapper.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-
-      const moveX = Math.max(Math.min(x * 12, 12), -12);
-      const moveY = Math.max(Math.min(y * 8, 8), -8);
-
-      leftEyeRef.current.style.transform = `translate(${moveX}px, ${moveY}px)`;
-      rightEyeRef.current.style.transform = `translate(${moveX}px, ${moveY}px)`;
-    };
-
-    window.addEventListener("mousemove", handleMove);
-    return () => window.removeEventListener("mousemove", handleMove);
-  }, []);
-
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-sky-100/70 via-sky-500/70 to-sky-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.32),transparent_36%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.24),transparent_32%),radial-gradient(circle_at_50%_60%,rgba(255,255,255,0.16),transparent_34%)]" />
+    <section className="relative overflow-hidden">
       <div className="absolute inset-0 opacity-60 mix-blend-screen" aria-hidden>
         {particles.map((bubble) => (
           <span
@@ -64,7 +38,6 @@ export default function HeroFishing() {
 
       <div className="relative px-6 pb-20 pt-14 sm:px-10 lg:px-16">
         <div className="absolute inset-x-0 bottom-20 h-px bg-gradient-to-r from-transparent via-sky-200/50 to-transparent" aria-hidden />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-sky-950 via-sky-900/70 to-transparent" aria-hidden />
 
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
           <div className="relative order-2 w-full space-y-5 text-left text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.32)] lg:order-1 lg:max-w-xl lg:space-y-6">
@@ -88,33 +61,14 @@ export default function HeroFishing() {
               </Link>
             </div>
           </div>
-
-          <div ref={illustrationRef} className="relative order-1 h-[360px] w-full max-w-2xl lg:order-2 lg:h-[480px] lg:max-w-[640px]">
+          <div className="relative order-1 w-full max-w-2xl lg:order-2 lg:max-w-[640px] aspect-[16/9]">
             <div className="absolute inset-0 float-slow">
               <Image
-                src="/hero/cat_base.png"
+                src="/hero/cat.png"
                 alt="Cat on a wooden boat"
                 fill
                 priority
                 className="object-contain drop-shadow-[0_14px_32px_rgba(0,0,0,0.4)]"
-              />
-
-              <Image
-                ref={leftEyeRef}
-                src="/hero/eye_left.png"
-                alt="Left eye"
-                width={140}
-                height={140}
-                className="absolute left-[46%] top-[43%] w-[18%] max-w-[140px] transition-transform duration-150 ease-out will-change-transform"
-              />
-
-              <Image
-                ref={rightEyeRef}
-                src="/hero/eye_right.png"
-                alt="Right eye"
-                width={140}
-                height={140}
-                className="absolute left-[60%] top-[43%] w-[18%] max-w-[140px] transition-transform duration-150 ease-out will-change-transform"
               />
             </div>
           </div>

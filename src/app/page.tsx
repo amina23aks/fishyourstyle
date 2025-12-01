@@ -46,7 +46,7 @@ export default function Home() {
           {featuredCollections.map((item) => (
             <div
               key={item.title}
-              className="rounded-2xl border border-sky-100 bg-white/80 p-6 shadow-sm shadow-sky-100"
+              className="rounded-2xl border border-sky-100 bg-white/20 p-6 shadow-sm shadow-sky-100/50 backdrop-blur-md"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-900">

@@ -19,17 +19,8 @@ export function Navbar() {
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 text-white">
         <Link href="/" className="group flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-sky-400/80 to-blue-700/80 text-lg font-extrabold text-white shadow-lg shadow-sky-900/40">
-            F
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-xs uppercase tracking-[0.22em] text-sky-100/80">
-              Fish Your Style
-            </span>
-            <span className="text-lg font-semibold text-white">
-              Sea-Inspired Wear
-            </span>
-          </div>
+          
+        
         </Link>
 
         <nav className="hidden items-center gap-2 text-sm font-medium text-sky-100 md:flex">
