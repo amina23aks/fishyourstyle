@@ -55,17 +55,15 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 text-white">
         <Link href="/" className="group flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-white/20 bg-white/5 shadow-inner shadow-white/10">
-            <model-viewer
-              src="/logo-3d.glb"
-              loading="lazy"
-              camera-controls
-              disable-zoom
-              shadow-intensity="1"
-              className="h-20 w-20"
-              aria-label="Fish Your Style 3D logo"
-            />
-          </div>
+          <model-viewer
+            src="/logo-3d.glb"
+            loading="lazy"
+            camera-controls
+            disable-zoom
+            shadow-intensity="1"
+            className="h-16 w-16"
+            aria-label="Fish Your Style 3D logo"
+          />
           <div className="leading-tight">
             <p className="text-base font-semibold text-white">Fish Your Style</p>
             <span className="text-xs text-sky-100">Sea streetwear</span>
