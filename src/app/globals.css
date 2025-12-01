@@ -75,6 +75,29 @@ body {
   background: rgba(255, 255, 255, 0.85);
   animation: bubbleDrift linear infinite;
 }
+
+@keyframes heroBubbleUp {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-80px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.hero-bubble {
+  position: absolute;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 9999px;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+  animation: heroBubbleUp ease-in infinite;
+}
 @keyframes rod-swing {
   0% {
     transform: rotate(-4deg);

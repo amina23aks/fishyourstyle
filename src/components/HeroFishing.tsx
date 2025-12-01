@@ -2,11 +2,19 @@ import Image from "next/image";
 import Link from "next/link";
 
 export default function HeroFishing() {
+  const heroBubbles = [
+    { size: 10, left: "48%", delay: "0s", duration: "8s" },
+    { size: 8, left: "42%", delay: "2s", duration: "9s" },
+    { size: 12, left: "55%", delay: "1s", duration: "10s" },
+    { size: 6, left: "58%", delay: "3s", duration: "7s" },
+    { size: 9, left: "46%", delay: "4s", duration: "9s" },
+  ];
+
   return (
     <section className="relative overflow-hidden">
-      <div className="absolute inset-x-[-8%] bottom-[-20px] h-40 opacity-90" aria-hidden>
+      <div className="absolute inset-x-[-8%] bottom-[-12px] h-32 opacity-90" aria-hidden>
         <svg
-          className="absolute bottom-0 left-0 w-[200%] animate-wave"
+          className="absolute bottom-0 left-0 w-[200%] animate-wave origin-bottom scale-y-[0.7]"
           viewBox="0 0 1440 320"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -23,7 +31,7 @@ export default function HeroFishing() {
           </defs>
         </svg>
         <svg
-          className="absolute bottom-2 left-0 w-[200%] animate-wave-slower"
+          className="absolute bottom-2 left-0 w-[200%] animate-wave-slower origin-bottom scale-y-[0.7]"
           viewBox="0 0 1440 320"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -39,10 +47,25 @@ export default function HeroFishing() {
             </linearGradient>
           </defs>
         </svg>
+        <div className="pointer-events-none absolute inset-x-10 bottom-6 h-20 overflow-hidden">
+          {heroBubbles.map((bubble, index) => (
+            <span
+              key={index}
+              className="hero-bubble"
+              style={{
+                width: `${bubble.size}px`,
+                height: `${bubble.size}px`,
+                left: bubble.left,
+                animationDelay: bubble.delay,
+                animationDuration: bubble.duration,
+              }}
+            />
+          ))}
+        </div>
       </div>
       <div className="relative px-6 pb-24 pt-16 sm:px-10 lg:px-16">
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
-          <div className="relative order-2 w-full space-y-5 text-left text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.32)] lg:order-1 lg:max-w-xl lg:space-y-6">
+          <div className="relative order-2 w-full space-y-5 text-left text-white lg:order-1 lg:max-w-xl lg:space-y-6">
             <p className="text-xs uppercase tracking-[0.32em] text-sky-100">Premium drop</p>
             <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">Fish Your Style</h1>
             <p className="text-lg text-sky-50/90">
