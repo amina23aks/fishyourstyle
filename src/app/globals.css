@@ -58,7 +58,7 @@ body {
 }
 
 .ocean-bg {
-  background-image: linear-gradient(135deg, #4091c3 0%, #589ed4 50%, #020617 100%);
+  background-image: linear-gradient(to bottom, #cce8ff 0%, #82c2f2 35%, #0a325a 100%);
   background-size: 140% 140%;
   animation: oceanShift 20s ease-in-out infinite alternate;
 }
