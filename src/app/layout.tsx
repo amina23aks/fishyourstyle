@@ -46,7 +46,7 @@ export default function RootLayout({
       >
         <OceanBackdrop />
         <Navbar />
-        <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        <main className="relative z-10 flex w-full flex-1 flex-col">
           {children}
         </main>
         <Footer />
