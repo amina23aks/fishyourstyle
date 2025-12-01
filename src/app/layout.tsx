@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import OceanBackdrop from "@/components/OceanBackdrop";
@@ -33,6 +34,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
+          type="module"
+          strategy="afterInteractive"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ocean-page min-h-screen antialiased`}
       >

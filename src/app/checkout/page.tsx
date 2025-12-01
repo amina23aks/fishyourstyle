@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import CheckoutForm from "@/components/CheckoutForm";
 
 export const metadata: Metadata = {
   title: "Checkout | Fish Your Style",
@@ -12,13 +13,13 @@ export default function CheckoutPage() {
         <p className="text-sm uppercase tracking-[0.28em] text-sky-700">Checkout</p>
         <h1 className="text-3xl font-semibold text-slate-900">Secure checkout</h1>
         <p className="max-w-2xl text-slate-600">
-          This page will host the form for customer info, shipping, and order
-          totals. We will connect it to Firestore orders after the cart system is
-          live.
+          Capture customer details and a quick order summary. When you place an
+          order, we save it locally and route you to the order history page.
         </p>
       </div>
-      <div className="rounded-2xl border border-dashed border-sky-200 bg-white/60 p-6 text-slate-600">
-        <p>🧾 Form fields, validation, and order submission plug in here.</p>
+
+      <div className="rounded-3xl border border-sky-100 bg-white/70 p-6 shadow-lg shadow-sky-100/60">
+        <CheckoutForm />
       </div>
     </section>
   );
