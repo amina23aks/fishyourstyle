@@ -44,7 +44,7 @@ export default function HeroFishing() {
   }, []);
 
   return (
-    <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-b from-sky-200 via-sky-600 to-sky-950 shadow-2xl shadow-sky-900/30">
+    <section className="relative overflow-hidden bg-gradient-to-b from-sky-200/60 via-sky-700/70 to-sky-950 shadow-2xl shadow-sky-900/30">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.4),transparent_36%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.32),transparent_32%),radial-gradient(circle_at_50%_60%,rgba(255,255,255,0.2),transparent_34%)]" />
       <div className="absolute inset-0 opacity-60 mix-blend-screen" aria-hidden>
         {particles.map((bubble) => (
@@ -62,16 +62,37 @@ export default function HeroFishing() {
         ))}
       </div>
 
-      <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-16 md:grid-cols-2 md:px-10 lg:px-14">
-        <div
-          ref={illustrationRef}
-          className="relative h-[420px] overflow-hidden rounded-3xl bg-gradient-to-b from-sky-100/30 via-sky-300/10 to-sky-900/30 backdrop-blur"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.2),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.08),transparent_30%,rgba(255,255,255,0.1))]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_90%,rgba(56,189,248,0.16),transparent_40%)]" />
+      <div className="relative mx-auto flex max-w-6xl flex-col-reverse items-center gap-12 px-6 py-16 md:flex-row md:items-center md:justify-between md:px-10 lg:px-14">
+        <div className="relative z-10 w-full space-y-5 text-right text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.28)] md:max-w-lg md:space-y-6">
+          <p className="text-xs uppercase tracking-[0.32em] text-sky-200">Premium drop</p>
+          <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">Fish Your Style</h1>
+          <p className="text-lg text-sky-100/90">
+            Luxury streetwear inspired by the deep sea. A cat, a boat, and a glowing hook that follows your cursor with playful
+            eyes.
+          </p>
+          <div className="flex flex-wrap justify-end gap-3 pt-2 text-sm text-sky-100">
+            <span className="rounded-full bg-white/15 px-4 py-2 backdrop-blur">Sky → ocean gradient</span>
+            <span className="rounded-full bg-white/15 px-4 py-2 backdrop-blur">Floating boat + rod swing</span>
+            <span className="rounded-full bg-white/15 px-4 py-2 backdrop-blur">Mouse-tracking eyes</span>
+          </div>
+          <div className="flex flex-wrap justify-end gap-4 pt-4">
+            <Link
+              href="/shop"
+              className="rounded-xl bg-white/20 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/30"
+            >
+              Shop Now
+            </Link>
+            <Link
+              href="/custom"
+              className="rounded-xl border border-white/30 px-6 py-3 text-sm font-semibold text-white/90 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"
+            >
+              Custom Hoodie
+            </Link>
+          </div>
+        </div>
 
-          <div className="float-slow relative h-full w-full">
+        <div ref={illustrationRef} className="relative h-[360px] w-full max-w-2xl md:h-[480px]">
+          <div className="absolute inset-0 float-slow">
             <Image
               src="/hero/cat_base.png"
               alt="Cat on a wooden boat"
@@ -93,7 +114,7 @@ export default function HeroFishing() {
               alt="Hook glow"
               width={180}
               height={180}
-              className="pointer-events-none absolute -left-6 bottom-10 animate-pulse opacity-90"
+              className="pointer-events-none absolute left-[6%] bottom-[14%] animate-pulse opacity-90"
             />
 
             <Image
@@ -102,7 +123,7 @@ export default function HeroFishing() {
               alt="Left eye"
               width={72}
               height={72}
-              className="absolute left-[320px] top-[200px] transition-transform duration-150 ease-out will-change-transform"
+              className="absolute left-[55%] top-[42%] w-[11%] max-w-[82px] transition-transform duration-150 ease-out will-change-transform"
             />
 
             <Image
@@ -111,37 +132,10 @@ export default function HeroFishing() {
               alt="Right eye"
               width={72}
               height={72}
-              className="absolute left-[410px] top-[200px] transition-transform duration-150 ease-out will-change-transform"
+              className="absolute left-[65%] top-[42%] w-[11%] max-w-[82px] transition-transform duration-150 ease-out will-change-transform"
             />
 
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-sky-950/50 via-sky-900/20 to-transparent" />
-          </div>
-        </div>
-
-        <div className="relative z-10 space-y-5 text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-          <p className="text-xs uppercase tracking-[0.32em] text-sky-200">Premium drop</p>
-          <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">Fish Your Style</h1>
-          <p className="text-lg text-sky-100/90">
-            Luxury streetwear inspired by the deep sea. A cat, a boat, and a glowing hook that follows your cursor with playful eyes.
-          </p>
-          <div className="flex flex-wrap gap-3 pt-2 text-sm text-sky-100">
-            <span className="rounded-full bg-white/15 px-4 py-2 backdrop-blur">Sky → ocean gradient</span>
-            <span className="rounded-full bg-white/15 px-4 py-2 backdrop-blur">Floating boat + rod swing</span>
-            <span className="rounded-full bg-white/15 px-4 py-2 backdrop-blur">Mouse-tracking eyes</span>
-          </div>
-          <div className="flex flex-wrap gap-4 pt-4">
-            <Link
-              href="/shop"
-              className="rounded-xl bg-white/20 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/30"
-            >
-              Shop Now
-            </Link>
-            <Link
-              href="/custom"
-              className="rounded-xl border border-white/30 px-6 py-3 text-sm font-semibold text-white/90 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"
-            >
-              Custom Hoodie
-            </Link>
           </div>
         </div>
       </div>
