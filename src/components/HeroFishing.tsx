@@ -39,8 +39,8 @@ export default function HeroFishing() {
             />
             <defs>
               <linearGradient id="waveGradient1" x1="0" x2="0" y1="0" y2="1">
-                <stop stopColor="#5bb5f7" stopOpacity="0.9" />
-                <stop offset="1" stopColor="#1b5da6" stopOpacity="0.75" />
+                <stop stopColor="#8bd3ff" stopOpacity="0.95" />
+                <stop offset="1" stopColor="#3f92e2" stopOpacity="0.8" />
               </linearGradient>
             </defs>
           </svg>
@@ -56,8 +56,8 @@ export default function HeroFishing() {
             />
             <defs>
               <linearGradient id="waveGradient2" x1="0" x2="0" y1="0" y2="1">
-                <stop stopColor="#3c8fe0" stopOpacity="0.85" />
-                <stop offset="1" stopColor="#0f3b7a" stopOpacity="0.8" />
+                <stop stopColor="#66b2f2" stopOpacity="0.9" />
+                <stop offset="1" stopColor="#2c6fb9" stopOpacity="0.82" />
               </linearGradient>
             </defs>
           </svg>
