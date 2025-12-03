@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 
 import { useCart, type CartItem } from "@/context/cart";
-import { motion } from "@/lib/motion";
+import { AnimatePresence, motion } from "@/lib/motion";
 
 type CartDrawerProps = {
   open: boolean;
@@ -26,6 +27,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     wilaya: "",
     address: "",
   });
+  const [mounted, setMounted] = useState(false);
 
   const hasItems = items.length > 0;
 
@@ -58,9 +60,20 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   };
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (!open) {
-      setTimeout(() => setShowCheckout(false), 200);
+      const timer = window.setTimeout(() => setShowCheckout(false), 200);
+      return () => window.clearTimeout(timer);
     }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, [open]);
 
   const summaryLines = useMemo(
@@ -72,222 +85,234 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     [totals.subtotal],
   );
 
-  return (
-    <div
-      className={`fixed inset-0 z-50 transition ${
-        open ? "pointer-events-auto" : "pointer-events-none"
-      }`}
-      aria-hidden={!open}
-    >
-      <div
-        onClick={onClose}
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-          open ? "opacity-100" : "opacity-0"
-        }`}
-      />
+  if (!mounted) return null;
 
-      <motion.section
-        role="dialog"
-        aria-modal="true"
-        aria-label="Shopping cart"
-        className={`ml-auto flex h-full w-full max-w-md flex-col border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] transition-[transform,opacity] duration-300 ${
-          open ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
-        }`}
-      >
-        <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Cart</p>
-            <h2 className="text-lg font-semibold text-white">Your cart</h2>
-          </div>
-          <button
+  return createPortal(
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[70]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.button
             type="button"
+            aria-label="Close cart"
             onClick={onClose}
-            className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-sky-50 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-          >
-            Close
-          </button>
-        </header>
+            className="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
 
-        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            {!hasItems ? (
-              <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-                <p className="text-sm text-sky-100">Your cart is empty.</p>
-                <Link
-                  href="/shop"
-                  onClick={onClose}
-                  className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                >
-                  Back to shop
-                </Link>
+          <motion.section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping cart"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 280, damping: 28 }}
+            className="ml-auto flex h-full w-full max-w-md min-w-[320px] flex-col border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+          >
+            <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Cart</p>
+                <h2 className="text-lg font-semibold text-white">Your cart</h2>
               </div>
-            ) : (
-              <ul className="space-y-3">
-                {items.map((item) => (
-                  <li
-                    key={item.variantKey}
-                    className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-black/30"
-                  >
-                    <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-white/10">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        sizes="80px"
-                        className="object-cover"
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-sky-50 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              >
+                Close
+              </button>
+            </header>
+
+            <div className="flex flex-1 flex-col gap-4 overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                {!hasItems ? (
+                  <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+                    <p className="text-sm text-sky-100">Your cart is empty.</p>
+                    <Link
+                      href="/shop"
+                      onClick={onClose}
+                      className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                    >
+                      Back to shop
+                    </Link>
+                  </div>
+                ) : (
+                  <ul className="space-y-3">
+                    {items.map((item) => (
+                      <li
+                        key={item.variantKey}
+                        className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-black/30"
+                      >
+                        <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-white/10">
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex flex-1 flex-col gap-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold text-white line-clamp-2">{item.name}</p>
+                              <p className="text-xs text-sky-200">{item.colorName} · {item.size}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeItem(item.id, item.variantKey)}
+                              className="text-xs text-sky-300 underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:underline"
+                            >
+                              Remove
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm text-white">
+                            <div className="flex items-center gap-2">
+                              <motion.button
+                                type="button"
+                                onClick={() => handleDecrease(item)}
+                                whileTap={{ scale: 0.9 }}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                aria-label="Decrease quantity"
+                              >
+                                −
+                              </motion.button>
+                              <span className="min-w-[24px] text-center tabular-nums">{item.quantity}</span>
+                              <motion.button
+                                type="button"
+                                onClick={() => handleIncrease(item)}
+                                whileTap={{ scale: 0.9 }}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                aria-label="Increase quantity"
+                              >
+                                +
+                              </motion.button>
+                            </div>
+                            <div className="text-sm font-semibold">{formatCurrency(item.price * item.quantity)}</div>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="space-y-4 border-t border-white/10 bg-white/5 px-6 py-4 shadow-inner shadow-black/30">
+                <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-sky-200">
+                  <span>{totalQuantity} item{totalQuantity === 1 ? "" : "s"}</span>
+                  <span>Total</span>
+                </div>
+                <div className="space-y-1 rounded-xl border border-white/10 bg-slate-950/60 p-4">
+                  {summaryLines.map((line) => (
+                    <div
+                      key={line.label}
+                      className="flex items-center justify-between text-sm text-sky-100"
+                    >
+                      <span>{line.label}</span>
+                      <span className="tabular-nums text-white">{line.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {hasItems && (
+                  <div className="space-y-3">
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setShowCheckout((previous) => !previous)}
+                      className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                    >
+                      {showCheckout ? "Hide quick checkout" : "Checkout"}
+                    </motion.button>
+                    <Link
+                      href="/checkout"
+                      onClick={onClose}
+                      className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                    >
+                      Go to checkout page
+                    </Link>
+                  </div>
+                )}
+
+                {hasItems && showCheckout && (
+                  <form className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4" onSubmit={handleSubmit}>
+                    <div className="flex items-center justify-between text-sm font-semibold text-white">
+                      <span>Quick delivery info</span>
+                      <span className="text-xs text-sky-200">COD</span>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs text-sky-100" htmlFor="drawer-full-name">
+                        Full name<span className="text-rose-200"> *</span>
+                      </label>
+                      <input
+                        id="drawer-full-name"
+                        value={form.fullName}
+                        onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))}
+                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        required
                       />
                     </div>
-                    <div className="flex flex-1 flex-col gap-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-white line-clamp-2">{item.name}</p>
-                          <p className="text-xs text-sky-200">{item.colorName} · {item.size}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.id, item.variantKey)}
-                          className="text-xs text-sky-300 underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:underline"
-                        >
-                          Remove
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm text-white">
-                        <div className="flex items-center gap-2">
-                          <motion.button
-                            type="button"
-                            onClick={() => handleDecrease(item)}
-                            whileTap={{ scale: 0.9 }}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                            aria-label="Decrease quantity"
-                          >
-                            −
-                          </motion.button>
-                          <span className="min-w-[24px] text-center tabular-nums">{item.quantity}</span>
-                          <motion.button
-                            type="button"
-                            onClick={() => handleIncrease(item)}
-                            whileTap={{ scale: 0.9 }}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                            aria-label="Increase quantity"
-                          >
-                            +
-                          </motion.button>
-                        </div>
-                        <div className="text-sm font-semibold">{formatCurrency(item.price * item.quantity)}</div>
-                      </div>
+                    <div className="space-y-2">
+                      <label className="text-xs text-sky-100" htmlFor="drawer-phone">
+                        Phone<span className="text-rose-200"> *</span>
+                      </label>
+                      <input
+                        id="drawer-phone"
+                        type="tel"
+                        value={form.phone}
+                        onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        required
+                      />
                     </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="space-y-4 border-t border-white/10 bg-white/5 px-6 py-4 shadow-inner shadow-black/30">
-            <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-sky-200">
-              <span>{totalQuantity} item{totalQuantity === 1 ? "" : "s"}</span>
-              <span>Total</span>
-            </div>
-            <div className="space-y-1 rounded-xl border border-white/10 bg-slate-950/60 p-4">
-              {summaryLines.map((line) => (
-                <div
-                  key={line.label}
-                  className="flex items-center justify-between text-sm text-sky-100"
-                >
-                  <span>{line.label}</span>
-                  <span className="tabular-nums text-white">{line.value}</span>
-                </div>
-              ))}
-            </div>
-
-            {hasItems && (
-              <div className="space-y-3">
-                <motion.button
-                  type="button"
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setShowCheckout((previous) => !previous)}
-                  className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                >
-                  {showCheckout ? "Hide quick checkout" : "Checkout"}
-                </motion.button>
-                <Link
-                  href="/checkout"
-                  onClick={onClose}
-                  className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                >
-                  Go to checkout page
-                </Link>
+                    <div className="space-y-2">
+                      <label className="text-xs text-sky-100" htmlFor="drawer-wilaya">
+                        Wilaya<span className="text-rose-200"> *</span>
+                      </label>
+                      <input
+                        id="drawer-wilaya"
+                        value={form.wilaya}
+                        onChange={(event) => setForm((prev) => ({ ...prev, wilaya: event.target.value }))}
+                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs text-sky-100" htmlFor="drawer-address">
+                        Address<span className="text-rose-200"> *</span>
+                      </label>
+                      <textarea
+                        id="drawer-address"
+                        value={form.address}
+                        onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))}
+                        className="min-h-[72px] w-full resize-none rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        required
+                      />
+                    </div>
+                    <motion.button
+                      type="submit"
+                      disabled={isSubmitting}
+                      whileTap={{ scale: 0.97 }}
+                      className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-sky-100 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSubmitting ? "Submitting..." : "Confirm order"}
+                    </motion.button>
+                  </form>
+                )}
               </div>
-            )}
-
-            {hasItems && showCheckout && (
-              <form className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4" onSubmit={handleSubmit}>
-                <div className="flex items-center justify-between text-sm font-semibold text-white">
-                  <span>Quick delivery info</span>
-                  <span className="text-xs text-sky-200">COD</span>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-sky-100" htmlFor="drawer-full-name">
-                    Full name<span className="text-rose-200"> *</span>
-                  </label>
-                  <input
-                    id="drawer-full-name"
-                    value={form.fullName}
-                    onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))}
-                    className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-sky-100" htmlFor="drawer-phone">
-                    Phone<span className="text-rose-200"> *</span>
-                  </label>
-                  <input
-                    id="drawer-phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
-                    className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-sky-100" htmlFor="drawer-wilaya">
-                    Wilaya<span className="text-rose-200"> *</span>
-                  </label>
-                  <input
-                    id="drawer-wilaya"
-                    value={form.wilaya}
-                    onChange={(event) => setForm((prev) => ({ ...prev, wilaya: event.target.value }))}
-                    className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-sky-100" htmlFor="drawer-address">
-                    Address<span className="text-rose-200"> *</span>
-                  </label>
-                  <textarea
-                    id="drawer-address"
-                    value={form.address}
-                    onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))}
-                    className="min-h-[72px] w-full resize-none rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                    required
-                  />
-                </div>
-                <motion.button
-                  type="submit"
-                  disabled={isSubmitting}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-sky-100 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmitting ? "Submitting..." : "Confirm order"}
-                </motion.button>
-              </form>
-            )}
-          </div>
-        </div>
-      </motion.section>
-    </div>
+            </div>
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
   );
 }
