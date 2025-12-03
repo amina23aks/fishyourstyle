@@ -1,3 +1,7 @@
+"use client";
+
+import { motion } from "@/lib/motion";
+
 import { getAllProducts } from "@/lib/products";
 import { ProductCard } from "./product-card";
 
@@ -5,7 +9,7 @@ export default function ShopPage() {
   const products = getAllProducts();
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-12">
+    <main className="mx-auto max-w-6xl px-4 py-12 overscroll-y-contain">
       <div className="mb-10 flex items-center justify-between">
         <div>
           <p className="text-sm text-neutral-400 uppercase tracking-[0.25em]">
@@ -20,11 +24,30 @@ export default function ShopPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: {
+            transition: { staggerChildren: 0.08 },
+          },
+        }}
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      >
         {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <motion.div
+            key={product.id}
+            variants={{
+              hidden: { opacity: 0, scale: 0.97, y: 12 },
+              visible: { opacity: 1, scale: 1, y: 0 },
+            }}
+            transition={{ duration: 0.35, easing: "ease" }}
+          >
+            <ProductCard product={product} />
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </main>
   );
 }
