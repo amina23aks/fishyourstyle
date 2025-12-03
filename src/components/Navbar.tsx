@@ -112,7 +112,10 @@ export function Navbar() {
           <motion.button
             type="button"
             onClick={toggleDrawer}
-            animate={{ scale: isBumping ? 1.08 : 1, rotate: isBumping ? -2 : 0 }}
+            animate={{
+              scale: isBumping ? 1.08 : 1,
+              rotate: isBumping ? "-2deg" : "0deg",
+            }}
             whileTap={{ scale: 0.95 }}
             className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             aria-label="Cart"
