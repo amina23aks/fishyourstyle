@@ -1,19 +1,5 @@
-import Image from "next/image";
-import Link from "next/link";
-
 import { getAllProducts } from "@/lib/products";
-import { ProductCategory } from "@/types/product";
-
-const categoryLabels: Record<ProductCategory, string> = {
-  hoodies: "Hoodie",
-  pants: "Pantalon",
-  tshirts: "Tshirt",
-  sweatshirts: "Sweatshirt",
-  ensembles: "Ensemble",
-};
-
-const formatPrice = (value: number) =>
-  `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
+import { ProductCard } from "./product-card";
 
 export default function ShopPage() {
   const products = getAllProducts();
@@ -36,76 +22,7 @@ export default function ShopPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {products.map((product) => (
-          <Link
-            href={`/product/${product.slug}`}
-            key={product.id}
-            className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black shadow-xl shadow-black/30 transition-transform duration-200 hover:-translate-y-1"
-          >
-            <div className="relative aspect-[3/4] w-full overflow-hidden">
-              <Image
-                src={product.images.main}
-                alt={product.nameFr}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                priority={false}
-              />
-
-              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
-
-              <div className="absolute inset-x-4 top-4 flex items-center justify-between text-xs font-semibold text-white">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] uppercase tracking-wide text-black shadow-sm shadow-black/10">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Back in stock
-                </span>
-                <span className="rounded-full bg-black/30 px-2.5 py-1 text-white/80 backdrop-blur">
-                  ★
-                </span>
-              </div>
-
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-4 pb-4 text-white/90">
-                <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] uppercase tracking-wide">
-                  {categoryLabels[product.category]}
-                </span>
-                <span className="text-xs text-white/70">{product.kind}</span>
-              </div>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-white line-clamp-2">
-                  {product.nameFr}
-                </h2>
-                <p className="text-sm text-neutral-400">{product.fit}</p>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <p className="text-xl font-semibold text-white">
-                  {formatPrice(product.priceDzd)}
-                </p>
-                {product.colors.length > 0 && (
-                  <div className="flex items-center gap-3 text-xs text-neutral-200">
-                    {product.colors.map((color) => (
-                      <span key={color.id} className="flex items-center gap-2">
-                        <span
-                          className="h-3.5 w-3.5 rounded-full border border-white/30 bg-white/80 shadow-inner"
-                          style={{
-                            backgroundImage: `url(${color.image})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }}
-                          aria-hidden
-                        />
-                        <span className="text-[11px] text-neutral-200">
-                          {color.labelFr}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </Link>
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </main>
