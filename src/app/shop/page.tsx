@@ -12,7 +12,7 @@ export default function ShopPage() {
             Boutique
           </p>
           <h1 className="text-4xl font-semibold text-white mt-2">
-            Découvrez notre sélection
+            Découvrezc tydvstdda notre sélection
           </h1>
           <p className="text-neutral-400 mt-3 text-sm">
             Une grille élégante inspirée des vitrines minimalistes.
