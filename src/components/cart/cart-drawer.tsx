@@ -91,7 +91,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[70]"
+          className="fixed inset-0 z-[70] flex justify-end"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -100,7 +100,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             type="button"
             aria-label="Close cart"
             onClick={onClose}
-            className="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 z-0 h-full w-full bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -114,7 +114,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
-            className="ml-auto flex h-full w-full max-w-md min-w-[320px] flex-col border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+            className="relative z-10 ml-auto flex h-full w-full max-w-md min-w-[320px] flex-col border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
           >
             <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <div>
