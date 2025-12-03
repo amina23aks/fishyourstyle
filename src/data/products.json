@@ -1,0 +1,394 @@
+[
+  {
+    "id": "balaclava-hoodie-regular",
+    "slug": "balaclava-hoodie-regular",
+    "nameFr": "Balaclava Hoodie Regular",
+    "nameAr": "هودي بلاكالافا (قَصّة عادية)",
+    "category": "hoodies",
+    "kind": "hoodie",
+    "fit": "regular",
+    "priceDzd": 3200,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["M", "L", "XL"],
+    "colors": [
+      {
+        "id": "black",
+        "labelFr": "Noir",
+        "labelAr": "أسود",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693004/Balaclava-Hoodie-Regular_man_zyefmu.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693001/Balaclava-Hoodie-Regular_zcrid3.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693001/Balaclava-Hoodie-Regular_zcrid3.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693004/Balaclava-Hoodie-Regular_man_zyefmu.avif"
+      ]
+    },
+    "descriptionFr": "Hoodie regular avec capuche balaclava intégrée, parfait pour un style streetwear unisexe.",
+    "descriptionAr": "هودي بقَصّة عادية مع بلاكالافا مدمجة، ستايل ستريت وير unisex ومريح.",
+    "status": "active"
+  },
+  {
+    "id": "hoodie-oversized",
+    "slug": "hoodie-oversized",
+    "nameFr": "Hoodie OverSized",
+    "nameAr": "هودي أفرسايز",
+    "category": "hoodies",
+    "kind": "hoodie",
+    "fit": "oversized",
+    "priceDzd": 2800,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "colors": [
+      {
+        "id": "grey",
+        "labelFr": "Gris",
+        "labelAr": "رمادي",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693034/Hoodie-OverSized_gris_bcqjzr.avif"
+      },
+      {
+        "id": "blue",
+        "labelFr": "Bleu",
+        "labelAr": "أزرق",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693033/Hoodie-OverSized_bleu_fsbygj.avif"
+      },
+      {
+        "id": "white",
+        "labelFr": "Blanc",
+        "labelAr": "أبيض",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693032/Hoodie-OverSized_white_dakkkk.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693033/Hoodie-OverSized_bleu_fsbygj.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693034/Hoodie-OverSized_gris_bcqjzr.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693033/Hoodie-OverSized_bleu_fsbygj.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693032/Hoodie-OverSized_white_dakkkk.avif"
+      ]
+    },
+    "descriptionFr": "Hoodie coupe oversize, tissu doux et confortable, parfait pour le layering streetwear.",
+    "descriptionAr": "هودي بقَصّة أفرسايز، قماش ناعم ومريح مثالي للـ streetwear والـ layering.",
+    "status": "active"
+  },
+  {
+    "id": "hoodie-regular",
+    "slug": "hoodie-regular",
+    "nameFr": "Hoodie Regular",
+    "nameAr": "هودي ريغيلار",
+    "category": "hoodies",
+    "kind": "hoodie",
+    "fit": "regular",
+    "priceDzd": 2500,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL"],
+    "colors": [
+      {
+        "id": "grey",
+        "labelFr": "Gris",
+        "labelAr": "رمادي",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693077/Hoodie-Regular_gris_nh4xhd.avif"
+      },
+      {
+        "id": "black",
+        "labelFr": "Noir",
+        "labelAr": "أسود",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693060/Hoodie-Regular_Black_xfemmv.avif"
+      },
+      {
+        "id": "white",
+        "labelFr": "Blanc",
+        "labelAr": "أبيض",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693057/Hoodie-Regular_White_k5zna7.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693060/Hoodie-Regular_Black_xfemmv.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693077/Hoodie-Regular_gris_nh4xhd.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693060/Hoodie-Regular_Black_xfemmv.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693057/Hoodie-Regular_White_k5zna7.avif"
+      ]
+    },
+    "descriptionFr": "Hoodie regular, coupe classique et clean pour tous les jours.",
+    "descriptionAr": "هودي بقَصّة عادية كلاسيكية، نظيف ومناسب لكل يوم.",
+    "status": "active"
+  },
+  {
+    "id": "baggy-jogger-oversized",
+    "slug": "baggy-jogger-oversized",
+    "nameFr": "Baggy Jogger OverSized",
+    "nameAr": "سروال باڨي جوقر أفرسايز",
+    "category": "pants",
+    "kind": "pants",
+    "fit": "oversized",
+    "priceDzd": 2200,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "colors": [
+      {
+        "id": "beige",
+        "labelFr": "Beige",
+        "labelAr": "بيج",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764690680/Baggy-Jogger-OverSized_rgao3t.png"
+      },
+      {
+        "id": "black",
+        "labelFr": "Noir",
+        "labelAr": "أسود",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764690678/Baggy-Jogger-OverSized_black_byvvai.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764690680/Baggy-Jogger-OverSized_rgao3t.png",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764690680/Baggy-Jogger-OverSized_rgao3t.png",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764690678/Baggy-Jogger-OverSized_black_byvvai.avif"
+      ]
+    },
+    "descriptionFr": "Pantalon baggy jogger oversize 100% coton, ultra confortable.",
+    "descriptionAr": "سروال باڨي جوقر أفرسايز 100٪ قطن، مريح جدًا للبس اليومي.",
+    "status": "active"
+  },
+  {
+    "id": "pantalon-jogging-oversized",
+    "slug": "pantalon-jogging-oversized",
+    "nameFr": "Pantalon Jogging OverSized",
+    "nameAr": "سروال جوقينغ أفرسايز",
+    "category": "pants",
+    "kind": "pants",
+    "fit": "oversized",
+    "priceDzd": 2000,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "colors": [
+      {
+        "id": "black",
+        "labelFr": "Noir",
+        "labelAr": "أسود",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693451/Pantalon-Jogging-OverSized_black_ud0lzz.avif"
+      },
+      {
+        "id": "grey",
+        "labelFr": "Gris",
+        "labelAr": "رمادي",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693450/Pantalon-Jogging-OverSized_gris_oycopk.png"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693451/Pantalon-Jogging-OverSized_black_ud0lzz.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693451/Pantalon-Jogging-OverSized_black_ud0lzz.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693450/Pantalon-Jogging-OverSized_gris_oycopk.png"
+      ]
+    },
+    "descriptionFr": "Jogging oversize confortable, parfait pour le chill ou la sortie.",
+    "descriptionAr": "سروال جوقينغ أفرسايز، مريح سواء للدار أو للخروج.",
+    "status": "active"
+  },
+  {
+    "id": "pantalon-openleg-regular",
+    "slug": "pantalon-openleg-regular",
+    "nameFr": "Pantalon Openleg Regular",
+    "nameAr": "سروال أوبن ليغ ريغيلار",
+    "category": "pants",
+    "kind": "pants",
+    "fit": "regular",
+    "priceDzd": 2200,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL"],
+    "colors": [
+      {
+        "id": "beige",
+        "labelFr": "Beige",
+        "labelAr": "بيج",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693470/Pantalon-Openleg-Regular_uesmzj.avif"
+      },
+      {
+        "id": "navy",
+        "labelFr": "Bleu marine",
+        "labelAr": "أزرق كحلي",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693465/Pontalon-Openleg-Regular_ll4zrf.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693470/Pantalon-Openleg-Regular_uesmzj.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693470/Pantalon-Openleg-Regular_uesmzj.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764693465/Pontalon-Openleg-Regular_ll4zrf.avif"
+      ]
+    },
+    "descriptionFr": "Pantalon regular jambes ouvertes, flow clean et moderne.",
+    "descriptionAr": "سروال بقَصّة عادية مع رجلين مفتوحتين، فلو نظيف وعصري.",
+    "status": "active"
+  },
+  {
+    "id": "sweatshirt-regular",
+    "slug": "sweatshirt-regular",
+    "nameFr": "SweatShirt Regular",
+    "nameAr": "سويت شيرت ريغيلار",
+    "category": "sweatshirts",
+    "kind": "sweatshirt",
+    "fit": "regular",
+    "priceDzd": 2600,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "colors": [
+      {
+        "id": "beige",
+        "labelFr": "Beige",
+        "labelAr": "بيج",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692789/SweatShirt-Regular_bage_xzupu7.avif"
+      },
+      {
+        "id": "black",
+        "labelFr": "Noir",
+        "labelAr": "أسود",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692787/SweatShirt-Regular_Noir_jonpza.avif"
+      },
+      {
+        "id": "grey",
+        "labelFr": "Gris",
+        "labelAr": "رمادي",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692786/SweatShirt-Regular_gris_zgr5or.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692787/SweatShirt-Regular_Noir_jonpza.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692789/SweatShirt-Regular_bage_xzupu7.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692787/SweatShirt-Regular_Noir_jonpza.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692786/SweatShirt-Regular_gris_zgr5or.avif"
+      ]
+    },
+    "descriptionFr": "Sweatshirt regular chaud et confortable, à porter seul ou en layering.",
+    "descriptionAr": "سويت شيرت ريغيلار دافي ومريح، تقدر تلبسو وحدو أو مع طبقات.",
+    "status": "active"
+  },
+  {
+    "id": "tshirt-oversized",
+    "slug": "tshirt-oversized",
+    "nameFr": "Tshirt OverSize",
+    "nameAr": "تيشرت أفرسايز",
+    "category": "tshirts",
+    "kind": "tshirt",
+    "fit": "oversized",
+    "priceDzd": 1600,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "colors": [
+      {
+        "id": "beige",
+        "labelFr": "Beige",
+        "labelAr": "بيج",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692879/Tshirt-OverSize_bage_gvqvo2.avif"
+      },
+      {
+        "id": "green",
+        "labelFr": "Vert",
+        "labelAr": "أخضر",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692877/Tshirt-OverSize_green_ojflpc.avif"
+      },
+      {
+        "id": "black",
+        "labelFr": "Noir",
+        "labelAr": "أسود",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692874/Tshirt-OverSize_Black_k9n9u6.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692879/Tshirt-OverSize_bage_gvqvo2.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692879/Tshirt-OverSize_bage_gvqvo2.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692877/Tshirt-OverSize_green_ojflpc.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764692874/Tshirt-OverSize_Black_k9n9u6.avif"
+      ]
+    },
+    "descriptionFr": "T-shirt oversize 100% coton, base parfaite pour toutes tes fit ideas.",
+    "descriptionAr": "تيشرت أفرسايز 100٪ قطن، قاعدة مثالية لأي outfit أو layering.",
+    "status": "active"
+  },
+  {
+    "id": "ensemble-simple-oversize",
+    "slug": "ensemble-simple-oversize",
+    "nameFr": "Ensemble OverSize Simple",
+    "nameAr": "طقم أفرسايز سيمبل",
+    "category": "ensembles",
+    "kind": "ensemble",
+    "fit": "oversized",
+    "priceDzd": 4800,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "colors": [
+      {
+        "id": "black",
+        "labelFr": "Noir",
+        "labelAr": "أسود",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710346/ensemble-simple-oversize_black_mcigma.avif"
+      },
+      {
+        "id": "grey",
+        "labelFr": "Gris",
+        "labelAr": "رمادي",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710346/ensemble-simple-oversize_gris_ivcnot.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710346/ensemble-simple-oversize_black_mcigma.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710346/ensemble-simple-oversize_black_mcigma.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710346/ensemble-simple-oversize_gris_ivcnot.avif"
+      ]
+    },
+    "descriptionFr": "Ensemble OverSize simple : hoodie + pantalon coordonnés, comfy et clean.",
+    "descriptionAr": "طقم أفرسايز سيمبل: هودي + بنطلون متناسقين، مريح وفلو نظيف.",
+    "status": "active"
+  },
+  {
+    "id": "ensemble-hoodie-regular-jogging-oversized",
+    "slug": "ensemble-hoodie-regular-jogging-oversized",
+    "nameFr": "Ensemble Hoodie Regular + Jogging OverSize",
+    "nameAr": "طقم هودي ريغيلار + جوقينغ أفرسايز",
+    "category": "ensembles",
+    "kind": "ensemble",
+    "fit": "mixed",
+    "priceDzd": 4600,
+    "currency": "DZD",
+    "gender": "unisex",
+    "sizes": ["S", "M", "L", "XL"],
+    "colors": [
+      {
+        "id": "black",
+        "labelFr": "Noir",
+        "labelAr": "أسود",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710373/ensemble-Hoodie-Regular-Pantalon-Jogging-OverSized_black_zbfemr.avif"
+      },
+      {
+        "id": "grey",
+        "labelFr": "Gris",
+        "labelAr": "رمادي",
+        "image": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710371/ensemble-Hoodie-Regular-Pantalon-Jogging-OverSized_gris_kiepy1.avif"
+      }
+    ],
+    "images": {
+      "main": "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710373/ensemble-Hoodie-Regular-Pantalon-Jogging-OverSized_black_zbfemr.avif",
+      "gallery": [
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710373/ensemble-Hoodie-Regular-Pantalon-Jogging-OverSized_black_zbfemr.avif",
+        "https://res.cloudinary.com/dpapsfabg/image/upload/v1764710371/ensemble-Hoodie-Regular-Pantalon-Jogging-OverSized_gris_kiepy1.avif"
+      ]
+    },
+    "descriptionFr": "Ensemble mix: hoodie regular + jogging oversize, équilibre parfait entre clean et comfy.",
+    "descriptionAr": "طقم ميكس: هودي ريغيلار + جوقينغ أفرسايز، توازن بين النظافة والراحة.",
+    "status": "active"
+  }
+]
