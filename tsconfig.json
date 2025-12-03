@@ -25,9 +25,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "framer-motion": [
-        "./src/lib/motion"
       ]
     }
   },

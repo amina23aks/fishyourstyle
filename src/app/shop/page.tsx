@@ -1,4 +1,6 @@
-import { motion } from "framer-motion";
+"use client";
+
+import { motion } from "@/lib/motion";
 
 import { getAllProducts } from "@/lib/products";
 import { ProductCard } from "./product-card";

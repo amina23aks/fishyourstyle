@@ -13,7 +13,7 @@ import {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "@/lib/motion";
 
 import { Product, ProductCategory, ProductColor } from "@/types/product";
 

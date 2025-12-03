@@ -11,7 +11,19 @@ import React, {
   useState,
 } from "react";
 
-type Variant = CSSProperties;
+type TransitionConfig = {
+  duration?: number;
+  easing?: string;
+  delayChildren?: number;
+  staggerChildren?: number;
+  staggerDirection?: 1 | -1;
+  when?: "beforeChildren" | "afterChildren";
+  [key: string]: unknown;
+};
+
+type Variant = Omit<CSSProperties, "transition"> & {
+  transition?: TransitionConfig;
+};
 type Variants = Record<string, Variant>;
 
 type AnimationProps = {
@@ -21,10 +33,7 @@ type AnimationProps = {
   whileHover?: Variant | keyof Variants;
   whileTap?: Variant | keyof Variants;
   variants?: Variants;
-  transition?: {
-    duration?: number;
-    easing?: string;
-  };
+  transition?: TransitionConfig;
 };
 
 type MotionProps<T extends ElementType> = PropsWithChildren<
@@ -39,12 +48,14 @@ const defaultTransition: Required<AnimationProps>["transition"] = {
 const resolveVariant = (
   variants: Variants | undefined,
   value: Variant | keyof Variants | undefined,
-): Variant | undefined => {
+): CSSProperties | undefined => {
   if (!value) return undefined;
-  if (typeof value === "string") {
-    return variants?.[value];
-  }
-  return value;
+  const resolved = typeof value === "string" ? variants?.[value] : value;
+  if (!resolved) return undefined;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { transition: _ignoredTransition, ...rest } = resolved;
+  return rest;
 };
 
 const mergeStyles = (
@@ -162,7 +173,11 @@ export const motion = {
   figure: createMotionComponent("figure"),
 };
 
-export const AnimatePresence: React.FC<PropsWithChildren> = ({ children }) => (
+type AnimatePresenceProps = PropsWithChildren<{
+  mode?: "sync" | "wait" | "popLayout";
+}>;
+
+export const AnimatePresence: React.FC<AnimatePresenceProps> = ({ children }) => (
   <>{children}</>
 );
 

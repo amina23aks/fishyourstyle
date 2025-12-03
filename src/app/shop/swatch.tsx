@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/motion";
 
 export type SwatchProps = {
   label: string;

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "@/lib/motion";
 
 import { Swatch } from "../swatch";
 import { Product, ProductColor } from "@/types/product";
