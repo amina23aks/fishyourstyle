@@ -85,16 +85,9 @@ export default function ShopPage() {
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       Back in stock
                     </span>
-                    <span className="rounded-full bg-black/30 px-2.5 py-1 text-white/80 backdrop-blur">
-                      ★
-                    </span>
-                  </div>
-
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-4 pb-4 text-white/90">
-                    <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] uppercase tracking-wide">
+                    <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] uppercase tracking-wide text-white/90 backdrop-blur">
                       {categoryLabels[product.category]}
                     </span>
-                    <span className="text-xs text-white/70">{product.kind}</span>
                   </div>
                 </div>
               );
@@ -113,14 +106,15 @@ export default function ShopPage() {
                   {formatPrice(product.priceDzd)}
                 </p>
                 {product.colors.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-200">
+                  <div className="flex items-center gap-2">
                     {product.colors.map((color) => (
                       <span
                         key={color.id}
-                        className="rounded-full bg-white/10 px-3 py-1 text-[11px]"
-                      >
-                        {color.labelFr}
-                      </span>
+                        className="h-7 w-7 rounded-full border border-white/40 bg-cover bg-center shadow-inner shadow-black/30"
+                        style={{ backgroundImage: `url(${color.image})` }}
+                        aria-label={color.labelFr}
+                        title={color.labelFr}
+                      />
                     ))}
                   </div>
                 )}
