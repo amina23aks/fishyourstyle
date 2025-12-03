@@ -3,6 +3,7 @@ import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import OceanBackdrop from "@/components/OceanBackdrop";
+import { CartProvider } from "@/context/cart";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,12 +32,14 @@ export default function RootLayout({
         />
       </head>
       <body className="ocean-page relative min-h-screen overflow-x-hidden antialiased font-sans">
-        <OceanBackdrop />
-        <Navbar />
-        <main className="relative z-10 flex w-full flex-1 flex-col">
-          {children}
-        </main>
-        <Footer />
+        <CartProvider>
+          <OceanBackdrop />
+          <Navbar />
+          <main className="relative z-10 flex w-full flex-1 flex-col">
+            {children}
+          </main>
+          <Footer />
+        </CartProvider>
       </body>
     </html>
   );
