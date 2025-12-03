@@ -15,6 +15,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "@/lib/motion";
 
+import { useCart } from "@/context/cart";
+
 import { Product, ProductCategory, ProductColor } from "@/types/product";
 
 const categoryLabels: Record<ProductCategory, string> = {
@@ -69,8 +71,12 @@ export type ProductCardProps = {
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const images = useMemo(() => buildImageList(product), [product]);
+  const { addItem } = useCart();
+  const defaultColor = product.colors[0];
+  const defaultSize = product.sizes[0] ?? "Taille unique";
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   const currentImage = images[activeIndex];
@@ -78,6 +84,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
   useEffect(() => {
     setActiveIndex(0);
+    setJustAdded(false);
   }, [product.id]);
 
   const handleNav = useCallback(
@@ -126,6 +133,44 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     touchStartX.current = null;
   };
 
+  const handleAddToCart = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const colorName = defaultColor?.labelFr ?? "Standard";
+      const colorCode = defaultColor?.id ?? "default";
+
+      addItem({
+        id: product.id,
+        slug: product.slug,
+        name: product.nameFr,
+        price: product.priceDzd,
+        currency: product.currency,
+        image: product.images.main,
+        colorName,
+        colorCode,
+        size: defaultSize,
+        quantity: 1,
+      });
+
+      setJustAdded(true);
+      window.setTimeout(() => setJustAdded(false), 1200);
+    },
+    [
+      addItem,
+      defaultColor?.id,
+      defaultColor?.labelFr,
+      defaultSize,
+      product.currency,
+      product.id,
+      product.images.main,
+      product.nameFr,
+      product.priceDzd,
+      product.slug,
+    ],
+  );
+
   if (loading) {
     return (
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
@@ -152,11 +197,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     <motion.article
       whileHover={{ transform: "translateY(-6px)" }}
       transition={{ duration: 0.25, easing: "ease" }}
-      className="relative h-full rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 via-white/0 to-white/5 shadow-[0_12px_45px_rgba(0,0,0,0.35)]"
+      className="relative flex h-full flex-col rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 via-white/0 to-white/5 shadow-[0_12px_45px_rgba(0,0,0,0.35)]"
     >
       <Link
         href={`/shop/${product.slug}`}
-        className="group relative flex h-full flex-col overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+        className="group relative flex flex-1 flex-col overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         aria-label={`Voir les détails du produit ${product.nameFr}`}
         onKeyDown={handleKeyNavigation}
         onTouchStart={handleTouchStart}
@@ -267,6 +312,23 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           </div>
         </div>
       </Link>
+
+      <div className="px-5 pb-5">
+        <motion.button
+          type="button"
+          onClick={handleAddToCart}
+          whileTap={{ scale: 0.97 }}
+          whileHover={{ transform: "translateY(-2px)" }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-inner shadow-black/30 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          aria-label="Add to cart"
+        >
+          <span className="tabular-nums">
+            {formatPrice(product.priceDzd)}
+          </span>
+          <span className="mx-1 text-white/40">·</span>
+          {justAdded ? "Added" : "Add to cart"}
+        </motion.button>
+      </div>
     </motion.article>
   );
 }

@@ -1,7 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import { useCart } from "@/context/cart";
+import { motion } from "@/lib/motion";
+
+import CartDrawer from "./cart/cart-drawer";
 
 const links = [
   { href: "/", label: "Home" },
@@ -49,9 +55,20 @@ function AccountIcon() {
 
 export function Navbar() {
   const pathname = usePathname();
+  const { totalQuantity, lastAddedAt } = useCart();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isBumping, setIsBumping] = useState(false);
+
+  useEffect(() => {
+    if (!lastAddedAt) return;
+    setIsBumping(true);
+    const timer = window.setTimeout(() => setIsBumping(false), 450);
+    return () => window.clearTimeout(timer);
+  }, [lastAddedAt]);
+
+  const toggleDrawer = () => setIsDrawerOpen((previous) => !previous);
 
   return (
-
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 text-white">
         <Link href="/" className="group flex items-center gap-3">
@@ -81,7 +98,7 @@ export function Navbar() {
                 href={link.href}
                 className={`rounded-full px-4 py-2 transition-colors duration-200 ${
                   active
-                   ? "bg-white/20 text-white shadow-inner shadow-white/10"
+                    ? "bg-white/20 text-white shadow-inner shadow-white/10"
                     : "hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -92,17 +109,25 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/cart"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 to-blue-700 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:translate-y-[-2px]"
+          <motion.button
+            type="button"
+            onClick={toggleDrawer}
+            animate={{ scale: isBumping ? 1.08 : 1, rotate: isBumping ? -2 : 0 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             aria-label="Cart"
           >
             <CartIcon />
-            <span className="sr-only">Cart</span>
-          </Link>
+            {totalQuantity > 0 && (
+              <span className="absolute -right-1 -top-1 min-w-[22px] rounded-full bg-white px-2 py-0.5 text-center text-[11px] font-semibold text-slate-900 shadow-md shadow-black/25">
+                {totalQuantity}
+              </span>
+            )}
+            <span className="sr-only">Cart drawer</span>
+          </motion.button>
           <Link
             href="/account"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             aria-label="Account"
           >
             <AccountIcon />
@@ -110,6 +135,8 @@ export function Navbar() {
           </Link>
         </div>
       </div>
+
+      <CartDrawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
     </header>
   );
 }
