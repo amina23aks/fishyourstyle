@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageShell from "@/components/PageShell";
@@ -230,19 +231,29 @@ export default function CheckoutClient() {
             <aside className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:sticky lg:top-8">
               <h2 className="text-sm font-semibold text-white">Order summary</h2>
 
-              <ul className="space-y-2 text-xs text-sky-100">
+              <ul className="space-y-3 text-xs text-sky-100">
                 {items.map((item) => (
                   <li
                     key={`${item.id}-${item.colorCode}-${item.size}`}
-                    className="flex items-center justify-between gap-2"
+                    className="flex items-center justify-between gap-3"
                   >
-                    <div>
-                      <p className="font-medium text-white">
-                        {item.name} × {item.quantity}
-                      </p>
-                      <p className="text-sky-200">
-                        {item.colorName} · {item.size}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                        />
+                        <span className="absolute bottom-1 right-1 rounded-full bg-black/70 px-2 text-[10px] font-semibold text-white">
+                          ×{item.quantity}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{item.name}</p>
+                        <p className="text-sky-200">{item.colorName} · {item.size}</p>
+                      </div>
                     </div>
                     <p className="tabular-nums text-white">
                       {item.price * item.quantity} {item.currency}

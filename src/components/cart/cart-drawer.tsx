@@ -24,7 +24,6 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
-    wilaya: "",
     address: "",
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
@@ -48,7 +47,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     event.preventDefault();
     if (!hasItems) return;
 
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
+    if (!form.fullName || !form.phone || !form.address) {
       alert("Please fill all required fields.");
       return;
     }
@@ -269,18 +268,6 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         type="tel"
                         value={form.phone}
                         onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
-                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs text-sky-100" htmlFor="drawer-wilaya">
-                        Wilaya<span className="text-rose-200"> *</span>
-                      </label>
-                      <input
-                        id="drawer-wilaya"
-                        value={form.wilaya}
-                        onChange={(event) => setForm((prev) => ({ ...prev, wilaya: event.target.value }))}
                         className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         required
                       />
