@@ -206,11 +206,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
   if (loading) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
         <div
           className={`relative aspect-[3/4] w-full bg-white/10 ${skeletonShimmer}`}
         />
-        <div className="space-y-3 p-5">
+        <div className="space-y-3 p-4">
           <div className={`h-6 w-3/4 rounded-lg bg-white/10 ${skeletonShimmer}`} />
           <div className={`h-4 w-1/2 rounded-lg bg-white/10 ${skeletonShimmer}`} />
           <div className="flex gap-2">
@@ -228,13 +228,13 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
   return (
     <motion.article
-      whileHover={{ transform: "translateY(-6px)" }}
-      transition={{ duration: 0.25, easing: "ease" }}
-      className="relative flex h-full flex-col rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 via-white/0 to-white/5 shadow-[0_12px_45px_rgba(0,0,0,0.35)]"
+      whileHover={{ transform: "translateY(-4px)" }}
+      transition={{ duration: 0.2, easing: "ease" }}
+      className="relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_32px_rgba(0,0,0,0.32)]"
     >
       <Link
         href={`/shop/${product.slug}`}
-        className="group relative flex flex-1 flex-col overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+        className="group relative flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         aria-label={`Voir les détails du produit ${product.nameFr}`}
         onKeyDown={handleKeyNavigation}
         onTouchStart={handleTouchStart}
@@ -320,22 +320,23 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           )}
         </div>
 
-        <div className="flex flex-1 flex-col gap-4 p-5">
+        <div className="flex flex-1 flex-col gap-3 p-4">
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-white line-clamp-2">{product.nameFr}</h2>
-            <p className="text-xs text-neutral-400">{product.fit}</p>
+            <h2 className="text-base font-semibold text-white line-clamp-2">{product.nameFr}</h2>
+            <p className="text-[11px] text-neutral-400">{product.fit}</p>
           </div>
 
           <div className="flex items-center justify-between gap-4">
             <p className="text-base font-semibold text-white">{formatPrice(product.priceDzd)}</p>
-            <p className="text-xs text-neutral-200">
-              {selectedColor ? selectedColor.labelFr : "Choose your style"}
-            </p>
+            <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+              In stock
+            </span>
           </div>
         </div>
       </Link>
 
-      <div className="space-y-3 px-5 pb-5">
+      <div className="space-y-3 px-4 pb-4">
         {product.colors.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-neutral-300">
@@ -353,6 +354,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   selected={selectedColor?.id === color.id}
                   onSelect={() => handleSelectColor(color)}
                   size="sm"
+                  showLabel={false}
                 />
               ))}
             </div>
@@ -380,7 +382,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                       handleSelectSize(size);
                     }}
                     aria-pressed={isSelected}
-                    className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                    className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                       isSelected
                         ? "border-white bg-white/15 text-white"
                         : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
@@ -410,9 +412,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-inner shadow-black/30 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           aria-label="Add to cart"
         >
-          <span className="tabular-nums">
-            {formatPrice(product.priceDzd)}
-          </span>
+          <span className="tabular-nums">{formatPrice(product.priceDzd)}</span>
           <span className="mx-1 text-white/40">·</span>
           {justAdded ? "Added" : "Add to cart"}
         </motion.button>

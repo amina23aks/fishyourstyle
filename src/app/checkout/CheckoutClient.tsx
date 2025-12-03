@@ -83,7 +83,7 @@ export default function CheckoutClient() {
 
   return (
     <PageShell>
-      <main className="space-y-8">
+      <main className="space-y-6 lg:space-y-8">
         <header className="space-y-2">
           <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Checkout</p>
           <h1 className="text-3xl font-semibold text-white">Confirm your order</h1>
@@ -101,9 +101,9 @@ export default function CheckoutClient() {
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="grid gap-8 lg:grid-cols-[1.2fr,0.9fr] lg:items-start"
+            className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start"
           >
-            <section className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-6 shadow-inner shadow-sky-900/30">
+            <section className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
               <h2 className="text-sm font-semibold text-white">Delivery details</h2>
 
               <div className="space-y-3">
@@ -199,7 +199,7 @@ export default function CheckoutClient() {
                     id="address"
                     value={form.address}
                     onChange={(event) => handleChange("address", event.target.value)}
-                    className="min-h-[96px] w-full resize-none rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    className="min-h-[80px] w-full resize-none rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                     required
                   />
                 </div>
@@ -212,7 +212,7 @@ export default function CheckoutClient() {
                     id="notes"
                     value={form.notes}
                     onChange={(event) => handleChange("notes", event.target.value)}
-                    className="min-h-[72px] w-full resize-none rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    className="min-h-[64px] w-full resize-none rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                     placeholder="Floor, apartment, preferred time..."
                   />
                 </div>
@@ -227,7 +227,7 @@ export default function CheckoutClient() {
               </button>
             </section>
 
-            <aside className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-6 shadow-inner shadow-sky-900/30 lg:sticky lg:top-8">
+            <aside className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:sticky lg:top-8">
               <h2 className="text-sm font-semibold text-white">Order summary</h2>
 
               <ul className="space-y-2 text-xs text-sky-100">

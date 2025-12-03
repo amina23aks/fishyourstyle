@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import { useCart, type CartItem } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
+import type { ShippingMode } from "@/data/shipping";
 
 type CartDrawerProps = {
   open: boolean;
@@ -26,6 +27,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     wilaya: "",
     address: "",
   });
+  const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
   const [mounted, setMounted] = useState(false);
 
   const hasItems = items.length > 0;
@@ -52,7 +54,12 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     }
 
     setIsSubmitting(true);
-    console.log("Quick checkout", { form, items, subtotal: totals.subtotal });
+    console.log("Quick checkout", {
+      form,
+      items,
+      subtotal: totals.subtotal,
+      deliveryMode,
+    });
     clearCart();
     setIsSubmitting(false);
     onClose();
@@ -75,10 +82,16 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const summaryLines = useMemo(
     () => [
       { label: "Subtotal", value: formatCurrency(totals.subtotal) },
-      { label: "Shipping", value: "Calculated at checkout" },
+      {
+        label: "Shipping",
+        value:
+          deliveryMode === "home"
+            ? "A domicile (checkout)"
+            : "Stop Desk (checkout)",
+      },
       { label: "Payment", value: "Cash on delivery" },
     ],
-    [totals.subtotal],
+    [deliveryMode, totals.subtotal],
   );
 
   if (!mounted) return null;
@@ -110,24 +123,24 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
-            className="relative z-10 ml-auto flex h-full max-h-screen w-full max-w-md min-w-[320px] flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+            className="relative z-10 ml-auto flex h-full w-full max-w-md min-w-[320px]"
           >
-            <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Cart</p>
-                <h2 className="text-lg font-semibold text-white">Your cart</h2>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-sky-50 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-              >
-                Close
-              </button>
-            </header>
+            <div className="flex h-full w-full flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]">
+              <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Cart</p>
+                  <h2 className="text-lg font-semibold text-white">Your cart</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-sky-50 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                >
+                  Close
+                </button>
+              </header>
 
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4 pb-6">
                 {!hasItems ? (
                   <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                     <p className="text-sm text-sky-100">Your cart is empty.</p>
@@ -232,6 +245,9 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <span>Quick delivery info</span>
                       <span className="text-xs text-sky-200">COD</span>
                     </div>
+                    <p className="text-xs text-sky-200">
+                      Shipping calculated at checkout. Choose A domicile or Stop Desk for delivery.
+                    </p>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-full-name">
                         Full name<span className="text-rose-200"> *</span>
@@ -268,6 +284,35 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         required
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <span className="text-xs text-sky-100">Delivery mode</span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryMode("home")}
+                          aria-pressed={deliveryMode === "home"}
+                          className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                            deliveryMode === "home"
+                              ? "border-white bg-white text-slate-900"
+                              : "border-white/20 bg-slate-950/70 text-white hover:border-white/40"
+                          }`}
+                        >
+                          A domicile
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryMode("desk")}
+                          aria-pressed={deliveryMode === "desk"}
+                          className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                            deliveryMode === "desk"
+                              ? "border-white bg-white text-slate-900"
+                              : "border-white/20 bg-slate-950/70 text-white hover:border-white/40"
+                          }`}
+                        >
+                          Stop Desk
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-address">

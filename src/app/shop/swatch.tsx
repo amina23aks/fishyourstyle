@@ -9,6 +9,7 @@ export type SwatchProps = {
   selected?: boolean;
   onSelect?: () => void;
   size?: "sm" | "md";
+  showLabel?: boolean;
 };
 
 const sizeClasses: Record<NonNullable<SwatchProps["size"]>, string> = {
@@ -17,7 +18,10 @@ const sizeClasses: Record<NonNullable<SwatchProps["size"]>, string> = {
 };
 
 export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
-  ({ label, colorHex, selected = false, onSelect, size = "sm" }, ref) => {
+  (
+    { label, colorHex, selected = false, onSelect, size = "sm", showLabel = true },
+    ref,
+  ) => {
     return (
       <motion.button
         ref={ref}
@@ -34,9 +38,11 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
           className="h-3 w-3 rounded-full border border-white/30 shadow-[0_0_0_3px_rgba(255,255,255,0.05)]"
           style={{ backgroundColor: colorHex ?? "#e5e7eb" }}
         />
-        <span className="whitespace-nowrap text-[13px] font-medium leading-none">
-          {label}
-        </span>
+        {showLabel && (
+          <span className="whitespace-nowrap text-[13px] font-medium leading-none">
+            {label}
+          </span>
+        )}
       </motion.button>
     );
   },
