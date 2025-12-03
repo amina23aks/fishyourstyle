@@ -7,7 +7,11 @@ import Link from "next/link";
 
 import { useCart, type CartItem } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
-import type { ShippingMode } from "@/data/shipping";
+import {
+  ECONOMIC_SHIPPING,
+  type ShippingMode,
+  type WilayaShipping,
+} from "@/data/shipping";
 
 type CartDrawerProps = {
   open: boolean;
@@ -24,7 +28,9 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
+    wilaya: "",
     address: "",
+    notes: "",
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
   const [mounted, setMounted] = useState(false);
@@ -47,7 +53,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     event.preventDefault();
     if (!hasItems) return;
 
-    if (!form.fullName || !form.phone || !form.address) {
+    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
       alert("Please fill all required fields.");
       return;
     }
@@ -273,6 +279,25 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       />
                     </div>
                     <div className="space-y-2">
+                      <label className="text-xs text-sky-100" htmlFor="drawer-wilaya">
+                        Wilaya<span className="text-rose-200"> *</span>
+                      </label>
+                      <select
+                        id="drawer-wilaya"
+                        value={form.wilaya}
+                        onChange={(event) => setForm((prev) => ({ ...prev, wilaya: event.target.value }))}
+                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        required
+                      >
+                        <option value="">Select wilaya…</option>
+                        {ECONOMIC_SHIPPING.map((entry: WilayaShipping) => (
+                          <option key={entry.wilaya} value={entry.wilaya}>
+                            {entry.wilaya}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
                       <span className="text-xs text-sky-100">Delivery mode</span>
                       <div className="flex gap-2">
                         <button
@@ -311,6 +336,18 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         onChange={(event) => setForm((prev) => ({ ...prev, address: event.target.value }))}
                         className="min-h-[72px] w-full resize-none rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs text-sky-100" htmlFor="drawer-notes">
+                        Notes (optional)
+                      </label>
+                      <textarea
+                        id="drawer-notes"
+                        value={form.notes}
+                        onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+                        className="min-h-[64px] w-full resize-none rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        placeholder="Floor, apartment, delivery notes..."
                       />
                     </div>
                     <motion.button
