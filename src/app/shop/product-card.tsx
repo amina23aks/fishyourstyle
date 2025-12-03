@@ -1,10 +1,21 @@
 "use client";
 
-import { useMemo, useState, type MouseEvent } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type TouchEvent,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 
-import { Product, ProductCategory } from "@/types/product";
+import { Product, ProductCategory, ProductColor } from "@/types/product";
 
 const categoryLabels: Record<ProductCategory, string> = {
   hoodies: "Hoodie",
@@ -20,7 +31,7 @@ const formatPrice = (value: number) =>
 const colorSwatchMap: Record<string, string> = {
   noir: "#1f2937",
   black: "#111827",
-  blanc: "#f3f4f6",
+  blanc: "#f9fafb",
   white: "#f9fafb",
   gris: "#9ca3af",
   gray: "#9ca3af",
@@ -36,117 +47,228 @@ const colorSwatchMap: Record<string, string> = {
 
 const getSwatchColor = (label: string) => {
   const key = label.toLowerCase().replace(/\s+/g, "");
-  return colorSwatchMap[key] ?? "#d1d5db";
+  return colorSwatchMap[key] ?? "#e5e7eb";
 };
 
-const buildImageList = (product: Product) => {
+const buildImageList = (product: Product): string[] => {
   const galleryImages = product.images.gallery ?? [];
-  const uniqueImages = Array.from(new Set([product.images.main, ...galleryImages]));
+  const uniqueImages = Array.from(
+    new Set<string>([product.images.main, ...galleryImages].filter(Boolean)),
+  );
 
   return uniqueImages.length > 0 ? uniqueImages : [product.images.main];
 };
 
-export function ProductCard({ product }: { product: Product }) {
+const skeletonShimmer =
+  "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.4s_ease_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent";
+
+export type ProductCardProps = {
+  product: Product;
+  loading?: boolean;
+};
+
+function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const images = useMemo(() => buildImageList(product), [product]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
-  const mainImage = images[activeIndex];
-  const hoverImage = images[(activeIndex + 1) % images.length];
+  const currentImage = images[activeIndex];
+  const nextImage = images[(activeIndex + 1) % images.length];
 
-  const goToPrev = (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [product.id]);
+
+  const handleNav = useCallback(
+    (
+      direction: "prev" | "next",
+      event?: MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLAnchorElement>,
+    ) => {
+      event?.preventDefault();
+      event?.stopPropagation();
+      setActiveIndex((prev) =>
+        direction === "prev"
+          ? (prev - 1 + images.length) % images.length
+          : (prev + 1) % images.length,
+      );
+    },
+    [images.length],
+  );
+
+  const handleKeyNavigation = useCallback(
+    (event: KeyboardEvent<HTMLAnchorElement>) => {
+      if (event.key === "ArrowLeft") {
+        handleNav("prev", event);
+      }
+      if (event.key === "ArrowRight") {
+        handleNav("next", event);
+      }
+    },
+    [handleNav],
+  );
+
+  const handleTouchStart = (event: TouchEvent) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
   };
 
-  const goToNext = (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setActiveIndex((prev) => (prev + 1) % images.length);
+  const handleTouchEnd = (event: TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = event.changedTouches[0]?.clientX - touchStartX.current;
+    const threshold = 24;
+
+    if (deltaX > threshold) {
+      handleNav("prev");
+    } else if (deltaX < -threshold) {
+      handleNav("next");
+    }
+
+    touchStartX.current = null;
   };
+
+  if (loading) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
+        <div
+          className={`relative aspect-[3/4] w-full bg-white/10 ${skeletonShimmer}`}
+        />
+        <div className="space-y-3 p-5">
+          <div className={`h-6 w-3/4 rounded-lg bg-white/10 ${skeletonShimmer}`} />
+          <div className={`h-4 w-1/2 rounded-lg bg-white/10 ${skeletonShimmer}`} />
+          <div className="flex gap-2">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className={`h-7 w-12 rounded-full bg-white/10 ${skeletonShimmer}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Link
-      href={`/shop/${product.slug}`}
-      className="group relative overflow-hidden rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm shadow-[0_0_25px_rgba(255,255,255,0.06)] transition-transform duration-200 hover:-translate-y-1"
+    <motion.article
+      whileHover={{ transform: "translateY(-6px)" }}
+      transition={{ duration: 0.25, easing: "ease" }}
+      className="relative h-full rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 via-white/0 to-white/5 shadow-[0_12px_45px_rgba(0,0,0,0.35)]"
     >
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
-        <Image
-          src={mainImage}
-          alt={product.nameFr}
-          fill
-          priority={false}
-          sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-opacity duration-300 group-hover:opacity-0"
-        />
-
-        <Image
-          src={hoverImage}
-          alt={product.nameFr}
-          fill
-          priority={false}
-          sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        />
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-
-        <div className="absolute inset-x-4 top-4 flex items-center justify-between text-xs font-semibold text-white">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] uppercase tracking-wide text-black shadow-sm shadow-black/10">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Back in stock
-          </span>
-          <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] uppercase tracking-wide text-white/90 backdrop-blur">
-            {categoryLabels[product.category]}
-          </span>
-        </div>
-
-        {images.length > 1 && (
-          <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2">
-            <button
-              type="button"
-              onClick={goToPrev}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-              aria-label="Voir l'image précédente"
+      <Link
+        href={`/shop/${product.slug}`}
+        className="group relative flex h-full flex-col overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+        aria-label={`Voir les détails du produit ${product.nameFr}`}
+        onKeyDown={handleKeyNavigation}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <div className="relative aspect-[3/4] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
+          <AnimatePresence>
+            <motion.div
+              key={currentImage}
+              initial={{ opacity: 0.4, scale: 1.02 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, easing: "ease" }}
+              className="absolute inset-0"
             >
-              &#8249;
-            </button>
-            <button
-              type="button"
-              onClick={goToNext}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-              aria-label="Voir l'image suivante"
-            >
-              &#8250;
-            </button>
+              <Image
+                src={currentImage}
+                alt={product.nameFr}
+                fill
+                priority={false}
+                sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                className="h-full w-full object-cover"
+              />
+            </motion.div>
+            {isHovering && images.length > 1 && (
+              <motion.div
+                key={`${currentImage}-hover`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4, easing: "ease" }}
+                className="absolute inset-0"
+              >
+                <Image
+                  src={nextImage}
+                  alt={product.nameFr}
+                  fill
+                  priority={false}
+                  sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                  className="h-full w-full object-cover"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+          <div className="absolute inset-x-4 top-4 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-white">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-black shadow-sm shadow-black/10">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Back in stock
+            </span>
+            <span className="rounded-full bg-white/25 px-3 py-1 text-white/90 backdrop-blur">
+              {categoryLabels[product.category]}
+            </span>
           </div>
-        )}
-      </div>
 
-      <div className="p-5 space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white line-clamp-2">{product.nameFr}</h2>
-          <p className="text-xs text-neutral-400">{product.fit}</p>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-base font-semibold text-white">{formatPrice(product.priceDzd)}</p>
-          {product.colors.length > 0 && (
-            <div className="flex items-center gap-2">
-              {product.colors.map((color) => (
-                <span
-                  key={color.id}
-                  className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/60 shadow-[0_0_0_3px_rgba(255,255,255,0.08)]"
-                  style={{ backgroundColor: getSwatchColor(color.labelFr) }}
-                  title={color.labelFr}
-                >
-                  <span className="sr-only">{color.labelFr}</span>
-                </span>
-              ))}
+          {images.length > 1 && (
+            <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2">
+              <motion.button
+                type="button"
+                onClick={(event) => handleNav("prev", event)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Voir l'image précédente"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                &#8249;
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={(event) => handleNav("next", event)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Voir l'image suivante"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                &#8250;
+              </motion.button>
             </div>
           )}
         </div>
-      </div>
-    </Link>
+
+        <div className="flex flex-1 flex-col gap-4 p-5">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-white line-clamp-2">{product.nameFr}</h2>
+            <p className="text-xs text-neutral-400">{product.fit}</p>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-base font-semibold text-white">{formatPrice(product.priceDzd)}</p>
+            {product.colors.length > 0 && (
+              <div className="flex items-center gap-2" aria-label="Coloris disponibles">
+                {product.colors.map((color: ProductColor) => (
+                  <span
+                    key={color.id}
+                    className="relative flex h-4 w-4 items-center justify-center rounded-full border border-white/70 shadow-[0_0_0_3px_rgba(255,255,255,0.08)]"
+                    style={{ backgroundColor: getSwatchColor(color.labelFr) }}
+                    title={color.labelFr}
+                  >
+                    <span className="sr-only">{color.labelFr}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </Link>
+    </motion.article>
   );
 }
+
+export const ProductCard = memo(ProductCardComponent);

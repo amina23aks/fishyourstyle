@@ -198,6 +198,12 @@ body {
   animation: vortexDrift 12s ease-in-out infinite;
 }
 
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @keyframes beamFloat {
   0% {
     transform: translateX(-10px);
