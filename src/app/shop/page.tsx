@@ -20,14 +20,17 @@ export default function ShopPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-12">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-10 flex items-center justify-between">
         <div>
-          <p className="text-sm text-neutral-400 uppercase tracking-[0.2em]">
+          <p className="text-sm text-neutral-400 uppercase tracking-[0.25em]">
             Boutique
           </p>
-          <h1 className="text-3xl font-semibold text-white mt-2">
+          <h1 className="text-4xl font-semibold text-white mt-2">
             Découvrez notre sélection
           </h1>
+          <p className="text-neutral-400 mt-3 text-sm">
+            Une grille élégante inspirée des vitrines minimalistes.
+          </p>
         </div>
       </div>
 
@@ -36,29 +39,39 @@ export default function ShopPage() {
           <Link
             href={`/product/${product.slug}`}
             key={product.id}
-            className="group rounded-2xl border border-white/10 bg-gradient-to-b from-neutral-900 to-neutral-950 overflow-hidden shadow-lg shadow-black/20 transition-transform duration-200 hover:-translate-y-1"
+            className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black shadow-xl shadow-black/30 transition-transform duration-200 hover:-translate-y-1"
           >
-            <div className="relative aspect-[3/4] w-full overflow-hidden bg-neutral-900">
+            <div className="relative aspect-[3/4] w-full overflow-hidden">
               <Image
                 src={product.images.main}
                 alt={product.nameFr}
                 fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
                 sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                 priority={false}
               />
-            </div>
 
-            <div className="p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
-                  {categoryLabels[product.category]}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
+
+              <div className="absolute inset-x-4 top-4 flex items-center justify-between text-xs font-semibold text-white">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] uppercase tracking-wide text-black shadow-sm shadow-black/10">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Back in stock
                 </span>
-                <span className="text-xs text-neutral-400">
-                  {product.kind}
+                <span className="rounded-full bg-black/30 px-2.5 py-1 text-white/80 backdrop-blur">
+                  ★
                 </span>
               </div>
 
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-4 pb-4 text-white/90">
+                <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] uppercase tracking-wide">
+                  {categoryLabels[product.category]}
+                </span>
+                <span className="text-xs text-white/70">{product.kind}</span>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold text-white line-clamp-2">
                   {product.nameFr}
@@ -71,13 +84,21 @@ export default function ShopPage() {
                   {formatPrice(product.priceDzd)}
                 </p>
                 {product.colors.length > 0 && (
-                  <div className="flex flex-wrap gap-2 text-xs text-neutral-200">
+                  <div className="flex items-center gap-3 text-xs text-neutral-200">
                     {product.colors.map((color) => (
-                      <span
-                        key={color.id}
-                        className="rounded-full bg-white/10 px-3 py-1"
-                      >
-                        {color.labelFr}
+                      <span key={color.id} className="flex items-center gap-2">
+                        <span
+                          className="h-3.5 w-3.5 rounded-full border border-white/30 bg-white/80 shadow-inner"
+                          style={{
+                            backgroundImage: `url(${color.image})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }}
+                          aria-hidden
+                        />
+                        <span className="text-[11px] text-neutral-200">
+                          {color.labelFr}
+                        </span>
                       </span>
                     ))}
                   </div>
