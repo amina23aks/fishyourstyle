@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "@/lib/motion";
 
 import { Swatch } from "../swatch";
 import { Product, ProductColor } from "@/types/product";
+import { useCart } from "@/context/cart";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -48,6 +49,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     product.sizes[0],
   );
+  const [justAdded, setJustAdded] = useState(false);
+  const { addItem } = useCart();
 
   const imageList = useMemo(
     () => buildImageList(activeColor, [product.images.main, ...product.images.gallery]),
@@ -58,6 +61,27 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const handleThumbnailSelect = (index: number) => {
     setActiveImage(index);
+  };
+
+  const handleAddToCart = () => {
+    const colorName = activeColor?.labelFr ?? "Standard";
+    const colorCode = activeColor?.id ?? "default";
+    const size = selectedSize ?? "Taille unique";
+
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.nameFr,
+      price: product.priceDzd,
+      currency: product.currency,
+      image: activeColor?.image ?? product.images.main,
+      colorName,
+      colorCode,
+      size,
+    });
+
+    setJustAdded(true);
+    window.setTimeout(() => setJustAdded(false), 1200);
   };
 
   const infoRows = [
@@ -188,8 +212,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
               type="button"
               className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold uppercase tracking-wide text-black transition hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               aria-label="Ajouter au panier"
+              onClick={handleAddToCart}
             >
-              Ajouter au panier
+              {justAdded ? "Ajouté" : "Ajouter au panier"}
             </button>
             <p className="text-xs text-neutral-400">
               Livraison rapide & échanges simples.
