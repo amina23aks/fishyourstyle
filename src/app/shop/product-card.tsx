@@ -18,6 +18,7 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { useCart } from "@/context/cart";
 
 import { Product, ProductCategory, ProductColor } from "@/types/product";
+import { Swatch } from "./swatch";
 
 const categoryLabels: Record<ProductCategory, string> = {
   hoodies: "Hoodie",
@@ -52,11 +53,12 @@ const getSwatchColor = (label: string) => {
   return colorSwatchMap[key] ?? "#e5e7eb";
 };
 
-const buildImageList = (product: Product): string[] => {
+const buildImageList = (product: Product, activeColor?: ProductColor | null): string[] => {
   const galleryImages = product.images.gallery ?? [];
-  const uniqueImages = Array.from(
-    new Set<string>([product.images.main, ...galleryImages].filter(Boolean)),
-  );
+  const withColor = activeColor?.image
+    ? [activeColor.image, product.images.main, ...galleryImages]
+    : [product.images.main, ...galleryImages];
+  const uniqueImages = Array.from(new Set(withColor.filter(Boolean)));
 
   return uniqueImages.length > 0 ? uniqueImages : [product.images.main];
 };
@@ -70,13 +72,16 @@ export type ProductCardProps = {
 };
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
-  const images = useMemo(() => buildImageList(product), [product]);
+  const initialColor = product.colors.length === 1 ? product.colors[0] : null;
+  const initialSize = product.sizes.length === 1 ? product.sizes[0] : null;
+  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(initialColor);
+  const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
+  const images = useMemo(() => buildImageList(product, selectedColor), [product, selectedColor]);
   const { addItem } = useCart();
-  const defaultColor = product.colors[0];
-  const defaultSize = product.sizes[0] ?? "Taille unique";
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
   const touchStartX = useRef<number | null>(null);
 
   const currentImage = images[activeIndex];
@@ -85,7 +90,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   useEffect(() => {
     setActiveIndex(0);
     setJustAdded(false);
-  }, [product.id]);
+    setSelectedColor(initialColor);
+    setSelectedSize(initialSize);
+    setSelectionWarning(null);
+  }, [initialColor, initialSize, product.id]);
 
   const handleNav = useCallback(
     (
@@ -133,13 +141,36 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     touchStartX.current = null;
   };
 
+  const handleSelectColor = (color: ProductColor) => {
+    setSelectedColor(color);
+    setActiveIndex(0);
+    setSelectionWarning(null);
+  };
+
+  const handleSelectSize = (size: string) => {
+    setSelectedSize(size);
+    setSelectionWarning(null);
+  };
+
   const handleAddToCart = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
 
-      const colorName = defaultColor?.labelFr ?? "Standard";
-      const colorCode = defaultColor?.id ?? "default";
+      if (!selectedColor && product.colors.length > 1) {
+        setSelectionWarning("Please choose a color and size before adding to cart.");
+        return;
+      }
+
+      if (!selectedSize && product.sizes.length > 1) {
+        setSelectionWarning("Please choose a color and size before adding to cart.");
+        return;
+      }
+
+      const color = selectedColor ?? product.colors[0];
+      const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
+      const colorName = color?.labelFr ?? "Standard";
+      const colorCode = color?.id ?? "default";
 
       addItem({
         id: product.id,
@@ -147,27 +178,29 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         name: product.nameFr,
         price: product.priceDzd,
         currency: product.currency,
-        image: product.images.main,
+        image: color?.image ?? product.images.main,
         colorName,
         colorCode,
-        size: defaultSize,
+        size: sizeChoice,
         quantity: 1,
       });
 
+      setSelectionWarning(null);
       setJustAdded(true);
       window.setTimeout(() => setJustAdded(false), 1200);
     },
     [
       addItem,
-      defaultColor?.id,
-      defaultColor?.labelFr,
-      defaultSize,
+      product.colors,
       product.currency,
       product.id,
       product.images.main,
       product.nameFr,
       product.priceDzd,
       product.slug,
+      product.sizes,
+      selectedColor,
+      selectedSize,
     ],
   );
 
@@ -295,25 +328,80 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
           <div className="flex items-center justify-between gap-4">
             <p className="text-base font-semibold text-white">{formatPrice(product.priceDzd)}</p>
-            {product.colors.length > 0 && (
-              <div className="flex items-center gap-2" aria-label="Coloris disponibles">
-                {product.colors.map((color: ProductColor) => (
-                  <span
-                    key={color.id}
-                    className="relative flex h-4 w-4 items-center justify-center rounded-full border border-white/70 shadow-[0_0_0_3px_rgba(255,255,255,0.08)]"
-                    style={{ backgroundColor: getSwatchColor(color.labelFr) }}
-                    title={color.labelFr}
-                  >
-                    <span className="sr-only">{color.labelFr}</span>
-                  </span>
-                ))}
-              </div>
-            )}
+            <p className="text-xs text-neutral-200">
+              {selectedColor ? selectedColor.labelFr : "Choose your style"}
+            </p>
           </div>
         </div>
       </Link>
 
-      <div className="px-5 pb-5">
+      <div className="space-y-3 px-5 pb-5">
+        {product.colors.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-neutral-300">
+              <span>Color</span>
+              {!selectedColor && product.colors.length > 1 && (
+                <span className="text-rose-200">Pick a color</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {product.colors.map((color) => (
+                <Swatch
+                  key={color.id}
+                  label={color.labelFr}
+                  colorHex={getSwatchColor(color.labelFr)}
+                  selected={selectedColor?.id === color.id}
+                  onSelect={() => handleSelectColor(color)}
+                  size="sm"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {product.sizes.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-neutral-300">
+              <span>Size</span>
+              {!selectedSize && product.sizes.length > 1 && (
+                <span className="text-rose-200">Pick a size</span>
+              )}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              {product.sizes.map((size) => {
+                const isSelected = selectedSize === size;
+                return (
+                  <motion.button
+                    key={size}
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleSelectSize(size);
+                    }}
+                    aria-pressed={isSelected}
+                    className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      isSelected
+                        ? "border-white bg-white/15 text-white"
+                        : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                    }`}
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    {size.toUpperCase()}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {selectionWarning && (
+          <p className="text-xs text-rose-200" aria-live="polite">
+            {selectionWarning}
+          </p>
+        )}
+
         <motion.button
           type="button"
           onClick={handleAddToCart}

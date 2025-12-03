@@ -19,7 +19,6 @@ const formatCurrency = (value: number) =>
 export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const { items, totals, totalQuantity, removeItem, updateQty, clearCart } =
     useCart();
-  const [showCheckout, setShowCheckout] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -64,10 +63,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   }, []);
 
   useEffect(() => {
-    if (!open) {
-      const timer = window.setTimeout(() => setShowCheckout(false), 200);
-      return () => window.clearTimeout(timer);
-    }
+    if (!open) return undefined;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -114,7 +110,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
-            className="relative z-10 ml-auto flex h-full w-full max-w-md min-w-[320px] flex-col border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+            className="relative z-10 ml-auto flex h-full max-h-screen w-full max-w-md min-w-[320px] flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
           >
             <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <div>
@@ -130,8 +126,8 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
               </button>
             </header>
 
-            <div className="flex flex-1 flex-col gap-4 overflow-hidden">
-              <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
                 {!hasItems ? (
                   <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                     <p className="text-sm text-sky-100">Your cart is empty.</p>
@@ -203,14 +199,12 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     ))}
                   </ul>
                 )}
-              </div>
 
-              <div className="space-y-4 border-t border-white/10 bg-white/5 px-6 py-4 shadow-inner shadow-black/30">
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-sky-200">
-                  <span>{totalQuantity} item{totalQuantity === 1 ? "" : "s"}</span>
-                  <span>Total</span>
-                </div>
-                <div className="space-y-1 rounded-xl border border-white/10 bg-slate-950/60 p-4">
+                <div className="space-y-4 rounded-xl border border-white/10 bg-slate-950/60 p-4">
+                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-sky-200">
+                    <span>{totalQuantity} item{totalQuantity === 1 ? "" : "s"}</span>
+                    <span>Total</span>
+                  </div>
                   {summaryLines.map((line) => (
                     <div
                       key={line.label}
@@ -223,26 +217,16 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                 </div>
 
                 {hasItems && (
-                  <div className="space-y-3">
-                    <motion.button
-                      type="button"
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setShowCheckout((previous) => !previous)}
-                      className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                    >
-                      {showCheckout ? "Hide quick checkout" : "Checkout"}
-                    </motion.button>
-                    <Link
-                      href="/checkout"
-                      onClick={onClose}
-                      className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                    >
-                      Go to checkout page
-                    </Link>
-                  </div>
+                  <Link
+                    href="/checkout"
+                    onClick={onClose}
+                    className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  >
+                    Go to checkout page
+                  </Link>
                 )}
 
-                {hasItems && showCheckout && (
+                {hasItems && (
                   <form className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4" onSubmit={handleSubmit}>
                     <div className="flex items-center justify-between text-sm font-semibold text-white">
                       <span>Quick delivery info</span>

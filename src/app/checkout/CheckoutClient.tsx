@@ -101,7 +101,7 @@ export default function CheckoutClient() {
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="grid gap-6 lg:grid-cols-[3fr,2fr]"
+            className="grid gap-8 lg:grid-cols-[1.2fr,0.9fr] lg:items-start"
           >
             <section className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-6 shadow-inner shadow-sky-900/30">
               <h2 className="text-sm font-semibold text-white">Delivery details</h2>
@@ -227,7 +227,7 @@ export default function CheckoutClient() {
               </button>
             </section>
 
-            <aside className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-6 shadow-inner shadow-sky-900/30">
+            <aside className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-6 shadow-inner shadow-sky-900/30 lg:sticky lg:top-8">
               <h2 className="text-sm font-semibold text-white">Order summary</h2>
 
               <ul className="space-y-2 text-xs text-sky-100">
