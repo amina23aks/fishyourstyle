@@ -84,21 +84,13 @@ export default function ShopPage() {
                   {formatPrice(product.priceDzd)}
                 </p>
                 {product.colors.length > 0 && (
-                  <div className="flex items-center gap-3 text-xs text-neutral-200">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-200">
                     {product.colors.map((color) => (
-                      <span key={color.id} className="flex items-center gap-2">
-                        <span
-                          className="h-3.5 w-3.5 rounded-full border border-white/30 bg-white/80 shadow-inner"
-                          style={{
-                            backgroundImage: `url(${color.image})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }}
-                          aria-hidden
-                        />
-                        <span className="text-[11px] text-neutral-200">
-                          {color.labelFr}
-                        </span>
+                      <span
+                        key={color.id}
+                        className="rounded-full bg-white/10 px-3 py-1 text-[11px]"
+                      >
+                        {color.labelFr}
                       </span>
                     ))}
                   </div>
