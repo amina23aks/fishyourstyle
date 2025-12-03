@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { getAllProducts } from "@/lib/products";
-import { Product, ProductCategory } from "@/types/product";
+import { ProductCategory } from "@/types/product";
 
 const categoryLabels: Record<ProductCategory, string> = {
   hoodies: "Hoodie",
@@ -14,16 +14,6 @@ const categoryLabels: Record<ProductCategory, string> = {
 
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
-
-const colorSwatches: Record<string, string> = {
-  black: "#0b0b0b",
-  white: "#f6f6f6",
-  grey: "#9ca3af",
-  blue: "#4f73c8",
-  beige: "#e5d5bc",
-  navy: "#1f2a44",
-  green: "#4c8a4c",
-};
 
 export default function ShopPage() {
   const products = getAllProducts();
@@ -46,103 +36,78 @@ export default function ShopPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <Link
+            href={`/product/${product.slug}`}
+            key={product.id}
+            className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black shadow-xl shadow-black/30 transition-transform duration-200 hover:-translate-y-1"
+          >
+            <div className="relative aspect-[3/4] w-full overflow-hidden">
+              <Image
+                src={product.images.main}
+                alt={product.nameFr}
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                priority={false}
+              />
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
+
+              <div className="absolute inset-x-4 top-4 flex items-center justify-between text-xs font-semibold text-white">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] uppercase tracking-wide text-black shadow-sm shadow-black/10">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Back in stock
+                </span>
+                <span className="rounded-full bg-black/30 px-2.5 py-1 text-white/80 backdrop-blur">
+                  ★
+                </span>
+              </div>
+
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-4 pb-4 text-white/90">
+                <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] uppercase tracking-wide">
+                  {categoryLabels[product.category]}
+                </span>
+                <span className="text-xs text-white/70">{product.kind}</span>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold text-white line-clamp-2">
+                  {product.nameFr}
+                </h2>
+                <p className="text-sm text-neutral-400">{product.fit}</p>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-xl font-semibold text-white">
+                  {formatPrice(product.priceDzd)}
+                </p>
+                {product.colors.length > 0 && (
+                  <div className="flex items-center gap-3 text-xs text-neutral-200">
+                    {product.colors.map((color) => (
+                      <span key={color.id} className="flex items-center gap-2">
+                        <span
+                          className="h-3.5 w-3.5 rounded-full border border-white/30 bg-white/80 shadow-inner"
+                          style={{
+                            backgroundImage: `url(${color.image})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }}
+                          aria-hidden
+                        />
+                        <span className="text-[11px] text-neutral-200">
+                          {color.labelFr}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Link>
         ))}
       </div>
     </main>
-  );
-}
-
-type ProductCardProps = {
-  product: Product;
-};
-
-function getPrimaryAndHoverImages(product: Product) {
-  const orderedImages = [product.images.main, ...(product.images.gallery ?? [])];
-  const uniqueImages = Array.from(new Set(orderedImages));
-  const mainImage = uniqueImages[0];
-  const hoverImage = uniqueImages[1] ?? uniqueImages[0];
-
-  return { mainImage, hoverImage };
-}
-
-function ProductCard({ product }: ProductCardProps) {
-  const { mainImage, hoverImage } = getPrimaryAndHoverImages(product);
-
-  return (
-    <Link
-      href={`/shop/${product.slug}`}
-      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black shadow-xl shadow-black/30 transition-transform duration-200 hover:-translate-y-1"
-    >
-      <div className="relative aspect-[3/4] w-full overflow-hidden">
-        <Image
-          src={mainImage}
-          alt={product.nameFr}
-          fill
-          sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover transition-opacity duration-500 group-hover:opacity-0"
-          priority={false}
-        />
-
-        <Image
-          src={hoverImage}
-          alt={product.nameFr}
-          fill
-          sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-          priority={false}
-        />
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
-
-        <div className="absolute inset-x-4 top-4 flex items-center justify-between text-xs font-semibold text-white">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] uppercase tracking-wide text-black shadow-sm shadow-black/10">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Back in stock
-          </span>
-          <span className="rounded-full bg-black/30 px-2.5 py-1 text-white/80 backdrop-blur">
-            ★
-          </span>
-        </div>
-
-        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-4 pb-4 text-white/90">
-          <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] uppercase tracking-wide">
-            {categoryLabels[product.category]}
-          </span>
-          <span className="text-xs text-white/70">{product.kind}</span>
-        </div>
-      </div>
-
-      <div className="p-5 space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white line-clamp-2">
-            {product.nameFr}
-          </h2>
-          <p className="text-sm text-neutral-400">{product.fit}</p>
-        </div>
-
-        <div className="flex items-center justify-between gap-6">
-          <p className="text-xl font-semibold text-white">
-            {formatPrice(product.priceDzd)}
-          </p>
-          {product.colors.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-200">
-              {product.colors.map((color) => (
-                <span key={color.id} className="flex items-center gap-2">
-                  <span
-                    className="h-4 w-4 rounded-full border border-white/20 shadow-inner shadow-black/30"
-                    style={{
-                      backgroundColor: colorSwatches[color.id] ?? "#9ca3af",
-                    }}
-                    aria-hidden
-                  />
-                  <span className="text-[11px] text-neutral-200">{color.labelFr}</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </Link>
   );
 }
