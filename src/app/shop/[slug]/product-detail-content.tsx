@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "@/lib/motion";
 
 import { Swatch } from "../swatch";
 import { Product, ProductColor } from "@/types/product";
+import { useCart } from "@/context/cart";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -42,12 +43,15 @@ const sizeLabel = (size: string) => size.toUpperCase();
 
 export function ProductDetailContent({ product }: { product: Product }) {
   const [activeColor, setActiveColor] = useState<ProductColor | undefined>(
-    product.colors[0],
+    product.colors.length === 1 ? product.colors[0] : undefined,
   );
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
-    product.sizes[0],
+    product.sizes.length === 1 ? product.sizes[0] : undefined,
   );
+  const [justAdded, setJustAdded] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const { addItem } = useCart();
 
   const imageList = useMemo(
     () => buildImageList(activeColor, [product.images.main, ...product.images.gallery]),
@@ -58,6 +62,38 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const handleThumbnailSelect = (index: number) => {
     setActiveImage(index);
+  };
+
+  const handleAddToCart = () => {
+    if (!activeColor && product.colors.length > 1) {
+      setSelectionError("Choisissez un coloris avant d’ajouter au panier.");
+      return;
+    }
+
+    if (!selectedSize && product.sizes.length > 1) {
+      setSelectionError("Choisissez une taille avant d’ajouter au panier.");
+      return;
+    }
+
+    const colorName = activeColor?.labelFr ?? "Standard";
+    const colorCode = activeColor?.id ?? "default";
+    const size = selectedSize ?? "Taille unique";
+
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.nameFr,
+      price: product.priceDzd,
+      currency: product.currency,
+      image: activeColor?.image ?? product.images.main,
+      colorName,
+      colorCode,
+      size,
+    });
+
+    setSelectionError(null);
+    setJustAdded(true);
+    window.setTimeout(() => setJustAdded(false), 1200);
   };
 
   const infoRows = [
@@ -139,11 +175,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   onSelect={() => {
                     setActiveColor(color);
                     setActiveImage(0);
+                    setSelectionError(null);
                   }}
                   size="md"
                 />
               ))}
             </div>
+            {!activeColor && product.colors.length > 1 && (
+              <p className="text-xs text-rose-200" aria-live="polite">
+                Choisissez un coloris pour continuer.
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -155,7 +197,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   <motion.button
                     key={size}
                     type="button"
-                    onClick={() => setSelectedSize(size)}
+                    onClick={() => {
+                      setSelectedSize(size);
+                      setSelectionError(null);
+                    }}
                     aria-pressed={isSelected}
                     className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
                     whileHover={{ y: -1 }}
@@ -166,6 +211,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 );
               })}
             </div>
+            {!selectedSize && product.sizes.length > 1 && (
+              <p className="text-xs text-rose-200" aria-live="polite">
+                Choisissez une taille avant d’ajouter au panier.
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -183,13 +233,20 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </ul>
           </div>
 
+          {selectionError && (
+            <p className="text-sm text-rose-200" aria-live="polite">
+              {selectionError}
+            </p>
+          )}
+
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold uppercase tracking-wide text-black transition hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               aria-label="Ajouter au panier"
+              onClick={handleAddToCart}
             >
-              Ajouter au panier
+              {justAdded ? "Ajouté" : "Ajouter au panier"}
             </button>
             <p className="text-xs text-neutral-400">
               Livraison rapide & échanges simples.

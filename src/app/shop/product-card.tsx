@@ -15,7 +15,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "@/lib/motion";
 
+import { useCart } from "@/context/cart";
+
 import { Product, ProductCategory, ProductColor } from "@/types/product";
+import { Swatch } from "./swatch";
 
 const categoryLabels: Record<ProductCategory, string> = {
   hoodies: "Hoodie",
@@ -50,11 +53,12 @@ const getSwatchColor = (label: string) => {
   return colorSwatchMap[key] ?? "#e5e7eb";
 };
 
-const buildImageList = (product: Product): string[] => {
+const buildImageList = (product: Product, activeColor?: ProductColor | null): string[] => {
   const galleryImages = product.images.gallery ?? [];
-  const uniqueImages = Array.from(
-    new Set<string>([product.images.main, ...galleryImages].filter(Boolean)),
-  );
+  const withColor = activeColor?.image
+    ? [activeColor.image, product.images.main, ...galleryImages]
+    : [product.images.main, ...galleryImages];
+  const uniqueImages = Array.from(new Set(withColor.filter(Boolean)));
 
   return uniqueImages.length > 0 ? uniqueImages : [product.images.main];
 };
@@ -68,9 +72,16 @@ export type ProductCardProps = {
 };
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
-  const images = useMemo(() => buildImageList(product), [product]);
+  const initialColor = product.colors.length === 1 ? product.colors[0] : null;
+  const initialSize = product.sizes.length === 1 ? product.sizes[0] : null;
+  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(initialColor);
+  const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
+  const images = useMemo(() => buildImageList(product, selectedColor), [product, selectedColor]);
+  const { addItem } = useCart();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
   const touchStartX = useRef<number | null>(null);
 
   const currentImage = images[activeIndex];
@@ -78,7 +89,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [product.id]);
+    setJustAdded(false);
+    setSelectedColor(initialColor);
+    setSelectedSize(initialSize);
+    setSelectionWarning(null);
+  }, [initialColor, initialSize, product.id]);
 
   const handleNav = useCallback(
     (
@@ -126,13 +141,76 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     touchStartX.current = null;
   };
 
+  const handleSelectColor = (color: ProductColor) => {
+    setSelectedColor(color);
+    setActiveIndex(0);
+    setSelectionWarning(null);
+  };
+
+  const handleSelectSize = (size: string) => {
+    setSelectedSize(size);
+    setSelectionWarning(null);
+  };
+
+  const handleAddToCart = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (!selectedColor && product.colors.length > 1) {
+        setSelectionWarning("Please choose a color and size before adding to cart.");
+        return;
+      }
+
+      if (!selectedSize && product.sizes.length > 1) {
+        setSelectionWarning("Please choose a color and size before adding to cart.");
+        return;
+      }
+
+      const color = selectedColor ?? product.colors[0];
+      const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
+      const colorName = color?.labelFr ?? "Standard";
+      const colorCode = color?.id ?? "default";
+
+      addItem({
+        id: product.id,
+        slug: product.slug,
+        name: product.nameFr,
+        price: product.priceDzd,
+        currency: product.currency,
+        image: color?.image ?? product.images.main,
+        colorName,
+        colorCode,
+        size: sizeChoice,
+        quantity: 1,
+      });
+
+      setSelectionWarning(null);
+      setJustAdded(true);
+      window.setTimeout(() => setJustAdded(false), 1200);
+    },
+    [
+      addItem,
+      product.colors,
+      product.currency,
+      product.id,
+      product.images.main,
+      product.nameFr,
+      product.priceDzd,
+      product.slug,
+      product.sizes,
+      selectedColor,
+      selectedSize,
+    ],
+  );
+
   if (loading) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
         <div
           className={`relative aspect-[3/4] w-full bg-white/10 ${skeletonShimmer}`}
         />
-        <div className="space-y-3 p-5">
+        <div className="space-y-3 p-4">
           <div className={`h-6 w-3/4 rounded-lg bg-white/10 ${skeletonShimmer}`} />
           <div className={`h-4 w-1/2 rounded-lg bg-white/10 ${skeletonShimmer}`} />
           <div className="flex gap-2">
@@ -150,13 +228,13 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
   return (
     <motion.article
-      whileHover={{ transform: "translateY(-6px)" }}
-      transition={{ duration: 0.25, easing: "ease" }}
-      className="relative h-full rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 via-white/0 to-white/5 shadow-[0_12px_45px_rgba(0,0,0,0.35)]"
+      whileHover={{ transform: "translateY(-4px)" }}
+      transition={{ duration: 0.2, easing: "ease" }}
+      className="relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_32px_rgba(0,0,0,0.32)]"
     >
       <Link
         href={`/shop/${product.slug}`}
-        className="group relative flex h-full flex-col overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+        className="group relative flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         aria-label={`Voir les détails du produit ${product.nameFr}`}
         onKeyDown={handleKeyNavigation}
         onTouchStart={handleTouchStart}
@@ -242,31 +320,103 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           )}
         </div>
 
-        <div className="flex flex-1 flex-col gap-4 p-5">
+        <div className="flex flex-1 flex-col gap-3 p-4">
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-white line-clamp-2">{product.nameFr}</h2>
-            <p className="text-xs text-neutral-400">{product.fit}</p>
+            <h2 className="text-base font-semibold text-white line-clamp-2">{product.nameFr}</h2>
+            <p className="text-[11px] text-neutral-400">{product.fit}</p>
           </div>
 
           <div className="flex items-center justify-between gap-4">
             <p className="text-base font-semibold text-white">{formatPrice(product.priceDzd)}</p>
-            {product.colors.length > 0 && (
-              <div className="flex items-center gap-2" aria-label="Coloris disponibles">
-                {product.colors.map((color: ProductColor) => (
-                  <span
-                    key={color.id}
-                    className="relative flex h-4 w-4 items-center justify-center rounded-full border border-white/70 shadow-[0_0_0_3px_rgba(255,255,255,0.08)]"
-                    style={{ backgroundColor: getSwatchColor(color.labelFr) }}
-                    title={color.labelFr}
-                  >
-                    <span className="sr-only">{color.labelFr}</span>
-                  </span>
-                ))}
-              </div>
-            )}
+            <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+              In stock
+            </span>
           </div>
         </div>
       </Link>
+
+      <div className="space-y-3 px-4 pb-4">
+        {product.colors.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-neutral-300">
+              <span>Color</span>
+              {!selectedColor && product.colors.length > 1 && (
+                <span className="text-rose-200">Pick a color</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {product.colors.map((color) => (
+                <Swatch
+                  key={color.id}
+                  label={color.labelFr}
+                  colorHex={getSwatchColor(color.labelFr)}
+                  selected={selectedColor?.id === color.id}
+                  onSelect={() => handleSelectColor(color)}
+                  size="sm"
+                  showLabel={false}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {product.sizes.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-neutral-300">
+              <span>Size</span>
+              {!selectedSize && product.sizes.length > 1 && (
+                <span className="text-rose-200">Pick a size</span>
+              )}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              {product.sizes.map((size) => {
+                const isSelected = selectedSize === size;
+                return (
+                  <motion.button
+                    key={size}
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleSelectSize(size);
+                    }}
+                    aria-pressed={isSelected}
+                    className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      isSelected
+                        ? "border-white bg-white/15 text-white"
+                        : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                    }`}
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    {size.toUpperCase()}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {selectionWarning && (
+          <p className="text-xs text-rose-200" aria-live="polite">
+            {selectionWarning}
+          </p>
+        )}
+
+        <motion.button
+          type="button"
+          onClick={handleAddToCart}
+          whileTap={{ scale: 0.97 }}
+          whileHover={{ transform: "translateY(-2px)" }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-inner shadow-black/30 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          aria-label="Add to cart"
+        >
+          <span className="tabular-nums">{formatPrice(product.priceDzd)}</span>
+          <span className="mx-1 text-white/40">·</span>
+          {justAdded ? "Added" : "Add to cart"}
+        </motion.button>
+      </div>
     </motion.article>
   );
 }
