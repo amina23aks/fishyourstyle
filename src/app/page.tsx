@@ -10,16 +10,16 @@ import { Product } from "@/types/product";
 
 const reasons = [
   {
-    title: "Delivery to 58 Wilaya",
-    description: "موّفرين التوصيل لكل الولايات مع تتبع الطلب.",
+    title: "Livraison sur 58 wilayas",
+    description: "موّفرين التوصيل لكل الولايات مع تتبع الطلب خطوة بخطوة.",
   },
   {
-    title: "Personalize Your Style",
-    description: "جهزي لطلبات التخصيص والقطع المميزة قريبًا.",
+    title: "Coupe & confort maîtrisés",
+    description: "قصّات متوازنة، خامات ناعمة، وتفاصيل تعطيك الراحة والأناقة.",
   },
   {
-    title: "Premium Quality",
-    description: "أقمشة مختارة ولمسات بحرية في كل تصميم.",
+    title: "Qualité qui dure",
+    description: "أقمشة مختارة ولمسات بحرية في كل تصميم تبقى معك وقت طويل.",
   },
 ];
 

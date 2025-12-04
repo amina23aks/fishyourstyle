@@ -253,6 +253,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </ul>
           </div>
 
+          <p className="min-h-[24px] text-sm text-rose-200" aria-live="polite">
+            {selectionError ?? "\u00a0"}
+          </p>
+
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <AnimatedAddToCartButton
               onClick={handleAddToCart}
@@ -262,10 +266,6 @@ export function ProductDetailContent({ product }: { product: Product }) {
             />
             <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
           </div>
-
-          <p className="min-h-[24px] text-sm text-rose-200" aria-live="polite">
-            {selectionError ?? "\u00a0"}
-          </p>
         </div>
       </div>
     </main>
