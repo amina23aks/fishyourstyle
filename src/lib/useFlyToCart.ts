@@ -10,7 +10,9 @@ export type FlyToCartTarget = HTMLElement | null;
  * - flyToCart(imageEl): call with the product image element when adding to cart
  */
 export function useFlyToCart() {
-  const cartRef = useRef<HTMLButtonElement | HTMLAnchorElement | null>(null);
+  // Cart ref kept to a button element for compatibility with ref typing on native buttons.
+  // Anchors can still be targeted via the data attribute fallback selector below.
+  const cartRef = useRef<HTMLButtonElement | null>(null);
 
   const flyToCart = (imageEl: HTMLImageElement | null) => {
     if (typeof window === "undefined") return;
