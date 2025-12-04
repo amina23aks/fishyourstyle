@@ -212,7 +212,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     return (
       <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
         <div
-          className={`relative aspect-[3/4] w-full bg-white/10 ${skeletonShimmer}`}
+          className={`relative aspect-[4/3.6] w-full bg-white/10 sm:aspect-[5/4.4] lg:aspect-[5/4.6] ${skeletonShimmer}`}
         />
         <div className="space-y-3 p-4">
           <div className={`h-6 w-3/4 rounded-lg bg-white/10 ${skeletonShimmer}`} />
@@ -248,7 +248,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="relative aspect-[4/4.2] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[5/5.4] lg:aspect-[5/5.6]">
+          <div className="relative aspect-[4/3.6] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[5/4.4] lg:aspect-[5/4.6]">
             <AnimatePresence>
               <motion.div
                 key={currentImage}
@@ -330,14 +330,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             )}
           </div>
 
-          <div className="flex flex-1 flex-col gap-0.25 px-3 pb-1 pt-1.25">
+          <div className="flex flex-1 flex-col gap-0.25 px-3 pb-1 pt-1">
             <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2">{product.nameFr}</h2>
+              <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2 sm:text-base">{product.nameFr}</h2>
               <p className="text-[11px] text-neutral-400">{product.fit}</p>
             </div>
 
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-white tabular-nums">{formatPrice(product.priceDzd)}</p>
+              <p className="text-base font-bold text-white tabular-nums sm:text-lg">{formatPrice(product.priceDzd)}</p>
             </div>
           </div>
         </Link>
@@ -404,11 +404,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             </div>
           )}
 
-          {selectionWarning && (
-            <p className="text-xs text-rose-200" aria-live="polite">
-              {selectionWarning}
-            </p>
-          )}
+          <p className="min-h-[18px] text-xs text-rose-200" aria-live="polite">
+            {selectionWarning ?? ""}
+          </p>
 
           <AnimatedAddToCartButton
             onClick={handleAddToCart}
