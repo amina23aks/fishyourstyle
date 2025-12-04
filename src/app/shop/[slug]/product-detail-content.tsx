@@ -107,56 +107,84 @@ export function ProductDetailContent({ product }: { product: Product }) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:items-stretch">
-        <div className="flex h-full flex-col gap-3">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-            <div className="relative aspect-[4/5] w-full sm:aspect-[4/5.4]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentImage}
-                  initial={{ opacity: 0.5, scale: 1.02 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0.4, scale: 0.98 }}
-                  transition={{ duration: 0.35, easing: "ease" }}
-                  className="absolute inset-0"
-                >
-                  <Image
-                    src={currentImage}
-                    alt={product.nameFr}
-                    fill
-                    ref={imageRef}
-                    className="h-full w-full object-cover"
-                    sizes="(min-width: 1024px) 40vw, 100vw"
-                  />
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
+        <div className="flex h-full flex-col gap-3 lg:gap-4">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[88px,1fr] lg:items-start lg:gap-4">
+            {imageList.length > 1 && (
+              <div className="hidden lg:flex lg:flex-col lg:gap-3">
+                {imageList.map((image, index) => {
+                  const isActive = index === activeImage;
+                  return (
+                    <button
+                      key={image}
+                      type="button"
+                      aria-label={`Voir l'image ${index + 1}`}
+                      onClick={() => handleThumbnailSelect(index)}
+                      className={`group relative aspect-square overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${isActive ? "border-white" : "border-white/10 hover:border-white/40"}`}
+                    >
+                      <Image
+                        src={image}
+                        alt={`${product.nameFr} miniature ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="100px"
+                      />
+                      <span className="absolute inset-0 bg-black/20 opacity-0 transition group-hover:opacity-100" aria-hidden />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-          {imageList.length > 1 && (
-            <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
-              {imageList.map((image, index) => {
-                const isActive = index === activeImage;
-                return (
-                  <button
-                    key={image}
-                    type="button"
-                    aria-label={`Voir l'image ${index + 1}`}
-                    onClick={() => handleThumbnailSelect(index)}
-                    className={`group relative aspect-square overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${isActive ? "border-white" : "border-white/10 hover:border-white/40"}`}
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+              <div className="relative aspect-[4/5] w-full sm:aspect-[4/5.2]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentImage}
+                    initial={{ opacity: 0.5, scale: 1.02 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0.4, scale: 0.98 }}
+                    transition={{ duration: 0.35, easing: "ease" }}
+                    className="absolute inset-0"
                   >
                     <Image
-                      src={image}
-                      alt={`${product.nameFr} miniature ${index + 1}`}
+                      src={currentImage}
+                      alt={product.nameFr}
                       fill
-                      className="object-cover"
-                      sizes="100px"
+                      ref={imageRef}
+                      className="h-full w-full object-cover"
+                      sizes="(min-width: 1024px) 40vw, 100vw"
                     />
-                    <span className="absolute inset-0 bg-black/20 opacity-0 transition group-hover:opacity-100" aria-hidden />
-                  </button>
-                );
-              })}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </div>
-          )}
+
+            {imageList.length > 1 && (
+              <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:hidden">
+                {imageList.map((image, index) => {
+                  const isActive = index === activeImage;
+                  return (
+                    <button
+                      key={image}
+                      type="button"
+                      aria-label={`Voir l'image ${index + 1}`}
+                      onClick={() => handleThumbnailSelect(index)}
+                      className={`group relative aspect-square overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${isActive ? "border-white" : "border-white/10 hover:border-white/40"}`}
+                    >
+                      <Image
+                        src={image}
+                        alt={`${product.nameFr} miniature ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="100px"
+                      />
+                      <span className="absolute inset-0 bg-black/20 opacity-0 transition group-hover:opacity-100" aria-hidden />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex h-full flex-col space-y-3.5 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5">
