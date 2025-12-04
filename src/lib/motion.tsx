@@ -37,7 +37,10 @@ type AnimationProps = {
 };
 
 type MotionProps<T extends ElementType> = PropsWithChildren<
-  ComponentPropsWithoutRef<T> & AnimationProps
+  ComponentPropsWithoutRef<T> &
+    AnimationProps & {
+      onAnimationComplete?: () => void;
+    }
 >;
 
 const defaultTransition: Required<AnimationProps>["transition"] = {
@@ -86,6 +89,8 @@ function createMotionComponent<T extends ElementType>(
         onMouseLeave,
         onMouseDown,
         onMouseUp,
+        onTransitionEnd,
+        onAnimationComplete,
         ...rest
       },
       ref,
@@ -138,6 +143,15 @@ function createMotionComponent<T extends ElementType>(
         onMouseUp?.(event as never);
       };
 
+      const handleTransitionEnd = (
+        event: React.TransitionEvent<HTMLElement>,
+      ) => {
+        onTransitionEnd?.(event as never);
+        if (event.target === event.currentTarget) {
+          onAnimationComplete?.();
+        }
+      };
+
       return React.createElement(
         Component as ElementType,
         {
@@ -148,6 +162,7 @@ function createMotionComponent<T extends ElementType>(
           onMouseLeave: handleHoverEnd,
           onMouseDown: handleMouseDown,
           onMouseUp: handleMouseUp,
+          onTransitionEnd: handleTransitionEnd,
           ...rest,
         },
         children,
