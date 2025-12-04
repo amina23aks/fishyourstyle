@@ -19,16 +19,8 @@ import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { useCart } from "@/context/cart";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 
-import { Product, ProductCategory, ProductColor } from "@/types/product";
+import { Product, ProductColor } from "@/types/product";
 import { Swatch } from "./swatch";
-
-const categoryLabels: Record<ProductCategory, string> = {
-  hoodies: "Hoodie",
-  pants: "Pantalon",
-  tshirts: "Tshirt",
-  sweatshirts: "Sweatshirt",
-  ensembles: "Ensemble",
-};
 
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
@@ -86,10 +78,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const touchStartX = useRef<number | null>(null);
   const { flyToCart } = useFlyToCart();
-  const categoryLabel = categoryLabels[product.category];
-  const showCategoryBadge = !product.nameFr
-    .toLowerCase()
-    .includes(categoryLabel.toLowerCase());
 
   const currentImage = images[activeIndex];
   const nextImage = images[(activeIndex + 1) % images.length];
@@ -248,7 +236,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="relative aspect-[4/3.6] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[5/4.4] lg:aspect-[5/4.6]">
+          <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[5/6] lg:aspect-[5/6.2]">
             <AnimatePresence>
               <motion.div
                 key={currentImage}
@@ -292,17 +280,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-            <div className="absolute left-2.5 right-2.5 top-2.5 flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-white">
-              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] text-emerald-700 shadow-sm shadow-black/10">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                In stock
-              </span>
-              {showCategoryBadge && (
-                <span className="w-fit rounded-full bg-white/15 px-2.5 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white backdrop-blur">
-                  {categoryLabel}
+              <div className="absolute left-2.5 right-2.5 top-2.5 flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] text-emerald-700 shadow-sm shadow-black/10">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  In stock
                 </span>
-              )}
-            </div>
+              </div>
 
             {images.length > 1 && (
               <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1.5">
@@ -330,11 +313,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             )}
           </div>
 
-          <div className="flex flex-1 flex-col gap-0.25 px-3 pb-1 pt-1">
-            <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2 sm:text-base">{product.nameFr}</h2>
-              <p className="text-[11px] text-neutral-400">{product.fit}</p>
-            </div>
+          <div className="flex flex-1 flex-col gap-1 px-3 pb-1 pt-1">
+            <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2 sm:text-base">{product.nameFr}</h2>
 
             <div className="flex items-center justify-between gap-3">
               <p className="text-base font-bold text-white tabular-nums sm:text-lg">{formatPrice(product.priceDzd)}</p>

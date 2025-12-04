@@ -99,20 +99,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
     return true;
   };
 
-  const infoRows = [
-    { label: "Fit", value: product.fit },
-    { label: "Genre", value: product.gender },
-  ];
+  const infoRows = [{ label: "Genre", value: product.gender }];
 
   const isSelectionMissing =
     (!activeColor && product.colors.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="space-y-3">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:items-stretch">
+        <div className="flex h-full flex-col gap-3">
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-            <div className="relative aspect-[4/3.4] w-full">
+            <div className="relative aspect-[4/5] w-full sm:aspect-[4/5.4]">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentImage}
@@ -162,7 +159,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
           )}
         </div>
 
-        <div className="space-y-3.5 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5">
+        <div className="flex h-full flex-col space-y-3.5 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5">
           <div className="space-y-2">
             <p className="text-[11px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.nameFr}</h1>
