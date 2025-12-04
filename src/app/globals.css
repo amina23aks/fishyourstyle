@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 :root {
-  /* Original soft ocean crest */
-  --background: #a7c7f0;
+  /* Original soft ocean crest (light sky top) */
+  --background: #cfe9ff;
   --foreground: #e2f3ff;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -55,15 +55,17 @@ body {
   }
 }
 
+
 .ocean-page {
-  background-color: var(--background);
+  /* Full-page ocean gradient so every view matches the live site */
+  background: linear-gradient(to bottom, #cfe9ff 0%, #5fb3ff 45%, #020617 100%);
   color: var(--foreground);
 }
 
 
 .ocean-bg {
   /* Full-page ocean gradient: clear blue crest that deepens as you scroll */
-  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background-image: linear-gradient(to bottom, #cfe9ff 0%, #5fb3ff 45%, #020617 100%);
   background-size: 100% 100%;
 }
 
