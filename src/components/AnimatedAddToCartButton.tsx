@@ -5,13 +5,13 @@ import { useCallback, useMemo, useState } from "react";
 type ButtonState = "idle" | "loading" | "added";
 
 type AnimatedAddToCartButtonProps = {
-  onClick?: () => void | Promise<void>;
+  onClick?: () => boolean | void | Promise<boolean | void>;
   className?: string;
   disabled?: boolean;
 };
 
 const baseClasses =
-  "relative inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-900/20 transition-transform duration-200 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
+  "relative inline-flex items-center justify-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-black/15 backdrop-blur transition-transform duration-200 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
 
 const CartIcon = () => (
   <svg
@@ -49,13 +49,15 @@ export function AnimatedAddToCartButton({ onClick, className, disabled }: Animat
   const handleClick = useCallback(async () => {
     if (state !== "idle" || disabled) return;
 
+    const result = (await onClick?.()) ?? true;
+    if (result === false) return;
+
     setState("loading");
-    await onClick?.();
 
     window.setTimeout(() => {
       setState("added");
-      window.setTimeout(() => setState("idle"), 850);
-    }, 650);
+      window.setTimeout(() => setState("idle"), 900);
+    }, 500);
   }, [disabled, onClick, state]);
 
   const content = useMemo(() => {

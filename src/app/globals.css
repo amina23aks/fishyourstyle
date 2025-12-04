@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 :root {
-  /* Restore brighter ocean top tone */
-  --background: #b9d8ff;
+  /* Original soft ocean crest */
+  --background: #a7c7f0;
   --foreground: #e2f3ff;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -62,11 +62,9 @@ body {
 
 
 .ocean-bg {
-  /* Full-page ocean gradient: bright crest that darkens as you scroll */
-  background-image:
-    radial-gradient(140% 64% at 50% 6%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 62%),
-    linear-gradient(to bottom, #a7d4ff 0%, #559be6 44%, #0c1f3e 100%);
-  background-size: 100% 100%, 100% 100%;
+  /* Full-page ocean gradient: clear blue crest that deepens as you scroll */
+  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background-size: 100% 100%;
 }
 
 .bubble {
@@ -286,12 +284,13 @@ body {
   position: fixed;
   inset: 0;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .ocean-bubble-mask {
-  /* Keep bubbles below the wave line while spanning the page height (fade only near the surface) */
-  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 100%, rgba(0, 0, 0, 1) 92%, rgba(0, 0, 0, 0) 10%);
-  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 100%, rgba(0, 0, 0, 1) 92%, rgba(0, 0, 0, 0) 10%);
+  /* Keep bubbles below the wave crest while covering the full page height */
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 96%, rgba(0, 0, 0, 0) 14%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 96%, rgba(0, 0, 0, 0) 14%);
 }
 
 .bubble-field span {

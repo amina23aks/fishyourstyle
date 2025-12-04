@@ -93,6 +93,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
   const currentImage = images[activeIndex];
   const nextImage = images[(activeIndex + 1) % images.length];
+  const isSelectionMissing =
+    (!selectedColor && product.colors.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -159,39 +161,39 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   };
 
   const handleAddToCart = useCallback(() => {
-      if (!selectedColor && product.colors.length > 1) {
-        setSelectionWarning("Please choose a color and size before adding to cart.");
-        return;
-      }
+    if (!selectedColor && product.colors.length > 1) {
+      setSelectionWarning("Please choose a color and size before adding to cart.");
+      return false;
+    }
 
-      if (!selectedSize && product.sizes.length > 1) {
-        setSelectionWarning("Please choose a color and size before adding to cart.");
-        return;
-      }
+    if (!selectedSize && product.sizes.length > 1) {
+      setSelectionWarning("Please choose a color and size before adding to cart.");
+      return false;
+    }
 
-      const color = selectedColor ?? product.colors[0];
-      const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
-      const colorName = color?.labelFr ?? "Standard";
-      const colorCode = color?.id ?? "default";
+    const color = selectedColor ?? product.colors[0];
+    const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
+    const colorName = color?.labelFr ?? "Standard";
+    const colorCode = color?.id ?? "default";
 
-      addItem({
-        id: product.id,
-        slug: product.slug,
-        name: product.nameFr,
-        price: product.priceDzd,
-        currency: product.currency,
-        image: color?.image ?? product.images.main,
-        colorName,
-        colorCode,
-        size: sizeChoice,
-        quantity: 1,
-      });
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.nameFr,
+      price: product.priceDzd,
+      currency: product.currency,
+      image: color?.image ?? product.images.main,
+      colorName,
+      colorCode,
+      size: sizeChoice,
+      quantity: 1,
+    });
 
     setSelectionWarning(null);
 
     flyToCart(imageRef.current);
-  },
-  [
+    return true;
+  }, [
     addItem,
     product.colors,
     product.currency,
@@ -204,8 +206,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     selectedColor,
     selectedSize,
     flyToCart,
-  ],
-  );
+  ]);
 
   if (loading) {
     return (
@@ -247,7 +248,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[5/7] lg:aspect-[4/5]">
+          <div className="relative aspect-[4/4.2] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[5/5.4] lg:aspect-[5/5.6]">
             <AnimatePresence>
               <motion.div
                 key={currentImage}
@@ -329,7 +330,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             )}
           </div>
 
-          <div className="flex flex-1 flex-col gap-0.25 px-3 pb-1.25 pt-1.5">
+          <div className="flex flex-1 flex-col gap-0.25 px-3 pb-1 pt-1.25">
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2">{product.nameFr}</h2>
               <p className="text-[11px] text-neutral-400">{product.fit}</p>
@@ -341,7 +342,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           </div>
         </Link>
 
-        <div className="space-y-1.25 px-3 pb-2.5">
+        <div className="space-y-1 px-3 pb-2">
           {product.colors.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-neutral-300">
@@ -409,7 +410,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             </p>
           )}
 
-          <AnimatedAddToCartButton onClick={handleAddToCart} className="w-full justify-center" />
+          <AnimatedAddToCartButton
+            onClick={handleAddToCart}
+            className="w-full justify-center"
+            disabled={isSelectionMissing}
+          />
         </div>
       </motion.article>
     </>

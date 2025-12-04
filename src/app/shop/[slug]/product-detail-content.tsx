@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "@/lib/motion";
 
 import { Swatch } from "../swatch";
 import { Product, ProductColor } from "@/types/product";
 import { useCart } from "@/context/cart";
+import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
+import { useFlyToCart } from "@/lib/useFlyToCart";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -49,9 +51,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     product.sizes.length === 1 ? product.sizes[0] : undefined,
   );
-  const [justAdded, setJustAdded] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const { addItem } = useCart();
+  const { flyToCart } = useFlyToCart();
+  const imageRef = useRef<HTMLImageElement | null>(null);
 
   const imageList = useMemo(
     () => buildImageList(activeColor, [product.images.main, ...product.images.gallery]),
@@ -67,12 +70,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const handleAddToCart = () => {
     if (!activeColor && product.colors.length > 1) {
       setSelectionError("Choisissez un coloris avant d’ajouter au panier.");
-      return;
+      return false;
     }
 
     if (!selectedSize && product.sizes.length > 1) {
       setSelectionError("Choisissez une taille avant d’ajouter au panier.");
-      return;
+      return false;
     }
 
     const colorName = activeColor?.labelFr ?? "Standard";
@@ -92,14 +95,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
     });
 
     setSelectionError(null);
-    setJustAdded(true);
-    window.setTimeout(() => setJustAdded(false), 1200);
+    flyToCart(imageRef.current);
+    return true;
   };
 
   const infoRows = [
     { label: "Fit", value: product.fit },
     { label: "Genre", value: product.gender },
   ];
+
+  const isSelectionMissing =
+    (!activeColor && product.colors.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12">
@@ -120,6 +126,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     src={currentImage}
                     alt={product.nameFr}
                     fill
+                    ref={imageRef}
                     className="h-full w-full object-cover"
                     sizes="(min-width: 1024px) 40vw, 100vw"
                   />
@@ -240,17 +247,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
           )}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold uppercase tracking-wide text-black transition hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-              aria-label="Ajouter au panier"
+            <AnimatedAddToCartButton
               onClick={handleAddToCart}
-            >
-              {justAdded ? "Ajouté" : "Ajouter au panier"}
-            </button>
-            <p className="text-xs text-neutral-400">
-              Livraison rapide & échanges simples.
-            </p>
+              className="w-full justify-center sm:w-auto"
+              disabled={isSelectionMissing}
+            />
+            <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
           </div>
         </div>
       </div>
