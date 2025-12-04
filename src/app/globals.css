@@ -261,9 +261,14 @@ body {
 }
 
 .bubble-field {
-  position: absolute;
+  position: fixed;
   inset: 0;
   overflow: hidden;
+}
+
+.ocean-bubble-mask {
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 78%, rgba(0, 0, 0, 0) 42%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 78%, rgba(0, 0, 0, 0) 42%);
 }
 
 .bubble-field span {

@@ -230,54 +230,36 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     );
   }
 
-    return (
-      <>
-        {/* Product card height + controls tightening */}
-        <motion.article
-          whileHover={{ transform: "translateY(-3px)" }}
-          transition={{ duration: 0.2, easing: "ease" }}
-          className="relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
-        >
-      <Link
-        href={`/shop/${product.slug}`}
-        className="group relative flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-        aria-label={`Voir les détails du produit ${product.nameFr}`}
-        onKeyDown={handleKeyNavigation}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
+  return (
+    <>
+      {/* Product card height + controls tightening */}
+      <motion.article
+        whileHover={{ transform: "translateY(-3px)" }}
+        transition={{ duration: 0.2, easing: "ease" }}
+        className="relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
       >
-        <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
-          <AnimatePresence>
-            <motion.div
-              key={currentImage}
-              initial={{ opacity: 0.4, scale: 1.02 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, easing: "ease" }}
-              className="absolute inset-0"
-            >
-              <Image
-                src={currentImage}
-                alt={product.nameFr}
-                fill
-                priority={false}
-                sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                className="h-full w-full object-cover"
-              />
-            </motion.div>
-            {isHovering && images.length > 1 && (
+        <Link
+          href={`/shop/${product.slug}`}
+          className="group relative flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          aria-label={`Voir les détails du produit ${product.nameFr}`}
+          onKeyDown={handleKeyNavigation}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
+          <div className="relative aspect-[3/4] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
+            <AnimatePresence>
               <motion.div
-                key={`${currentImage}-hover`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                key={currentImage}
+                initial={{ opacity: 0.4, scale: 1.02 }}
+                animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.4, easing: "ease" }}
+                transition={{ duration: 0.35, easing: "ease" }}
                 className="absolute inset-0"
               >
                 <Image
-                  src={nextImage}
+                  src={currentImage}
                   alt={product.nameFr}
                   fill
                   priority={false}
@@ -285,158 +267,176 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   className="h-full w-full object-cover"
                 />
               </motion.div>
-            )}
-          </AnimatePresence>
+              {isHovering && images.length > 1 && (
+                <motion.div
+                  key={`${currentImage}-hover`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, easing: "ease" }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={nextImage}
+                    alt={product.nameFr}
+                    fill
+                    priority={false}
+                    sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                    className="h-full w-full object-cover"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
 
-          <div className="absolute left-3 right-3 top-3 flex flex-col gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] text-emerald-700 shadow-sm shadow-black/10">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              In stock
-            </span>
-            {showCategoryBadge && (
-              <span className="w-fit rounded-full bg-white/20 px-2.5 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white backdrop-blur">
-                {categoryLabel}
+            <div className="absolute left-2.5 right-2.5 top-2.5 flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] text-emerald-700 shadow-sm shadow-black/10">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                In stock
               </span>
+              {showCategoryBadge && (
+                <span className="w-fit rounded-full bg-white/15 px-2.5 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white backdrop-blur">
+                  {categoryLabel}
+                </span>
+              )}
+            </div>
+
+            {images.length > 1 && (
+              <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1.5">
+                <motion.button
+                  type="button"
+                  onClick={(event) => handleNav("prev", event)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label="Voir l'image précédente"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  &#8249;
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={(event) => handleNav("next", event)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label="Voir l'image suivante"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  &#8250;
+                </motion.button>
+              </div>
             )}
           </div>
 
-          {images.length > 1 && (
-            <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2">
-              <motion.button
-                type="button"
-                onClick={(event) => handleNav("prev", event)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Voir l'image précédente"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                &#8249;
-              </motion.button>
-              <motion.button
-                type="button"
-                onClick={(event) => handleNav("next", event)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Voir l'image suivante"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                &#8250;
-              </motion.button>
+          <div className="flex flex-1 flex-col gap-1 px-3 pb-2 pt-2.5">
+            <div className="space-y-0.5">
+              <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2">{product.nameFr}</h2>
+              <p className="text-[11px] text-neutral-400">{product.fit}</p>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-white tabular-nums">{formatPrice(product.priceDzd)}</p>
+            </div>
+          </div>
+        </Link>
+
+        <div className="space-y-2 px-3 pb-3">
+          {product.colors.length > 0 && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                <span>Color</span>
+                {!selectedColor && product.colors.length > 1 && (
+                  <span className="text-rose-200">Pick a color</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {product.colors.map((color) => (
+                  <Swatch
+                    key={color.id}
+                    label={color.labelFr}
+                    colorHex={getSwatchColor(color.labelFr)}
+                    selected={selectedColor?.id === color.id}
+                    onSelect={() => handleSelectColor(color)}
+                    size="xs"
+                    showLabel={false}
+                  />
+                ))}
+              </div>
             </div>
           )}
-        </div>
 
-        <div className="flex flex-1 flex-col gap-1.5 px-3 pb-2 pt-3">
-          <div className="space-y-0.5">
-            <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2">{product.nameFr}</h2>
-            <p className="text-[11px] text-neutral-400">{product.fit}</p>
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-white tabular-nums">{formatPrice(product.priceDzd)}</p>
-          </div>
-        </div>
-      </Link>
-
-      <div className="space-y-2.5 px-3 pb-3">
-        {product.colors.length > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-neutral-300">
-              <span>Color</span>
-              {!selectedColor && product.colors.length > 1 && (
-                <span className="text-rose-200">Pick a color</span>
-              )}
+          {product.sizes.length > 0 && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                <span>Size</span>
+                {!selectedSize && product.sizes.length > 1 && (
+                  <span className="text-rose-200">Pick a size</span>
+                )}
+              </div>
+              <div className="flex gap-1 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
+                {product.sizes.map((size) => {
+                  const isSelected = selectedSize === size;
+                  return (
+                    <motion.button
+                      key={size}
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleSelectSize(size);
+                      }}
+                      aria-pressed={isSelected}
+                      className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                        isSelected
+                          ? "border-white bg-white/15 text-white"
+                          : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                      }`}
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      {size.toUpperCase()}
+                    </motion.button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {product.colors.map((color) => (
-                <Swatch
-                  key={color.id}
-                  label={color.labelFr}
-                  colorHex={getSwatchColor(color.labelFr)}
-                  selected={selectedColor?.id === color.id}
-                  onSelect={() => handleSelectColor(color)}
-                  size="xs"
-                  showLabel={false}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+          )}
 
-        {product.sizes.length > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-neutral-300">
-              <span>Size</span>
-              {!selectedSize && product.sizes.length > 1 && (
-                <span className="text-rose-200">Pick a size</span>
-              )}
-            </div>
-            <div className="flex gap-1 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-              {product.sizes.map((size) => {
-                const isSelected = selectedSize === size;
-                return (
-                  <motion.button
-                    key={size}
-                    type="button"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      handleSelectSize(size);
-                    }}
-                    aria-pressed={isSelected}
-                    className={`whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                      isSelected
-                        ? "border-white bg-white/15 text-white"
-                        : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                    }`}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    {size.toUpperCase()}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+          {selectionWarning && (
+            <p className="text-xs text-rose-200" aria-live="polite">
+              {selectionWarning}
+            </p>
+          )}
 
-        {selectionWarning && (
-          <p className="text-xs text-rose-200" aria-live="polite">
-            {selectionWarning}
-          </p>
-        )}
-
-        <motion.button
-          type="button"
-          onClick={handleAddToCart}
-          whileTap={{ scale: 0.97 }}
-          whileHover={{ transform: "translateY(-2px)" }}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-900/30 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-          aria-label="Add to cart"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            className="h-[18px] w-[18px]"
-            aria-hidden
+          <motion.button
+            type="button"
+            onClick={handleAddToCart}
+            whileTap={{ scale: 0.97 }}
+            whileHover={{ transform: "translateY(-2px)" }}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-teal-900/30 transition hover:bg-teal-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            aria-label="Add to cart"
           >
-            <path d="M5 6h15l-1.3 6.5a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.6L6.2 3.8H3" />
-            <path d="M10.5 3.8h6.5" />
-            <path d="M12 11.5v4.5m-2.6-2.2H14.6" />
-            <circle cx="10" cy="20" r="1.1" />
-            <circle cx="16" cy="20" r="1.1" />
-          </svg>
-          {justAdded ? "Added" : "Add to cart"}
-        </motion.button>
-      </div>
-        </motion.article>
-      </>
-    );
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="h-[18px] w-[18px]"
+              aria-hidden
+            >
+              <path d="M4 6h17l-1.5 7.2a2 2 0 0 1-2 1.6H9.4a2 2 0 0 1-2-1.6L6.6 3.8H3.5" />
+              <path d="M11.8 3.8h6.5" />
+              <path d="M12 11.5v4.4m-2.4-2.2H14.4" />
+              <circle cx="10.4" cy="20" r="1.05" />
+              <circle cx="16" cy="20" r="1.05" />
+            </svg>
+            {justAdded ? "Added" : "Add to cart"}
+          </motion.button>
+        </div>
+      </motion.article>
+    </>
+  );
   }
 
 export const ProductCard = memo(ProductCardComponent);
