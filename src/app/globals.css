@@ -3,7 +3,7 @@
 
 :root {
   /* Crest tone aligned to the live hero sky */
-  --background: #a7c7f0;
+  --background: #cfe9ff;
   --foreground: #e2f3ff;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -58,14 +58,14 @@ body {
 
 .ocean-page {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
-  background: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background: linear-gradient(to bottom, #cfe9ff 0%, #5fb3ff 48%, #020617 100%);
   color: var(--foreground);
 }
 
 
 .ocean-bg {
   /* Backdrop gradient used behind content; matches the live page palette */
-  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background-image: linear-gradient(to bottom, #cfe9ff 0%, #5fb3ff 48%, #020617 100%);
   background-size: 100% 100%;
 }
 
