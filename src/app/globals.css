@@ -63,7 +63,13 @@ body {
 
 .ocean-bg {
   /* Full-page ocean gradient: clear blue crest that deepens as you scroll */
-  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background-image: linear-gradient(
+    to bottom,
+    #9fc9ff 0%,
+    #75aee8 42%,
+    #2b5f96 68%,
+    #020617 100%
+  );
   background-size: 100% 100%;
 }
 
@@ -289,8 +295,8 @@ body {
 
 .ocean-bubble-mask {
   /* Keep bubbles below the wave crest while covering the full page height */
-  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 96%, rgba(0, 0, 0, 0) 14%);
-  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 96%, rgba(0, 0, 0, 0) 14%);
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 100%, rgba(0, 0, 0, 0) 8%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 100%, rgba(0, 0, 0, 0) 8%);
 }
 
 .bubble-field span {

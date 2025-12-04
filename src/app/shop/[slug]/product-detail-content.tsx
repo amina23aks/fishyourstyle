@@ -69,12 +69,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const handleAddToCart = () => {
     if (!activeColor && product.colors.length > 1) {
-      setSelectionError("Choisissez un coloris avant d’ajouter au panier.");
+      setSelectionError("Please choose a color and size before adding to cart.");
       return false;
     }
 
     if (!selectedSize && product.sizes.length > 1) {
-      setSelectionError("Choisissez une taille avant d’ajouter au panier.");
+      setSelectionError("Please choose a color and size before adding to cart.");
       return false;
     }
 
@@ -108,11 +108,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
     (!activeColor && product.colors.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-12">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 via-white/0 to-white/10 shadow-[0_12px_45px_rgba(0,0,0,0.35)]">
-            <div className="relative aspect-[4/5] w-full">
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className="space-y-3">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+            <div className="relative aspect-[3/4] w-full">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentImage}
@@ -162,15 +162,15 @@ export function ProductDetailContent({ product }: { product: Product }) {
           )}
         </div>
 
-        <div className="space-y-6 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-[0_12px_45px_rgba(0,0,0,0.35)]">
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.25em] text-neutral-400">Collection</p>
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">{product.nameFr}</h1>
-            <p className="text-lg font-semibold text-white">{formatPrice(product.priceDzd, product.currency)}</p>
+        <div className="space-y-5 rounded-2xl border border-white/10 bg-black/40 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+          <div className="space-y-2">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
+            <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.nameFr}</h1>
+            <p className="text-base font-semibold text-white">{formatPrice(product.priceDzd, product.currency)}</p>
             <p className="text-sm leading-relaxed text-neutral-300">{product.descriptionFr}</p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
             <div className="flex flex-wrap gap-2">
               {product.colors.map((color) => (
@@ -188,14 +188,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 />
               ))}
             </div>
-            {!activeColor && product.colors.length > 1 && (
-              <p className="text-xs text-rose-200" aria-live="polite">
-                Choisissez un coloris pour continuer.
-              </p>
-            )}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
             <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => {
@@ -218,14 +213,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 );
               })}
             </div>
-            {!selectedSize && product.sizes.length > 1 && (
-              <p className="text-xs text-rose-200" aria-live="polite">
-                Choisissez une taille avant d’ajouter au panier.
-              </p>
-            )}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {infoRows.map((row) => (
@@ -240,20 +230,21 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </ul>
           </div>
 
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <AnimatedAddToCartButton
+              onClick={handleAddToCart}
+              className={`w-full justify-center sm:w-auto ${
+                isSelectionMissing ? "opacity-80" : ""
+              }`.trim()}
+            />
+            <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
+          </div>
+
           {selectionError && (
             <p className="text-sm text-rose-200" aria-live="polite">
               {selectionError}
             </p>
           )}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <AnimatedAddToCartButton
-              onClick={handleAddToCart}
-              className="w-full justify-center sm:w-auto"
-              disabled={isSelectionMissing}
-            />
-            <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
-          </div>
         </div>
       </div>
     </main>

@@ -412,8 +412,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
           <AnimatedAddToCartButton
             onClick={handleAddToCart}
-            className="w-full justify-center"
-            disabled={isSelectionMissing}
+            className={`w-full justify-center ${isSelectionMissing ? "opacity-80" : ""}`.trim()}
           />
         </div>
       </motion.article>
