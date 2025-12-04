@@ -76,49 +76,13 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 text-white">
-        <Link href="/" className="group flex items-center gap-3">
-          <model-viewer
-            src="/logo-3d.glb"
-            loading="lazy"
-            camera-controls
-            auto-rotate
-            rotation-per-second="120deg"
-            disable-zoom
-            shadow-intensity="1"
-            className="h-16 w-16"
-            aria-label="Fish Your Style 3D logo"
-          />
-          <div className="leading-tight">
-            <p className="text-base font-semibold text-white">Fish Your Style</p>
-            <span className="text-xs text-sky-100">Sea streetwear</span>
-          </div>
-        </Link>
-
-        <nav className="hidden items-center gap-2 text-sm font-medium text-sky-100 md:flex">
-          {links.map((link) => {
-            const active = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`rounded-full px-4 py-2 transition-colors duration-200 ${
-                  active
-                    ? "bg-white/20 text-white shadow-inner shadow-white/10"
-                    : "hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="flex items-center gap-2">
+      {/* Navbar height + mobile layout adjustments */}
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 text-white">
+        <div className="flex items-center gap-2 md:gap-3">
           <button
             type="button"
             onClick={toggleMenu}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 md:hidden"
             aria-label="Toggle menu"
             aria-expanded={isMenuOpen}
           >
@@ -148,6 +112,54 @@ export function Navbar() {
               </svg>
             )}
           </button>
+
+          <Link href="/" className="group flex items-center gap-3">
+            <model-viewer
+              src="/logo-3d.glb"
+              loading="lazy"
+              camera-controls
+              auto-rotate
+              rotation-per-second="120deg"
+              disable-zoom
+              shadow-intensity="1"
+              className="h-14 w-14"
+              aria-label="Fish Your Style 3D logo"
+            />
+            <div className="leading-tight">
+              <p className="text-base font-semibold text-white">Fish Your Style</p>
+              <span className="text-xs text-sky-100">Sea streetwear</span>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="hidden flex-1 items-center justify-center gap-2 text-sm font-medium text-sky-100 md:flex">
+          {links.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`rounded-full px-4 py-2 transition-colors duration-200 ${
+                  active
+                    ? "bg-white/20 text-white shadow-inner shadow-white/10"
+                    : "hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          <Link
+            href="/account"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            aria-label="Account"
+          >
+            <AccountIcon />
+            <span className="sr-only">Account</span>
+          </Link>
           <motion.button
             type="button"
             onClick={toggleDrawer}
@@ -156,7 +168,7 @@ export function Navbar() {
               rotate: isBumping ? "-2deg" : "0deg",
             }}
             whileTap={{ scale: 0.95 }}
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             aria-label="Cart"
           >
             <CartIcon />
@@ -167,14 +179,6 @@ export function Navbar() {
             )}
             <span className="sr-only">Cart drawer</span>
           </motion.button>
-          <Link
-            href="/account"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            aria-label="Account"
-          >
-            <AccountIcon />
-            <span className="sr-only">Account</span>
-          </Link>
         </div>
       </div>
 

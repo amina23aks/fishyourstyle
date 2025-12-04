@@ -13,8 +13,8 @@ export type SwatchProps = {
 };
 
 const sizeClasses: Record<NonNullable<SwatchProps["size"]>, string> = {
-  xs: "h-7 px-2.5 text-[11px]",
-  sm: "h-8 px-3 text-xs",
+  xs: "h-6 px-2 text-[10px]",
+  sm: "h-7 px-2.5 text-[11px]",
   md: "h-9 px-4 text-sm",
 };
 

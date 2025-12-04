@@ -230,12 +230,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     );
   }
 
-  return (
-    <motion.article
-      whileHover={{ transform: "translateY(-4px)" }}
-      transition={{ duration: 0.2, easing: "ease" }}
-      className="relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_32px_rgba(0,0,0,0.32)]"
-    >
+    return (
+      <>
+        {/* Product card height + controls tightening */}
+        <motion.article
+          whileHover={{ transform: "translateY(-3px)" }}
+          transition={{ duration: 0.2, easing: "ease" }}
+          className="relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
+        >
       <Link
         href={`/shop/${product.slug}`}
         className="group relative flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
@@ -246,7 +248,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <div className="relative aspect-[3/4] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
           <AnimatePresence>
             <motion.div
               key={currentImage}
@@ -288,13 +290,13 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-          <div className="absolute left-3 right-3 top-3 flex flex-col gap-2 text-[11px] font-semibold uppercase tracking-wide text-white">
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[11px] text-emerald-700 shadow-sm shadow-black/10">
+          <div className="absolute left-3 right-3 top-3 flex flex-col gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] text-emerald-700 shadow-sm shadow-black/10">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               In stock
             </span>
             {showCategoryBadge && (
-              <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white backdrop-blur">
+              <span className="w-fit rounded-full bg-white/20 px-2.5 py-0.5 text-[9px] uppercase tracking-[0.18em] text-white backdrop-blur">
                 {categoryLabel}
               </span>
             )}
@@ -326,9 +328,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           )}
         </div>
 
-        <div className="flex flex-1 flex-col gap-2 px-3 pb-2 pt-3">
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-white line-clamp-2">{product.nameFr}</h2>
+        <div className="flex flex-1 flex-col gap-1.5 px-3 pb-2 pt-3">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2">{product.nameFr}</h2>
             <p className="text-[11px] text-neutral-400">{product.fit}</p>
           </div>
 
@@ -338,16 +340,16 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         </div>
       </Link>
 
-      <div className="space-y-3 px-3 pb-3">
+      <div className="space-y-2.5 px-3 pb-3">
         {product.colors.length > 0 && (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <div className="flex items-center justify-between text-[11px] text-neutral-300">
               <span>Color</span>
               {!selectedColor && product.colors.length > 1 && (
                 <span className="text-rose-200">Pick a color</span>
               )}
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {product.colors.map((color) => (
                 <Swatch
                   key={color.id}
@@ -364,14 +366,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         )}
 
         {product.sizes.length > 0 && (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <div className="flex items-center justify-between text-[11px] text-neutral-300">
               <span>Size</span>
               {!selectedSize && product.sizes.length > 1 && (
                 <span className="text-rose-200">Pick a size</span>
               )}
             </div>
-            <div className="flex gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+            <div className="flex gap-1 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {product.sizes.map((size) => {
                 const isSelected = selectedSize === size;
                 return (
@@ -384,7 +386,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                       handleSelectSize(size);
                     }}
                     aria-pressed={isSelected}
-                    className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                    className={`whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                       isSelected
                         ? "border-white bg-white/15 text-white"
                         : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
@@ -411,7 +413,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onClick={handleAddToCart}
           whileTap={{ scale: 0.97 }}
           whileHover={{ transform: "translateY(-2px)" }}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-900/30 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           aria-label="Add to cart"
         >
           <svg
@@ -419,18 +421,22 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.8"
-            className="h-4 w-4"
+            strokeWidth="1.6"
+            className="h-[18px] w-[18px]"
             aria-hidden
           >
-            <path d="M5 6h16l-1.4 7a2 2 0 0 1-2 1.6H9.4a2 2 0 0 1-2-1.6L6 3H2" />
-            <path d="M12 11v6m-3-3h6" />
+            <path d="M5 6h15l-1.3 6.5a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.6L6.2 3.8H3" />
+            <path d="M10.5 3.8h6.5" />
+            <path d="M12 11.5v4.5m-2.6-2.2H14.6" />
+            <circle cx="10" cy="20" r="1.1" />
+            <circle cx="16" cy="20" r="1.1" />
           </svg>
           {justAdded ? "Added" : "Add to cart"}
         </motion.button>
       </div>
-    </motion.article>
-  );
-}
+        </motion.article>
+      </>
+    );
+  }
 
 export const ProductCard = memo(ProductCardComponent);

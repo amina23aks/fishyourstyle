@@ -224,3 +224,55 @@ body {
   opacity: 0.28;
   animation: beamFloat 16s ease-in-out infinite;
 }
+
+/* Mobile hero water alignment fix */
+.hero-water-band {
+  inset-inline: -8%;
+}
+
+.hero-water-overlay {
+  top: 48%;
+}
+
+@media (max-width: 640px) {
+  .hero-water-band {
+    top: 57%;
+    height: 118px;
+  }
+
+  .hero-water-overlay {
+    top: 54%;
+  }
+}
+
+/* Underwater bubble background */
+@keyframes driftRise {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.85);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-120vh) translateX(18px) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.bubble-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.bubble-field span {
+  position: absolute;
+  bottom: -5%;
+  display: block;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.08));
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
+  animation: driftRise linear infinite;
+  opacity: 0.55;
+}

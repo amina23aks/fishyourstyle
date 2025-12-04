@@ -6,6 +6,7 @@ import Hero from "@/components/Hero";
 import { logPageView } from "@/lib/firebaseAnalytics";
 import { ProductCard } from "./shop/product-card";
 import { getAllProducts } from "@/lib/products";
+import { Product } from "@/types/product";
 
 const reasons = [
   {
@@ -27,7 +28,25 @@ export default function Home() {
     logPageView("home");
   }, []);
 
-  const products = useMemo(() => getAllProducts().slice(0, 4), []);
+  const products = useMemo(() => {
+    // Home Shop preview changes: surface 2 of each key category so the preview feels balanced
+    const all = getAllProducts();
+    const pick = (category: Product["category"], count: number) =>
+      all.filter((item) => item.category === category).slice(0, count);
+
+    const curated = [
+      ...pick("hoodies", 2),
+      ...pick("pants", 2),
+      ...pick("ensembles", 2),
+    ];
+
+    if (curated.length < 6) {
+      const remaining = all.filter((product) => !curated.includes(product));
+      curated.push(...remaining.slice(0, 6 - curated.length));
+    }
+
+    return curated;
+  }, []);
 
   return (
     <div className="flex w-full flex-col gap-12">
@@ -41,13 +60,6 @@ export default function Home() {
               <h2 className="text-2xl font-semibold text-slate-900">Fresh arrivals</h2>
               <p className="text-slate-600">Browse our latest drops right from the homepage.</p>
             </div>
-            <Link
-              href="/shop"
-              className="hidden items-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition hover:-translate-y-0.5 hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 sm:inline-flex"
-            >
-              See all products
-              <span aria-hidden>→</span>
-            </Link>
           </div>
 
           <div className="overflow-x-auto pb-2">
@@ -58,13 +70,15 @@ export default function Home() {
             </div>
           </div>
 
-          <Link
-            href="/shop"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition hover:-translate-y-0.5 hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 sm:hidden"
-          >
-            See all products
-            <span aria-hidden>→</span>
-          </Link>
+          <div className="flex w-full justify-center pt-2">
+            <Link
+              href="/shop"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition hover:-translate-y-0.5 hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              See all products
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
         </section>
 
         <section className="space-y-4 rounded-3xl bg-sky-900/90 px-6 py-10 text-sky-50 shadow-lg shadow-sky-200/60">
