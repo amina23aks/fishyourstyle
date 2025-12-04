@@ -166,6 +166,7 @@ export const motion = {
   div: createMotionComponent("div"),
   section: createMotionComponent("section"),
   article: createMotionComponent("article"),
+  nav: createMotionComponent("nav"),
   button: createMotionComponent("button"),
   span: createMotionComponent("span"),
   ul: createMotionComponent("ul"),
