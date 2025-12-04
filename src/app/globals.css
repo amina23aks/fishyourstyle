@@ -2,8 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Crest tone aligned to the live hero sky */
-  --background: #cfe9ff;
+  --background: #a7c7f0;
   --foreground: #e2f3ff;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -24,14 +23,7 @@
 }
 */
 body {
-  background: linear-gradient(
-    to bottom,
-    #cfe9ff 0%,
-    #a8d7ff 32%,
-    #6db3f0 62%,
-    #1e4c82 84%,
-    #020617 100%
-  );
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
 }
@@ -78,15 +70,7 @@ body {
 
 
 .ocean-bg {
-  /* Backdrop gradient used behind content; matches the live page palette */
-  background-image: linear-gradient(
-    to bottom,
-    #cfe9ff 0%,
-    #a8d7ff 32%,
-    #6db3f0 62%,
-    #1e4c82 84%,
-    #020617 100%
-  );
+  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
   background-size: 100% 100%;
 }
 
@@ -304,7 +288,7 @@ body {
 }
 
 .bubble-field {
-  position: fixed;
+  position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
