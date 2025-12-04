@@ -404,8 +404,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             </div>
           )}
 
-          <p className="min-h-[18px] text-xs text-rose-200" aria-live="polite">
-            {selectionWarning ?? ""}
+          <p className="min-h-[20px] text-xs text-rose-200" aria-live="polite">
+            {selectionWarning ?? "\u00a0"}
           </p>
 
           <AnimatedAddToCartButton

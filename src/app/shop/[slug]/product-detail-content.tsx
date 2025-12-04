@@ -108,11 +108,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
     (!activeColor && product.colors.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-7 sm:py-9">
-      <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-3">
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-            <div className="relative aspect-[4/4.5] w-full">
+            <div className="relative aspect-[4/3.4] w-full">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentImage}
@@ -162,7 +162,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
           )}
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5">
+        <div className="space-y-3.5 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5">
           <div className="space-y-2">
             <p className="text-[11px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.nameFr}</h1>
@@ -240,8 +240,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
             <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
           </div>
 
-          <p className="min-h-[20px] text-sm text-rose-200" aria-live="polite">
-            {selectionError ?? ""}
+          <p className="min-h-[24px] text-sm text-rose-200" aria-live="polite">
+            {selectionError ?? "\u00a0"}
           </p>
         </div>
       </div>
