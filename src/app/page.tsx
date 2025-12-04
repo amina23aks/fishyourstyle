@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import { logPageView } from "@/lib/firebaseAnalytics";
-
-const featuredCollections = [
-  { title: "Oversized Hoodie", description: "Soft, ocean-inspired fleece." },
-  { title: "Premium Tee", description: "Lightweight, breathable cotton." },
-  { title: "Baggy Cargo Pants", description: "Adventure-ready with deep pockets." },
-];
+import { ProductCard } from "./shop/product-card";
+import { getAllProducts } from "@/lib/products";
 
 const reasons = [
   {
@@ -30,38 +27,44 @@ export default function Home() {
     logPageView("home");
   }, []);
 
+  const products = useMemo(() => getAllProducts().slice(0, 4), []);
+
   return (
     <div className="flex w-full flex-col gap-12">
       <Hero />
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
         <section className="space-y-4">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm uppercase tracking-[0.28em] text-sky-700">Featured</p>
-            <h2 className="text-2xl font-semibold text-slate-900">Collections</h2>
-            <p className="text-slate-600">
-              A quick peek at the products we will connect to Firestore soon.
-            </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm uppercase tracking-[0.28em] text-sky-700">Shop</p>
+              <h2 className="text-2xl font-semibold text-slate-900">Fresh arrivals</h2>
+              <p className="text-slate-600">Browse our latest drops right from the homepage.</p>
+            </div>
+            <Link
+              href="/shop"
+              className="hidden items-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition hover:-translate-y-0.5 hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 sm:inline-flex"
+            >
+              See all products
+              <span aria-hidden>→</span>
+            </Link>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {featuredCollections.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-sky-100 bg-white/20 p-6 shadow-sm shadow-sky-100/50 backdrop-blur-md"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    {item.title}
-                  </h3>
-                  <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">
-                    Coming soon
-                  </span>
-                </div>
-                <p className="mt-3 text-slate-600">{item.description}</p>
-                <div className="mt-4 h-28 rounded-xl bg-gradient-to-br from-sky-100 to-blue-200" />
-              </div>
-            ))}
+
+          <div className="overflow-x-auto pb-2">
+            <div className="grid min-w-full grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
           </div>
+
+          <Link
+            href="/shop"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition hover:-translate-y-0.5 hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 sm:hidden"
+          >
+            See all products
+            <span aria-hidden>→</span>
+          </Link>
         </section>
 
         <section className="space-y-4 rounded-3xl bg-sky-900/90 px-6 py-10 text-sky-50 shadow-lg shadow-sky-200/60">

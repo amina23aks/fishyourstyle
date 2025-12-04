@@ -8,11 +8,12 @@ export type SwatchProps = {
   colorHex?: string;
   selected?: boolean;
   onSelect?: () => void;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
   showLabel?: boolean;
 };
 
 const sizeClasses: Record<NonNullable<SwatchProps["size"]>, string> = {
+  xs: "h-7 px-2.5 text-[11px]",
   sm: "h-8 px-3 text-xs",
   md: "h-9 px-4 text-sm",
 };
