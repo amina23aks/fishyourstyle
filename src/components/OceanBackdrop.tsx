@@ -15,6 +15,11 @@ export default function OceanBackdrop() {
     { size: 12, left: "13%", delay: "8s", duration: "28s" },
     { size: 8, left: "57%", delay: "9s", duration: "24s" },
     { size: 14, left: "76%", delay: "10s", duration: "32s" },
+    { size: 11, left: "4%", delay: "11s", duration: "30s" },
+    { size: 9, left: "29%", delay: "12s", duration: "26s" },
+    { size: 12, left: "48%", delay: "13s", duration: "28s" },
+    { size: 10, left: "68%", delay: "14s", duration: "25s" },
+    { size: 13, left: "87%", delay: "15s", duration: "31s" },
   ];
 
   return (

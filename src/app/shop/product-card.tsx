@@ -275,7 +275,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="relative aspect-[2/3] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[7/10] lg:aspect-[3/4]">
+          <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[5/7] lg:aspect-[4/5]">
             <AnimatePresence>
               <motion.div
                 key={currentImage}
@@ -355,7 +355,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             )}
           </div>
 
-          <div className="flex flex-1 flex-col gap-0.5 px-3 pb-1.5 pt-2">
+          <div className="flex flex-1 flex-col gap-0.25 px-3 pb-1.25 pt-1.5">
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2">{product.nameFr}</h2>
               <p className="text-[11px] text-neutral-400">{product.fit}</p>
@@ -367,7 +367,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           </div>
         </Link>
 
-        <div className="space-y-1.5 px-3 pb-3">
+        <div className="space-y-1.25 px-3 pb-2.5">
           {product.colors.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-neutral-300">
