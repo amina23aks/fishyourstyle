@@ -106,9 +106,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:items-stretch">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-stretch">
         <div className="flex h-full flex-col gap-3 lg:gap-4">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[88px,1fr] lg:items-start lg:gap-4">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[96px,1fr] lg:items-start lg:gap-4">
             {imageList.length > 1 && (
               <div className="hidden lg:flex lg:flex-col lg:gap-3">
                 {imageList.map((image, index) => {
@@ -136,7 +136,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
             )}
 
             <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-              <div className="relative aspect-[4/5] w-full sm:aspect-[4/5.2]">
+              <div className="relative aspect-[3/4] w-full sm:aspect-[3/4.2] lg:aspect-[4/5]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentImage}
@@ -187,7 +187,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
         </div>
 
-        <div className="flex h-full flex-col space-y-3.5 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5">
+        <div className="flex h-full flex-col justify-between space-y-4 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5 lg:self-stretch">
           <div className="space-y-2">
             <p className="text-[11px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.nameFr}</h1>
