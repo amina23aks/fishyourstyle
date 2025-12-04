@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 :root {
-  /* Bright crest tone that matches the live hero sky */
-  --background: #cfe9ff;
+  /* Crest tone aligned to the live hero sky */
+  --background: #d9efff;
   --foreground: #e2f3ff;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -60,10 +60,10 @@ body {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
   background: linear-gradient(
     to bottom,
-    #cfe9ff 0%,
-    #a9d6ff 24%,
-    #6fb7ff 52%,
-    #1f5c9c 78%,
+    #d9efff 0%,
+    #b4deff 20%,
+    #7bc0f8 46%,
+    #2f7ec9 72%,
     #020617 100%
   );
   color: var(--foreground);
@@ -74,10 +74,10 @@ body {
   /* Backdrop gradient used behind content; matches the live page palette */
   background-image: linear-gradient(
     to bottom,
-    #cfe9ff 0%,
-    #a9d6ff 24%,
-    #6fb7ff 52%,
-    #1f5c9c 78%,
+    #d9efff 0%,
+    #b4deff 20%,
+    #7bc0f8 46%,
+    #2f7ec9 72%,
     #020617 100%
   );
   background-size: 100% 100%;
