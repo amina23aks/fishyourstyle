@@ -19,10 +19,11 @@ export default function HeroFishing() {
   ];
 
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden text-white">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute inset-x-[-6%] top-6 h-64 light-rays" />
-        <div className="absolute inset-x-[-8%] top-[46%] h-28 opacity-85">
+        {/* Mobile hero water alignment fix */}
+        <div className="absolute inset-x-[-8%] h-28 opacity-85 hero-water-band">
           <svg
             className="absolute bottom-[-2px] left-0 w-[200%] animate-wave origin-bottom scale-y-[0.45]"
             viewBox="0 0 1440 320"
@@ -59,7 +60,7 @@ export default function HeroFishing() {
           </svg>
         </div>
 
-        <div className="absolute inset-x-0 top-[48%] bottom-0 overflow-hidden">
+        <div className="absolute inset-x-0 bottom-0 overflow-hidden hero-water-overlay">
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-sky-200/10 to-transparent" />
 
           {lightColumns.map((beam, index) => (
@@ -95,24 +96,18 @@ export default function HeroFishing() {
       </div>
       <div className="relative px-6 pb-24 pt-16 sm:px-10 lg:min-h-[80vh] lg:px-16">
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
-          <div className="relative order-2 w-full space-y-5 text-left text-white lg:order-1 lg:max-w-xl lg:space-y-6">
+          <div className="relative order-2 w-full space-y-4 text-left text-white lg:order-1 lg:max-w-xl lg:space-y-5 lg:pt-2">
             <p className="text-xs uppercase tracking-[0.32em] text-sky-100">Premium drop</p>
             <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">Fish Your Style</h1>
             <p className="text-lg text-sky-50/90">
-              Luxury streetwear inspired by the deep sea. Glide over the waves with a playful mascot who tracks your moves.
+              Streetwear inspiré par la mer : des coupes confortables, des couleurs fraîches et une vibe qui suit chacun de tes mouvements.
             </p>
-            <div className="flex flex-wrap justify-start gap-4 pt-4">
+            <div className="flex flex-wrap justify-start gap-4 pt-3">
               <Link
                 href="/shop"
                 className="rounded-full bg-white/20 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/30"
               >
                 Shop Now
-              </Link>
-              <Link
-                href="/custom"
-                className="rounded-full border border-white/30 px-7 py-3 text-sm font-semibold text-white/90 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"
-              >
-                Custom Hoodie
               </Link>
             </div>
           </div>

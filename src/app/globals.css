@@ -54,8 +54,17 @@ body {
   }
 }
 
+
 .ocean-page {
-  background-color: var(--background);
+  /* Full-page ocean gradient: light crest to deep sea, mirroring production */
+  background: linear-gradient(
+    to bottom,
+    #cfe9ff 0%,
+    #a8d7ff 32%,
+    #6db3f0 62%,
+    #1e4c82 84%,
+    #020617 100%
+  );
   color: var(--foreground);
 }
 
@@ -84,6 +93,23 @@ body {
     transform: translateY(-80px) scale(1.1);
     opacity: 0;
   }
+}
+
+/* Cart bounce effect after item flies to cart */
+@keyframes cart-bounce {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-4px) scale(1.08);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cart-bounce {
+  animation: cart-bounce 0.4s ease-out;
 }
 
 .hero-bubble {
@@ -223,4 +249,87 @@ body {
   filter: blur(18px);
   opacity: 0.28;
   animation: beamFloat 16s ease-in-out infinite;
+}
+
+/* Mobile hero water alignment fix */
+.hero-water-band {
+  inset-inline: -8%;
+  top: 44%;
+}
+
+.hero-water-overlay {
+  top: 47%;
+}
+
+@media (max-width: 640px) {
+  .hero-water-band {
+    top: 56%;
+    height: 104px;
+  }
+
+  .hero-water-overlay {
+    top: 54%;
+  }
+}
+
+/* Underwater bubble background */
+@keyframes driftRise {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.85);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-160vh) translateX(18px) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.bubble-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ocean-bubble-mask {
+  /* Keep bubbles below the wave crest while covering the full page height */
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 100%, rgba(0, 0, 0, 0) 8%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 100%, rgba(0, 0, 0, 0) 8%);
+}
+
+.bubble-field span {
+  position: absolute;
+  bottom: -5%;
+  display: block;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.08));
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
+  animation: driftRise linear infinite;
+  opacity: 0.55;
+}
+
+/* Product card hover gleam (card animation inspired by referenced CodePen) */
+.product-card-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card-shell::before {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.08), transparent 35%);
+  opacity: 0;
+  transition: opacity 250ms ease, transform 350ms ease;
+  transform: scale(1.05);
+  pointer-events: none;
+}
+
+.product-card-shell:hover::before {
+  opacity: 1;
+  transform: translate3d(-4%, -6%, 0) scale(1.12);
 }

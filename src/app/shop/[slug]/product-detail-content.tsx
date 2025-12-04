@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "@/lib/motion";
 
 import { Swatch } from "../swatch";
 import { Product, ProductColor } from "@/types/product";
 import { useCart } from "@/context/cart";
+import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
+import { useFlyToCart } from "@/lib/useFlyToCart";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -49,9 +51,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     product.sizes.length === 1 ? product.sizes[0] : undefined,
   );
-  const [justAdded, setJustAdded] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const { addItem } = useCart();
+  const { flyToCart } = useFlyToCart();
+  const imageRef = useRef<HTMLImageElement | null>(null);
 
   const imageList = useMemo(
     () => buildImageList(activeColor, [product.images.main, ...product.images.gallery]),
@@ -66,13 +69,13 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const handleAddToCart = () => {
     if (!activeColor && product.colors.length > 1) {
-      setSelectionError("Choisissez un coloris avant d’ajouter au panier.");
-      return;
+      setSelectionError("Please choose a color and size before adding to cart.");
+      return false;
     }
 
     if (!selectedSize && product.sizes.length > 1) {
-      setSelectionError("Choisissez une taille avant d’ajouter au panier.");
-      return;
+      setSelectionError("Please choose a color and size before adding to cart.");
+      return false;
     }
 
     const colorName = activeColor?.labelFr ?? "Standard";
@@ -92,21 +95,47 @@ export function ProductDetailContent({ product }: { product: Product }) {
     });
 
     setSelectionError(null);
-    setJustAdded(true);
-    window.setTimeout(() => setJustAdded(false), 1200);
+    flyToCart(imageRef.current);
+    return true;
   };
 
-  const infoRows = [
-    { label: "Fit", value: product.fit },
-    { label: "Genre", value: product.gender },
-  ];
+  const infoRows = [{ label: "Genre", value: product.gender }];
+
+  const isSelectionMissing =
+    (!activeColor && product.colors.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-12">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 via-white/0 to-white/10 shadow-[0_12px_45px_rgba(0,0,0,0.35)]">
-            <div className="relative aspect-[4/5] w-full">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[108px_minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start">
+        {imageList.length > 1 && (
+          <div className="hidden lg:flex lg:flex-col lg:gap-3 lg:self-start">
+            {imageList.map((image, index) => {
+              const isActive = index === activeImage;
+              return (
+                <button
+                  key={image}
+                  type="button"
+                  aria-label={`Voir l'image ${index + 1}`}
+                  onClick={() => handleThumbnailSelect(index)}
+                  className={`group relative aspect-square overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${isActive ? "border-white" : "border-white/10 hover:border-white/40"}`}
+                >
+                  <Image
+                    src={image}
+                    alt={`${product.nameFr} miniature ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="100px"
+                  />
+                  <span className="absolute inset-0 bg-black/20 opacity-0 transition group-hover:opacity-100" aria-hidden />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-3 lg:gap-4">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+            <div className="relative aspect-[4/5.2] w-full sm:aspect-[4/5.4] lg:aspect-[4/5.3]">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentImage}
@@ -120,8 +149,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     src={currentImage}
                     alt={product.nameFr}
                     fill
+                    ref={imageRef}
                     className="h-full w-full object-cover"
-                    sizes="(min-width: 1024px) 40vw, 100vw"
+                    sizes="(min-width: 1024px) 42vw, 100vw"
                   />
                 </motion.div>
               </AnimatePresence>
@@ -129,7 +159,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
 
           {imageList.length > 1 && (
-            <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
+            <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:hidden">
               {imageList.map((image, index) => {
                 const isActive = index === activeImage;
                 return (
@@ -155,15 +185,15 @@ export function ProductDetailContent({ product }: { product: Product }) {
           )}
         </div>
 
-        <div className="space-y-6 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-[0_12px_45px_rgba(0,0,0,0.35)]">
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.25em] text-neutral-400">Collection</p>
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">{product.nameFr}</h1>
-            <p className="text-lg font-semibold text-white">{formatPrice(product.priceDzd, product.currency)}</p>
+        <div className="flex h-full flex-col justify-between space-y-3 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5 lg:self-stretch">
+          <div className="space-y-2">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
+            <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.nameFr}</h1>
+            <p className="text-xl font-bold text-white sm:text-2xl">{formatPrice(product.priceDzd, product.currency)}</p>
             <p className="text-sm leading-relaxed text-neutral-300">{product.descriptionFr}</p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
             <div className="flex flex-wrap gap-2">
               {product.colors.map((color) => (
@@ -181,14 +211,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 />
               ))}
             </div>
-            {!activeColor && product.colors.length > 1 && (
-              <p className="text-xs text-rose-200" aria-live="polite">
-                Choisissez un coloris pour continuer.
-              </p>
-            )}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
             <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => {
@@ -211,14 +236,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 );
               })}
             </div>
-            {!selectedSize && product.sizes.length > 1 && (
-              <p className="text-xs text-rose-200" aria-live="polite">
-                Choisissez une taille avant d’ajouter au panier.
-              </p>
-            )}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {infoRows.map((row) => (
@@ -233,24 +253,18 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </ul>
           </div>
 
-          {selectionError && (
-            <p className="text-sm text-rose-200" aria-live="polite">
-              {selectionError}
-            </p>
-          )}
+          <p className="min-h-[24px] text-sm text-rose-200" aria-live="polite">
+            {selectionError ?? "\u00a0"}
+          </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold uppercase tracking-wide text-black transition hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-              aria-label="Ajouter au panier"
+            <AnimatedAddToCartButton
               onClick={handleAddToCart}
-            >
-              {justAdded ? "Ajouté" : "Ajouter au panier"}
-            </button>
-            <p className="text-xs text-neutral-400">
-              Livraison rapide & échanges simples.
-            </p>
+              className={`w-full justify-center sm:w-auto ${
+                isSelectionMissing ? "opacity-80" : ""
+              }`.trim()}
+            />
+            <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
           </div>
         </div>
       </div>
