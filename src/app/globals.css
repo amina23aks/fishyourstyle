@@ -63,14 +63,7 @@ body {
 
 .ocean-bg {
   /* Full-page ocean gradient: clear blue crest that deepens as you scroll */
-  background-image: linear-gradient(
-    to bottom,
-    #cfe9ff 0%,
-    #b7ddff 26%,
-    #7fc2ff 54%,
-    #245b90 80%,
-    #020617 100%
-  );
+  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
   background-size: 100% 100%;
 }
 

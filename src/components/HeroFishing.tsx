@@ -21,10 +21,6 @@ export default function HeroFishing() {
   return (
     <section className="relative overflow-hidden text-white">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#cfe9ff] via-[#7fc2ff] to-[#020617]" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_26%,rgba(255,255,255,0.48),transparent_60%)] opacity-75" />
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-[#9fd9ff] to-transparent opacity-80" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-[#020617]" />
         <div className="absolute inset-x-[-6%] top-6 h-64 light-rays" />
         {/* Mobile hero water alignment fix */}
         <div className="absolute inset-x-[-8%] h-28 opacity-85 hero-water-band">
