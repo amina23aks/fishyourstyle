@@ -24,7 +24,14 @@
 }
 */
 body {
-  background: var(--background);
+  background: linear-gradient(
+    to bottom,
+    #cfe9ff 0%,
+    #a8d7ff 32%,
+    #6db3f0 62%,
+    #1e4c82 84%,
+    #020617 100%
+  );
   color: var(--foreground);
   font-family: var(--font-sans);
 }
@@ -58,14 +65,28 @@ body {
 
 .ocean-page {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
-  background: linear-gradient(to bottom, #cfe9ff 0%, #5fb3ff 48%, #020617 100%);
+  background: linear-gradient(
+    to bottom,
+    #cfe9ff 0%,
+    #a8d7ff 32%,
+    #6db3f0 62%,
+    #1e4c82 84%,
+    #020617 100%
+  );
   color: var(--foreground);
 }
 
 
 .ocean-bg {
   /* Backdrop gradient used behind content; matches the live page palette */
-  background-image: linear-gradient(to bottom, #cfe9ff 0%, #5fb3ff 48%, #020617 100%);
+  background-image: linear-gradient(
+    to bottom,
+    #cfe9ff 0%,
+    #a8d7ff 32%,
+    #6db3f0 62%,
+    #1e4c82 84%,
+    #020617 100%
+  );
   background-size: 100% 100%;
 }
 
