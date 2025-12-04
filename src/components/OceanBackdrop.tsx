@@ -12,6 +12,9 @@ export default function OceanBackdrop() {
     { size: 9, left: "71%", delay: "5s", duration: "23s" },
     { size: 15, left: "83%", delay: "0.8s", duration: "29s" },
     { size: 10, left: "92%", delay: "6.5s", duration: "24s" },
+    { size: 12, left: "13%", delay: "8s", duration: "28s" },
+    { size: 8, left: "57%", delay: "9s", duration: "24s" },
+    { size: 14, left: "76%", delay: "10s", duration: "32s" },
   ];
 
   return (
@@ -21,9 +24,9 @@ export default function OceanBackdrop() {
     >
       <div className="absolute inset-0 ocean-bg" />
 
-      <div className="absolute inset-0 bg-[radial-gradient(180%_48%_at_50%_0%,rgba(255,255,255,0.24),transparent_54%)] mix-blend-soft-light opacity-60" />
+      <div className="absolute inset-0 bg-[radial-gradient(180%_48%_at_50%_0%,rgba(255,255,255,0.22),transparent_56%)] mix-blend-soft-light opacity-60" />
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#020617] via-[#020617]/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0b1b2f]/70 via-[#0b1b2f]/35 to-transparent" />
 
       {/* Bubble effect layer (only visible from the wave line downward) */}
       <div className="bubble-field ocean-bubble-mask">

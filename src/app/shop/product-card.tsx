@@ -71,6 +71,15 @@ export type ProductCardProps = {
   loading?: boolean;
 };
 
+type FlyToken = {
+  id: number;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  image: string;
+};
+
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const initialColor = product.colors.length === 1 ? product.colors[0] : null;
   const initialSize = product.sizes.length === 1 ? product.sizes[0] : null;
@@ -82,7 +91,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const [isHovering, setIsHovering] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
+  const [flyers, setFlyers] = useState<FlyToken[]>([]);
   const touchStartX = useRef<number | null>(null);
+  const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const categoryLabel = categoryLabels[product.category];
   const showCategoryBadge = !product.nameFr
     .toLowerCase()
@@ -189,12 +200,28 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         quantity: 1,
       });
 
-      setSelectionWarning(null);
-      setJustAdded(true);
-      window.setTimeout(() => setJustAdded(false), 1200);
-    },
-    [
-      addItem,
+    setSelectionWarning(null);
+    setJustAdded(true);
+    window.setTimeout(() => setJustAdded(false), 1200);
+
+    const buttonRect = addButtonRef.current?.getBoundingClientRect();
+    const cartTarget = document.querySelector('[data-cart-target="true"]') as HTMLElement | null;
+    const cartRect = cartTarget?.getBoundingClientRect();
+
+    if (buttonRect && cartRect) {
+      const newFlyer: FlyToken = {
+        id: Date.now(),
+        x: buttonRect.left + buttonRect.width / 2,
+        y: buttonRect.top + buttonRect.height / 2,
+        targetX: cartRect.left + cartRect.width / 2,
+        targetY: cartRect.top + cartRect.height / 2,
+        image: color?.image ?? product.images.main,
+      };
+      setFlyers((previous) => [...previous, newFlyer]);
+    }
+  },
+  [
+    addItem,
       product.colors,
       product.currency,
       product.id,
@@ -234,9 +261,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     <>
       {/* Product card height + controls tightening */}
       <motion.article
-        whileHover={{ transform: "translateY(-3px)" }}
+        whileHover={{ transform: "translateY(-4px)" }}
         transition={{ duration: 0.2, easing: "ease" }}
-        className="relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
+        className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
       >
         <Link
           href={`/shop/${product.slug}`}
@@ -248,7 +275,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="relative aspect-[3/4] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
+          <div className="relative aspect-[2/3] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[7/10] lg:aspect-[3/4]">
             <AnimatePresence>
               <motion.div
                 key={currentImage}
@@ -288,7 +315,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               )}
             </AnimatePresence>
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
             <div className="absolute left-2.5 right-2.5 top-2.5 flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-white">
               <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] text-emerald-700 shadow-sm shadow-black/10">
@@ -328,7 +355,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             )}
           </div>
 
-          <div className="flex flex-1 flex-col gap-1 px-3 pb-2 pt-2.5">
+          <div className="flex flex-1 flex-col gap-0.5 px-3 pb-1.5 pt-2">
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2">{product.nameFr}</h2>
               <p className="text-[11px] text-neutral-400">{product.fit}</p>
@@ -340,7 +367,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           </div>
         </Link>
 
-        <div className="space-y-2 px-3 pb-3">
+        <div className="space-y-1.5 px-3 pb-3">
           {product.colors.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-neutral-300">
@@ -413,6 +440,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             onClick={handleAddToCart}
             whileTap={{ scale: 0.97 }}
             whileHover={{ transform: "translateY(-2px)" }}
+            ref={addButtonRef}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-teal-900/30 transition hover:bg-teal-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             aria-label="Add to cart"
           >
@@ -435,6 +463,30 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           </motion.button>
         </div>
       </motion.article>
+
+      <AnimatePresence>
+        {flyers.map((flyer) => (
+          <motion.div
+            key={flyer.id}
+            initial={{ x: flyer.x, y: flyer.y, scale: 0.9, opacity: 0.9 }}
+            animate={{ x: flyer.targetX, y: flyer.targetY, scale: 0.25, opacity: 0 }}
+            transition={{ duration: 0.65, ease: "easeInOut" }}
+            className="pointer-events-none fixed z-50"
+            onAnimationComplete={() =>
+              setFlyers((previous) => previous.filter((item) => item.id !== flyer.id))
+            }
+          >
+            <div
+              className="h-12 w-12 rounded-full border border-white/40 bg-white/80 shadow-lg shadow-black/30"
+              style={{
+                backgroundImage: `url(${flyer.image})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </>
   );
   }

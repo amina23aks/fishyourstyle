@@ -23,7 +23,7 @@ export default function HeroFishing() {
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute inset-x-[-6%] top-6 h-64 light-rays" />
         {/* Mobile hero water alignment fix */}
-        <div className="absolute inset-x-[-8%] top-[46%] h-28 opacity-85 hero-water-band">
+        <div className="absolute inset-x-[-8%] top-[52%] h-28 opacity-85 hero-water-band sm:top-[46%]">
           <svg
             className="absolute bottom-[-2px] left-0 w-[200%] animate-wave origin-bottom scale-y-[0.45]"
             viewBox="0 0 1440 320"
@@ -60,7 +60,7 @@ export default function HeroFishing() {
           </svg>
         </div>
 
-        <div className="absolute inset-x-0 top-[48%] bottom-0 overflow-hidden hero-water-overlay">
+        <div className="absolute inset-x-0 top-[52%] bottom-0 overflow-hidden hero-water-overlay sm:top-[48%]">
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-sky-200/10 to-transparent" />
 
           {lightColumns.map((beam, index) => (

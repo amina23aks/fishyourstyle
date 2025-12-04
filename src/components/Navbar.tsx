@@ -115,35 +115,8 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Mobile icon ordering tweak: cart → account → menu */}
+        {/* Mobile icon ordering tweak: account → cart → menu (aligned together) */}
         <div className="ml-auto flex items-center gap-2 md:gap-3">
-          <motion.button
-            type="button"
-            onClick={toggleDrawer}
-            animate={{
-              scale: isBumping ? 1.08 : 1,
-              rotate: isBumping ? "-2deg" : "0deg",
-            }}
-            whileTap={{ scale: 0.95 }}
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            aria-label="Cart"
-          >
-            <CartIcon />
-            {totalQuantity > 0 && (
-              <span className="absolute -right-1 -top-1 min-w-[22px] rounded-full bg-white px-2 py-0.5 text-center text-[11px] font-semibold text-slate-900 shadow-md shadow-black/25">
-                {totalQuantity}
-              </span>
-            )}
-            <span className="sr-only">Cart drawer</span>
-          </motion.button>
-          <Link
-            href="/account"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            aria-label="Account"
-          >
-            <AccountIcon />
-            <span className="sr-only">Account</span>
-          </Link>
           <button
             type="button"
             onClick={toggleMenu}
@@ -177,6 +150,34 @@ export function Navbar() {
               </svg>
             )}
           </button>
+          <Link
+            href="/account"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            aria-label="Account"
+          >
+            <AccountIcon />
+            <span className="sr-only">Account</span>
+          </Link>
+          <motion.button
+            type="button"
+            onClick={toggleDrawer}
+            animate={{
+              scale: isBumping ? 1.08 : 1,
+              rotate: isBumping ? "-2deg" : "0deg",
+            }}
+            whileTap={{ scale: 0.95 }}
+            data-cart-target="true"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            aria-label="Cart"
+          >
+            <CartIcon />
+            {totalQuantity > 0 && (
+              <span className="absolute -right-1 -top-1 min-w-[22px] rounded-full bg-white px-2 py-0.5 text-center text-[11px] font-semibold text-slate-900 shadow-md shadow-black/25">
+                {totalQuantity}
+              </span>
+            )}
+            <span className="sr-only">Cart drawer</span>
+          </motion.button>
         </div>
       </div>
 

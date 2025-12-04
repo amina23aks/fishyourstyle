@@ -13,7 +13,7 @@ export type SwatchProps = {
 };
 
 const sizeClasses: Record<NonNullable<SwatchProps["size"]>, string> = {
-  xs: "h-5 px-1.5 text-[9px]",
+  xs: "h-[18px] px-1.5 text-[8.5px]",
   sm: "h-7 px-2.5 text-[11px]",
   md: "h-9 px-4 text-sm",
 };
@@ -36,7 +36,7 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
       >
         <span
           aria-hidden
-          className="h-2.5 w-2.5 rounded-full border border-white/30 shadow-[0_0_0_3px_rgba(255,255,255,0.05)]"
+          className="h-2 w-2 rounded-full border border-white/30 shadow-[0_0_0_3px_rgba(255,255,255,0.05)]"
           style={{ backgroundColor: colorHex ?? "#e5e7eb" }}
         />
         {showLabel && (
