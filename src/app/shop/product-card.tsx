@@ -15,7 +15,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "@/lib/motion";
 
+import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { useCart } from "@/context/cart";
+import { useFlyToCart } from "@/lib/useFlyToCart";
 
 import { Product, ProductCategory, ProductColor } from "@/types/product";
 import { Swatch } from "./swatch";
@@ -71,15 +73,6 @@ export type ProductCardProps = {
   loading?: boolean;
 };
 
-type FlyToken = {
-  id: number;
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  image: string;
-};
-
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const initialColor = product.colors.length === 1 ? product.colors[0] : null;
   const initialSize = product.sizes.length === 1 ? product.sizes[0] : null;
@@ -89,11 +82,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const { addItem } = useCart();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-  const [justAdded, setJustAdded] = useState(false);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
-  const [flyers, setFlyers] = useState<FlyToken[]>([]);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const touchStartX = useRef<number | null>(null);
-  const addButtonRef = useRef<HTMLButtonElement | null>(null);
+  const { flyToCart } = useFlyToCart();
   const categoryLabel = categoryLabels[product.category];
   const showCategoryBadge = !product.nameFr
     .toLowerCase()
@@ -104,7 +96,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
   useEffect(() => {
     setActiveIndex(0);
-    setJustAdded(false);
     setSelectedColor(initialColor);
     setSelectedSize(initialSize);
     setSelectionWarning(null);
@@ -167,11 +158,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     setSelectionWarning(null);
   };
 
-  const handleAddToCart = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-
+  const handleAddToCart = useCallback(() => {
       if (!selectedColor && product.colors.length > 1) {
         setSelectionWarning("Please choose a color and size before adding to cart.");
         return;
@@ -201,38 +188,23 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       });
 
     setSelectionWarning(null);
-    setJustAdded(true);
-    window.setTimeout(() => setJustAdded(false), 1200);
 
-    const buttonRect = addButtonRef.current?.getBoundingClientRect();
-    const cartTarget = document.querySelector('[data-cart-target="true"]') as HTMLElement | null;
-    const cartRect = cartTarget?.getBoundingClientRect();
-
-    if (buttonRect && cartRect) {
-      const newFlyer: FlyToken = {
-        id: Date.now(),
-        x: buttonRect.left + buttonRect.width / 2,
-        y: buttonRect.top + buttonRect.height / 2,
-        targetX: cartRect.left + cartRect.width / 2,
-        targetY: cartRect.top + cartRect.height / 2,
-        image: color?.image ?? product.images.main,
-      };
-      setFlyers((previous) => [...previous, newFlyer]);
-    }
+    flyToCart(imageRef.current);
   },
   [
     addItem,
-      product.colors,
-      product.currency,
-      product.id,
-      product.images.main,
-      product.nameFr,
-      product.priceDzd,
-      product.slug,
-      product.sizes,
-      selectedColor,
-      selectedSize,
-    ],
+    product.colors,
+    product.currency,
+    product.id,
+    product.images.main,
+    product.nameFr,
+    product.priceDzd,
+    product.slug,
+    product.sizes,
+    selectedColor,
+    selectedSize,
+    flyToCart,
+  ],
   );
 
   if (loading) {
@@ -288,6 +260,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 <Image
                   src={currentImage}
                   alt={product.nameFr}
+                  ref={imageRef}
                   fill
                   priority={false}
                   sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
@@ -303,13 +276,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   transition={{ duration: 0.4, easing: "ease" }}
                   className="absolute inset-0"
                 >
-                  <Image
-                    src={nextImage}
-                    alt={product.nameFr}
-                    fill
-                    priority={false}
-                    sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                    className="h-full w-full object-cover"
+                    <Image
+                      src={nextImage}
+                      alt={product.nameFr}
+                      ref={imageRef}
+                      fill
+                      priority={false}
+                      sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                      className="h-full w-full object-cover"
                   />
                 </motion.div>
               )}
@@ -435,58 +409,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             </p>
           )}
 
-          <motion.button
-            type="button"
-            onClick={handleAddToCart}
-            whileTap={{ scale: 0.97 }}
-            whileHover={{ transform: "translateY(-2px)" }}
-            ref={addButtonRef}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-teal-900/30 transition hover:bg-teal-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            aria-label="Add to cart"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="h-[18px] w-[18px]"
-              aria-hidden
-            >
-              <path d="M4 6h17l-1.5 7.2a2 2 0 0 1-2 1.6H9.4a2 2 0 0 1-2-1.6L6.6 3.8H3.5" />
-              <path d="M11.8 3.8h6.5" />
-              <path d="M12 11.5v4.4m-2.4-2.2H14.4" />
-              <circle cx="10.4" cy="20" r="1.05" />
-              <circle cx="16" cy="20" r="1.05" />
-            </svg>
-            {justAdded ? "Added" : "Add to cart"}
-          </motion.button>
+          <AnimatedAddToCartButton onClick={handleAddToCart} className="w-full justify-center" />
         </div>
       </motion.article>
-
-      <AnimatePresence>
-        {flyers.map((flyer) => (
-          <motion.div
-            key={flyer.id}
-            initial={{ x: flyer.x, y: flyer.y, scale: 0.9, opacity: 0.9 }}
-            animate={{ x: flyer.targetX, y: flyer.targetY, scale: 0.25, opacity: 0 }}
-            transition={{ duration: 0.65, ease: "easeInOut" }}
-            className="pointer-events-none fixed z-50"
-            onAnimationComplete={() =>
-              setFlyers((previous) => previous.filter((item) => item.id !== flyer.id))
-            }
-          >
-            <div
-              className="h-12 w-12 rounded-full border border-white/40 bg-white/80 shadow-lg shadow-black/30"
-              style={{
-                backgroundImage: `url(${flyer.image})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
-          </motion.div>
-        ))}
-      </AnimatePresence>
     </>
   );
   }
