@@ -115,16 +115,8 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Mobile icon ordering tweak: account → cart → menu (aligned together) */}
+        {/* Mobile icon ordering tweak: cart → account → menu (aligned together) */}
         <div className="ml-auto flex items-center gap-2 md:gap-3">
-          <Link
-            href="/account"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            aria-label="Account"
-          >
-            <AccountIcon />
-            <span className="sr-only">Account</span>
-          </Link>
           <motion.button
             type="button"
             onClick={toggleDrawer}
@@ -145,6 +137,14 @@ export function Navbar() {
             )}
             <span className="sr-only">Cart drawer</span>
           </motion.button>
+          <Link
+            href="/account"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            aria-label="Account"
+          >
+            <AccountIcon />
+            <span className="sr-only">Account</span>
+          </Link>
           <button
             type="button"
             onClick={toggleMenu}
