@@ -341,7 +341,13 @@ export async function PATCH(request: NextRequest) {
 
     // Fetch updated order to return
     const updatedSnapshot = await getDoc(orderDoc);
-    const updatedOrderData = firestoreDocToOrder(updatedSnapshot.id, updatedSnapshot.data());
+    const updatedData = updatedSnapshot.data();
+
+    if (!updatedData) {
+      throw new Error("Updated order data not found");
+    }
+
+    const updatedOrderData = firestoreDocToOrder(updatedSnapshot.id, updatedData);
 
     console.log("[api/orders] Order cancelled successfully:", orderId);
     return NextResponse.json(updatedOrderData);
