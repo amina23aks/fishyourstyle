@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getOrders, type Order } from "@/lib/orders";
+import { getOrders } from "@/lib/orders";
+import type { Order } from "@/types/order";
 
 export default function OrdersList() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -18,6 +19,16 @@ export default function OrdersList() {
     );
   }
 
+  // Helper to generate items summary string from order items
+  const getItemsSummary = (order: Order): string => {
+    if (order.items.length === 0) return "Empty order";
+    if (order.items.length === 1) {
+      const item = order.items[0];
+      return `${item.name} (${item.colorName}, ${item.size}) × ${item.quantity}`;
+    }
+    return `${order.items.length} items`;
+  };
+
   return (
     <div className="grid gap-4">
       {[...orders]
@@ -29,8 +40,11 @@ export default function OrdersList() {
           >
             <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order</p>
-                <h3 className="text-lg font-semibold text-white">{order.itemsSummary}</h3>
+                <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order #{order.id.slice(-8)}</p>
+                <h3 className="text-lg font-semibold text-white">{getItemsSummary(order)}</h3>
+                <p className="text-xs text-sky-300 mt-1">
+                  Status: <span className="font-semibold text-white">{order.status}</span>
+                </p>
               </div>
               <div className="text-right text-sky-100">
                 <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
@@ -41,15 +55,23 @@ export default function OrdersList() {
             <dl className="mt-4 grid gap-3 md:grid-cols-2">
               <div>
                 <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Customer</dt>
-                <dd className="text-sm font-medium text-white">{order.customerName}</dd>
+                <dd className="text-sm font-medium text-white">{order.shipping.customerName}</dd>
                 <dd className="text-sm text-sky-100">{order.customerEmail}</dd>
+                <dd className="text-sm text-sky-200">{order.shipping.phone}</dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Notes</dt>
-                <dd className="text-sm text-sky-100">
-                  {order.notes || "—"}
+                <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Shipping</dt>
+                <dd className="text-sm text-sky-100">{order.shipping.wilaya}</dd>
+                <dd className="text-sm text-sky-200">
+                  {order.shipping.mode === "home" ? "À domicile" : "Stop Desk"} - {order.shippingCost} DZD
                 </dd>
               </div>
+              {order.notes && (
+                <div className="md:col-span-2">
+                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Notes</dt>
+                  <dd className="text-sm text-sky-100 mt-1">{order.notes}</dd>
+                </div>
+              )}
             </dl>
           </article>
         ))}

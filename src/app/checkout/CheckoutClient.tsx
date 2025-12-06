@@ -10,9 +10,11 @@ import {
   getEconomicShippingByWilaya,
   type ShippingMode,
 } from "@/data/shipping";
+import type { NewOrder, OrderItem } from "@/types/order";
 
 type CheckoutFormState = {
   fullName: string;
+  email: string;
   phone: string;
   wilaya: string;
   address: string;
@@ -24,6 +26,7 @@ export default function CheckoutClient() {
   const { items, totals, clearCart } = useCart();
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
+    email: "",
     phone: "",
     wilaya: "",
     address: "",
@@ -31,6 +34,8 @@ export default function CheckoutClient() {
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ orderId: string } | null>(null);
 
   const hasItems = items.length > 0;
 
@@ -50,36 +55,169 @@ export default function CheckoutClient() {
     setForm((previous) => ({ ...previous, [field]: value }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!hasItems) return;
+    console.log("[CheckoutClient] handleSubmit called");
+    console.log("[CheckoutClient] hasItems:", hasItems);
+    console.log("[CheckoutClient] items:", items);
+    console.log("[CheckoutClient] form:", form);
+    console.log("[CheckoutClient] deliveryMode:", deliveryMode);
+    console.log("[CheckoutClient] shippingPrice:", shippingPrice);
 
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
-      alert("Please fill in all required fields.");
+    if (!hasItems) {
+      console.error("[CheckoutClient] Validation Failed: No items in cart");
       return;
     }
+
+    setError(null);
+    setSuccess(null);
+
+    // Validate required fields (email is optional)
+    console.log("[CheckoutClient] Validating required fields...");
+    console.log("[CheckoutClient] Field validation check:", {
+      fullName: !!form.fullName,
+      phone: !!form.phone,
+      wilaya: !!form.wilaya,
+      address: !!form.address,
+      email: form.email || "(optional, empty is OK)",
+    });
+    
+    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
+      console.error("[CheckoutClient] Validation Failed: Missing required fields", {
+        fullName: !!form.fullName,
+        phone: !!form.phone,
+        wilaya: !!form.wilaya,
+        address: !!form.address,
+        email: form.email || "(optional, not checked)",
+      });
+      setError("Please fill in all required fields.");
+      return;
+    }
+    
+    // Email is optional - validate format only if provided
+    if (form.email && form.email.trim() !== "") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.email)) {
+        console.error("[CheckoutClient] Validation Failed: Invalid email format");
+        setError("Please enter a valid email address or leave it blank.");
+        return;
+      }
+    }
+    
+    console.log("[CheckoutClient] Required fields validation passed. Email is optional and OK.");
 
     if (shippingPrice == null) {
-      alert("Please select a valid wilaya.");
+      console.error("[CheckoutClient] Validation Failed: Invalid shipping price (null)");
+      setError("Please select a valid wilaya.");
       return;
     }
 
+    console.log("[CheckoutClient] All validations passed. Building order payload...");
     setIsSubmitting(true);
 
-    console.log("Checkout submission", {
-      form,
-      items,
-      totals,
-      shipping: {
-        mode: deliveryMode,
-        price: shippingPrice,
-      },
-      grandTotal,
-      paymentMethod: "COD",
-    });
+    try {
+      // Map cart items to order items
+      console.log("[CheckoutClient] Mapping cart items to order items...");
+      const orderItems: OrderItem[] = items.map((item) => ({
+        id: item.id,
+        slug: item.slug,
+        name: item.name,
+        price: item.price,
+        currency: item.currency,
+        image: item.image,
+        colorName: item.colorName,
+        colorCode: item.colorCode,
+        size: item.size,
+        quantity: item.quantity,
+        variantKey: item.variantKey,
+      }));
+      console.log("[CheckoutClient] Order items mapped:", orderItems);
 
-    clearCart();
-    router.push("/orders?status=success");
+      // Build NewOrder object
+      const newOrder: NewOrder = {
+        customerEmail: form.email || "", // Optional but we'll include it
+        items: orderItems,
+        shipping: {
+          customerName: form.fullName,
+          phone: form.phone,
+          wilaya: form.wilaya,
+          address: form.address,
+          mode: deliveryMode,
+          price: shippingPrice,
+        },
+        notes: form.notes.trim() || undefined,
+        subtotal: totals.subtotal,
+        shippingCost: shippingPrice,
+        total: grandTotal,
+        paymentMethod: "COD",
+        status: "pending",
+      };
+
+      console.log("[CheckoutClient] Validating payload:", newOrder);
+      console.log("[CheckoutClient] Payload summary:", {
+        itemsCount: newOrder.items.length,
+        customerEmail: newOrder.customerEmail,
+        shipping: {
+          customerName: newOrder.shipping.customerName,
+          phone: newOrder.shipping.phone,
+          wilaya: newOrder.shipping.wilaya,
+          mode: newOrder.shipping.mode,
+          price: newOrder.shipping.price,
+        },
+        subtotal: newOrder.subtotal,
+        shippingCost: newOrder.shippingCost,
+        total: newOrder.total,
+        paymentMethod: newOrder.paymentMethod,
+        status: newOrder.status,
+      });
+
+      // Send to API
+      console.log("[CheckoutClient] Sending POST request to /api/orders...");
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newOrder),
+      });
+      console.log("[CheckoutClient] Response received:", {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      });
+
+      if (!response.ok) {
+        console.error("[CheckoutClient] API response not OK:", response.status);
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[CheckoutClient] Error data from API:", errorData);
+        throw new Error(errorData.error || "Failed to create order. Please try again.");
+      }
+
+      const data = await response.json();
+      console.log("[CheckoutClient] Order created successfully:", data);
+      const orderId = data.orderId;
+      console.log("[CheckoutClient] Order ID:", orderId);
+
+      // Clear cart on success
+      console.log("[CheckoutClient] Clearing cart...");
+      clearCart();
+
+      // Show success state
+      setSuccess({ orderId });
+      console.log("[CheckoutClient] Success state set, will redirect in 2 seconds...");
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        console.log("[CheckoutClient] Redirecting to orders page...");
+        router.push(`/orders?status=success&orderId=${orderId}`);
+      }, 2000);
+    } catch (err) {
+      console.error("[CheckoutClient] Error in handleSubmit:", err);
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      console.error("[CheckoutClient] Error message:", errorMessage);
+      setError(errorMessage);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -119,6 +257,20 @@ export default function CheckoutClient() {
                     onChange={(event) => handleChange("fullName", event.target.value)}
                     className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                     required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-sky-100" htmlFor="email">
+                    Email<span className="text-sky-300 text-xs"> (optional)</span>
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => handleChange("email", event.target.value)}
+                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    placeholder="your@email.com"
                   />
                 </div>
 
@@ -219,12 +371,27 @@ export default function CheckoutClient() {
                 </div>
               </div>
 
+              {error && (
+                <div className="rounded-lg border border-rose-200/60 bg-rose-500/15 px-4 py-3 text-sm text-rose-50 shadow-inner shadow-rose-900/30">
+                  <p className="font-medium">Error</p>
+                  <p className="mt-1">{error}</p>
+                </div>
+              )}
+
+              {success && (
+                <div className="rounded-lg border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-sm text-emerald-50 shadow-inner shadow-emerald-900/30">
+                  <p className="font-medium">Order placed successfully!</p>
+                  <p className="mt-1">Order ID: {success.orderId}</p>
+                  <p className="mt-2 text-xs">Redirecting to orders page...</p>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || success !== null}
                 className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Submitting..." : "Confirm order"}
+                {isSubmitting ? "Submitting..." : success ? "Order Placed!" : "Confirm order"}
               </button>
             </section>
 

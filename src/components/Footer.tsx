@@ -59,7 +59,7 @@ export default function Footer() {
             </ul>
           </div>
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">Follow</h3>
+            <h3 className="text-sm font-semibold text-white">Follow me please</h3>
             <div className="flex gap-3 text-sky-200">
               <Link
                 href="https://www.instagram.com"
@@ -121,7 +121,7 @@ export default function Footer() {
             </div>
           </div>
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">Wishlist email</h3>
+            <h3 className="text-sm font-semibold text-white">Wishlist </h3>
             <p className="text-sky-200">
               Drop your email to be the first to know when new drops hit your
               wishlist.
@@ -134,7 +134,7 @@ export default function Footer() {
                 id="wishlist-email"
                 type="email"
                 name="email"
-                placeholder="you@example.com"
+                placeholder="you@example.commimimi"
                 className="w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-sky-200 focus:border-white/40 focus:outline-none"
               />
               <button

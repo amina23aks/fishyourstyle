@@ -1,17 +1,13 @@
-export type Order = {
-  id: string;
-  customerName: string;
-  customerEmail: string;
-  itemsSummary: string;
-  notes?: string;
-  total: number;
-  createdAt: string;
-};
+import type { Order, NewOrder } from "@/types/order";
 
 const STORAGE_KEY = "fishyourstyle-orders";
 
 const isBrowser = typeof window !== "undefined";
 
+/**
+ * Read orders from localStorage (legacy - will be replaced by API calls).
+ * @deprecated Use API route GET /api/orders instead
+ */
 function readStorage(): Order[] {
   if (!isBrowser) return [];
 
@@ -26,6 +22,10 @@ function readStorage(): Order[] {
   }
 }
 
+/**
+ * Persist orders to localStorage (legacy - will be replaced by API calls).
+ * @deprecated Use API route POST /api/orders instead
+ */
 function persistOrders(orders: Order[]) {
   if (!isBrowser) return;
   try {
@@ -35,20 +35,30 @@ function persistOrders(orders: Order[]) {
   }
 }
 
+/**
+ * Get all orders from localStorage.
+ * @deprecated Use API route GET /api/orders instead
+ */
 export function getOrders(): Order[] {
   return readStorage();
 }
 
-export type NewOrder = Omit<Order, "id" | "createdAt">;
-
+/**
+ * Add a new order to localStorage.
+ * @deprecated Use API route POST /api/orders instead
+ * @param order - New order data (without id, createdAt, updatedAt)
+ * @returns Created order with generated fields, or undefined if not in browser
+ */
 export function addOrder(order: NewOrder): Order | undefined {
   if (!isBrowser) return undefined;
 
   const orders = readStorage();
+  const now = new Date().toISOString();
   const newOrder: Order = {
     ...order,
-    id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`,
-    createdAt: new Date().toISOString(),
+    id: crypto.randomUUID ? crypto.randomUUID() : `order-${Date.now()}`,
+    createdAt: now,
+    updatedAt: now,
   };
 
   persistOrders([...orders, newOrder]);

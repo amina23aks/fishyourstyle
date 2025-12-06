@@ -4,14 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useCart, type CartItem } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
 import {
   ECONOMIC_SHIPPING,
+  getEconomicShippingByWilaya,
   type ShippingMode,
   type WilayaShipping,
 } from "@/data/shipping";
+import type { NewOrder, OrderItem } from "@/types/order";
 
 type CartDrawerProps = {
   open: boolean;
@@ -22,11 +25,13 @@ const formatCurrency = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
 
 export default function CartDrawer({ open, onClose }: CartDrawerProps) {
+  const router = useRouter();
   const { items, totals, totalQuantity, removeItem, updateQty, clearCart } =
     useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
+    email: "",
     phone: "",
     wilaya: "",
     address: "",
@@ -34,8 +39,22 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
   const [mounted, setMounted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ orderId: string } | null>(null);
 
   const hasItems = items.length > 0;
+
+  const shippingPrice = useMemo(() => {
+    if (!form.wilaya) return null;
+    const wilayaData = getEconomicShippingByWilaya(form.wilaya);
+    if (!wilayaData) return null;
+    return deliveryMode === "home" ? wilayaData.home : wilayaData.desk;
+  }, [deliveryMode, form.wilaya]);
+
+  const grandTotal = useMemo(() => {
+    if (shippingPrice == null) return totals.subtotal;
+    return totals.subtotal + shippingPrice;
+  }, [shippingPrice, totals.subtotal]);
 
   const handleDecrease = (item: CartItem) => {
     if (item.quantity <= 1) {
@@ -49,25 +68,104 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     updateQty(item.id, item.variantKey, item.quantity + 1);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!hasItems) return;
 
+    setError(null);
+    setSuccess(null);
+
+    // Validate required fields (email is optional)
     if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
-      alert("Please fill all required fields.");
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    // Email is optional - validate format only if provided
+    if (form.email && form.email.trim() !== "") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.email)) {
+        setError("Please enter a valid email address or leave it blank.");
+        return;
+      }
+    }
+
+    if (shippingPrice == null) {
+      setError("Please select a valid wilaya.");
       return;
     }
 
     setIsSubmitting(true);
-    console.log("Quick checkout", {
-      form,
-      items,
-      subtotal: totals.subtotal,
-      deliveryMode,
-    });
-    clearCart();
-    setIsSubmitting(false);
-    onClose();
+
+    try {
+      // Map cart items to order items
+      const orderItems: OrderItem[] = items.map((item) => ({
+        id: item.id,
+        slug: item.slug,
+        name: item.name,
+        price: item.price,
+        currency: item.currency,
+        image: item.image,
+        colorName: item.colorName,
+        colorCode: item.colorCode,
+        size: item.size,
+        quantity: item.quantity,
+        variantKey: item.variantKey,
+      }));
+
+      // Build NewOrder object
+      const newOrder: NewOrder = {
+        customerEmail: form.email || "",
+        items: orderItems,
+        shipping: {
+          customerName: form.fullName,
+          phone: form.phone,
+          wilaya: form.wilaya,
+          address: form.address,
+          mode: deliveryMode,
+          price: shippingPrice,
+        },
+        notes: form.notes.trim() || undefined,
+        subtotal: totals.subtotal,
+        shippingCost: shippingPrice,
+        total: grandTotal,
+        paymentMethod: "COD",
+        status: "pending",
+      };
+
+      // Send to API
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newOrder),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to create order. Please try again.");
+      }
+
+      const data = await response.json();
+      const orderId = data.orderId;
+
+      // Clear cart on success
+      clearCart();
+
+      // Show success state
+      setSuccess({ orderId });
+
+      // Close drawer and redirect after a short delay
+      setTimeout(() => {
+        onClose();
+        router.push(`/orders?status=success&orderId=${orderId}`);
+      }, 1500);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      setError(errorMessage);
+      setIsSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -266,6 +364,19 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       />
                     </div>
                     <div className="space-y-2">
+                      <label className="text-xs text-sky-100" htmlFor="drawer-email">
+                        Email<span className="text-sky-300 text-xs"> (optional)</span>
+                      </label>
+                      <input
+                        id="drawer-email"
+                        type="email"
+                        value={form.email}
+                        onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-phone">
                         Phone<span className="text-rose-200"> *</span>
                       </label>
@@ -350,13 +461,47 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         placeholder="Floor, apartment, delivery notes..."
                       />
                     </div>
+
+                    {/* Order Summary - Display costs above button */}
+                    <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                      <div className="flex items-center justify-between text-xs text-sky-100">
+                        <span>Subtotal</span>
+                        <span className="tabular-nums text-white">{formatCurrency(totals.subtotal)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-sky-100">
+                        <span>Shipping</span>
+                        <span className="tabular-nums text-white">
+                          {shippingPrice != null ? formatCurrency(shippingPrice) : "Select wilaya"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm font-semibold text-white">
+                        <span>Total</span>
+                        <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
+                      </div>
+                    </div>
+
+                    {error && (
+                      <div className="rounded-lg border border-rose-200/60 bg-rose-500/15 px-3 py-2 text-xs text-rose-50 shadow-inner shadow-rose-900/30">
+                        <p className="font-medium">Error</p>
+                        <p className="mt-1">{error}</p>
+                      </div>
+                    )}
+
+                    {success && (
+                      <div className="rounded-lg border border-emerald-200/60 bg-emerald-500/15 px-3 py-2 text-xs text-emerald-50 shadow-inner shadow-emerald-900/30">
+                        <p className="font-medium">Order placed successfully!</p>
+                        <p className="mt-1">Order ID: {success.orderId}</p>
+                        <p className="mt-2 text-[10px]">Redirecting to orders page...</p>
+                      </div>
+                    )}
+
                     <motion.button
                       type="submit"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || success !== null}
                       whileTap={{ scale: 0.97 }}
                       className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-sky-100 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isSubmitting ? "Submitting..." : "Confirm order"}
+                      {isSubmitting ? "Submitting..." : success ? "Order Placed!" : "Confirm order"}
                     </motion.button>
                   </form>
                 )}
