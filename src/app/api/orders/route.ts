@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { getServerDb } from "@/lib/firestore";
-import type { NewOrder, OrderItem, ShippingInfo } from "@/types/order";
+import type { NewOrder, ShippingInfo } from "@/types/order";
 
 /**
  * Validate NewOrder payload

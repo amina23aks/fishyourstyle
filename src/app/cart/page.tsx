@@ -32,7 +32,7 @@ export default function CartPage() {
             <p className="text-sm uppercase tracking-[0.28em] text-sky-200">Cart</p>
             <h1 className="text-3xl font-semibold text-white">Your cart is empty</h1>
             <p className="max-w-2xl mx-auto text-sky-100">
-              Looks like you haven't added anything to your cart yet. Start shopping to fill it up!
+              Looks like you haven&apos;t added anything to your cart yet. Start shopping to fill it up!
             </p>
           </div>
           <div className="flex justify-center">
