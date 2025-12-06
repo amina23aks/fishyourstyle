@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
@@ -9,7 +9,6 @@ import type { Order } from "@/types/order";
 
 export default function OrderDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -193,7 +192,9 @@ export default function OrderDetailsPage() {
                         alt={item.name}
                         fill
                         sizes="80px"
+                        unoptimized
                         className="object-cover"
+                        priority={false}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -279,7 +280,7 @@ export default function OrderDetailsPage() {
                   <div>
                     <h3 className="text-base font-semibold text-white">Cancel Order</h3>
                     <p className="text-sm text-sky-200 mt-1">
-                      You can cancel this order as long as it's pending.
+                      You can cancel this order as long as it&apos;s pending.
                     </p>
                   </div>
                   <button
