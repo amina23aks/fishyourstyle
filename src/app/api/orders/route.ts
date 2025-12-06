@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs, doc, getDoc, query, orderBy, Timestamp, updateDoc } from "firebase/firestore";
 import { getServerDb } from "@/lib/firestore";
-import type { NewOrder, ShippingInfo } from "@/types/order";
+import type { NewOrder, ShippingInfo, Order, OrderStatus } from "@/types/order";
 
 /**
  * Validate NewOrder payload
@@ -162,6 +162,183 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Convert Firestore timestamp to ISO string
+ */
+function timestampToISO(timestamp: unknown): string {
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate().toISOString();
+  }
+  if (timestamp && typeof timestamp === "object" && "toDate" in timestamp) {
+    return (timestamp as Timestamp).toDate().toISOString();
+  }
+  if (typeof timestamp === "string") {
+    return timestamp;
+  }
+  // Fallback to current time if invalid
+  return new Date().toISOString();
+}
+
+/**
+ * Convert Firestore document to Order type
+ */
+function firestoreDocToOrder(docId: string, data: any): Order {
+  return {
+    id: docId,
+    customerEmail: data.customerEmail || "",
+    items: data.items || [],
+    shipping: data.shipping,
+    notes: data.notes,
+    subtotal: data.subtotal,
+    shippingCost: data.shippingCost,
+    total: data.total,
+    paymentMethod: data.paymentMethod || "COD",
+    status: (data.status || "pending") as OrderStatus,
+    createdAt: timestampToISO(data.createdAt),
+    updatedAt: timestampToISO(data.updatedAt),
+  };
+}
+
+/**
+ * GET /api/orders
+ * Fetch orders from Firestore
+ * Query params:
+ *   - orderId: (optional) Fetch a single order by ID
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const orderId = searchParams.get("orderId");
+
+    console.log("[api/orders] GET request received", { orderId });
+
+    const db = getServerDb();
+    const ordersCollection = collection(db, "orders");
+
+    // If orderId is provided, fetch single order
+    if (orderId) {
+      console.log("[api/orders] Fetching single order:", orderId);
+      const orderDoc = doc(ordersCollection, orderId);
+      const orderSnapshot = await getDoc(orderDoc);
+
+      if (!orderSnapshot.exists()) {
+        return NextResponse.json(
+          { error: "Order not found" },
+          { status: 404 }
+        );
+      }
+
+      const orderData = firestoreDocToOrder(orderSnapshot.id, orderSnapshot.data());
+      console.log("[api/orders] Order fetched successfully:", orderData.id);
+      return NextResponse.json(orderData);
+    }
+
+    // Otherwise, fetch all orders sorted by createdAt DESC
+    console.log("[api/orders] Fetching all orders...");
+    const ordersQuery = query(ordersCollection, orderBy("createdAt", "desc"));
+    const ordersSnapshot = await getDocs(ordersQuery);
+
+    const orders: Order[] = [];
+    ordersSnapshot.forEach((doc) => {
+      const orderData = firestoreDocToOrder(doc.id, doc.data());
+      orders.push(orderData);
+    });
+
+    console.log("[api/orders] Fetched", orders.length, "orders");
+    return NextResponse.json(orders);
+  } catch (error) {
+    console.error("[api/orders] GET ERROR:", error);
+
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch orders";
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/orders
+ * Update an order (currently only supports cancel action)
+ * Body: { orderId: string, action: "cancel" }
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validate request body
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const { orderId, action } = body;
+
+    if (!orderId || typeof orderId !== "string") {
+      return NextResponse.json(
+        { error: "orderId is required and must be a string" },
+        { status: 400 }
+      );
+    }
+
+    if (action !== "cancel") {
+      return NextResponse.json(
+        { error: 'Only "cancel" action is supported' },
+        { status: 400 }
+      );
+    }
+
+    console.log("[api/orders] PATCH request received", { orderId, action });
+
+    const db = getServerDb();
+    const ordersCollection = collection(db, "orders");
+    const orderDoc = doc(ordersCollection, orderId);
+    const orderSnapshot = await getDoc(orderDoc);
+
+    if (!orderSnapshot.exists()) {
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404 }
+      );
+    }
+
+    const orderData = orderSnapshot.data();
+    const currentStatus = orderData.status as OrderStatus;
+
+    // Only allow cancellation if status is "pending"
+    if (currentStatus !== "pending") {
+      return NextResponse.json(
+        { error: `Cannot cancel order with status "${currentStatus}". Only pending orders can be cancelled.` },
+        { status: 400 }
+      );
+    }
+
+    // Update order to cancelled
+    console.log("[api/orders] Cancelling order:", orderId);
+    await updateDoc(orderDoc, {
+      status: "cancelled",
+      updatedAt: serverTimestamp(),
+    });
+
+    // Fetch updated order to return
+    const updatedSnapshot = await getDoc(orderDoc);
+    const updatedOrderData = firestoreDocToOrder(updatedSnapshot.id, updatedSnapshot.data());
+
+    console.log("[api/orders] Order cancelled successfully:", orderId);
+    return NextResponse.json(updatedOrderData);
+  } catch (error) {
+    console.error("[api/orders] PATCH ERROR:", error);
+
+    const errorMessage = error instanceof Error ? error.message : "Failed to update order";
+    return NextResponse.json(
+      { error: errorMessage },
       { status: 500 }
     );
   }
