@@ -26,7 +26,7 @@ type CheckoutFormState = {
 export default function CheckoutClient() {
   const router = useRouter();
   const { items, totals, clearCart } = useCart();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
     email: "",
@@ -265,7 +265,7 @@ export default function CheckoutClient() {
                 </span>
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={signOut}
                   className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
                 >
                   Sign out

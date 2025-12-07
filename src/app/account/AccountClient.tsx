@@ -7,18 +7,26 @@ import { getAuthErrorMessage } from "@/lib/auth-errors";
 import PageShell from "@/components/PageShell";
 
 // Helper to extract the best auth code
-function extractAuthCode(err: any): string {
+function extractAuthCode(err: unknown): string {
   if (!err) return "unknown";
-  if (typeof err.code === "string") {
-    return err.code;
-  }
-  if (typeof err.message === "string") {
-    // Example message: "Firebase: Error (auth/invalid-credential)."
-    const match = err.message.match(/\((auth\/[^)]+)\)/);
-    if (match && match[1]) {
-      return match[1];
+
+  if (typeof err === "object" && err !== null) {
+    if ("code" in err && typeof (err as { code?: unknown }).code === "string") {
+      return (err as { code: string }).code;
+    }
+
+    if (
+      "message" in err &&
+      typeof (err as { message?: unknown }).message === "string"
+    ) {
+      // Example message: "Firebase: Error (auth/invalid-credential)."
+      const match = (err as { message: string }).message.match(/\((auth\/[^)]+)\)/);
+      if (match && match[1]) {
+        return match[1];
+      }
     }
   }
+
   return "unknown";
 }
 
@@ -78,7 +86,7 @@ export default function AccountClient() {
         await register(email, password);
       }
       // Firebase should log user in and auto-switch UI
-    } catch (err: any) {
+    } catch (err: unknown) {
       const code = extractAuthCode(err);
       setError(getAuthErrorMessage(code));
     } finally {
@@ -92,7 +100,7 @@ export default function AccountClient() {
     setBusy(true);
     try {
       await signInWithGoogle();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const code = extractAuthCode(err);
       if (code === "auth/popup-closed-by-user") {
         setError(null);
