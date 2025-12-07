@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, useMemo, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageShell from "@/components/PageShell";
 import { useCart } from "@/context/cart";
@@ -11,6 +12,7 @@ import {
   type ShippingMode,
 } from "@/data/shipping";
 import type { NewOrder, OrderItem } from "@/types/order";
+import { useAuth } from "@/context/auth";
 
 type CheckoutFormState = {
   fullName: string;
@@ -24,6 +26,7 @@ type CheckoutFormState = {
 export default function CheckoutClient() {
   const router = useRouter();
   const { items, totals, clearCart } = useCart();
+  const { user, logout } = useAuth();
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
     email: "",
@@ -50,6 +53,19 @@ export default function CheckoutClient() {
     if (shippingPrice == null) return totals.subtotal;
     return totals.subtotal + shippingPrice;
   }, [shippingPrice, totals.subtotal]);
+
+  useEffect(() => {
+    if (user?.email) {
+      setForm((previous) =>
+        previous.email
+          ? previous
+          : {
+              ...previous,
+              email: user.email ?? "",
+            },
+      );
+    }
+  }, [user]);
 
   const handleChange = (field: keyof CheckoutFormState, value: string) => {
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -135,7 +151,8 @@ export default function CheckoutClient() {
 
       // Build NewOrder object
       const newOrder: NewOrder = {
-        customerEmail: form.email || "", // Optional but we'll include it
+        userId: user?.uid,
+        customerEmail: form.email || user?.email || undefined,
         items: orderItems,
         shipping: {
           customerName: form.fullName,
@@ -232,6 +249,46 @@ export default function CheckoutClient() {
             and cash on delivery (COD).
           </p>
         </header>
+
+        <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-inner shadow-sky-900/30">
+          {user ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100">
+              <div>
+                <p className="text-white">Logged in</p>
+                <p className="text-xs text-sky-200">
+                  Orders placed while signed in will be linked to your account.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white">
+                  {user.email || "Authenticated user"}
+                </span>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100">
+              <div>
+                <p className="text-white">Guest checkout</p>
+                <p className="text-xs text-sky-200">
+                  You can complete your order without an account or log in to save it under your profile.
+                </p>
+              </div>
+              <Link
+                href="/account"
+                className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                Log in or create account
+              </Link>
+            </div>
+          )}
+        </section>
 
         {!hasItems ? (
           <section className="rounded-2xl border border-white/20 bg-white/5 p-8 text-center text-sm text-sky-100">

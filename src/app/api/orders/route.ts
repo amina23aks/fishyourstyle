@@ -91,6 +91,11 @@ function validateOrder(data: unknown): data is NewOrder {
     return false;
   }
 
+  // Auth user is optional but if present should be a string
+  if (order.userId !== undefined && typeof order.userId !== "string") {
+    return false;
+  }
+
   return true;
 }
 
@@ -202,7 +207,8 @@ function timestampToISO(timestamp: unknown): string {
 function firestoreDocToOrder(docId: string, data: DocumentData): Order {
   return {
     id: docId,
-    customerEmail: data.customerEmail || "",
+    userId: typeof data.userId === "string" ? data.userId : undefined,
+    customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : undefined,
     items: data.items || [],
     shipping: data.shipping,
     notes: data.notes,
