@@ -1,11 +1,317 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
-import type { Order } from "@/types/order";
+import type { Order, OrderItem, ShippingInfo } from "@/types/order";
+
+type EditOrderModalProps = {
+  order: Order;
+  open: boolean;
+  onClose: () => void;
+  onUpdated: (updatedOrder: Order) => void;
+  onError: (message: string) => void;
+};
+
+function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderModalProps) {
+  const [shipping, setShipping] = useState<ShippingInfo>(order.shipping);
+  const [notes, setNotes] = useState<string>(order.notes ?? "");
+  const [items, setItems] = useState<OrderItem[]>(order.items);
+  const [isSaving, setIsSaving] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setShipping(order.shipping);
+      setNotes(order.notes ?? "");
+      setItems(order.items);
+      setLocalError(null);
+    }
+  }, [open, order]);
+
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items]
+  );
+  const shippingCost = typeof shipping.price === "number" ? shipping.price : order.shippingCost;
+  const total = subtotal + shippingCost;
+
+  const disabled = order.status !== "pending";
+
+  const updateItemQuantity = (index: number, delta: number) => {
+    setItems((current) =>
+      current.map((item, idx) =>
+        idx === index
+          ? {
+              ...item,
+              quantity: Math.max(1, item.quantity + delta),
+            }
+          : item
+      )
+    );
+  };
+
+  const removeItem = (index: number) => {
+    setItems((current) => current.filter((_, idx) => idx !== index));
+  };
+
+  const handleSave = async () => {
+    if (disabled) {
+      setLocalError("Order can no longer be edited.");
+      return;
+    }
+
+    if (items.length === 0) {
+      setLocalError("Order must contain at least one item.");
+      return;
+    }
+
+    setIsSaving(true);
+    setLocalError(null);
+    onError("");
+
+    try {
+      const response = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          shipping,
+          notes,
+          items,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const message = errorData.error || "Failed to update order";
+        throw new Error(message);
+      }
+
+      const updatedOrder = (await response.json()) as Order;
+      onUpdated(updatedOrder);
+      onClose();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      setLocalError(errorMessage);
+      onError(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur" onClick={onClose} />
+      <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Edit Order</p>
+            <h3 className="text-xl font-semibold text-white">Order #{order.id.slice(-8)}</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            Close
+          </button>
+        </div>
+
+        {disabled && (
+          <div className="border-b border-white/10 bg-rose-500/15 px-6 py-3 text-sm text-rose-50">
+            Order can no longer be edited.
+          </div>
+        )}
+
+        <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.2fr_0.9fr]">
+          <div className="space-y-6">
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
+              <h4 className="text-sm font-semibold text-white mb-3">Shipping</h4>
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="flex flex-col text-sm text-sky-100 gap-1">
+                  Name
+                  <input
+                    value={shipping.customerName}
+                    onChange={(e) => setShipping({ ...shipping, customerName: e.target.value })}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                    type="text"
+                  />
+                </label>
+                <label className="flex flex-col text-sm text-sky-100 gap-1">
+                  Phone
+                  <input
+                    value={shipping.phone}
+                    onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                    type="tel"
+                  />
+                </label>
+                <label className="flex flex-col text-sm text-sky-100 gap-1">
+                  Wilaya
+                  <input
+                    value={shipping.wilaya}
+                    onChange={(e) => setShipping({ ...shipping, wilaya: e.target.value })}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                    type="text"
+                  />
+                </label>
+                <label className="flex flex-col text-sm text-sky-100 gap-1">
+                  Address
+                  <input
+                    value={shipping.address}
+                    onChange={(e) => setShipping({ ...shipping, address: e.target.value })}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                    type="text"
+                  />
+                </label>
+                <label className="flex flex-col text-sm text-sky-100 gap-1 md:col-span-2">
+                  Delivery mode
+                  <select
+                    value={shipping.mode}
+                    onChange={(e) => setShipping({ ...shipping, mode: e.target.value as ShippingInfo["mode"] })}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                  >
+                    <option value="home">À domicile</option>
+                    <option value="desk">Stop Desk</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
+              <h4 className="text-sm font-semibold text-white mb-3">Notes</h4>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={disabled}
+                className="min-h-[120px] w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+              />
+            </section>
+          </div>
+
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
+              <h4 className="text-sm font-semibold text-white mb-3">Items</h4>
+              <div className="space-y-3">
+                {items.map((item, index) => (
+                  <div
+                    key={item.variantKey || index}
+                    className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
+                  >
+                    <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+                      <p className="text-xs text-sky-200">
+                        {item.colorName} · {item.size}
+                      </p>
+                      <p className="text-xs text-sky-100 mt-1">
+                        {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateItemQuantity(index, -1)}
+                        disabled={disabled || item.quantity <= 1}
+                        className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Decrease quantity"
+                      >
+                        -
+                      </button>
+                      <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
+                      <button
+                        onClick={() => updateItemQuantity(index, 1)}
+                        disabled={disabled}
+                        className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Increase quantity"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => removeItem(index)}
+                      disabled={disabled}
+                      className="text-xs font-semibold text-rose-200 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                {items.length === 0 && (
+                  <p className="text-sm text-sky-200">Add at least one item to keep this order.</p>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
+              <h4 className="text-sm font-semibold text-white mb-3">Summary</h4>
+              <dl className="space-y-2 text-sm text-sky-100">
+                <div className="flex items-center justify-between">
+                  <dt>Subtotal</dt>
+                  <dd className="font-semibold text-white">
+                    {new Intl.NumberFormat("fr-DZ").format(subtotal)} DZD
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt>Shipping</dt>
+                  <dd className="font-semibold text-white">
+                    {new Intl.NumberFormat("fr-DZ").format(shippingCost)} DZD
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between border-t border-white/10 pt-2 text-base">
+                  <dt className="font-semibold text-white">Total</dt>
+                  <dd className="font-semibold text-white">
+                    {new Intl.NumberFormat("fr-DZ").format(total)} DZD
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            {localError && (
+              <div className="rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
+                {localError}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                onClick={onClose}
+                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving || disabled}
+                className="inline-flex items-center justify-center rounded-xl border border-violet-200/40 bg-violet-500/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSaving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -16,8 +322,10 @@ export default function OrderDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelMessage, setCancelMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -75,7 +383,7 @@ export default function OrderDetailsPage() {
 
       const updatedOrder = await response.json();
       setOrder(updatedOrder);
-      setCancelMessage("Order cancelled successfully.");
+      setToastMessage("Order cancelled successfully.");
       setShowCancelConfirm(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
@@ -83,6 +391,12 @@ export default function OrderDetailsPage() {
     } finally {
       setIsCancelling(false);
     }
+  };
+
+  const handleOrderUpdated = (updated: Order) => {
+    setOrder(updated);
+    setToastMessage("Order updated successfully.");
+    setEditError(null);
   };
 
   // Helper to format status badge
@@ -150,9 +464,9 @@ export default function OrderDetailsPage() {
         data-can-cancel={canCancel}
         data-can-edit={canEdit}
       >
-        {cancelMessage && (
+        {toastMessage && (
           <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
-            <p className="font-medium">{cancelMessage}</p>
+            <p className="font-medium">{toastMessage}</p>
           </div>
         )}
         <header className="space-y-2">
@@ -167,15 +481,15 @@ export default function OrderDetailsPage() {
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <div className="mb-3">
-                    <span
-                      className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${getStatusBadgeClass(
-                        order.status
-                      )}`}
-                    >
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </span>
-                  </div>
+                    <div className="mb-3">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${getStatusBadgeClass(
+                          order.status
+                        )}`}
+                      >
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </div>
                   <p className="text-sm text-sky-200">
                     Placed on {new Date(order.createdAt).toLocaleString()}
                   </p>
@@ -192,13 +506,13 @@ export default function OrderDetailsPage() {
             {/* Items list */}
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
               <h2 className="text-lg font-semibold text-white mb-4">Items</h2>
-              <div className="space-y-4">
-                {order.items.map((item, index) => (
-                  <div
-                    key={item.variantKey || index}
-                    className="flex gap-4 pb-4 border-b border-white/10 last:border-0 last:pb-0"
-                  >
-                    <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                <div className="space-y-4">
+                  {order.items.map((item, index) => (
+                    <div
+                      key={item.variantKey || index}
+                      className="flex gap-4 pb-4 border-b border-white/10 last:border-0 last:pb-0"
+                    >
+                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
                       <Image
                         src={item.image}
                         alt={item.name}
@@ -313,7 +627,7 @@ export default function OrderDetailsPage() {
                       <button
                         onClick={() => {
                           setShowCancelConfirm(true);
-                          setCancelMessage(null);
+                          setToastMessage(null);
                           setCancelError(null);
                         }}
                         className="inline-flex items-center justify-center rounded-xl border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
@@ -341,6 +655,42 @@ export default function OrderDetailsPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Edit order */}
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <h2 className="text-lg font-semibold text-white">Edit Order</h2>
+                  {order.status === "pending" && (
+                    <p className="text-sm text-sky-100">
+                      You can update your shipping info, notes, or items before the order is confirmed.
+                    </p>
+                  )}
+                  {order.status !== "pending" && (
+                    <p className="text-sm text-sky-100">This order can no longer be modified.</p>
+                  )}
+                  {editError && (
+                    <div className="mt-2 rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
+                      {editError}
+                    </div>
+                  )}
+                </div>
+                {order.status === "pending" && (
+                  <div className="w-full max-w-xs text-right">
+                    <button
+                      onClick={() => {
+                        setShowEditModal(true);
+                        setToastMessage(null);
+                        setEditError(null);
+                      }}
+                      className="inline-flex items-center justify-center rounded-xl border border-violet-200/50 bg-violet-500/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
+                    >
+                      Edit order
+                    </button>
                   </div>
                 )}
               </div>
@@ -388,6 +738,14 @@ export default function OrderDetailsPage() {
           </aside>
         </div>
       </main>
+
+      <EditOrderModal
+        order={order}
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onUpdated={handleOrderUpdated}
+        onError={(message) => setEditError(message || null)}
+      />
     </PageShell>
   );
 }
