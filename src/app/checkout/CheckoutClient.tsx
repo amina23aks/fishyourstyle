@@ -281,7 +281,7 @@ export default function CheckoutClient() {
                 </p>
               </div>
               <Link
-                href="/account"
+                href={{ pathname: "/account", query: { returnTo: "/checkout" } }}
                 className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
               >
                 Log in or create account
