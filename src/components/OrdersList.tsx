@@ -28,7 +28,7 @@ export default function OrdersList() {
           <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
             <p className="font-medium">Order placed successfully!</p>
             <p className="text-sm mt-1">
-              Order ID: <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span>
+              Your order ID is <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span>.
             </p>
           </div>
         )}
@@ -36,7 +36,7 @@ export default function OrdersList() {
           <div className="rounded-2xl border border-sky-200/60 bg-sky-500/15 px-4 py-3 text-sky-50 shadow-inner shadow-sky-900/30">
             <p className="font-medium">Order cancelled successfully</p>
             <p className="text-sm mt-1">
-              Order #{successOrderId.slice(-8)} has been cancelled.
+              Order <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span> has been cancelled.
             </p>
           </div>
         )}
@@ -44,7 +44,7 @@ export default function OrdersList() {
           <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
             <p className="font-medium">Order updated successfully</p>
             <p className="text-sm mt-1">
-              Order #{successOrderId.slice(-8)} has been updated.
+              Order <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span> has been updated.
             </p>
           </div>
         )}
@@ -99,7 +99,7 @@ export default function OrdersList() {
     router.push(`/orders/${orderId}`);
   };
 
-  // Helper to generate items summary string from order items
+  // Helpers
   const getItemsSummary = (order: Order): string => {
     if (order.items.length === 0) return "Empty order";
     if (order.items.length === 1) {
@@ -109,7 +109,6 @@ export default function OrdersList() {
     return `${order.items.length} items`;
   };
 
-  // Helper to format status badge
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "pending":
@@ -150,6 +149,7 @@ export default function OrdersList() {
     </div>
   );
 
+  // --- UI STATES ---
   if (loading) {
     return (
       <div className="space-y-4">
@@ -159,28 +159,33 @@ export default function OrdersList() {
     );
   }
 
+  // Guest
   if (!user) {
-    return (
-      <div className="space-y-4">
-        {successSection}
-        <div className="flex justify-center">
-          <div className="max-w-xl w-full rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-sm shadow-sky-900/30 backdrop-blur">
-            <p className="text-lg font-semibold text-white">
-              Connectez-vous pour voir l’historique complet de vos commandes.
-            </p>
-            <p className="text-sm text-sky-100 mt-2">
-              Les commandes invitées sont disponibles via votre email de confirmation ou votre identifiant de commande.
-            </p>
-            <div className="mt-6">
+    // If placed order as guest (success banner)
+    if (isSuccess && successOrderId) {
+      return (
+        <div className="space-y-6">
+          {successSection}
+          {/* (Optional) Would show order card for orderId here if implementing guest confirmation */}
+          <div className="flex justify-center">
+            <div className="max-w-xl w-full rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-sm shadow-sky-900/30 backdrop-blur mt-6">
+              <h2 className="text-lg font-semibold text-white mb-2">Sign in to see your full order history.</h2>
+              <p className="text-sm text-sky-100 mb-4">Guest orders are only visible using your confirmation email or order ID.</p>
               <Link
                 href="/account"
                 className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
               >
-                Accéder à mon compte
+                Go to my account
               </Link>
             </div>
           </div>
         </div>
+      );
+    }
+    // Normal guest: do not show empty state
+    return (
+      <div className="space-y-4">
+        {successSection}
       </div>
     );
   }
@@ -214,25 +219,26 @@ export default function OrdersList() {
     );
   }
 
-  // Empty state
+  // Logged-in: Empty state
   if (orders.length === 0) {
     return (
       <div className="space-y-4">
         {successSection}
         <div className="rounded-2xl border border-white/20 bg-white/10 p-6 text-center text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur">
-          <p className="font-medium text-lg">Vous n&apos;avez pas encore de commandes.</p>
-          <p className="text-sm text-sky-100 mt-2">Découvrez nos collections et passez votre première commande.</p>
+          <p className="font-medium text-lg mb-2">You don’t have any orders yet.</p>
+          <p className="text-sm text-sky-100 mb-2">Discover our collection and place your first order.</p>
           <Link
             href="/shop"
             className="mt-4 inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
           >
-            Commencer vos achats
+            Start shopping
           </Link>
         </div>
       </div>
     );
   }
 
+  // Logged-in: Orders exists
   return (
     <div className="space-y-4">
       {successSection}
@@ -241,14 +247,11 @@ export default function OrdersList() {
           const firstItem = order.items[0];
           const canCancel = order.status === "pending";
           const canEdit = order.status === "pending";
-
           return (
             <article
               key={order.id}
               onClick={() => handleCardClick(order.id)}
-              className={`rounded-2xl border border-white/20 bg-white/10 p-5 text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur cursor-pointer transition hover:border-white/30 hover:bg-white/15 relative ${
-                order.status === "cancelled" ? "opacity-75" : ""
-              }`}
+              className={`rounded-2xl border border-white/20 bg-white/10 p-5 text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur cursor-pointer transition hover:border-white/30 hover:bg-white/15 relative ${order.status === "cancelled" ? "opacity-75" : ""}`}
               data-can-cancel={canCancel}
               data-can-edit={canEdit}
             >
@@ -265,7 +268,6 @@ export default function OrdersList() {
                     />
                   </div>
                 )}
-
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="flex-1 min-w-0">
@@ -273,15 +275,13 @@ export default function OrdersList() {
                       <h3 className="text-lg font-semibold text-white mt-1">{getItemsSummary(order)}</h3>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(
-                            order.status,
-                          )}`}
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(order.status)}`}
                         >
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                         {canEdit && (
                           <button
-                            onClick={(event) => {
+                            onClick={event => {
                               event.stopPropagation();
                               router.push(`/orders/${order.id}?edit=true`);
                             }}
@@ -295,11 +295,10 @@ export default function OrdersList() {
                     <div className="text-right text-sky-100 mt-2 md:mt-0">
                       <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
                       <p className="text-base font-semibold text-white mt-1">
-                        {new Intl.NumberFormat("fr-DZ").format(order.total)} DZD
+                        {new Intl.NumberFormat("en-US").format(order.total)} DZD
                       </p>
                     </div>
                   </div>
-
                   <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
                     <div>
                       <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Customer</dt>
@@ -313,7 +312,7 @@ export default function OrdersList() {
                       <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Shipping</dt>
                       <dd className="text-sm text-sky-100 mt-1">{order.shipping.wilaya}</dd>
                       <dd className="text-sm text-sky-200 mt-0.5">
-                        {order.shipping.mode === "home" ? "À domicile" : "Stop Desk"} - {new Intl.NumberFormat("fr-DZ").format(order.shipping.price)} DZD
+                        {order.shipping.mode === "home" ? "Home delivery" : "Stop Desk"} - {new Intl.NumberFormat("en-US").format(order.shipping.price)} DZD
                       </dd>
                     </div>
                     {order.notes && (

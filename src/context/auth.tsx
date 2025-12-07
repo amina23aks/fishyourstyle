@@ -61,18 +61,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithEmailPassword = useCallback(async (email: string, password: string) => {
     const auth = getAuthInstanceOrThrow();
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error("[auth] signIn error", error);
+      throw error; // preserve .code
+    }
   }, []);
 
   const registerWithEmailPassword = useCallback(async (email: string, password: string) => {
     const auth = getAuthInstanceOrThrow();
-    await createUserWithEmailAndPassword(auth, email, password);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error("[auth] register error", error);
+      throw error;
+    }
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
     const auth = getAuthInstanceOrThrow();
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error("[auth] signInWithGoogle error", error);
+      throw error;
+    }
   }, []);
 
   const logout = useCallback(async () => {
