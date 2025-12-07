@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
@@ -9,13 +9,15 @@ import type { Order } from "@/types/order";
 
 export default function OrderDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelMessage, setCancelMessage] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -51,13 +53,10 @@ export default function OrderDetailsPage() {
   }, [orderId]);
 
   const handleCancelOrder = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to cancel this order? This action cannot be undone."
-    );
-
-    if (!confirmed || !order) return;
+    if (!order) return;
 
     setIsCancelling(true);
+    setCancelError(null);
 
     try {
       const response = await fetch(`/api/orders/${order.id}`, {
@@ -66,16 +65,21 @@ export default function OrderDetailsPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to cancel order");
+        const message = errorData.error || "Failed to cancel order";
+        const friendlyMessage =
+          message === "Only pending orders can be cancelled."
+            ? "This order is no longer pending and cannot be cancelled."
+            : message;
+        throw new Error(friendlyMessage);
       }
 
       const updatedOrder = await response.json();
       setOrder(updatedOrder);
-      router.push(`/orders?status=cancelled&orderId=${order.id}`);
+      setCancelMessage("Order cancelled successfully.");
+      setShowCancelConfirm(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
-      alert(`Error cancelling order: ${errorMessage}`);
-      console.error("Failed to cancel order:", err);
+      setCancelError(errorMessage);
     } finally {
       setIsCancelling(false);
     }
@@ -123,7 +127,7 @@ export default function OrderDetailsPage() {
         <main className="space-y-6 lg:space-y-8">
           <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-8 text-rose-50 shadow-inner shadow-rose-900/30">
             <p className="font-medium text-lg mb-2">Order not found</p>
-            <p className="text-sm mb-6">{error || "The order you're looking for doesn't exist."}</p>
+            <p className="text-sm mb-6">{error || "The order you are looking for does not exist."}</p>
             <Link
               href="/orders"
               className="inline-flex items-center rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
@@ -146,6 +150,11 @@ export default function OrderDetailsPage() {
         data-can-cancel={canCancel}
         data-can-edit={canEdit}
       >
+        {cancelMessage && (
+          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
+            <p className="font-medium">{cancelMessage}</p>
+          </div>
+        )}
         <header className="space-y-2">
           <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order Details</p>
           <h1 className="text-3xl font-semibold text-white">Order #{order.id.slice(-8)}</h1>
@@ -177,15 +186,6 @@ export default function OrderDetailsPage() {
                     {new Intl.NumberFormat("fr-DZ").format(order.total)} DZD
                   </p>
                 </div>
-                {canCancel && (
-                  <button
-                    onClick={handleCancelOrder}
-                    disabled={isCancelling}
-                    className="inline-flex items-center justify-center rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isCancelling ? "Cancelling..." : "Cancel order"}
-                  </button>
-                )}
               </div>
             </section>
 
@@ -284,6 +284,67 @@ export default function OrderDetailsPage() {
                 <p className="text-sm text-sky-100 whitespace-pre-wrap">{order.notes}</p>
               </section>
             )}
+
+            {/* Cancel order */}
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <h2 className="text-lg font-semibold text-white">Cancel Order</h2>
+                  {order.status === "pending" && (
+                    <p className="text-sm text-sky-100">
+                      You can cancel this order as long as it is pending.
+                    </p>
+                  )}
+                  {order.status === "cancelled" && (
+                    <p className="text-sm text-rose-100">This order has been cancelled.</p>
+                  )}
+                  {order.status !== "pending" && order.status !== "cancelled" && (
+                    <p className="text-sm text-sky-100">This order can no longer be cancelled.</p>
+                  )}
+                  {cancelError && (
+                    <div className="mt-2 rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
+                      {cancelError}
+                    </div>
+                  )}
+                </div>
+                {order.status === "pending" && (
+                  <div className="w-full max-w-xs text-right">
+                    {!showCancelConfirm ? (
+                      <button
+                        onClick={() => {
+                          setShowCancelConfirm(true);
+                          setCancelMessage(null);
+                          setCancelError(null);
+                        }}
+                        className="inline-flex items-center justify-center rounded-xl border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Cancel order
+                      </button>
+                    ) : (
+                      <div className="space-y-3 text-right">
+                        <p className="text-sm text-rose-100">Are you sure? This cannot be undone.</p>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                          <button
+                            onClick={handleCancelOrder}
+                            disabled={isCancelling}
+                            className="inline-flex items-center justify-center rounded-xl border border-rose-200/50 bg-rose-500/30 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isCancelling ? "Cancelling..." : "Yes, cancel order"}
+                          </button>
+                          <button
+                            onClick={() => setShowCancelConfirm(false)}
+                            disabled={isCancelling}
+                            className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Keep order
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
 
           </div>
 

@@ -23,7 +23,14 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>): O
     id: orderId,
     customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : "",
     items: Array.isArray(data.items) ? (data.items as Order["items"]) : [],
-    shipping: data.shipping as Order["shipping"],
+    shipping: (data.shipping as Order["shipping"]) ?? {
+      customerName: "",
+      phone: "",
+      wilaya: "",
+      address: "",
+      mode: "home",
+      price: 0,
+    },
     notes: typeof data.notes === "string" ? data.notes : undefined,
     subtotal: Number(data.subtotal ?? 0),
     shippingCost: Number(data.shippingCost ?? 0),
@@ -36,12 +43,12 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>): O
   };
 }
 
-type PatchContext = {
-  params: Promise<{ id: string }>;
+type RouteContext = {
+  params: Promise<{ orderId: string }>;
 };
 
-export async function PATCH(_request: NextRequest, { params }: PatchContext) {
-  const { id: orderId } = await params;
+export async function PATCH(_request: NextRequest, { params }: RouteContext) {
+  const { orderId } = await params;
 
   if (!orderId) {
     return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
@@ -57,11 +64,11 @@ export async function PATCH(_request: NextRequest, { params }: PatchContext) {
     }
 
     const data = snapshot.data();
-    const order = firestoreDataToOrder(snapshot.id, data);
+    const order = firestoreDataToOrder(snapshot.id, data as Record<string, unknown>);
 
     if (order.status !== "pending") {
       return NextResponse.json(
-        { error: "Only pending orders can be cancelled" },
+        { error: "Only pending orders can be cancelled." },
         { status: 400 }
       );
     }
@@ -82,11 +89,14 @@ export async function PATCH(_request: NextRequest, { params }: PatchContext) {
       );
     }
 
-    const updatedOrder = firestoreDataToOrder(updatedSnapshot.id, updatedData);
+    const updatedOrder = firestoreDataToOrder(
+      updatedSnapshot.id,
+      updatedData as Record<string, unknown>
+    );
 
     return NextResponse.json(updatedOrder);
   } catch (error) {
-    console.error("[api/orders/:id] PATCH ERROR:", error);
+    console.error("[api/orders/[orderId]] PATCH ERROR:", error);
 
     const message = error instanceof Error ? error.message : "Failed to cancel order";
     return NextResponse.json({ error: message }, { status: 500 });
