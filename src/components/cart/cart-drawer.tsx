@@ -15,6 +15,7 @@ import {
   type WilayaShipping,
 } from "@/data/shipping";
 import type { NewOrder, OrderItem } from "@/types/order";
+import { useAuth } from "@/context/auth";
 
 type CartDrawerProps = {
   open: boolean;
@@ -28,6 +29,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const router = useRouter();
   const { items, totals, totalQuantity, removeItem, updateQty, clearCart } =
     useCart();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -55,6 +57,19 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     if (shippingPrice == null) return totals.subtotal;
     return totals.subtotal + shippingPrice;
   }, [shippingPrice, totals.subtotal]);
+
+  useEffect(() => {
+    if (user?.email) {
+      setForm((previous) =>
+        previous.email
+          ? previous
+          : {
+              ...previous,
+              email: user.email ?? "",
+            },
+      );
+    }
+  }, [user]);
 
   const handleDecrease = (item: CartItem) => {
     if (item.quantity <= 1) {
@@ -115,7 +130,8 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
       // Build NewOrder object
       const newOrder: NewOrder = {
-        customerEmail: form.email || "",
+        userId: user?.uid,
+        customerEmail: form.email || user?.email || undefined,
         items: orderItems,
         shipping: {
           customerName: form.fullName,

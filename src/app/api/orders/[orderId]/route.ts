@@ -21,7 +21,8 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>): O
 
   return {
     id: orderId,
-    customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : "",
+    userId: typeof data.userId === "string" ? data.userId : undefined,
+    customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : undefined,
     items: Array.isArray(data.items) ? (data.items as Order["items"]) : [],
     shipping: (data.shipping as Order["shipping"]) ?? {
       customerName: "",
