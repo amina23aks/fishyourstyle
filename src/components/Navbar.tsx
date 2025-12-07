@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useAuth } from "@/context/auth";
 import { useCart } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
 
@@ -55,10 +56,13 @@ function AccountIcon() {
 
 export function Navbar() {
   const pathname = usePathname();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { totalQuantity, lastAddedAt } = useCart();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isBumping, setIsBumping] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!lastAddedAt) return;
@@ -69,10 +73,51 @@ export function Navbar() {
 
   useEffect(() => {
     setIsMenuOpen(false);
+    setIsAccountMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        isAccountMenuOpen &&
+        accountMenuRef.current &&
+        !accountMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isAccountMenuOpen]);
 
   const toggleDrawer = () => setIsDrawerOpen((previous) => !previous);
   const toggleMenu = () => setIsMenuOpen((previous) => !previous);
+  const toggleAccountMenu = () => {
+    if (authLoading) return;
+    setIsAccountMenuOpen((previous) => !previous);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } finally {
+      setIsAccountMenuOpen(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
@@ -137,14 +182,81 @@ export function Navbar() {
             )}
             <span className="sr-only">Cart drawer</span>
           </motion.button>
-          <Link
-            href="/account"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            aria-label="Account"
-          >
-            <AccountIcon />
-            <span className="sr-only">Account</span>
-          </Link>
+          <div className="relative" ref={accountMenuRef}>
+            <button
+              type="button"
+              onClick={toggleAccountMenu}
+              aria-haspopup="menu"
+              aria-expanded={isAccountMenuOpen}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Account"
+              disabled={authLoading}
+            >
+              <AccountIcon />
+              <span className="sr-only">Account menu</span>
+            </button>
+            <AnimatePresence>
+              {isAccountMenuOpen && !authLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/20 bg-slate-900/80 text-sm text-sky-50 shadow-xl shadow-black/30 backdrop-blur"
+                  role="menu"
+                >
+                  {user ? (
+                    <div className="p-3">
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-sky-100">
+                        <span className="font-semibold">
+                          {user.email ?? "My account"}
+                        </span>
+                      </div>
+                      <div className="my-3 h-px bg-white/10" aria-hidden />
+                      <div className="flex flex-col gap-1">
+                        <Link
+                          href="/account"
+                          className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                          role="menuitem"
+                          onClick={() => setIsAccountMenuOpen(false)}
+                        >
+                          My account
+                        </Link>
+                        <Link
+                          href="/orders"
+                          className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                          role="menuitem"
+                          onClick={() => setIsAccountMenuOpen(false)}
+                        >
+                          My orders
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={handleSignOut}
+                          className="flex items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10"
+                          role="menuitem"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4">
+                      <p className="mb-2 text-xs uppercase tracking-wide text-sky-200/70">Welcome</p>
+                      <Link
+                        href="/account"
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-white/90 px-3 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-white"
+                        role="menuitem"
+                        onClick={() => setIsAccountMenuOpen(false)}
+                      >
+                        Sign in / Create account
+                      </Link>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <button
             type="button"
             onClick={toggleMenu}
