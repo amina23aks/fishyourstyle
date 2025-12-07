@@ -213,6 +213,7 @@ function firestoreDocToOrder(docId: string, data: DocumentData): Order {
     status: (data.status || "pending") as OrderStatus,
     createdAt: timestampToISO(data.createdAt),
     updatedAt: timestampToISO(data.updatedAt),
+    cancelledAt: data.cancelledAt ? timestampToISO(data.cancelledAt) : undefined,
   };
 }
 

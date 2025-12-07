@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
@@ -9,6 +9,7 @@ import type { Order } from "@/types/order";
 
 export default function OrderDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -59,12 +60,8 @@ export default function OrderDetailsPage() {
     setIsCancelling(true);
 
     try {
-      const response = await fetch("/api/orders", {
+      const response = await fetch(`/api/orders/${order.id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ orderId: order.id, action: "cancel" }),
       });
 
       if (!response.ok) {
@@ -74,6 +71,7 @@ export default function OrderDetailsPage() {
 
       const updatedOrder = await response.json();
       setOrder(updatedOrder);
+      router.push(`/orders?status=cancelled&orderId=${order.id}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       alert(`Error cancelling order: ${errorMessage}`);
@@ -138,11 +136,16 @@ export default function OrderDetailsPage() {
     );
   }
 
-  const isPending = order.status === "pending";
+  const canCancel = order.status === "pending";
+  const canEdit = order.status === "pending";
 
   return (
     <PageShell>
-      <main className="space-y-6 lg:space-y-8">
+      <main
+        className="space-y-6 lg:space-y-8"
+        data-can-cancel={canCancel}
+        data-can-edit={canEdit}
+      >
         <header className="space-y-2">
           <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order Details</p>
           <h1 className="text-3xl font-semibold text-white">Order #{order.id.slice(-8)}</h1>
@@ -174,6 +177,15 @@ export default function OrderDetailsPage() {
                     {new Intl.NumberFormat("fr-DZ").format(order.total)} DZD
                   </p>
                 </div>
+                {canCancel && (
+                  <button
+                    onClick={handleCancelOrder}
+                    disabled={isCancelling}
+                    className="inline-flex items-center justify-center rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isCancelling ? "Cancelling..." : "Cancel order"}
+                  </button>
+                )}
               </div>
             </section>
 
@@ -273,26 +285,6 @@ export default function OrderDetailsPage() {
               </section>
             )}
 
-            {/* Cancel button - only for pending orders */}
-            {isPending && (
-              <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-semibold text-white">Cancel Order</h3>
-                    <p className="text-sm text-sky-200 mt-1">
-                      You can cancel this order as long as it&apos;s pending.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleCancelOrder}
-                    disabled={isCancelling}
-                    className="rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isCancelling ? "Cancelling..." : "Cancel Order"}
-                  </button>
-                </div>
-              </section>
-            )}
           </div>
 
           {/* Sidebar - Order summary */}
