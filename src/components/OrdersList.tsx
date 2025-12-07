@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Order } from "@/types/order";
+import { useAuth } from "@/context/auth";
 
 export default function OrdersList() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const successOrderId = searchParams.get("orderId");
@@ -18,12 +21,50 @@ export default function OrdersList() {
   const isCancelledSuccess = statusParam === "cancelled" && successOrderId;
   const isUpdatedSuccess = statusParam === "updated" && successOrderId;
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
+  const successSection = useMemo(
+    () => (
+      <>
+        {isSuccess && successOrderId && (
+          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
+            <p className="font-medium">Order placed successfully!</p>
+            <p className="text-sm mt-1">
+              Order ID: <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span>
+            </p>
+          </div>
+        )}
+        {isCancelledSuccess && successOrderId && (
+          <div className="rounded-2xl border border-sky-200/60 bg-sky-500/15 px-4 py-3 text-sky-50 shadow-inner shadow-sky-900/30">
+            <p className="font-medium">Order cancelled successfully</p>
+            <p className="text-sm mt-1">
+              Order #{successOrderId.slice(-8)} has been cancelled.
+            </p>
+          </div>
+        )}
+        {isUpdatedSuccess && successOrderId && (
+          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
+            <p className="font-medium">Order updated successfully</p>
+            <p className="text-sm mt-1">
+              Order #{successOrderId.slice(-8)} has been updated.
+            </p>
+          </div>
+        )}
+      </>
+    ),
+    [isCancelledSuccess, isSuccess, isUpdatedSuccess, successOrderId],
+  );
+
+  const fetchOrders = useCallback(async () => {
+    if (!user) {
+      setOrders([]);
+      setIsLoadingOrders(false);
+      return;
+    }
+
+    setIsLoadingOrders(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/orders");
+      const response = await fetch(`/api/orders?userId=${encodeURIComponent(user.uid)}`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to fetch orders");
@@ -36,13 +77,23 @@ export default function OrdersList() {
       setError(errorMessage);
       console.error("Failed to fetch orders:", err);
     } finally {
-      setIsLoading(false);
+      setIsLoadingOrders(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    if (loading) {
+      return;
+    }
+
+    if (user) {
+      fetchOrders();
+    } else {
+      setOrders([]);
+      setIsLoadingOrders(false);
+      setError(null);
+    }
+  }, [fetchOrders, loading, user]);
 
   const handleCardClick = (orderId: string) => {
     router.push(`/orders/${orderId}`);
@@ -76,28 +127,70 @@ export default function OrdersList() {
     }
   };
 
-  // Loading state
-  if (isLoading) {
-  return (
+  const renderLoadingSkeleton = () => (
     <div className="grid gap-4">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-white/20 bg-white/10 p-5 shadow-sm shadow-sky-900/30 backdrop-blur animate-pulse"
-          >
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-2 flex-1">
-                <div className="h-4 bg-white/10 rounded w-24"></div>
-                <div className="h-6 bg-white/10 rounded w-48"></div>
-                <div className="h-4 bg-white/10 rounded w-32"></div>
-              </div>
-              <div className="space-y-2 text-right">
-                <div className="h-4 bg-white/10 rounded w-32 ml-auto"></div>
-                <div className="h-5 bg-white/10 rounded w-24 ml-auto"></div>
-              </div>
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="rounded-2xl border border-white/20 bg-white/10 p-5 shadow-sm shadow-sky-900/30 backdrop-blur animate-pulse"
+        >
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2 flex-1">
+              <div className="h-4 bg-white/10 rounded w-24"></div>
+              <div className="h-6 bg-white/10 rounded w-48"></div>
+              <div className="h-4 bg-white/10 rounded w-32"></div>
+            </div>
+            <div className="space-y-2 text-right">
+              <div className="h-4 bg-white/10 rounded w-32 ml-auto"></div>
+              <div className="h-5 bg-white/10 rounded w-24 ml-auto"></div>
             </div>
           </div>
-        ))}
+        </div>
+      ))}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {successSection}
+        {renderLoadingSkeleton()}
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="space-y-4">
+        {successSection}
+        <div className="flex justify-center">
+          <div className="max-w-xl w-full rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-sm shadow-sky-900/30 backdrop-blur">
+            <p className="text-lg font-semibold text-white">
+              Connectez-vous pour voir l’historique complet de vos commandes.
+            </p>
+            <p className="text-sm text-sky-100 mt-2">
+              Les commandes invitées sont disponibles via votre email de confirmation ou votre identifiant de commande.
+            </p>
+            <div className="mt-6">
+              <Link
+                href="/account"
+                className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
+              >
+                Accéder à mon compte
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state for user orders
+  if (isLoadingOrders) {
+    return (
+      <div className="space-y-4">
+        {successSection}
+        {renderLoadingSkeleton()}
       </div>
     );
   }
@@ -105,15 +198,18 @@ export default function OrdersList() {
   // Error state
   if (error) {
     return (
-      <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-6 text-rose-50 shadow-inner shadow-rose-900/30">
-        <p className="font-medium mb-2">Error loading orders</p>
-        <p className="text-sm mb-4">{error}</p>
-        <button
-          onClick={fetchOrders}
-          className="rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
-        >
-          Retry
-        </button>
+      <div className="space-y-4">
+        {successSection}
+        <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-6 text-rose-50 shadow-inner shadow-rose-900/30">
+          <p className="font-medium mb-2">Error loading orders</p>
+          <p className="text-sm mb-4">{error}</p>
+          <button
+            onClick={fetchOrders}
+            className="rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -121,41 +217,25 @@ export default function OrdersList() {
   // Empty state
   if (orders.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/25 bg-white/5 p-6 text-sky-100">
-        <p>No orders yet. Complete checkout to see them appear here.</p>
+      <div className="space-y-4">
+        {successSection}
+        <div className="rounded-2xl border border-white/20 bg-white/10 p-6 text-center text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur">
+          <p className="font-medium text-lg">Vous n&apos;avez pas encore de commandes.</p>
+          <p className="text-sm text-sky-100 mt-2">Découvrez nos collections et passez votre première commande.</p>
+          <Link
+            href="/shop"
+            className="mt-4 inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
+          >
+            Commencer vos achats
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Success banner */}
-      {isSuccess && successOrderId && (
-        <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
-          <p className="font-medium">Order placed successfully!</p>
-          <p className="text-sm mt-1">
-            Order ID: <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span>
-          </p>
-        </div>
-      )}
-      {isCancelledSuccess && successOrderId && (
-        <div className="rounded-2xl border border-sky-200/60 bg-sky-500/15 px-4 py-3 text-sky-50 shadow-inner shadow-sky-900/30">
-          <p className="font-medium">Order cancelled successfully</p>
-          <p className="text-sm mt-1">
-            Order #{successOrderId.slice(-8)} has been cancelled.
-          </p>
-        </div>
-      )}
-      {isUpdatedSuccess && successOrderId && (
-        <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
-          <p className="font-medium">Order updated successfully</p>
-          <p className="text-sm mt-1">
-            Order #{successOrderId.slice(-8)} has been updated.
-          </p>
-        </div>
-      )}
-
-      {/* Orders list */}
+      {successSection}
       <div className="grid gap-4">
         {orders.map((order) => {
           const firstItem = order.items[0];
@@ -194,7 +274,7 @@ export default function OrdersList() {
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
                           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(
-                            order.status
+                            order.status,
                           )}`}
                         >
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -221,32 +301,31 @@ export default function OrdersList() {
                   </div>
 
                   <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
-              <div>
-                <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Customer</dt>
+                    <div>
+                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Customer</dt>
                       <dd className="text-sm font-medium text-white mt-1">{order.shipping.customerName}</dd>
                       {order.customerEmail && (
                         <dd className="text-sm text-sky-100 mt-0.5">{order.customerEmail}</dd>
                       )}
                       <dd className="text-sm text-sky-200 mt-0.5">{order.shipping.phone}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Shipping</dt>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Shipping</dt>
                       <dd className="text-sm text-sky-100 mt-1">{order.shipping.wilaya}</dd>
                       <dd className="text-sm text-sky-200 mt-0.5">
                         {order.shipping.mode === "home" ? "À domicile" : "Stop Desk"} - {new Intl.NumberFormat("fr-DZ").format(order.shipping.price)} DZD
-                </dd>
-              </div>
-              {order.notes && (
-                <div className="md:col-span-2">
-                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Notes</dt>
-                  <dd className="text-sm text-sky-100 mt-1">{order.notes}</dd>
+                      </dd>
+                    </div>
+                    {order.notes && (
+                      <div className="md:col-span-2">
+                        <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Notes</dt>
+                        <dd className="text-sm text-sky-100 mt-1">{order.notes}</dd>
+                      </div>
+                    )}
+                  </dl>
                 </div>
-              )}
-            </dl>
-
-                </div>
               </div>
-          </article>
+            </article>
           );
         })}
       </div>

@@ -8,6 +8,7 @@ import {
   getDoc,
   query,
   orderBy,
+  where,
   Timestamp,
   updateDoc,
   type DocumentData,
@@ -233,8 +234,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get("orderId");
+    const userId = searchParams.get("userId");
 
-    console.log("[api/orders] GET request received", { orderId });
+    console.log("[api/orders] GET request received", { orderId, userId });
 
     const db = getServerDb();
     const ordersCollection = collection(db, "orders");
@@ -257,12 +259,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(orderData);
     }
 
+    const orders: Order[] = [];
+
+    if (userId && userId.trim()) {
+      // Fetch orders for specific user sorted by createdAt DESC
+      console.log("[api/orders] Fetching orders for user...", { userId });
+      const userOrdersQuery = query(
+        ordersCollection,
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc"),
+      );
+      const userOrdersSnapshot = await getDocs(userOrdersQuery);
+
+      userOrdersSnapshot.forEach((snapshotDoc) => {
+        const orderData = firestoreDocToOrder(snapshotDoc.id, snapshotDoc.data());
+        orders.push(orderData);
+      });
+
+      console.log("[api/orders] Fetched", orders.length, "orders for user");
+      return NextResponse.json(orders);
+    }
+
     // Otherwise, fetch all orders sorted by createdAt DESC
     console.log("[api/orders] Fetching all orders...");
     const ordersQuery = query(ordersCollection, orderBy("createdAt", "desc"));
     const ordersSnapshot = await getDocs(ordersQuery);
 
-    const orders: Order[] = [];
     ordersSnapshot.forEach((doc) => {
       const orderData = firestoreDocToOrder(doc.id, doc.data());
       orders.push(orderData);
