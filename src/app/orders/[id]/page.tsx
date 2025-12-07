@@ -5,6 +5,8 @@ import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
+import { ECONOMIC_SHIPPING, getEconomicShippingByWilaya } from "@/data/shipping";
+import { getProductBySlug } from "@/lib/products";
 import type { Order, OrderItem, ShippingInfo } from "@/types/order";
 
 type EditOrderModalProps = {
@@ -48,6 +50,14 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
   );
   const shippingCost = typeof shipping.price === "number" ? shipping.price : order.shippingCost;
   const total = subtotal + shippingCost;
+
+  useEffect(() => {
+    const selectedWilaya = getEconomicShippingByWilaya(shipping.wilaya);
+    if (selectedWilaya) {
+      const updatedPrice = shipping.mode === "desk" ? selectedWilaya.desk : selectedWilaya.home;
+      setShipping((current) => ({ ...current, price: updatedPrice }));
+    }
+  }, [shipping.wilaya, shipping.mode]);
 
   const disabled = order.status !== "pending";
 
@@ -113,10 +123,10 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-3 py-8 sm:px-4">
       <div className="absolute inset-0 bg-slate-950/70 backdrop-blur" onClick={onClose} />
-      <div className="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl max-h-[90vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/5">
+      <div className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl max-h-[82vh]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Edit Order</p>
             <h3 className="text-xl font-semibold text-white">Order #{order.id.slice(-8)}</h3>
@@ -135,9 +145,9 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
           </div>
         )}
 
-        <div className="grid flex-1 gap-6 overflow-y-auto px-5 py-5 lg:grid-cols-[1.2fr_0.9fr]">
-          <div className="space-y-5">
-            <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
+        <div className="grid flex-1 gap-4 overflow-y-auto px-4 py-4 lg:grid-cols-[1.15fr_0.95fr]">
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Shipping</h4>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="flex flex-col text-sm text-sky-100 gap-1">
@@ -162,13 +172,27 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                 </label>
                 <label className="flex flex-col text-sm text-sky-100 gap-1">
                   Wilaya
-                  <input
+                  <select
                     value={shipping.wilaya}
-                    onChange={(e) => setShipping({ ...shipping, wilaya: e.target.value })}
+                    onChange={(e) => {
+                      const wilaya = e.target.value;
+                      const pricing = getEconomicShippingByWilaya(wilaya);
+                      const nextPrice = pricing
+                        ? shipping.mode === "desk"
+                          ? pricing.desk
+                          : pricing.home
+                        : shipping.price;
+                      setShipping({ ...shipping, wilaya, price: nextPrice });
+                    }}
                     disabled={disabled}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
-                    type="text"
-                  />
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                  >
+                    {ECONOMIC_SHIPPING.map((entry) => (
+                      <option key={entry.wilaya} value={entry.wilaya} className="bg-slate-900">
+                        {entry.wilaya}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="flex flex-col text-sm text-sky-100 gap-1">
                   Address
@@ -184,7 +208,12 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                   Delivery mode
                   <select
                     value={shipping.mode}
-                    onChange={(e) => setShipping({ ...shipping, mode: e.target.value as ShippingInfo["mode"] })}
+                    onChange={(e) => {
+                      const mode = e.target.value as ShippingInfo["mode"];
+                      const pricing = getEconomicShippingByWilaya(shipping.wilaya);
+                      const nextPrice = pricing ? (mode === "desk" ? pricing.desk : pricing.home) : shipping.price;
+                      setShipping({ ...shipping, mode, price: nextPrice });
+                    }}
                     disabled={disabled}
                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
                   >
@@ -195,7 +224,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
               </div>
             </section>
 
-            <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Notes</h4>
               <textarea
                 value={notes}
@@ -206,8 +235,8 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
             </section>
           </div>
 
-          <div className="space-y-4 pb-1">
-            <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
+          <div className="space-y-3 pb-1">
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Items</h4>
               <div className="space-y-3">
                 {items.map((item, index) => (
@@ -258,33 +287,60 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="flex flex-col text-xs text-sky-100 gap-1">
                         Color
-                        <input
-                          value={item.colorName}
-                          onChange={(e) =>
+                        <select
+                          value={item.colorCode}
+                          onChange={(e) => {
+                            const product = getProductBySlug(item.slug);
+                            const selectedColor = product?.colors.find((color) => color.id === e.target.value);
+                            const colorName = selectedColor?.labelFr ?? item.colorName;
+                            const colorCode = selectedColor?.id ?? item.colorCode;
+                            const image = selectedColor?.image ?? item.image;
+
                             setItems((current) =>
                               current.map((entry, idx) =>
-                                idx === index ? { ...entry, colorName: e.target.value } : entry
-                              )
-                            )
-                          }
+                                idx === index
+                                  ? {
+                                      ...entry,
+                                      colorCode,
+                                      colorName,
+                                      image,
+                                    }
+                                  : entry,
+                              ),
+                            );
+                          }}
                           disabled={disabled}
-                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
-                          type="text"
-                        />
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                        >
+                          {(getProductBySlug(item.slug)?.colors ?? [
+                            { id: item.colorCode, labelFr: item.colorName, labelAr: item.colorName, image: item.image },
+                          ]).map((color) => (
+                            <option key={color.id} value={color.id} className="bg-slate-900">
+                              {color.labelFr}
+                            </option>
+                          ))}
+                        </select>
                       </label>
                       <label className="flex flex-col text-xs text-sky-100 gap-1">
                         Size
-                        <input
+                        <select
                           value={item.size}
                           onChange={(e) =>
                             setItems((current) =>
-                              current.map((entry, idx) => (idx === index ? { ...entry, size: e.target.value } : entry))
+                              current.map((entry, idx) =>
+                                idx === index ? { ...entry, size: e.target.value } : entry,
+                              ),
                             )
                           }
                           disabled={disabled}
-                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
-                          type="text"
-                        />
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                        >
+                          {(getProductBySlug(item.slug)?.sizes ?? [item.size]).map((sizeOption) => (
+                            <option key={sizeOption} value={sizeOption} className="bg-slate-900">
+                              {sizeOption}
+                            </option>
+                          ))}
+                        </select>
                       </label>
                     </div>
                   </div>
@@ -292,7 +348,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
               </div>
             </section>
 
-            <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Summary</h4>
               <dl className="space-y-2 text-sm text-sky-100">
                 <div className="flex items-center justify-between">
