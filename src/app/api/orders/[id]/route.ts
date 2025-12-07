@@ -36,11 +36,12 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>): O
   };
 }
 
-export async function PATCH(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const orderId = params.id;
+type PatchContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function PATCH(_request: NextRequest, { params }: PatchContext) {
+  const { id: orderId } = await params;
 
   if (!orderId) {
     return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
