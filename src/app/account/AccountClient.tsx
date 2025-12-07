@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/auth";
@@ -34,7 +34,7 @@ function extractAuthCode(err: unknown): string {
 // Strongly-typed form modes
 type Mode = "login" | "register";
 
-export default function AccountClient() {
+function AccountContent() {
   const {
     user,
     loading,
@@ -310,5 +310,13 @@ export default function AccountClient() {
         </div>
       </section>
     </PageShell>
+  );
+}
+
+export default function AccountClient() {
+  return (
+    <Suspense fallback={null}>
+      <AccountContent />
+    </Suspense>
   );
 }
