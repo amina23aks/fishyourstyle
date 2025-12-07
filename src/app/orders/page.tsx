@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import OrdersList from "@/components/OrdersList";
 import PageShell from "@/components/PageShell";
 
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function OrdersPage() {
   return (
     <PageShell>
-      <OrdersList />
+      <Suspense fallback={<div className="text-white">Loading orders...</div>}>
+        <OrdersList />
+      </Suspense>
     </PageShell>
   );
 }
