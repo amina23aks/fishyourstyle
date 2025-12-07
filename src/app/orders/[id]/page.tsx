@@ -106,7 +106,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10 md:py-14">
       <div className="absolute inset-0 bg-slate-950/70 backdrop-blur" onClick={onClose} />
       <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
@@ -128,7 +128,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
           </div>
         )}
 
-        <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.2fr_0.9fr]">
+        <div className="grid max-h-[75vh] gap-6 overflow-y-auto px-6 py-6 lg:grid-cols-[1.2fr_0.9fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Shipping</h4>
@@ -469,9 +469,28 @@ export default function OrderDetailsPage() {
             <p className="font-medium">{toastMessage}</p>
           </div>
         )}
-        <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order Details</p>
-          <h1 className="text-3xl font-semibold text-white">Order #{order.id.slice(-8)}</h1>
+        <header className="space-y-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order Details</p>
+              <h1 className="text-3xl font-semibold text-white">Order #{order.id.slice(-8)}</h1>
+            </div>
+            {canEdit && (
+              <button
+                onClick={() => {
+                  setShowEditModal(true);
+                  setToastMessage(null);
+                  setEditError(null);
+                }}
+                className="inline-flex items-center justify-center self-start rounded-xl border border-violet-200/50 bg-violet-500/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
+              >
+                Edit order
+              </button>
+            )}
+          </div>
+          {!canEdit && (
+            <p className="text-sm text-sky-200">This order can no longer be modified.</p>
+          )}
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
@@ -662,35 +681,19 @@ export default function OrderDetailsPage() {
 
             {/* Edit order */}
             <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold text-white">Edit Order</h2>
-                  {order.status === "pending" && (
-                    <p className="text-sm text-sky-100">
-                      You can update your shipping info, notes, or items before the order is confirmed.
-                    </p>
-                  )}
-                  {order.status !== "pending" && (
-                    <p className="text-sm text-sky-100">This order can no longer be modified.</p>
-                  )}
-                  {editError && (
-                    <div className="mt-2 rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
-                      {editError}
-                    </div>
-                  )}
-                </div>
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold text-white">Edit Order</h2>
                 {order.status === "pending" && (
-                  <div className="w-full max-w-xs text-right">
-                    <button
-                      onClick={() => {
-                        setShowEditModal(true);
-                        setToastMessage(null);
-                        setEditError(null);
-                      }}
-                      className="inline-flex items-center justify-center rounded-xl border border-violet-200/50 bg-violet-500/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
-                    >
-                      Edit order
-                    </button>
+                  <p className="text-sm text-sky-100">
+                    You can update your shipping info, notes, or items before the order is confirmed. Use the Edit Order button at the top of the page to make changes.
+                  </p>
+                )}
+                {order.status !== "pending" && (
+                  <p className="text-sm text-sky-100">This order can no longer be modified.</p>
+                )}
+                {editError && (
+                  <div className="mt-2 rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
+                    {editError}
                   </div>
                 )}
               </div>

@@ -154,15 +154,15 @@ export default function OrdersList() {
           const canEdit = order.status === "pending";
 
           return (
-          <article
-            key={order.id}
-            onClick={() => handleCardClick(order.id)}
-            className={`rounded-2xl border border-white/20 bg-white/10 p-5 text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur cursor-pointer transition hover:border-white/30 hover:bg-white/15 relative ${
-              order.status === "cancelled" ? "opacity-75" : ""
-            }`}
-            data-can-cancel={canCancel}
-            data-can-edit={canEdit}
-          >
+            <article
+              key={order.id}
+              onClick={() => handleCardClick(order.id)}
+              className={`rounded-2xl border border-white/20 bg-white/10 p-5 text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur cursor-pointer transition hover:border-white/30 hover:bg-white/15 relative ${
+                order.status === "cancelled" ? "opacity-75" : ""
+              }`}
+              data-can-cancel={canCancel}
+              data-can-edit={canEdit}
+            >
               <div className="flex gap-4">
                 {/* Product thumbnail */}
                 {firstItem && (
@@ -178,11 +178,11 @@ export default function OrdersList() {
                 )}
 
                 <div className="flex-1 min-w-0">
-            <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="flex-1 min-w-0">
-                <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order #{order.id.slice(-8)}</p>
+                      <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order #{order.id.slice(-8)}</p>
                       <h3 className="text-lg font-semibold text-white mt-1">{getItemsSummary(order)}</h3>
-                      <div className="mt-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
                           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(
                             order.status
@@ -190,15 +190,26 @@ export default function OrdersList() {
                         >
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
+                        {canEdit && (
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              router.push(`/orders/${order.id}`);
+                            }}
+                            className="inline-flex items-center rounded-full border border-violet-200/40 bg-violet-500/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="text-right text-sky-100 mt-2 md:mt-0">
                       <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
                       <p className="text-base font-semibold text-white mt-1">
                         {new Intl.NumberFormat("fr-DZ").format(order.total)} DZD
-                </p>
-              </div>
-            </div>
+                      </p>
+                    </div>
+                  </div>
 
                   <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
               <div>
