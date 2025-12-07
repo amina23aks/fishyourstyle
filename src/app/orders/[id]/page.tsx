@@ -24,6 +24,17 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
 
   useEffect(() => {
     if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
       setShipping(order.shipping);
       setNotes(order.notes ?? "");
       setItems(order.items);
@@ -102,10 +113,10 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-20 md:py-16">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10">
       <div className="absolute inset-0 bg-slate-950/70 backdrop-blur" onClick={onClose} />
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
+      <div className="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl max-h-[90vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/5">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Edit Order</p>
             <h3 className="text-xl font-semibold text-white">Order #{order.id.slice(-8)}</h3>
@@ -119,13 +130,13 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
         </div>
 
         {disabled && (
-          <div className="border-b border-white/10 bg-rose-500/15 px-6 py-3 text-sm text-rose-50">
+          <div className="border-b border-white/10 bg-rose-500/15 px-5 py-3 text-sm text-rose-50">
             Order can no longer be edited.
           </div>
         )}
 
-        <div className="grid max-h-[82vh] gap-6 overflow-y-auto px-6 py-6 lg:grid-cols-[1.2fr_0.9fr]">
-          <div className="space-y-6">
+        <div className="grid flex-1 gap-6 overflow-y-auto px-5 py-5 lg:grid-cols-[1.2fr_0.9fr]">
+          <div className="space-y-5">
             <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Shipping</h4>
               <div className="grid gap-3 md:grid-cols-2">
@@ -195,7 +206,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
             </section>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 pb-1">
             <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Items</h4>
               <div className="space-y-3">
