@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/auth";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 import PageShell from "@/components/PageShell";
@@ -33,7 +34,7 @@ function extractAuthCode(err: unknown): string {
 // Strongly-typed form modes
 type Mode = "login" | "register";
 
-export default function AccountClient() {
+function AccountContent() {
   const {
     user,
     loading,
@@ -42,6 +43,9 @@ export default function AccountClient() {
     signInWithGoogle,
     signOut,
   } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
 
   // Tabs, fields, errors, UI state
   const [mode, setMode] = useState<Mode>("login");
@@ -50,6 +54,12 @@ export default function AccountClient() {
   const [inputErrors, setInputErrors] = useState<{ email?: string; password?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const redirectAfterAuth = () => {
+    if (returnTo && returnTo.startsWith("/")) {
+      router.push(returnTo);
+    }
+  };
 
   // Reset form/errors on tab switch
   const handleTabSwitch = (m: Mode) => {
@@ -85,6 +95,7 @@ export default function AccountClient() {
       } else {
         await register(email, password);
       }
+      redirectAfterAuth();
       // Firebase should log user in and auto-switch UI
     } catch (err: unknown) {
       const code = extractAuthCode(err);
@@ -100,6 +111,7 @@ export default function AccountClient() {
     setBusy(true);
     try {
       await signInWithGoogle();
+      redirectAfterAuth();
     } catch (err: unknown) {
       const code = extractAuthCode(err);
       if (code === "auth/popup-closed-by-user") {
@@ -298,5 +310,13 @@ export default function AccountClient() {
         </div>
       </section>
     </PageShell>
+  );
+}
+
+export default function AccountClient() {
+  return (
+    <Suspense fallback={null}>
+      <AccountContent />
+    </Suspense>
   );
 }
