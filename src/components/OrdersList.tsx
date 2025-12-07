@@ -10,48 +10,27 @@ import { useAuth } from "@/context/auth";
 export default function OrdersList() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const successOrderId = searchParams.get("orderId");
   const statusParam = searchParams.get("status");
-  const isSuccess = statusParam === "success" && successOrderId;
-  const isCancelledSuccess = statusParam === "cancelled" && successOrderId;
-  const isUpdatedSuccess = statusParam === "updated" && successOrderId;
+  const showSuccessBanner = statusParam === "success" && Boolean(successOrderId);
 
-  const successSection = useMemo(
-    () => (
-      <>
-        {isSuccess && successOrderId && (
-          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
-            <p className="font-medium">Order placed successfully!</p>
-            <p className="text-sm mt-1">
-              Your order ID is <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span>.
-            </p>
-          </div>
-        )}
-        {isCancelledSuccess && successOrderId && (
-          <div className="rounded-2xl border border-sky-200/60 bg-sky-500/15 px-4 py-3 text-sky-50 shadow-inner shadow-sky-900/30">
-            <p className="font-medium">Order cancelled successfully</p>
-            <p className="text-sm mt-1">
-              Order <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span> has been cancelled.
-            </p>
-          </div>
-        )}
-        {isUpdatedSuccess && successOrderId && (
-          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
-            <p className="font-medium">Order updated successfully</p>
-            <p className="text-sm mt-1">
-              Order <span className="font-mono font-semibold">{successOrderId.slice(-8)}</span> has been updated.
-            </p>
-          </div>
-        )}
-      </>
-    ),
-    [isCancelledSuccess, isSuccess, isUpdatedSuccess, successOrderId],
-  );
+  const successBanner = useMemo(() => {
+    if (!showSuccessBanner || !successOrderId) return null;
+
+    return (
+      <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
+        <p className="font-medium">Order placed successfully!</p>
+        <p className="mt-1 text-sm">
+          Your order ID is <span className="font-mono font-semibold">{successOrderId}</span>.
+        </p>
+      </div>
+    );
+  }, [showSuccessBanner, successOrderId]);
 
   const fetchOrders = useCallback(async () => {
     if (!user) {
@@ -82,7 +61,7 @@ export default function OrdersList() {
   }, [user]);
 
   useEffect(() => {
-    if (loading) {
+    if (authLoading) {
       return;
     }
 
@@ -93,7 +72,7 @@ export default function OrdersList() {
       setIsLoadingOrders(false);
       setError(null);
     }
-  }, [fetchOrders, loading, user]);
+  }, [authLoading, fetchOrders, user]);
 
   const handleCardClick = (orderId: string) => {
     router.push(`/orders/${orderId}`);
@@ -150,10 +129,10 @@ export default function OrdersList() {
   );
 
   // --- UI STATES ---
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="space-y-4">
-        {successSection}
+        {successBanner}
         {renderLoadingSkeleton()}
       </div>
     );
@@ -161,31 +140,21 @@ export default function OrdersList() {
 
   // Guest
   if (!user) {
-    // If placed order as guest (success banner)
-    if (isSuccess && successOrderId) {
-      return (
-        <div className="space-y-6">
-          {successSection}
-          {/* (Optional) Would show order card for orderId here if implementing guest confirmation */}
-          <div className="flex justify-center">
-            <div className="max-w-xl w-full rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-sm shadow-sky-900/30 backdrop-blur mt-6">
-              <h2 className="text-lg font-semibold text-white mb-2">Sign in to see your full order history.</h2>
-              <p className="text-sm text-sky-100 mb-4">Guest orders are only visible using your confirmation email or order ID.</p>
-              <Link
-                href="/account"
-                className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
-              >
-                Go to my account
-              </Link>
-            </div>
+    return (
+      <div className="space-y-6">
+        {successBanner}
+        <div className="flex justify-center">
+          <div className="mt-2 w-full max-w-xl rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-sm shadow-sky-900/30 backdrop-blur">
+            <h2 className="mb-2 text-lg font-semibold text-white">Sign in to see your full order history.</h2>
+            <p className="mb-4 text-sm text-sky-100">Guest orders are only visible using your confirmation email or your order ID.</p>
+            <Link
+              href="/account"
+              className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
+            >
+              Go to my account
+            </Link>
           </div>
         </div>
-      );
-    }
-    // Normal guest: do not show empty state
-    return (
-      <div className="space-y-4">
-        {successSection}
       </div>
     );
   }
@@ -194,7 +163,7 @@ export default function OrdersList() {
   if (isLoadingOrders) {
     return (
       <div className="space-y-4">
-        {successSection}
+        {successBanner}
         {renderLoadingSkeleton()}
       </div>
     );
@@ -204,7 +173,7 @@ export default function OrdersList() {
   if (error) {
     return (
       <div className="space-y-4">
-        {successSection}
+        {successBanner}
         <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-6 text-rose-50 shadow-inner shadow-rose-900/30">
           <p className="font-medium mb-2">Error loading orders</p>
           <p className="text-sm mb-4">{error}</p>
@@ -223,10 +192,10 @@ export default function OrdersList() {
   if (orders.length === 0) {
     return (
       <div className="space-y-4">
-        {successSection}
+        {successBanner}
         <div className="rounded-2xl border border-white/20 bg-white/10 p-6 text-center text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur">
           <p className="font-medium text-lg mb-2">You don’t have any orders yet.</p>
-          <p className="text-sm text-sky-100 mb-2">Discover our collection and place your first order.</p>
+          <p className="text-sm text-sky-100 mb-2">Discover the latest drops and place your first order.</p>
           <Link
             href="/shop"
             className="mt-4 inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
@@ -241,7 +210,7 @@ export default function OrdersList() {
   // Logged-in: Orders exists
   return (
     <div className="space-y-4">
-      {successSection}
+      {successBanner}
       <div className="grid gap-4">
         {orders.map((order) => {
           const firstItem = order.items[0];
