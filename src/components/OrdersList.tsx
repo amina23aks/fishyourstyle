@@ -194,7 +194,7 @@ export default function OrdersList() {
                           <button
                             onClick={(event) => {
                               event.stopPropagation();
-                              router.push(`/orders/${order.id}`);
+                              router.push(`/orders/${order.id}?edit=true`);
                             }}
                             className="inline-flex items-center rounded-full border border-violet-200/40 bg-violet-500/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
                           >

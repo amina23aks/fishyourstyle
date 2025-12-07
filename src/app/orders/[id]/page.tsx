@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
@@ -53,18 +53,9 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
     );
   };
 
-  const removeItem = (index: number) => {
-    setItems((current) => current.filter((_, idx) => idx !== index));
-  };
-
   const handleSave = async () => {
     if (disabled) {
       setLocalError("Order can no longer be edited.");
-      return;
-    }
-
-    if (items.length === 0) {
-      setLocalError("Order must contain at least one item.");
       return;
     }
 
@@ -73,6 +64,11 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
     onError("");
 
     try {
+      const normalizedItems = items.map((item) => ({
+        ...item,
+        variantKey: `${item.id}-${item.colorCode}-${item.size}`,
+      }));
+
       const response = await fetch(`/api/orders/${order.id}`, {
         method: "PATCH",
         headers: {
@@ -81,7 +77,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
         body: JSON.stringify({
           shipping,
           notes,
-          items,
+          items: normalizedItems,
         }),
       });
 
@@ -106,9 +102,9 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10 md:py-14">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-20 md:py-16">
       <div className="absolute inset-0 bg-slate-950/70 backdrop-blur" onClick={onClose} />
-      <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Edit Order</p>
@@ -128,7 +124,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
           </div>
         )}
 
-        <div className="grid max-h-[75vh] gap-6 overflow-y-auto px-6 py-6 lg:grid-cols-[1.2fr_0.9fr]">
+        <div className="grid max-h-[82vh] gap-6 overflow-y-auto px-6 py-6 lg:grid-cols-[1.2fr_0.9fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Shipping</h4>
@@ -206,58 +202,82 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                 {items.map((item, index) => (
                   <div
                     key={item.variantKey || index}
-                    className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
+                    className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3"
                   >
-                    <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        sizes="56px"
-                        className="object-cover"
-                        unoptimized
-                      />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="56px"
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+                        <p className="text-xs text-sky-200">
+                          {item.colorName} · {item.size}
+                        </p>
+                        <p className="text-xs text-sky-100">
+                          {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <button
+                          onClick={() => updateItemQuantity(index, -1)}
+                          disabled={disabled || item.quantity <= 1}
+                          className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label="Decrease quantity"
+                        >
+                          -
+                        </button>
+                        <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
+                        <button
+                          onClick={() => updateItemQuantity(index, 1)}
+                          disabled={disabled}
+                          className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{item.name}</p>
-                      <p className="text-xs text-sky-200">
-                        {item.colorName} · {item.size}
-                      </p>
-                      <p className="text-xs text-sky-100 mt-1">
-                        {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
-                      </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col text-xs text-sky-100 gap-1">
+                        Color
+                        <input
+                          value={item.colorName}
+                          onChange={(e) =>
+                            setItems((current) =>
+                              current.map((entry, idx) =>
+                                idx === index ? { ...entry, colorName: e.target.value } : entry
+                              )
+                            )
+                          }
+                          disabled={disabled}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                          type="text"
+                        />
+                      </label>
+                      <label className="flex flex-col text-xs text-sky-100 gap-1">
+                        Size
+                        <input
+                          value={item.size}
+                          onChange={(e) =>
+                            setItems((current) =>
+                              current.map((entry, idx) => (idx === index ? { ...entry, size: e.target.value } : entry))
+                            )
+                          }
+                          disabled={disabled}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                          type="text"
+                        />
+                      </label>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateItemQuantity(index, -1)}
-                        disabled={disabled || item.quantity <= 1}
-                        className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        aria-label="Decrease quantity"
-                      >
-                        -
-                      </button>
-                      <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
-                      <button
-                        onClick={() => updateItemQuantity(index, 1)}
-                        disabled={disabled}
-                        className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        aria-label="Increase quantity"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => removeItem(index)}
-                      disabled={disabled}
-                      className="text-xs font-semibold text-rose-200 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
                   </div>
                 ))}
-                {items.length === 0 && (
-                  <p className="text-sm text-sky-200">Add at least one item to keep this order.</p>
-                )}
               </div>
             </section>
 
@@ -315,6 +335,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
 
 export default function OrderDetailsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -359,6 +380,15 @@ export default function OrderDetailsPage() {
       fetchOrder();
     }
   }, [orderId]);
+
+  useEffect(() => {
+    const wantsEdit = searchParams.get("edit") === "true";
+    if (order && wantsEdit && order.status === "pending") {
+      setShowEditModal(true);
+      setToastMessage(null);
+      setEditError(null);
+    }
+  }, [order, searchParams]);
 
   const handleCancelOrder = async () => {
     if (!order) return;
