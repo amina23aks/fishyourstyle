@@ -90,6 +90,8 @@ export type Order = {
   createdAt: string;
   /** ISO timestamp when order was last updated */
   updatedAt: string;
+  /** ISO timestamp when order was cancelled (if applicable) */
+  cancelledAt?: string;
 };
 
 /**

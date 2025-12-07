@@ -1,20 +1,420 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
-import type { Order } from "@/types/order";
+import { ECONOMIC_SHIPPING, getEconomicShippingByWilaya } from "@/data/shipping";
+import { getProductBySlug } from "@/lib/products";
+import type { Order, OrderItem, ShippingInfo } from "@/types/order";
+
+type EditOrderModalProps = {
+  order: Order;
+  open: boolean;
+  onClose: () => void;
+  onUpdated: (updatedOrder: Order) => void;
+  onError: (message: string) => void;
+};
+
+function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderModalProps) {
+  const [shipping, setShipping] = useState<ShippingInfo>(order.shipping);
+  const [notes, setNotes] = useState<string>(order.notes ?? "");
+  const [items, setItems] = useState<OrderItem[]>(order.items);
+  const [isSaving, setIsSaving] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setShipping(order.shipping);
+      setNotes(order.notes ?? "");
+      setItems(order.items);
+      setLocalError(null);
+    }
+  }, [open, order]);
+
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items]
+  );
+  const shippingCost = typeof shipping.price === "number" ? shipping.price : order.shippingCost;
+  const total = subtotal + shippingCost;
+
+  useEffect(() => {
+    const selectedWilaya = getEconomicShippingByWilaya(shipping.wilaya);
+    if (selectedWilaya) {
+      const updatedPrice = shipping.mode === "desk" ? selectedWilaya.desk : selectedWilaya.home;
+      setShipping((current) => ({ ...current, price: updatedPrice }));
+    }
+  }, [shipping.wilaya, shipping.mode]);
+
+  const disabled = order.status !== "pending";
+
+  const updateItemQuantity = (index: number, delta: number) => {
+    setItems((current) =>
+      current.map((item, idx) =>
+        idx === index
+          ? {
+              ...item,
+              quantity: Math.max(1, item.quantity + delta),
+            }
+          : item
+      )
+    );
+  };
+
+  const handleSave = async () => {
+    if (disabled) {
+      setLocalError("Order can no longer be edited.");
+      return;
+    }
+
+    setIsSaving(true);
+    setLocalError(null);
+    onError("");
+
+    try {
+      const normalizedItems = items.map((item) => ({
+        ...item,
+        variantKey: `${item.id}-${item.colorCode}-${item.size}`,
+      }));
+
+      const response = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          shipping,
+          notes,
+          items: normalizedItems,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const message = errorData.error || "Failed to update order";
+        throw new Error(message);
+      }
+
+      const updatedOrder = (await response.json()) as Order;
+      onUpdated(updatedOrder);
+      onClose();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      setLocalError(errorMessage);
+      onError(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-3 py-8 sm:px-4">
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur" onClick={onClose} />
+      <div className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl max-h-[82vh]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Edit Order</p>
+            <h3 className="text-xl font-semibold text-white">Order #{order.id.slice(-8)}</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            Close
+          </button>
+        </div>
+
+        {disabled && (
+          <div className="border-b border-white/10 bg-rose-500/15 px-5 py-3 text-sm text-rose-50">
+            Order can no longer be edited.
+          </div>
+        )}
+
+        <div className="grid flex-1 gap-4 overflow-y-auto px-4 py-4 lg:grid-cols-[1.15fr_0.95fr]">
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
+              <h4 className="text-sm font-semibold text-white mb-3">Shipping</h4>
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="flex flex-col text-sm text-sky-100 gap-1">
+                  Name
+                  <input
+                    value={shipping.customerName}
+                    onChange={(e) => setShipping({ ...shipping, customerName: e.target.value })}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                    type="text"
+                  />
+                </label>
+                <label className="flex flex-col text-sm text-sky-100 gap-1">
+                  Phone
+                  <input
+                    value={shipping.phone}
+                    onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                    type="tel"
+                  />
+                </label>
+                <label className="flex flex-col text-sm text-sky-100 gap-1">
+                  Wilaya
+                  <select
+                    value={shipping.wilaya}
+                    onChange={(e) => {
+                      const wilaya = e.target.value;
+                      const pricing = getEconomicShippingByWilaya(wilaya);
+                      const nextPrice = pricing
+                        ? shipping.mode === "desk"
+                          ? pricing.desk
+                          : pricing.home
+                        : shipping.price;
+                      setShipping({ ...shipping, wilaya, price: nextPrice });
+                    }}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                  >
+                    {ECONOMIC_SHIPPING.map((entry) => (
+                      <option key={entry.wilaya} value={entry.wilaya} className="bg-slate-900">
+                        {entry.wilaya}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col text-sm text-sky-100 gap-1">
+                  Address
+                  <input
+                    value={shipping.address}
+                    onChange={(e) => setShipping({ ...shipping, address: e.target.value })}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+                    type="text"
+                  />
+                </label>
+                <label className="flex flex-col text-sm text-sky-100 gap-1 md:col-span-2">
+                  Delivery mode
+                  <select
+                    value={shipping.mode}
+                    onChange={(e) => {
+                      const mode = e.target.value as ShippingInfo["mode"];
+                      const pricing = getEconomicShippingByWilaya(shipping.wilaya);
+                      const nextPrice = pricing ? (mode === "desk" ? pricing.desk : pricing.home) : shipping.price;
+                      setShipping({ ...shipping, mode, price: nextPrice });
+                    }}
+                    disabled={disabled}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                  >
+                    <option value="home">À domicile</option>
+                    <option value="desk">Stop Desk</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
+              <h4 className="text-sm font-semibold text-white mb-3">Notes</h4>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={disabled}
+                className="min-h-[120px] w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60"
+              />
+            </section>
+          </div>
+
+          <div className="space-y-3 pb-1">
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
+              <h4 className="text-sm font-semibold text-white mb-3">Items</h4>
+              <div className="space-y-3">
+                {items.map((item, index) => (
+                  <div
+                    key={item.variantKey || index}
+                    className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="56px"
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+                        <p className="text-xs text-sky-200">
+                          {item.colorName} · {item.size}
+                        </p>
+                        <p className="text-xs text-sky-100">
+                          {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <button
+                          onClick={() => updateItemQuantity(index, -1)}
+                          disabled={disabled || item.quantity <= 1}
+                          className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label="Decrease quantity"
+                        >
+                          -
+                        </button>
+                        <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
+                        <button
+                          onClick={() => updateItemQuantity(index, 1)}
+                          disabled={disabled}
+                          className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col text-xs text-sky-100 gap-1">
+                        Color
+                        <select
+                          value={item.colorCode}
+                          onChange={(e) => {
+                            const product = getProductBySlug(item.slug);
+                            const selectedColor = product?.colors.find((color) => color.id === e.target.value);
+                            const colorName = selectedColor?.labelFr ?? item.colorName;
+                            const colorCode = selectedColor?.id ?? item.colorCode;
+                            const image = selectedColor?.image ?? item.image;
+
+                            setItems((current) =>
+                              current.map((entry, idx) =>
+                                idx === index
+                                  ? {
+                                      ...entry,
+                                      colorCode,
+                                      colorName,
+                                      image,
+                                    }
+                                  : entry,
+                              ),
+                            );
+                          }}
+                          disabled={disabled}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                        >
+                          {(getProductBySlug(item.slug)?.colors ?? [
+                            { id: item.colorCode, labelFr: item.colorName, labelAr: item.colorName, image: item.image },
+                          ]).map((color) => (
+                            <option key={color.id} value={color.id} className="bg-slate-900">
+                              {color.labelFr}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex flex-col text-xs text-sky-100 gap-1">
+                        Size
+                        <select
+                          value={item.size}
+                          onChange={(e) =>
+                            setItems((current) =>
+                              current.map((entry, idx) =>
+                                idx === index ? { ...entry, size: e.target.value } : entry,
+                              ),
+                            )
+                          }
+                          disabled={disabled}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                        >
+                          {(getProductBySlug(item.slug)?.sizes ?? [item.size]).map((sizeOption) => (
+                            <option key={sizeOption} value={sizeOption} className="bg-slate-900">
+                              {sizeOption}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
+              <h4 className="text-sm font-semibold text-white mb-3">Summary</h4>
+              <dl className="space-y-2 text-sm text-sky-100">
+                <div className="flex items-center justify-between">
+                  <dt>Subtotal</dt>
+                  <dd className="font-semibold text-white">
+                    {new Intl.NumberFormat("fr-DZ").format(subtotal)} DZD
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt>Shipping</dt>
+                  <dd className="font-semibold text-white">
+                    {new Intl.NumberFormat("fr-DZ").format(shippingCost)} DZD
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between border-t border-white/10 pt-2 text-base">
+                  <dt className="font-semibold text-white">Total</dt>
+                  <dd className="font-semibold text-white">
+                    {new Intl.NumberFormat("fr-DZ").format(total)} DZD
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            {localError && (
+              <div className="rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
+                {localError}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                onClick={onClose}
+                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving || disabled}
+                className="inline-flex items-center justify-center rounded-xl border border-violet-200/40 bg-violet-500/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSaving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function OrderDetailsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -49,38 +449,53 @@ export default function OrderDetailsPage() {
     }
   }, [orderId]);
 
-  const handleCancelOrder = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to cancel this order? This action cannot be undone."
-    );
+  useEffect(() => {
+    const wantsEdit = searchParams.get("edit") === "true";
+    if (order && wantsEdit && order.status === "pending") {
+      setShowEditModal(true);
+      setToastMessage(null);
+      setEditError(null);
+    }
+  }, [order, searchParams]);
 
-    if (!confirmed || !order) return;
+  const handleCancelOrder = async () => {
+    if (!order) return;
 
     setIsCancelling(true);
+    setCancelError(null);
 
     try {
-      const response = await fetch("/api/orders", {
+      const response = await fetch(`/api/orders/${order.id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ orderId: order.id, action: "cancel" }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to cancel order");
+        const message = errorData.error || "Failed to cancel order";
+        const friendlyMessage =
+          message === "Only pending orders can be cancelled."
+            ? "This order is no longer pending and cannot be cancelled."
+            : message;
+        throw new Error(friendlyMessage);
       }
 
       const updatedOrder = await response.json();
       setOrder(updatedOrder);
+      setToastMessage("Order cancelled successfully.");
+      setShowCancelConfirm(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
-      alert(`Error cancelling order: ${errorMessage}`);
-      console.error("Failed to cancel order:", err);
+      setCancelError(errorMessage);
     } finally {
       setIsCancelling(false);
     }
+  };
+
+  const handleOrderUpdated = (updated: Order) => {
+    setOrder(updated);
+    setEditError(null);
+    setToastMessage("Order updated successfully.");
+    router.push(`/orders?status=updated&orderId=${updated.id}`);
   };
 
   // Helper to format status badge
@@ -125,7 +540,7 @@ export default function OrderDetailsPage() {
         <main className="space-y-6 lg:space-y-8">
           <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-8 text-rose-50 shadow-inner shadow-rose-900/30">
             <p className="font-medium text-lg mb-2">Order not found</p>
-            <p className="text-sm mb-6">{error || "The order you're looking for doesn't exist."}</p>
+            <p className="text-sm mb-6">{error || "The order you are looking for does not exist."}</p>
             <Link
               href="/orders"
               className="inline-flex items-center rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
@@ -138,14 +553,43 @@ export default function OrderDetailsPage() {
     );
   }
 
-  const isPending = order.status === "pending";
+  const canCancel = order.status === "pending";
+  const canEdit = order.status === "pending";
 
   return (
     <PageShell>
-      <main className="space-y-6 lg:space-y-8">
-        <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order Details</p>
-          <h1 className="text-3xl font-semibold text-white">Order #{order.id.slice(-8)}</h1>
+      <main
+        className="space-y-6 lg:space-y-8"
+        data-can-cancel={canCancel}
+        data-can-edit={canEdit}
+      >
+        {toastMessage && (
+          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
+            <p className="font-medium">{toastMessage}</p>
+          </div>
+        )}
+        <header className="space-y-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order Details</p>
+              <h1 className="text-3xl font-semibold text-white">Order #{order.id.slice(-8)}</h1>
+            </div>
+            {canEdit && (
+              <button
+                onClick={() => {
+                  setShowEditModal(true);
+                  setToastMessage(null);
+                  setEditError(null);
+                }}
+                className="inline-flex items-center justify-center self-start rounded-xl border border-violet-200/50 bg-violet-500/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
+              >
+                Edit order
+              </button>
+            )}
+          </div>
+          {!canEdit && (
+            <p className="text-sm text-sky-200">This order can no longer be modified.</p>
+          )}
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
@@ -155,15 +599,15 @@ export default function OrderDetailsPage() {
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <div className="mb-3">
-                    <span
-                      className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${getStatusBadgeClass(
-                        order.status
-                      )}`}
-                    >
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </span>
-                  </div>
+                    <div className="mb-3">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${getStatusBadgeClass(
+                          order.status
+                        )}`}
+                      >
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </div>
                   <p className="text-sm text-sky-200">
                     Placed on {new Date(order.createdAt).toLocaleString()}
                   </p>
@@ -180,13 +624,13 @@ export default function OrderDetailsPage() {
             {/* Items list */}
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
               <h2 className="text-lg font-semibold text-white mb-4">Items</h2>
-              <div className="space-y-4">
-                {order.items.map((item, index) => (
-                  <div
-                    key={item.variantKey || index}
-                    className="flex gap-4 pb-4 border-b border-white/10 last:border-0 last:pb-0"
-                  >
-                    <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                <div className="space-y-4">
+                  {order.items.map((item, index) => (
+                    <div
+                      key={item.variantKey || index}
+                      className="flex gap-4 pb-4 border-b border-white/10 last:border-0 last:pb-0"
+                    >
+                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
                       <Image
                         src={item.image}
                         alt={item.name}
@@ -273,26 +717,87 @@ export default function OrderDetailsPage() {
               </section>
             )}
 
-            {/* Cancel button - only for pending orders */}
-            {isPending && (
-              <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-semibold text-white">Cancel Order</h3>
-                    <p className="text-sm text-sky-200 mt-1">
-                      You can cancel this order as long as it&apos;s pending.
+            {/* Cancel order */}
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <h2 className="text-lg font-semibold text-white">Cancel Order</h2>
+                  {order.status === "pending" && (
+                    <p className="text-sm text-sky-100">
+                      You can cancel this order as long as it is pending.
                     </p>
-                  </div>
-                  <button
-                    onClick={handleCancelOrder}
-                    disabled={isCancelling}
-                    className="rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isCancelling ? "Cancelling..." : "Cancel Order"}
-                  </button>
+                  )}
+                  {order.status === "cancelled" && (
+                    <p className="text-sm text-rose-100">This order has been cancelled.</p>
+                  )}
+                  {order.status !== "pending" && order.status !== "cancelled" && (
+                    <p className="text-sm text-sky-100">This order can no longer be cancelled.</p>
+                  )}
+                  {cancelError && (
+                    <div className="mt-2 rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
+                      {cancelError}
+                    </div>
+                  )}
                 </div>
-              </section>
-            )}
+                {order.status === "pending" && (
+                  <div className="w-full max-w-xs text-right">
+                    {!showCancelConfirm ? (
+                      <button
+                        onClick={() => {
+                          setShowCancelConfirm(true);
+                          setToastMessage(null);
+                          setCancelError(null);
+                        }}
+                        className="inline-flex items-center justify-center rounded-xl border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Cancel order
+                      </button>
+                    ) : (
+                      <div className="space-y-3 text-right">
+                        <p className="text-sm text-rose-100">Are you sure? This cannot be undone.</p>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                          <button
+                            onClick={handleCancelOrder}
+                            disabled={isCancelling}
+                            className="inline-flex items-center justify-center rounded-xl border border-rose-200/50 bg-rose-500/30 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isCancelling ? "Cancelling..." : "Yes, cancel order"}
+                          </button>
+                          <button
+                            onClick={() => setShowCancelConfirm(false)}
+                            disabled={isCancelling}
+                            className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Keep order
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Edit order */}
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold text-white">Edit Order</h2>
+                {order.status === "pending" && (
+                  <p className="text-sm text-sky-100">
+                    You can update your shipping info, notes, or items before the order is confirmed. Use the Edit Order button at the top of the page to make changes.
+                  </p>
+                )}
+                {order.status !== "pending" && (
+                  <p className="text-sm text-sky-100">This order can no longer be modified.</p>
+                )}
+                {editError && (
+                  <div className="mt-2 rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
+                    {editError}
+                  </div>
+                )}
+              </div>
+            </section>
+
           </div>
 
           {/* Sidebar - Order summary */}
@@ -335,6 +840,14 @@ export default function OrderDetailsPage() {
           </aside>
         </div>
       </main>
+
+      <EditOrderModal
+        order={order}
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onUpdated={handleOrderUpdated}
+        onError={(message) => setEditError(message || null)}
+      />
     </PageShell>
   );
 }

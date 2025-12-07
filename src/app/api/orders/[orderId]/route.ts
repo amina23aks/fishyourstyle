@@ -1,0 +1,197 @@
+import { NextRequest, NextResponse } from "next/server";
+import { doc, getDoc, serverTimestamp, Timestamp, updateDoc } from "firebase/firestore";
+import { getServerDb } from "@/lib/firestore";
+import type { Order, OrderItem, OrderStatus, ShippingInfo } from "@/types/order";
+
+function timestampToISO(timestamp: unknown): string {
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate().toISOString();
+  }
+  if (timestamp && typeof timestamp === "object" && "toDate" in timestamp) {
+    return (timestamp as Timestamp).toDate().toISOString();
+  }
+  if (typeof timestamp === "string") {
+    return timestamp;
+  }
+  return new Date().toISOString();
+}
+
+function firestoreDataToOrder(orderId: string, data: Record<string, unknown>): Order {
+  const status = (data.status ?? "pending") as OrderStatus;
+
+  return {
+    id: orderId,
+    customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : "",
+    items: Array.isArray(data.items) ? (data.items as Order["items"]) : [],
+    shipping: (data.shipping as Order["shipping"]) ?? {
+      customerName: "",
+      phone: "",
+      wilaya: "",
+      address: "",
+      mode: "home",
+      price: 0,
+    },
+    notes: typeof data.notes === "string" ? data.notes : undefined,
+    subtotal: Number(data.subtotal ?? 0),
+    shippingCost: Number(data.shippingCost ?? 0),
+    total: Number(data.total ?? 0),
+    paymentMethod: (data.paymentMethod as Order["paymentMethod"]) ?? "COD",
+    status,
+    createdAt: timestampToISO(data.createdAt),
+    updatedAt: timestampToISO(data.updatedAt),
+    cancelledAt: data.cancelledAt ? timestampToISO(data.cancelledAt) : undefined,
+  };
+}
+
+type RouteContext = {
+  params: Promise<{ orderId: string }>;
+};
+
+type PartialShipping = Partial<
+  Pick<ShippingInfo, "customerName" | "phone" | "wilaya" | "address" | "mode" | "price">
+>;
+
+type PatchPayload = {
+  shipping?: PartialShipping;
+  notes?: string;
+  items?: OrderItem[];
+  status?: OrderStatus;
+};
+
+function isValidOrderItems(items: unknown): items is OrderItem[] {
+  if (!Array.isArray(items)) return false;
+
+  return items.every((item) =>
+    typeof item === "object" &&
+    item !== null &&
+    typeof (item as OrderItem).id === "string" &&
+    typeof (item as OrderItem).slug === "string" &&
+    typeof (item as OrderItem).name === "string" &&
+    typeof (item as OrderItem).price === "number" &&
+    typeof (item as OrderItem).currency === "string" &&
+    typeof (item as OrderItem).image === "string" &&
+    typeof (item as OrderItem).colorName === "string" &&
+    typeof (item as OrderItem).colorCode === "string" &&
+    typeof (item as OrderItem).size === "string" &&
+    typeof (item as OrderItem).quantity === "number" &&
+    (item as OrderItem).quantity > 0 &&
+    typeof (item as OrderItem).variantKey === "string"
+  );
+}
+
+function calculateSubtotal(items: OrderItem[]): number {
+  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+export async function PATCH(request: NextRequest, { params }: RouteContext) {
+  const { orderId } = await params;
+
+  if (!orderId) {
+    return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
+  }
+
+  const rawBody = await request.text();
+  const hasBody = rawBody.trim().length > 0;
+  let payload: PatchPayload | null = null;
+
+  if (hasBody) {
+    try {
+      payload = JSON.parse(rawBody) as PatchPayload;
+    } catch (error) {
+      console.error("[api/orders/[orderId]] PATCH PARSE ERROR:", error);
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
+  }
+
+  try {
+    const db = getServerDb();
+    const orderRef = doc(db, "orders", orderId);
+    const snapshot = await getDoc(orderRef);
+
+    if (!snapshot.exists()) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const data = snapshot.data();
+    const order = firestoreDataToOrder(snapshot.id, data as Record<string, unknown>);
+
+    const isCancelAction = !hasBody || payload?.status === "cancelled";
+
+    if (isCancelAction) {
+      if (order.status !== "pending") {
+        return NextResponse.json(
+          { error: "Only pending orders can be cancelled." },
+          { status: 400 }
+        );
+      }
+
+      await updateDoc(orderRef, {
+        status: "cancelled",
+        updatedAt: serverTimestamp(),
+        cancelledAt: serverTimestamp(),
+      });
+    } else {
+      if (order.status !== "pending") {
+        return NextResponse.json(
+          { error: "Only pending orders can be edited." },
+          { status: 400 }
+        );
+      }
+
+      if (payload?.items && !isValidOrderItems(payload.items)) {
+        return NextResponse.json(
+          { error: "Invalid items payload" },
+          { status: 400 }
+        );
+      }
+
+      const updatedShipping: ShippingInfo = payload?.shipping
+        ? {
+            ...order.shipping,
+            ...payload.shipping,
+          }
+        : order.shipping;
+
+      const updatedItems: OrderItem[] = payload?.items ? [...payload.items] : order.items;
+      const updatedNotes = payload?.notes !== undefined ? payload.notes : order.notes;
+      const subtotal = calculateSubtotal(updatedItems);
+      const shippingCost =
+        typeof updatedShipping.price === "number" ? updatedShipping.price : order.shippingCost;
+      const total = subtotal + shippingCost;
+
+      const updateData: Record<string, unknown> = {
+        shipping: updatedShipping,
+        items: updatedItems,
+        notes: updatedNotes ?? null,
+        subtotal,
+        shippingCost,
+        total,
+        updatedAt: serverTimestamp(),
+      };
+
+      await updateDoc(orderRef, updateData);
+    }
+
+    const updatedSnapshot = await getDoc(orderRef);
+    const updatedData = updatedSnapshot.data();
+
+    if (!updatedData) {
+      return NextResponse.json(
+        { error: "Failed to read updated order" },
+        { status: 500 }
+      );
+    }
+
+    const updatedOrder = firestoreDataToOrder(
+      updatedSnapshot.id,
+      updatedData as Record<string, unknown>
+    );
+
+    return NextResponse.json(updatedOrder);
+  } catch (error) {
+    console.error("[api/orders/[orderId]] PATCH ERROR:", error);
+
+    const message = error instanceof Error ? error.message : "Failed to cancel order";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

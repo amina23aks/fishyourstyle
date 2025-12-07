@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import type { Order } from "@/types/order";
 
@@ -11,10 +11,12 @@ export default function OrdersList() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   const successOrderId = searchParams.get("orderId");
-  const isSuccess = searchParams.get("status") === "success" && successOrderId;
+  const statusParam = searchParams.get("status");
+  const isSuccess = statusParam === "success" && successOrderId;
+  const isCancelledSuccess = statusParam === "cancelled" && successOrderId;
+  const isUpdatedSuccess = statusParam === "updated" && successOrderId;
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -41,42 +43,6 @@ export default function OrdersList() {
   useEffect(() => {
     fetchOrders();
   }, []);
-
-  const handleCancelOrder = async (orderId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click navigation
-
-    const confirmed = window.confirm(
-      "Are you sure you want to cancel this order? This action cannot be undone."
-    );
-
-    if (!confirmed) return;
-
-    setCancellingOrderId(orderId);
-
-    try {
-      const response = await fetch("/api/orders", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ orderId, action: "cancel" }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to cancel order");
-      }
-
-      // Refresh orders list
-      await fetchOrders();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
-      alert(`Error cancelling order: ${errorMessage}`);
-      console.error("Failed to cancel order:", err);
-    } finally {
-      setCancellingOrderId(null);
-    }
-  };
 
   const handleCardClick = (orderId: string) => {
     router.push(`/orders/${orderId}`);
@@ -172,20 +138,40 @@ export default function OrdersList() {
           </p>
         </div>
       )}
+      {isCancelledSuccess && successOrderId && (
+        <div className="rounded-2xl border border-sky-200/60 bg-sky-500/15 px-4 py-3 text-sky-50 shadow-inner shadow-sky-900/30">
+          <p className="font-medium">Order cancelled successfully</p>
+          <p className="text-sm mt-1">
+            Order #{successOrderId.slice(-8)} has been cancelled.
+          </p>
+        </div>
+      )}
+      {isUpdatedSuccess && successOrderId && (
+        <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
+          <p className="font-medium">Order updated successfully</p>
+          <p className="text-sm mt-1">
+            Order #{successOrderId.slice(-8)} has been updated.
+          </p>
+        </div>
+      )}
 
       {/* Orders list */}
       <div className="grid gap-4">
         {orders.map((order) => {
           const firstItem = order.items[0];
-          const isPending = order.status === "pending";
-          const isCancelling = cancellingOrderId === order.id;
+          const canCancel = order.status === "pending";
+          const canEdit = order.status === "pending";
 
           return (
-          <article
-            key={order.id}
+            <article
+              key={order.id}
               onClick={() => handleCardClick(order.id)}
-              className="rounded-2xl border border-white/20 bg-white/10 p-5 text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur cursor-pointer transition hover:border-white/30 hover:bg-white/15 relative"
-          >
+              className={`rounded-2xl border border-white/20 bg-white/10 p-5 text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur cursor-pointer transition hover:border-white/30 hover:bg-white/15 relative ${
+                order.status === "cancelled" ? "opacity-75" : ""
+              }`}
+              data-can-cancel={canCancel}
+              data-can-edit={canEdit}
+            >
               <div className="flex gap-4">
                 {/* Product thumbnail */}
                 {firstItem && (
@@ -201,11 +187,11 @@ export default function OrdersList() {
                 )}
 
                 <div className="flex-1 min-w-0">
-            <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="flex-1 min-w-0">
-                <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order #{order.id.slice(-8)}</p>
+                      <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order #{order.id.slice(-8)}</p>
                       <h3 className="text-lg font-semibold text-white mt-1">{getItemsSummary(order)}</h3>
-                      <div className="mt-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
                           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(
                             order.status
@@ -213,15 +199,26 @@ export default function OrdersList() {
                         >
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
+                        {canEdit && (
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              router.push(`/orders/${order.id}?edit=true`);
+                            }}
+                            className="inline-flex items-center rounded-full border border-violet-200/40 bg-violet-500/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="text-right text-sky-100 mt-2 md:mt-0">
                       <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
                       <p className="text-base font-semibold text-white mt-1">
                         {new Intl.NumberFormat("fr-DZ").format(order.total)} DZD
-                </p>
-              </div>
-            </div>
+                      </p>
+                    </div>
+                  </div>
 
                   <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
               <div>
@@ -247,18 +244,6 @@ export default function OrdersList() {
               )}
             </dl>
 
-                  {/* Cancel button - only for pending orders */}
-                  {isPending && (
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                      <button
-                        onClick={(e) => handleCancelOrder(order.id, e)}
-                        disabled={isCancelling}
-                        className="rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isCancelling ? "Cancelling..." : "Cancel order"}
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
           </article>
