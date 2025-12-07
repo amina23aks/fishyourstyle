@@ -16,6 +16,7 @@ export default function OrdersList() {
   const statusParam = searchParams.get("status");
   const isSuccess = statusParam === "success" && successOrderId;
   const isCancelledSuccess = statusParam === "cancelled" && successOrderId;
+  const isUpdatedSuccess = statusParam === "updated" && successOrderId;
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -142,6 +143,14 @@ export default function OrdersList() {
           <p className="font-medium">Order cancelled successfully</p>
           <p className="text-sm mt-1">
             Order #{successOrderId.slice(-8)} has been cancelled.
+          </p>
+        </div>
+      )}
+      {isUpdatedSuccess && successOrderId && (
+        <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
+          <p className="font-medium">Order updated successfully</p>
+          <p className="text-sm mt-1">
+            Order #{successOrderId.slice(-8)} has been updated.
           </p>
         </div>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
@@ -403,6 +403,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
 export default function OrderDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -492,8 +493,9 @@ export default function OrderDetailsPage() {
 
   const handleOrderUpdated = (updated: Order) => {
     setOrder(updated);
-    setToastMessage("Order updated successfully.");
     setEditError(null);
+    setToastMessage("Order updated successfully.");
+    router.push(`/orders?status=updated&orderId=${updated.id}`);
   };
 
   // Helper to format status badge
