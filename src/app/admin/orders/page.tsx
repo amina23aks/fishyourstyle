@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { OrderStatusSelect } from "./components/OrderStatusSelect";
@@ -38,6 +38,7 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState("");
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const router = useRouter();
 
   const pushToast = useCallback((toast: Omit<Toast, "id">) => {
     const id = Date.now();
@@ -211,12 +212,15 @@ export default function AdminOrdersPage() {
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Wilaya</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Status</th>
                     <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-sky-200">Total</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-sky-200">Manage</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {filteredOrders.map((order) => (
-                    <tr key={order.id} className="transition hover:bg-white/5">
+                    <tr
+                      key={order.id}
+                      className="cursor-pointer transition hover:bg-white/5"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
                       <td className="px-6 py-4 align-top font-semibold text-white">
                         <div className="flex items-center gap-2">
                           <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-sky-100/80">Order</span>
@@ -240,15 +244,6 @@ export default function AdminOrdersPage() {
                       <td className="px-6 py-4 align-top text-right font-semibold text-white">
                         {formatCurrency(order.total)}
                       </td>
-                    <td className="px-6 py-4 align-top text-right">
-                      <Link
-                        href={`/admin/orders/${order.id}`}
-                        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-inner shadow-sky-900/30 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                      >
-                        View details
-                        <span aria-hidden>→</span>
-                      </Link>
-                    </td>
                     </tr>
                   ))}
                 </tbody>
@@ -259,7 +254,16 @@ export default function AdminOrdersPage() {
               {filteredOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="space-y-3 rounded-2xl border border-white/10 bg-white/10 p-4 text-sky-50 shadow-inner shadow-sky-900/40"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/admin/orders/${order.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/admin/orders/${order.id}`);
+                    }
+                  }}
+                  className="space-y-3 rounded-2xl border border-white/10 bg-white/10 p-4 text-sky-50 shadow-inner shadow-sky-900/40 focus:outline-none focus:ring-2 focus:ring-white/50"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
@@ -288,18 +292,12 @@ export default function AdminOrdersPage() {
                     />
                   </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <StatusBadge status={order.status} />
-                      <Link
-                        href={`/admin/orders/${order.id}`}
-                        className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-inner shadow-sky-900/30 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                      >
-                        View full order
-                      </Link>
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    <StatusBadge status={order.status} />
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
+            </div>
             </>
         )}
       </div>
@@ -324,26 +322,25 @@ export default function AdminOrdersPage() {
 
 function OrderTableSkeleton() {
   return (
-    <div className="divide-y divide-white/5">
-      <div className="grid grid-cols-7 gap-4 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">
-        <span>Order</span>
-        <span>Date</span>
-        <span>Customer</span>
-        <span>Wilaya</span>
-        <span>Status</span>
-        <span className="text-right">Total</span>
-        <span className="text-right">Manage</span>
-      </div>
-      {[...Array(6)].map((_, index) => (
-        <div key={index} className="grid grid-cols-7 gap-4 px-6 py-4">
-          {[...Array(7)].map((__, colIndex) => (
-            <span
-              key={colIndex}
-              className="h-4 rounded-full bg-white/10 animate-pulse"
-            />
-          ))}
+      <div className="divide-y divide-white/5">
+        <div className="grid grid-cols-6 gap-4 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">
+          <span>Order</span>
+          <span>Date</span>
+          <span>Customer</span>
+          <span>Wilaya</span>
+          <span>Status</span>
+          <span className="text-right">Total</span>
         </div>
-      ))}
-    </div>
+        {[...Array(6)].map((_, index) => (
+          <div key={index} className="grid grid-cols-6 gap-4 px-6 py-4">
+            {[...Array(6)].map((__, colIndex) => (
+              <span
+                key={colIndex}
+                className="h-4 rounded-full bg-white/10 animate-pulse"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
   );
 }

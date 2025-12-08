@@ -13,13 +13,10 @@ export function OrderStatusSelect({
   label?: string;
 }) {
   return (
-    <div className="flex w-full min-w-[210px] max-w-[240px] flex-col gap-1" onClick={(event) => event.stopPropagation()}>
+    <div className="flex w-full min-w-[170px] max-w-[200px] flex-col gap-1" onClick={(event) => event.stopPropagation()}>
       {label ? <span className="text-[11px] font-semibold uppercase tracking-wide text-sky-100/70">{label}</span> : null}
       <div className="relative flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-3 py-2 shadow-inner shadow-sky-900/40 focus-within:border-white/40 focus-within:ring-2 focus-within:ring-white/30">
-        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${statusStyles[value].className}`}>
-          <span className={`h-2 w-2 rounded-full ${statusStyles[value].dotClass}`} aria-hidden />
-          {statusStyles[value].label}
-        </span>
+        <span className={`h-2 w-2 rounded-full ${statusStyles[value].dotClass}`} aria-hidden />
         <select
           value={value}
           aria-label="Update order status"
