@@ -12,14 +12,13 @@ import {
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
-type PageProps = {
-  params: { id: string };
-};
+type PageProps = { params: Promise<{ id: string }> };
 
 type Toast = { type: "success" | "error"; message: string };
 
 export default function EditProductPage({ params }: PageProps) {
   const [product, setProduct] = useState<AdminProduct | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -33,10 +32,31 @@ export default function EditProductPage({ params }: PageProps) {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    Promise.resolve(params)
+      .then((resolved) => {
+        if (!active) return;
+        setProductId(resolved.id);
+      })
+      .catch((err) => {
+        if (!active) return;
+        const message = err instanceof Error ? err.message : "Unable to read route params";
+        setError(message);
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [params]);
+
+  useEffect(() => {
+    if (!productId) return;
+
     const loadProduct = async () => {
       setLoading(true);
       try {
-        const data = await fetchProductById(params.id);
+        const data = await fetchProductById(productId);
         setProduct(data);
         if (!data) {
           setError("Product not found");
@@ -50,7 +70,7 @@ export default function EditProductPage({ params }: PageProps) {
     };
 
     loadProduct();
-  }, [params.id]);
+  }, [productId]);
 
   const handleUploadImage = useCallback(async (file: File) => {
     setUploadingImage(true);
