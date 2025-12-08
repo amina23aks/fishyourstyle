@@ -1,29 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  type DocumentData,
-  type Timestamp,
-} from "firebase/firestore";
 
-import { getDb } from "@/lib/firebaseClient";
+import { AdminOrderDrawer } from "./AdminOrderDrawer";
+import { fetchRecentOrders, updateOrderStatus } from "@/lib/admin-orders";
 import type { Order, OrderStatus } from "@/types/order";
 
 const STATUS_OPTIONS: ("all" | OrderStatus)[] = [
   "all",
-  "pending",
-  "confirmed",
-  "shipped",
-  "delivered",
-  "cancelled",
-];
-
-const ORDER_STATUSES: OrderStatus[] = [
   "pending",
   "confirmed",
   "shipped",
@@ -47,8 +31,8 @@ const statusStyles: Record<
   },
   shipped: {
     label: "Shipped",
-    className: "bg-violet-400/15 text-violet-100 ring-1 ring-violet-300/40",
-    dotClass: "bg-violet-300",
+    className: "bg-indigo-400/15 text-indigo-100 ring-1 ring-indigo-300/40",
+    dotClass: "bg-indigo-300",
   },
   delivered: {
     label: "Delivered",
@@ -61,20 +45,6 @@ const statusStyles: Record<
     dotClass: "bg-rose-300",
   },
 };
-
-type AdminOrder = Order & {
-  createdAt: string;
-  updatedAt: string;
-};
-
-function timestampToISO(timestamp: unknown): string {
-  if (timestamp instanceof Date) return timestamp.toISOString();
-  if (typeof timestamp === "string") return timestamp;
-  if (timestamp && typeof timestamp === "object" && "toDate" in timestamp) {
-    return (timestamp as Timestamp).toDate().toISOString();
-  }
-  return new Date().toISOString();
-}
 
 function formatDateTime(iso: string) {
   const date = new Date(iso);
@@ -95,68 +65,32 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function normalizeStatus(status: unknown): OrderStatus {
-  if (typeof status === "string" && ORDER_STATUSES.includes(status as OrderStatus)) {
-    return status as OrderStatus;
-  }
-  return "pending";
-}
-
-function deriveOrder(data: DocumentData, id: string): AdminOrder {
-  const shipping = data.shipping as Order["shipping"] | undefined;
-  return {
-    id,
-    userId: typeof data.userId === "string" ? data.userId : undefined,
-    customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : undefined,
-    items: Array.isArray(data.items) ? data.items : [],
-    shipping:
-      shipping ?? {
-        customerName: "Unknown",
-        phone: "",
-        wilaya: "",
-        address: "",
-        mode: "home",
-        price: 0,
-      },
-    notes: typeof data.notes === "string" ? data.notes : undefined,
-    subtotal: typeof data.subtotal === "number" ? data.subtotal : 0,
-    shippingCost: typeof data.shippingCost === "number" ? data.shippingCost : 0,
-    total: typeof data.total === "number" ? data.total : 0,
-    paymentMethod: data.paymentMethod === "COD" ? "COD" : "COD",
-    status: normalizeStatus(data.status),
-    createdAt: timestampToISO(data.createdAt),
-    updatedAt: timestampToISO(data.updatedAt),
-    cancelledAt: data.cancelledAt ? timestampToISO(data.cancelledAt) : undefined,
-  };
-}
+type Toast = { id: number; type: "success" | "error"; message: string };
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>("all");
   const [search, setSearch] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [statusUpdating, setStatusUpdating] = useState<OrderStatus | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const fetchOrders = useCallback(async () => {
+  const pushToast = useCallback((toast: Omit<Toast, "id">) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, ...toast }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3000);
+  }, []);
+
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
-
-    const db = getDb();
-    if (!db) {
-      setError("Firebase is not configured. Please check environment variables.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const ordersQuery = query(
-        collection(db, "orders"),
-        orderBy("createdAt", "desc"),
-        limit(50)
-      );
-      const snapshot = await getDocs(ordersQuery);
-      const parsedOrders = snapshot.docs.map((doc) => deriveOrder(doc.data(), doc.id));
-      setOrders(parsedOrders);
+      const recentOrders = await fetchRecentOrders(25);
+      setOrders(recentOrders);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to fetch orders";
       setError(message);
@@ -166,31 +100,69 @@ export default function AdminOrdersPage() {
   }, []);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    loadOrders();
+  }, [loadOrders]);
 
   const filteredOrders = useMemo(() => {
-    const trimmedSearch = search.trim().toLowerCase();
-
+    const trimmed = search.trim().toLowerCase();
     return orders.filter((order) => {
       const matchesStatus = statusFilter === "all" ? true : order.status === statusFilter;
-      const matchesSearch = trimmedSearch
-        ? order.id.toLowerCase().includes(trimmedSearch)
+      const matchesSearch = trimmed
+        ? order.id.toLowerCase().includes(trimmed) || (order.customerEmail ?? "").toLowerCase().includes(trimmed)
         : true;
       return matchesStatus && matchesSearch;
     });
   }, [orders, search, statusFilter]);
 
+  const handleStatusChange = useCallback(
+    async (nextStatus: OrderStatus) => {
+      if (!selectedOrder) return;
+
+      setStatusUpdating(nextStatus);
+      const previousStatus = selectedOrder.status;
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === selectedOrder.id
+            ? { ...order, status: nextStatus, updatedAt: new Date().toISOString() }
+            : order
+        )
+      );
+      setSelectedOrder((prev) => (prev ? { ...prev, status: nextStatus, updatedAt: new Date().toISOString() } : prev));
+
+      try {
+        await updateOrderStatus(selectedOrder.id, nextStatus);
+        pushToast({ type: "success", message: "Order status updated" });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to update status";
+        pushToast({ type: "error", message });
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.id === selectedOrder.id
+              ? { ...order, status: previousStatus, updatedAt: new Date().toISOString() }
+              : order
+          )
+        );
+        setSelectedOrder((prev) =>
+          prev ? { ...prev, status: previousStatus, updatedAt: new Date().toISOString() } : prev
+        );
+      } finally {
+        setStatusUpdating(null);
+      }
+    },
+    [pushToast, selectedOrder]
+  );
+
   const isEmpty = !loading && !error && filteredOrders.length === 0;
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Orders</p>
         <h1 className="text-3xl font-semibold text-white">Orders</h1>
         <p className="max-w-2xl text-sky-100/85">
-          Review recent checkouts, monitor statuses, and keep an eye on fulfilment. This view stays read-only for now
-          so you can safely preview operational data.
+          Review recent checkouts, monitor statuses, and keep an eye on fulfilment. Update statuses directly from the
+          drawer while keeping reads minimal.
         </p>
       </div>
 
@@ -212,34 +184,39 @@ export default function AdminOrdersPage() {
           ))}
         </div>
 
-        <div className="w-full min-w-[240px] max-w-sm lg:w-auto">
-          <label className="relative block">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by order ID"
-              className="w-full rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-sky-100/60 shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-            />
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sky-100/70">⌕</span>
-          </label>
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3 lg:w-auto">
+          <div className="w-full min-w-[240px] max-w-sm sm:w-auto">
+            <label className="relative block">
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by order ID or email"
+                className="w-full rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-sky-100/60 shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sky-100/70">⌕</span>
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={loadOrders}
+            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-300" aria-hidden />
+            Refresh
+          </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-xl shadow-sky-900/40 backdrop-blur">
+      <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/50 backdrop-blur">
         <div className="border-b border-white/10 px-6 py-4">
           <div className="flex items-center justify-between text-sm text-sky-100/80">
             <span>
               Showing {filteredOrders.length} {filteredOrders.length === 1 ? "order" : "orders"}
             </span>
-            <button
-              type="button"
-              onClick={fetchOrders}
-              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-            >
-              <span className="h-2 w-2 rounded-full bg-emerald-300" aria-hidden />
-              Refresh
-            </button>
+            <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-sky-100/80">
+              Recent {orders.length}
+            </span>
           </div>
         </div>
 
@@ -249,7 +226,7 @@ export default function AdminOrdersPage() {
             <p className="mt-2 text-sm">{error}</p>
             <button
               type="button"
-              onClick={fetchOrders}
+              onClick={loadOrders}
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white shadow shadow-sky-900/40 transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               Try again
@@ -267,7 +244,7 @@ export default function AdminOrdersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm text-sky-100/85">
-              <thead className="sticky top-0 z-10 bg-sky-950/60 backdrop-blur">
+              <thead className="sticky top-0 z-10 bg-sky-950/70 backdrop-blur">
                 <tr>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Order</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Date</th>
@@ -281,7 +258,8 @@ export default function AdminOrdersPage() {
                 {filteredOrders.map((order) => (
                   <tr
                     key={order.id}
-                    className="transition hover:bg-white/5"
+                    className="cursor-pointer transition hover:bg-white/5"
+                    onClick={() => setSelectedOrder(order)}
                   >
                     <td className="px-6 py-4 align-top font-semibold text-white">
                       <div className="flex items-center gap-2">
@@ -307,6 +285,30 @@ export default function AdminOrdersPage() {
             </table>
           </div>
         )}
+      </div>
+
+      {selectedOrder ? (
+        <AdminOrderDrawer
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          onStatusChange={handleStatusChange}
+          statusUpdating={statusUpdating}
+        />
+      ) : null}
+
+      <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`pointer-events-auto rounded-2xl px-4 py-3 text-sm font-semibold shadow-xl shadow-sky-900/40 backdrop-blur ${
+              toast.type === "success"
+                ? "bg-emerald-500/15 text-emerald-50 ring-1 ring-emerald-300/40"
+                : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-300/40"
+            }`}
+          >
+            {toast.message}
+          </div>
+        ))}
       </div>
     </div>
   );
