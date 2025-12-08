@@ -247,14 +247,14 @@ body {
 /* Underwater bubble background */
 @keyframes driftRise {
   0% {
-    transform: translateY(0) translateX(0) scale(0.85);
-    opacity: 0;
+    transform: translateY(0) translateX(0) scale(0.9);
+    opacity: 0.1;
   }
   15% {
-    opacity: 0.6;
+    opacity: 0.55;
   }
   100% {
-    transform: translateY(-160vh) translateX(18px) scale(1.15);
+    transform: translateY(-120vh) translateX(10px) scale(1.05);
     opacity: 0;
   }
 }
@@ -277,11 +277,10 @@ body {
   bottom: -5%;
   display: block;
   border-radius: 9999px;
-  background-color: rgba(201, 230, 255, 0.52);
-  border: 1px solid rgba(201, 230, 255, 0.5);
-  box-shadow: 0 0 8px rgba(201, 230, 255, 0.25);
+  background-color: rgba(201, 230, 255, 0.4);
+  border: 1px solid rgba(201, 230, 255, 0.25);
   animation: driftRise linear infinite;
-  opacity: 1;
+  opacity: 0.8;
 }
 
 /* Product card hover gleam (card animation inspired by referenced CodePen) */

@@ -7,6 +7,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  deleteDoc,
   type DocumentData,
   type Timestamp,
 } from "firebase/firestore";
@@ -83,4 +84,17 @@ export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus
     status: nextStatus,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function cleanupOldTestOrders(keepLatest = 3): Promise<number> {
+  const db = getDb();
+  if (!db) {
+    throw new Error("Firebase is not configured. Please check environment variables.");
+  }
+
+  const snapshot = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc")));
+  const toDelete = snapshot.docs.slice(keepLatest);
+
+  await Promise.all(toDelete.map((doc) => deleteDoc(doc.ref)));
+  return toDelete.length;
 }

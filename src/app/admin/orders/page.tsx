@@ -6,7 +6,7 @@ import { AdminOrderDrawer } from "./AdminOrderDrawer";
 import { OrderStatusSelect } from "./components/OrderStatusSelect";
 import { StatusBadge } from "./components/StatusBadge";
 import { STATUS_FILTER_OPTIONS, statusStyles } from "./statusConfig";
-import { fetchRecentOrders, updateOrderStatus } from "@/lib/admin-orders";
+import { cleanupOldTestOrders, fetchRecentOrders, updateOrderStatus } from "@/lib/admin-orders";
 import type { Order, OrderStatus } from "@/types/order";
 
 function formatDateTime(iso: string) {
@@ -39,6 +39,7 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [cleaning, setCleaning] = useState(false);
 
   const pushToast = useCallback((toast: Omit<Toast, "id">) => {
     const id = Date.now();
@@ -123,6 +124,25 @@ export default function AdminOrdersPage() {
 
   const isEmpty = !loading && !error && filteredOrders.length === 0;
 
+  const handleCleanup = useCallback(async () => {
+    setCleaning(true);
+    try {
+      const deletedCount = await cleanupOldTestOrders(3);
+      await loadOrders();
+      pushToast({
+        type: "success",
+        message: deletedCount
+          ? `Removed ${deletedCount} old test ${deletedCount === 1 ? "order" : "orders"}`
+          : "No old test orders to remove",
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to clean test orders";
+      pushToast({ type: "error", message });
+    } finally {
+      setCleaning(false);
+    }
+  }, [loadOrders, pushToast]);
+
   return (
     <div className="relative space-y-6">
       <div className="space-y-2">
@@ -172,6 +192,15 @@ export default function AdminOrdersPage() {
           >
             <span className="h-2 w-2 rounded-full bg-emerald-300" aria-hidden />
             Refresh
+          </button>
+          <button
+            type="button"
+            onClick={handleCleanup}
+            disabled={cleaning}
+            className="inline-flex items-center gap-2 rounded-full bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 shadow-inner shadow-rose-900/30 transition hover:bg-rose-500/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/60 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <span aria-hidden>🧹</span>
+            {cleaning ? "Cleaning…" : "Clean test data"}
           </button>
         </div>
       </div>

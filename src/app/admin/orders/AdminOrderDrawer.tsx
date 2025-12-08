@@ -41,8 +41,8 @@ export function AdminOrderDrawer({
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-sky-950/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative z-50 flex h-full w-full max-w-2xl flex-col overflow-y-auto border-l border-white/10 bg-slate-950/80 text-sky-50 shadow-2xl shadow-sky-900/60 backdrop-blur-xl lg:max-w-3xl">
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
+      <div className="relative z-50 flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-white/10 bg-slate-950/90 text-sky-50 shadow-2xl shadow-sky-900/60 backdrop-blur-xl sm:max-w-2xl">
+        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-white/10 bg-slate-950/90 px-5 py-4 backdrop-blur-lg">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order</p>
             <h2 className="text-2xl font-semibold text-white">{order.id.slice(0, 8)}…</h2>
@@ -57,8 +57,8 @@ export function AdminOrderDrawer({
           </button>
         </div>
 
-        <div className="space-y-6 px-6 py-5">
-          <div className="flex flex-wrap items-start gap-4">
+        <div className="space-y-5 px-5 py-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="space-y-2">
               <StatusBadge status={order.status} />
               <div className="text-xs uppercase tracking-[0.2em] text-sky-200">Status</div>
@@ -72,11 +72,11 @@ export function AdminOrderDrawer({
           </div>
 
           <section className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-sky-900/40">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-lg font-semibold text-white">Order Summary</h3>
               <span className="text-sm text-sky-100/80">Updated {formatDateTime(order.updatedAt)}</span>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm text-sky-100/85">
+            <div className="grid grid-cols-1 gap-3 text-sm text-sky-100/85 sm:grid-cols-2">
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Subtotal</p>
                 <p className="text-white">{formatCurrency(order.subtotal)}</p>
@@ -119,7 +119,7 @@ export function AdminOrderDrawer({
 
           <section className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-sky-900/40">
             <h3 className="text-lg font-semibold text-white">Shipping details</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm text-sky-100/85">
+            <div className="grid grid-cols-1 gap-3 text-sm text-sky-100/85 sm:grid-cols-2">
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Customer</p>
                 <p className="text-white">{order.shipping.customerName || "Unknown"}</p>
