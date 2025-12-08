@@ -160,7 +160,6 @@ export default function AdminOrderDetailPage({ params }: Props) {
                     value={currentStatus}
                     onChange={(status) => handleStatusChange(order.id, status)}
                     disabled={statusUpdating === order.id}
-                    label="Status"
                   />
                 ) : null}
               </div>

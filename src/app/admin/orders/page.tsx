@@ -238,7 +238,6 @@ export default function AdminOrdersPage() {
                           value={order.status}
                           onChange={(status) => handleStatusChange(order.id, status)}
                           disabled={statusUpdating === order.id}
-                          label="Status"
                         />
                       </td>
                       <td className="px-6 py-4 align-top text-right font-semibold text-white">
