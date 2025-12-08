@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import PageShell from "@/components/PageShell";
+
+const overviewCards = [
+  { title: "Total orders", note: "Coming soon", description: "Track order volume and fulfillment status." },
+  { title: "Revenue", note: "Coming soon", description: "Monitor sales performance and growth." },
+  { title: "Visitors", note: "Coming soon", description: "See how shoppers discover the store." },
+];
 
 export const metadata: Metadata = {
   title: "Admin | Fish Your Style",
@@ -8,20 +13,42 @@ export const metadata: Metadata = {
 
 export default function AdminPage() {
   return (
-    <PageShell>
-      <section className="w-full space-y-4 rounded-3xl bg-white/10 p-6 text-sky-50 shadow-lg shadow-sky-900/30 backdrop-blur">
-        <div className="space-y-2">
-          <p className="text-sm uppercase tracking-[0.28em] text-sky-200">Admin</p>
-          <h1 className="text-3xl font-semibold text-white">Admin dashboard</h1>
-          <p className="max-w-2xl text-sky-100">
-            This page will be protected by admin roles. We will add orders and
-            product management once Firestore and Auth are ready.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-6 text-sky-100">
-          <p>🛠️ Orders list, status updates, and product CRUD plug in here.</p>
-        </div>
-      </section>
-    </PageShell>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Overview</p>
+        <h1 className="text-3xl font-semibold text-white">Admin Overview</h1>
+        <p className="max-w-2xl text-sky-100/90">
+          Welcome to the control center. These cards will soon display live stats about orders,
+          revenue, and visitor trends so you can keep Fish Your Style running smoothly.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {overviewCards.map((card) => (
+          <div
+            key={card.title}
+            className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-sm uppercase tracking-[0.18em] text-sky-200">{card.note}</p>
+                <h2 className="text-xl font-semibold text-white">{card.title}</h2>
+              </div>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-sky-100/90">Soon</span>
+            </div>
+            <p className="mt-3 text-sm text-sky-100/80">{card.description}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6 text-sky-100/90">
+        <h2 className="text-xl font-semibold text-white">What to expect next</h2>
+        <p className="mt-2 max-w-3xl">
+          The admin dashboard will highlight store health at a glance with recent orders, revenue snapshots,
+          fulfillment alerts, and quick links to manage products. We will also explore traffic insights to see
+          how new customers find our sea-inspired streetwear.
+        </p>
+      </div>
+    </div>
   );
 }
