@@ -1,12 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { AdminOrderDrawer } from "./AdminOrderDrawer";
 import { OrderStatusSelect } from "./components/OrderStatusSelect";
 import { StatusBadge } from "./components/StatusBadge";
 import { STATUS_FILTER_OPTIONS, statusStyles } from "./statusConfig";
-import { cleanupOldTestOrders, fetchRecentOrders, updateOrderStatus } from "@/lib/admin-orders";
+import { fetchRecentOrders, updateOrderStatus } from "@/lib/admin-orders";
 import type { Order, OrderStatus } from "@/types/order";
 
 function formatDateTime(iso: string) {
@@ -36,10 +36,8 @@ export default function AdminOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
   const [search, setSearch] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [cleaning, setCleaning] = useState(false);
 
   const pushToast = useCallback((toast: Omit<Toast, "id">) => {
     const id = Date.now();
@@ -93,10 +91,6 @@ export default function AdminOrdersPage() {
           order.id === orderId ? { ...order, status: nextStatus, updatedAt } : order
         )
       );
-      setSelectedOrder((prev) =>
-        prev && prev.id === orderId ? { ...prev, status: nextStatus, updatedAt } : prev
-      );
-
       try {
         await updateOrderStatus(orderId, nextStatus);
         pushToast({ type: "success", message: "Order status updated" });
@@ -110,11 +104,6 @@ export default function AdminOrdersPage() {
               : order
           )
         );
-        setSelectedOrder((prev) =>
-          prev && prev.id === orderId
-            ? { ...prev, status: previousStatus, updatedAt: previousUpdatedAt }
-            : prev
-        );
       } finally {
         setStatusUpdating(null);
       }
@@ -124,37 +113,18 @@ export default function AdminOrdersPage() {
 
   const isEmpty = !loading && !error && filteredOrders.length === 0;
 
-  const handleCleanup = useCallback(async () => {
-    setCleaning(true);
-    try {
-      const deletedCount = await cleanupOldTestOrders(3);
-      await loadOrders();
-      pushToast({
-        type: "success",
-        message: deletedCount
-          ? `Removed ${deletedCount} old test ${deletedCount === 1 ? "order" : "orders"}`
-          : "No old test orders to remove",
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to clean test orders";
-      pushToast({ type: "error", message });
-    } finally {
-      setCleaning(false);
-    }
-  }, [loadOrders, pushToast]);
-
   return (
-    <div className="relative space-y-6">
-      <div className="space-y-2">
+    <div className="relative space-y-5">
+      <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Orders</p>
-        <h1 className="text-3xl font-semibold text-white">Orders</h1>
-        <p className="max-w-2xl text-sky-100/85">
+        <h1 className="text-2xl font-semibold text-white">Orders</h1>
+        <p className="max-w-2xl text-sm text-sky-100/85">
           Review recent checkouts, monitor statuses, and keep an eye on fulfilment. Quickly adjust order states from the
-          list or dive into the drawer for full detail without losing your place.
+          list or open full details when needed.
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTER_OPTIONS.map((status) => (
             <button
@@ -192,15 +162,6 @@ export default function AdminOrdersPage() {
           >
             <span className="h-2 w-2 rounded-full bg-emerald-300" aria-hidden />
             Refresh
-          </button>
-          <button
-            type="button"
-            onClick={handleCleanup}
-            disabled={cleaning}
-            className="inline-flex items-center gap-2 rounded-full bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 shadow-inner shadow-rose-900/30 transition hover:bg-rose-500/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/60 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <span aria-hidden>🧹</span>
-            {cleaning ? "Cleaning…" : "Clean test data"}
           </button>
         </div>
       </div>
@@ -279,16 +240,15 @@ export default function AdminOrdersPage() {
                       <td className="px-6 py-4 align-top text-right font-semibold text-white">
                         {formatCurrency(order.total)}
                       </td>
-                      <td className="px-6 py-4 align-top text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedOrder(order)}
-                          className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-inner shadow-sky-900/30 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                        >
-                          View details
-                          <span aria-hidden>→</span>
-                        </button>
-                      </td>
+                    <td className="px-6 py-4 align-top text-right">
+                      <Link
+                        href={`/admin/orders/${order.id}`}
+                        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-inner shadow-sky-900/30 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                      >
+                        View details
+                        <span aria-hidden>→</span>
+                      </Link>
+                    </td>
                     </tr>
                   ))}
                 </tbody>
@@ -328,31 +288,21 @@ export default function AdminOrdersPage() {
                     />
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <StatusBadge status={order.status} />
-                    <button
-                      type="button"
-                      onClick={() => setSelectedOrder(order)}
-                      className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-inner shadow-sky-900/30 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    >
-                      View full order
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <StatusBadge status={order.status} />
+                      <Link
+                        href={`/admin/orders/${order.id}`}
+                        className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-inner shadow-sky-900/30 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                      >
+                        View full order
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </>
+                ))}
+              </div>
+            </>
         )}
       </div>
-
-      {selectedOrder ? (
-        <AdminOrderDrawer
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
-          onStatusChange={handleStatusChange}
-          statusUpdating={statusUpdating}
-        />
-      ) : null}
 
       <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-2">
         {toasts.map((toast) => (
