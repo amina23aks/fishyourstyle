@@ -44,17 +44,16 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[260px,1fr]">
-        <aside className="rounded-3xl bg-white/10 p-5 text-sky-50 shadow-xl shadow-sky-900/40 backdrop-blur">
-
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10 sm:px-6 lg:px-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:flex-row">
+        <aside className="w-full max-w-full rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:w-64 lg:flex-shrink-0">
           <div className="mb-6 space-y-1 border-b border-white/10 pb-4">
             <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Admin</p>
             <h2 className="text-xl font-semibold text-white">Control center</h2>
             <p className="text-sm text-sky-100/80">Manage store operations</p>
           </div>
 
-          <nav className="space-y-2">
+          <nav className="space-y-1">
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -63,10 +62,10 @@ export default function AdminLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition shadow-sm shadow-sky-900/30 hover:bg-white/10 hover:text-white ${
+                  className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition shadow-sm shadow-sky-900/30 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:ring-offset-0 ${
                     isActive
-                      ? "bg-white/20 text-white ring-1 ring-white/30"
-                      : "text-sky-100"
+                      ? "border-white/30 bg-white/15 text-white ring-1 ring-white/40"
+                      : "border-white/5 text-sky-100"
                   }`}
                 >
                   <span>{item.label}</span>
@@ -78,7 +77,7 @@ export default function AdminLayout({
         </aside>
 
         <main className="flex-1">
-          <div className="rounded-3xl bg-white/10 p-6 text-sky-50 shadow-xl shadow-sky-900/40 backdrop-blur">
+          <div className="rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:p-8">
             {children}
           </div>
         </main>
@@ -96,7 +95,7 @@ function AdminLoader({
 }) {
   return (
     <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-4 rounded-3xl bg-white/10 px-6 py-5 text-sky-50 shadow-xl shadow-sky-900/40 backdrop-blur">
+      <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/10 px-6 py-5 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur">
         <span className="h-11 w-11 animate-spin rounded-full border-4 border-white/60 border-t-transparent" />
         <div className="space-y-1">
           <p className="text-lg font-semibold text-white">{title}</p>
