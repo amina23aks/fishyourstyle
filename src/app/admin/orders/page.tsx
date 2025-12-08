@@ -1,50 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { AdminOrderDrawer } from "./AdminOrderDrawer";
+import { OrderStatusSelect } from "./components/OrderStatusSelect";
+import { StatusBadge } from "./components/StatusBadge";
+import { STATUS_FILTER_OPTIONS, statusStyles } from "./statusConfig";
 import { fetchRecentOrders, updateOrderStatus } from "@/lib/admin-orders";
 import type { Order, OrderStatus } from "@/types/order";
-
-const STATUS_OPTIONS: ("all" | OrderStatus)[] = [
-  "all",
-  "pending",
-  "confirmed",
-  "shipped",
-  "delivered",
-  "cancelled",
-];
-
-const statusStyles: Record<
-  OrderStatus,
-  { label: string; className: string; dotClass: string }
-> = {
-  pending: {
-    label: "Pending",
-    className: "bg-amber-400/15 text-amber-100 ring-1 ring-amber-300/40",
-    dotClass: "bg-amber-300",
-  },
-  confirmed: {
-    label: "Confirmed",
-    className: "bg-sky-400/15 text-sky-100 ring-1 ring-sky-300/40",
-    dotClass: "bg-sky-300",
-  },
-  shipped: {
-    label: "Shipped",
-    className: "bg-indigo-400/15 text-indigo-100 ring-1 ring-indigo-300/40",
-    dotClass: "bg-indigo-300",
-  },
-  delivered: {
-    label: "Delivered",
-    className: "bg-emerald-400/15 text-emerald-100 ring-1 ring-emerald-300/40",
-    dotClass: "bg-emerald-300",
-  },
-  cancelled: {
-    label: "Cancelled",
-    className: "bg-rose-400/15 text-rose-100 ring-1 ring-rose-300/40",
-    dotClass: "bg-rose-300",
-  },
-};
 
 function formatDateTime(iso: string) {
   const date = new Date(iso);
@@ -71,11 +34,11 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>("all");
+  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
   const [search, setSearch] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [statusUpdating, setStatusUpdating] = useState<OrderStatus | null>(null);
+  const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const router = useRouter();
 
   const pushToast = useCallback((toast: Omit<Toast, "id">) => {
     const id = Date.now();
@@ -115,60 +78,56 @@ export default function AdminOrdersPage() {
   }, [orders, search, statusFilter]);
 
   const handleStatusChange = useCallback(
-    async (nextStatus: OrderStatus) => {
-      if (!selectedOrder) return;
+    async (orderId: string, nextStatus: OrderStatus) => {
+      const currentOrder = orders.find((order) => order.id === orderId);
+      if (!currentOrder || currentOrder.status === nextStatus) return;
 
-      setStatusUpdating(nextStatus);
-      const previousStatus = selectedOrder.status;
+      const previousStatus = currentOrder.status;
+      const previousUpdatedAt = currentOrder.updatedAt;
+      const updatedAt = new Date().toISOString();
 
+      setStatusUpdating(orderId);
       setOrders((prev) =>
         prev.map((order) =>
-          order.id === selectedOrder.id
-            ? { ...order, status: nextStatus, updatedAt: new Date().toISOString() }
-            : order
+          order.id === orderId ? { ...order, status: nextStatus, updatedAt } : order
         )
       );
-      setSelectedOrder((prev) => (prev ? { ...prev, status: nextStatus, updatedAt: new Date().toISOString() } : prev));
-
       try {
-        await updateOrderStatus(selectedOrder.id, nextStatus);
+        await updateOrderStatus(orderId, nextStatus);
         pushToast({ type: "success", message: "Order status updated" });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to update status";
         pushToast({ type: "error", message });
         setOrders((prev) =>
           prev.map((order) =>
-            order.id === selectedOrder.id
-              ? { ...order, status: previousStatus, updatedAt: new Date().toISOString() }
+            order.id === orderId
+              ? { ...order, status: previousStatus, updatedAt: previousUpdatedAt }
               : order
           )
-        );
-        setSelectedOrder((prev) =>
-          prev ? { ...prev, status: previousStatus, updatedAt: new Date().toISOString() } : prev
         );
       } finally {
         setStatusUpdating(null);
       }
     },
-    [pushToast, selectedOrder]
+    [orders, pushToast]
   );
 
   const isEmpty = !loading && !error && filteredOrders.length === 0;
 
   return (
-    <div className="relative space-y-6">
-      <div className="space-y-2">
+    <div className="relative space-y-5">
+      <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Orders</p>
-        <h1 className="text-3xl font-semibold text-white">Orders</h1>
-        <p className="max-w-2xl text-sky-100/85">
-          Review recent checkouts, monitor statuses, and keep an eye on fulfilment. Update statuses directly from the
-          drawer while keeping reads minimal.
+        <h1 className="text-2xl font-semibold text-white">Orders</h1>
+        <p className="max-w-2xl text-sm text-sky-100/85">
+          Review recent checkouts, monitor statuses, and keep an eye on fulfilment. Quickly adjust order states from the
+          list or open full details when needed.
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
-          {STATUS_OPTIONS.map((status) => (
+          {STATUS_FILTER_OPTIONS.map((status) => (
             <button
               key={status}
               type="button"
@@ -242,59 +201,105 @@ export default function AdminOrdersPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm text-sky-100/85">
-              <thead className="sticky top-0 z-10 bg-sky-950/70 backdrop-blur">
-                <tr>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Order</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Date</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Customer</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Wilaya</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-sky-200">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="cursor-pointer transition hover:bg-white/5"
-                    onClick={() => setSelectedOrder(order)}
-                  >
-                    <td className="px-6 py-4 align-top font-semibold text-white">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-sky-100/80">Order</span>
-                        <span className="font-mono text-sm">{order.id.slice(0, 8)}…</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 align-top text-sky-100/80">{formatDateTime(order.createdAt)}</td>
-                    <td className="px-6 py-4 align-top text-sky-100/90">
-                      <div className="font-semibold text-white">{order.shipping.customerName || "Unknown"}</div>
-                      <div className="text-xs text-sky-100/70">{order.customerEmail || "Guest checkout"}</div>
-                    </td>
-                    <td className="px-6 py-4 align-top text-sky-100/80">{order.shipping.wilaya || "—"}</td>
-                    <td className="px-6 py-4 align-top">
-                      <StatusBadge status={order.status} />
-                    </td>
-                    <td className="px-6 py-4 align-top text-right font-semibold text-white">
-                      {formatCurrency(order.total)}
-                    </td>
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full text-left text-sm text-sky-100/85">
+                <thead className="sticky top-0 z-10 bg-slate-950/70 backdrop-blur">
+                  <tr>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Order</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Date</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Customer</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Wilaya</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-sky-200">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredOrders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="cursor-pointer transition hover:bg-white/5"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
+                      <td className="px-6 py-4 align-top font-semibold text-white">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-sky-100/80">Order</span>
+                          <span className="font-mono text-sm">{order.id.slice(0, 8)}…</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 align-top text-sky-100/80">{formatDateTime(order.createdAt)}</td>
+                      <td className="px-6 py-4 align-top text-sky-100/90">
+                        <div className="font-semibold text-white">{order.shipping.customerName || "Unknown"}</div>
+                        <div className="text-xs text-sky-100/70">{order.customerEmail || "Guest checkout"}</div>
+                      </td>
+                      <td className="px-6 py-4 align-top text-sky-100/80">{order.shipping.wilaya || "—"}</td>
+                      <td className="px-6 py-4 align-top">
+                        <OrderStatusSelect
+                          value={order.status}
+                          onChange={(status) => handleStatusChange(order.id, status)}
+                          disabled={statusUpdating === order.id}
+                        />
+                      </td>
+                      <td className="px-6 py-4 align-top text-right font-semibold text-white">
+                        {formatCurrency(order.total)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-4 px-4 pb-6 md:hidden">
+              {filteredOrders.map((order) => (
+                <div
+                  key={order.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/admin/orders/${order.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/admin/orders/${order.id}`);
+                    }
+                  }}
+                  className="space-y-3 rounded-2xl border border-white/10 bg-white/10 p-4 text-sky-50 shadow-inner shadow-sky-900/40 focus:outline-none focus:ring-2 focus:ring-white/50"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-sky-100/70">
+                        <span className="rounded-full bg-white/10 px-3 py-1 font-semibold text-white">Order</span>
+                        <span className="font-mono">{order.id.slice(0, 8)}…</span>
+                      </div>
+                      <div className="text-sm text-sky-100/80">{formatDateTime(order.createdAt)}</div>
+                      <div className="text-base font-semibold text-white">
+                        {order.shipping.customerName || "Unknown"}
+                      </div>
+                      <div className="text-xs text-sky-100/70">{order.customerEmail || "Guest checkout"}</div>
+                    </div>
+                    <div className="text-right font-semibold text-white">{formatCurrency(order.total)}</div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100/80">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Wilaya</p>
+                      <p className="font-semibold text-white">{order.shipping.wilaya || "—"}</p>
+                    </div>
+                    <OrderStatusSelect
+                      value={order.status}
+                      onChange={(status) => handleStatusChange(order.id, status)}
+                      disabled={statusUpdating === order.id}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <StatusBadge status={order.status} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>
         )}
       </div>
-
-      {selectedOrder ? (
-        <AdminOrderDrawer
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
-          onStatusChange={handleStatusChange}
-          statusUpdating={statusUpdating}
-        />
-      ) : null}
 
       <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-2">
         {toasts.map((toast) => (
@@ -314,39 +319,27 @@ export default function AdminOrdersPage() {
   );
 }
 
-function StatusBadge({ status }: { status: OrderStatus }) {
-  const style = statusStyles[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${style.className}`}
-    >
-      <span className={`h-2 w-2 rounded-full ${style.dotClass}`} aria-hidden />
-      {style.label}
-    </span>
-  );
-}
-
 function OrderTableSkeleton() {
   return (
-    <div className="divide-y divide-white/5">
-      <div className="grid grid-cols-6 gap-4 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">
-        <span>Order</span>
-        <span>Date</span>
-        <span>Customer</span>
-        <span>Wilaya</span>
-        <span>Status</span>
-        <span className="text-right">Total</span>
-      </div>
-      {[...Array(6)].map((_, index) => (
-        <div key={index} className="grid grid-cols-6 gap-4 px-6 py-4">
-          {[...Array(6)].map((__, colIndex) => (
-            <span
-              key={colIndex}
-              className="h-4 rounded-full bg-white/10 animate-pulse"
-            />
-          ))}
+      <div className="divide-y divide-white/5">
+        <div className="grid grid-cols-6 gap-4 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">
+          <span>Order</span>
+          <span>Date</span>
+          <span>Customer</span>
+          <span>Wilaya</span>
+          <span>Status</span>
+          <span className="text-right">Total</span>
         </div>
-      ))}
-    </div>
+        {[...Array(6)].map((_, index) => (
+          <div key={index} className="grid grid-cols-6 gap-4 px-6 py-4">
+            {[...Array(6)].map((__, colIndex) => (
+              <span
+                key={colIndex}
+                className="h-4 rounded-full bg-white/10 animate-pulse"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
   );
 }

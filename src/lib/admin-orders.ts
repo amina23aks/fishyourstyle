@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -83,4 +84,18 @@ export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus
     status: nextStatus,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function fetchOrderById(orderId: string): Promise<Order | null> {
+  const db = getDb();
+  if (!db) {
+    throw new Error("Firebase is not configured. Please check environment variables.");
+  }
+
+  const orderRef = doc(db, "orders", orderId);
+  const snapshot = await getDoc(orderRef);
+
+  if (!snapshot.exists()) return null;
+
+  return normalizeOrder(snapshot.data(), snapshot.id);
 }

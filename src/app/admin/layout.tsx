@@ -45,7 +45,7 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10 sm:px-6 lg:px-10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:flex-row">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
         <aside className="w-full max-w-full rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:w-64 lg:flex-shrink-0">
           <div className="mb-6 space-y-1 border-b border-white/10 pb-4">
             <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Admin</p>
@@ -76,7 +76,7 @@ export default function AdminLayout({
           </nav>
         </aside>
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <div className="rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:p-8">
             {children}
           </div>
