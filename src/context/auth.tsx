@@ -68,7 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
       setError(null);
     } catch (err) {
-      console.error("[auth] signIn error:", err);
       setError(err as FirebaseError);
       throw err;
     }
@@ -80,7 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await createUserWithEmailAndPassword(auth, email, password);
       setError(null);
     } catch (err) {
-      console.error("[auth] register error:", err);
       setError(err as FirebaseError);
       throw err;
     }
@@ -93,7 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, provider);
       setError(null);
     } catch (err) {
-      console.error("[auth] signInWithGoogle error:", err);
       setError(err as FirebaseError);
       throw err;
     }
@@ -105,7 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await firebaseSignOut(auth);
       setError(null);
     } catch (err) {
-      console.error("[auth] signOut error:", err);
       setError(err as FirebaseError);
       throw err;
     }

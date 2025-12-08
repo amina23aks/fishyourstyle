@@ -2,37 +2,9 @@
 
 import { useMemo } from "react";
 
+import { StatusBadge } from "./components/StatusBadge";
+import { OrderStatusSelect } from "./components/OrderStatusSelect";
 import type { Order, OrderStatus } from "@/types/order";
-
-const statusStyles: Record<OrderStatus, { label: string; className: string; dotClass: string }> = {
-  pending: {
-    label: "Pending",
-    className: "bg-amber-400/15 text-amber-100 ring-1 ring-amber-300/40",
-    dotClass: "bg-amber-300",
-  },
-  confirmed: {
-    label: "Confirmed",
-    className: "bg-sky-400/15 text-sky-100 ring-1 ring-sky-300/40",
-    dotClass: "bg-sky-300",
-  },
-  shipped: {
-    label: "Shipped",
-    className: "bg-indigo-400/15 text-indigo-100 ring-1 ring-indigo-300/40",
-    dotClass: "bg-indigo-300",
-  },
-  delivered: {
-    label: "Delivered",
-    className: "bg-emerald-400/15 text-emerald-100 ring-1 ring-emerald-300/40",
-    dotClass: "bg-emerald-300",
-  },
-  cancelled: {
-    label: "Cancelled",
-    className: "bg-rose-400/15 text-rose-100 ring-1 ring-rose-300/40",
-    dotClass: "bg-rose-300",
-  },
-};
-
-const statusOptions: OrderStatus[] = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("fr-DZ", {
@@ -53,16 +25,6 @@ function formatDateTime(iso: string) {
   });
 }
 
-function StatusBadge({ status }: { status: OrderStatus }) {
-  const style = statusStyles[status];
-  return (
-    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${style.className}`}>
-      <span className={`h-2 w-2 rounded-full ${style.dotClass}`} aria-hidden />
-      {style.label}
-    </span>
-  );
-}
-
 export function AdminOrderDrawer({
   order,
   onClose,
@@ -71,15 +33,15 @@ export function AdminOrderDrawer({
 }: {
   order: Order;
   onClose: () => void;
-  onStatusChange: (status: OrderStatus) => void;
-  statusUpdating: OrderStatus | null;
+  onStatusChange: (orderId: string, status: OrderStatus) => void;
+  statusUpdating: string | null;
 }) {
   const currentStatus = useMemo(() => order.status, [order.status]);
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-sky-950/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative z-50 flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-white/10 bg-slate-950/80 text-sky-50 shadow-2xl shadow-sky-900/60 backdrop-blur-xl">
+      <div className="relative z-50 flex h-full w-full max-w-2xl flex-col overflow-y-auto border-l border-white/10 bg-slate-950/80 text-sky-50 shadow-2xl shadow-sky-900/60 backdrop-blur-xl lg:max-w-3xl">
         <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order</p>
@@ -96,26 +58,17 @@ export function AdminOrderDrawer({
         </div>
 
         <div className="space-y-6 px-6 py-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <StatusBadge status={order.status} />
-            <div className="text-xs uppercase tracking-[0.2em] text-sky-200">Status</div>
-            <div className="flex flex-wrap gap-2">
-              {statusOptions.map((status) => (
-                <button
-                  key={status}
-                  type="button"
-                  onClick={() => onStatusChange(status)}
-                  disabled={statusUpdating === status}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                    currentStatus === status
-                      ? "bg-white/20 text-white ring-1 ring-white/40 shadow shadow-sky-900/40"
-                      : "bg-white/10 text-sky-100 hover:bg-white/15"
-                  } ${statusUpdating === status ? "opacity-70" : ""}`}
-                >
-                  {statusStyles[status].label}
-                </button>
-              ))}
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="space-y-2">
+              <StatusBadge status={order.status} />
+              <div className="text-xs uppercase tracking-[0.2em] text-sky-200">Status</div>
             </div>
+            <OrderStatusSelect
+              value={currentStatus}
+              onChange={(status) => onStatusChange(order.id, status)}
+              disabled={statusUpdating === order.id}
+              label="Update"
+            />
           </div>
 
           <section className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-sky-900/40">
