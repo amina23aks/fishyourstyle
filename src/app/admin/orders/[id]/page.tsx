@@ -29,7 +29,7 @@ function formatDateTime(iso: string) {
 
 type Toast = { id: number; type: "success" | "error"; message: string };
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 export default function AdminOrderDetailPage({ params }: Props) {
   const [order, setOrder] = useState<Order | null>(null);
@@ -37,6 +37,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [orderId, setOrderId] = useState<string | null>(null);
 
   const pushToast = useCallback((toast: Omit<Toast, "id">) => {
     const id = Date.now();
@@ -47,11 +48,32 @@ export default function AdminOrderDetailPage({ params }: Props) {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    Promise.resolve(params)
+      .then((resolved) => {
+        if (!active) return;
+        setOrderId(resolved.id);
+      })
+      .catch((err) => {
+        if (!active) return;
+        const message = err instanceof Error ? err.message : "Failed to read route params";
+        setError(message);
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [params]);
+
+  useEffect(() => {
+    if (!orderId) return;
+
     const loadOrder = async () => {
       setLoading(true);
       setError(null);
       try {
-        const fetched = await fetchOrderById(params.id);
+        const fetched = await fetchOrderById(orderId);
         if (!fetched) {
           setError("Order not found");
         }
@@ -65,7 +87,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
     };
 
     loadOrder();
-  }, [params.id]);
+  }, [orderId]);
 
   const handleStatusChange = useCallback(
     async (orderId: string, nextStatus: OrderStatus) => {
