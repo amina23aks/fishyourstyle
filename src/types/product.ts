@@ -11,16 +11,18 @@ export type ProductCategory =
 /**
  * Product color variant with bilingual labels and image.
  */
-export type ProductColor = {
-  /** Unique color identifier (e.g., "black", "grey") */
-  id: string;
-  /** French color label */
-  labelFr: string;
-  /** Arabic color label */
-  labelAr: string;
-  /** Image URL for this color variant */
-  image: string;
-};
+export type ProductColor =
+  | {
+      /** Unique color identifier (e.g., "black", "grey") */
+      id: string;
+      /** French color label */
+      labelFr: string;
+      /** Arabic color label */
+      labelAr: string;
+      /** Image URL for this color variant */
+      image: string;
+    }
+  | string;
 
 /**
  * Product image structure with main image and gallery.
@@ -69,4 +71,10 @@ export type Product = {
   descriptionAr: string;
   /** Product status - only "active" products are shown */
   status: "active" | "inactive";
+  /** Optional design theme for filtering */
+  designTheme?: "basic" | "cars" | "nature" | "anime" | "harry-potter";
+  /** Optional search tags */
+  tags?: string[];
+  /** Discount percent (0-100) */
+  discountPercent?: number;
 };

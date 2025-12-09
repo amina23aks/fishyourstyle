@@ -1,28 +1,59 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
-  createProduct,
-  deleteProduct,
-  fetchProducts,
+  createAdminProduct,
+  deleteAdminProduct,
+  listAdminProducts,
+  updateAdminProduct,
   type AdminProduct,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 type Toast = { type: "success" | "error"; message: string };
 
+const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const cloudinaryConfigured = Boolean(cloudName && uploadPreset);
+const cloudinaryMissing = !cloudName && !uploadPreset;
+
+const defaultForm: ProductFormValues = {
+  name: "",
+  basePrice: "",
+  discountPercent: "0",
+  category: "hoodies",
+  designTheme: "basic",
+  designThemeCustom: "",
+  stock: "",
+  inStock: true,
+  sizes: [],
+  colors: [{ hex: "#000000" }],
+  gender: "",
+  images: [],
+};
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [formInitial, setFormInitial] = useState<ProductFormValues>(defaultForm);
   const [formKey, setFormKey] = useState(() => Date.now());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const showToast = useCallback((payload: Toast) => {
     setToast(payload);
@@ -33,7 +64,7 @@ export default function AdminProductsPage() {
     setLoading(true);
     setError(null);
     try {
-      const list = await fetchProducts();
+      const list = await listAdminProducts();
       setProducts(list);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load products";
@@ -47,56 +78,76 @@ export default function AdminProductsPage() {
     loadProducts();
   }, [loadProducts]);
 
-  const handleUploadImage = useCallback(async (file: File) => {
-    setUploadingImage(true);
-    setError(null);
-    try {
-      const url = await uploadImageToCloudinary(file);
-      showToast({ type: "success", message: "Image uploaded to Cloudinary" });
-      return url;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to upload image";
-      showToast({ type: "error", message });
-      throw err;
-    } finally {
-      setUploadingImage(false);
-    }
-  }, [showToast]);
+  const handleUploadImage = useCallback(
+    async (file: File) => {
+      if (!cloudinaryConfigured) {
+        throw new Error("Cloudinary is not configured. Save without an image or add credentials.");
+      }
 
-  const handleCreate = useCallback(
-    async (values: ProductFormValues) => {
-      setCreating(true);
+      setUploadingImage(true);
       setError(null);
       try {
-        const tags = values.tags
-          ? values.tags
-              .split(",")
-              .map((tag) => tag.trim())
-              .filter(Boolean)
-          : [];
+        const url = await uploadImageToCloudinary(file);
+        showToast({ type: "success", message: "Image uploaded to Cloudinary" });
+        return url;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to upload image";
+        showToast({ type: "error", message });
+        throw err;
+      } finally {
+        setUploadingImage(false);
+      }
+    },
+    [showToast],
+  );
 
-        await createProduct({
-          name: values.name.trim(),
-          price: Number(values.price),
-          stock: Number(values.stock),
-          description: values.description?.trim() || undefined,
-          category: values.category?.trim() || undefined,
-          imageUrl: values.imageUrl || undefined,
-          tags,
-        });
+  const resetForm = useCallback(() => {
+    setFormInitial(defaultForm);
+    setFormKey(Date.now());
+    setEditingId(null);
+  }, []);
 
-        showToast({ type: "success", message: "Product created" });
-        setFormKey(Date.now());
+  const handleSubmit = useCallback(
+    async (values: ProductFormValues) => {
+      setSaving(true);
+      setError(null);
+      const designTheme =
+        values.designTheme === "custom" ? values.designThemeCustom.trim() || "custom" : values.designTheme;
+      const payload = {
+        name: values.name.trim(),
+        slug: slugify(values.name),
+        basePrice: Number(values.basePrice || 0),
+        discountPercent: Number(values.discountPercent || 0),
+        finalPrice: Math.max(Number(values.basePrice || 0) * (1 - Number(values.discountPercent || 0) / 100), 0),
+        category: values.category,
+        designTheme,
+        sizes: values.sizes,
+        colors: values.colors,
+        stock: Number(values.stock || 0),
+        images: values.images,
+        inStock: values.inStock,
+        gender: values.gender || undefined,
+      };
+
+      try {
+        if (editingId) {
+          await updateAdminProduct(editingId, payload);
+          showToast({ type: "success", message: "Product updated" });
+        } else {
+          await createAdminProduct(payload);
+          showToast({ type: "success", message: "Product created" });
+        }
+        resetForm();
         loadProducts();
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to create product";
+        const message = err instanceof Error ? err.message : "Failed to save product";
         setError(message);
         showToast({ type: "error", message });
       } finally {
-        setCreating(false);
+        setSaving(false);
       }
     },
-    [loadProducts, showToast],
+    [editingId, loadProducts, resetForm, showToast],
   );
 
   const handleDelete = useCallback(
@@ -105,53 +156,39 @@ export default function AdminProductsPage() {
       if (!confirmed) return;
 
       try {
-        await deleteProduct(productId);
+        await deleteAdminProduct(productId);
         showToast({ type: "success", message: "Product deleted" });
         setProducts((prev) => prev.filter((product) => product.id !== productId));
+        if (editingId === productId) {
+          resetForm();
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to delete product";
         setError(message);
         showToast({ type: "error", message });
       }
     },
-    [showToast],
+    [editingId, resetForm, showToast],
   );
 
-  const csvData = useMemo(() => {
-    if (!products.length) return "";
-    const headers = ["Name", "Price (DZD)", "Stock", "Category", "Image URL", "Tags"];
-    const rows = products.map((product) => [
-      product.name,
-      product.price,
-      product.stock,
-      product.category ?? "",
-      product.imageUrl ?? "",
-      (product.tags ?? []).join("|") ?? "",
-    ]);
-
-    const escape = (value: unknown) => {
-      const str = String(value ?? "");
-      if (str.includes(",") || str.includes("\"")) {
-        return `"${str.replace(/\"/g, '""')}"`;
-      }
-      return str;
-    };
-
-    return [headers, ...rows].map((row) => row.map(escape).join(",")).join("\n");
-  }, [products]);
-
-  const exportCsv = useCallback(() => {
-    if (!csvData) return;
-    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "products.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [csvData]);
+  const startEdit = useCallback((product: AdminProduct) => {
+    setEditingId(product.id);
+    setFormInitial({
+      name: product.name,
+      basePrice: product.basePrice?.toString() ?? "",
+      discountPercent: product.discountPercent?.toString() ?? "0",
+      category: product.category,
+      designTheme: product.designTheme || "basic",
+      designThemeCustom: "",
+      stock: product.stock?.toString() ?? "",
+      inStock: product.inStock,
+      sizes: product.sizes,
+      colors: product.colors,
+      images: product.images,
+      gender: product.gender ?? "",
+    });
+    setFormKey(Date.now());
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -159,8 +196,7 @@ export default function AdminProductsPage() {
         <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Products</p>
         <h1 className="text-3xl font-semibold text-white">Admin products</h1>
         <p className="max-w-2xl text-sky-100/85">
-          Manage the product catalog in real-time: upload imagery to Cloudinary, keep Firestore in sync, and export the
-          inventory list for reporting.
+          Manage the catalog in real-time: upload imagery to Cloudinary, keep Firestore in sync, and export what you see.
         </p>
       </div>
 
@@ -187,17 +223,9 @@ export default function AdminProductsPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-white">Current products</p>
-              <p className="text-xs text-sky-100/70">Inline edit and delete controls keep inventory tidy.</p>
+              <p className="text-xs text-sky-100/70">Compact list with quick edit/delete.</p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={exportCsv}
-                disabled={!products.length}
-                className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Export CSV
-              </button>
               <button
                 type="button"
                 onClick={loadProducts}
@@ -209,11 +237,12 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-            <div className="grid grid-cols-6 gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-sky-100/70">
+            <div className="grid grid-cols-6 gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-100/70">
               <span className="col-span-2">Product</span>
+              <span>Category</span>
               <span>Price</span>
               <span>Stock</span>
-              <span>Category</span>
+              <span>In stock?</span>
               <span className="text-right">Actions</span>
             </div>
             {loading ? (
@@ -222,47 +251,81 @@ export default function AdminProductsPage() {
               <div className="px-4 py-6 text-sm text-sky-100/80">No products yet. Add the first item using the form.</div>
             ) : (
               <ul className="divide-y divide-white/10">
-                {products.map((product) => (
-                  <li key={product.id} className="grid grid-cols-6 items-center gap-3 px-4 py-3 text-sm text-sky-50">
-                    <div className="col-span-2 flex items-center gap-3">
-                      {product.imageUrl ? (
-                        <Image
-                          src={product.imageUrl}
-                          alt={product.name}
-                          width={48}
-                          height={48}
-                          className="h-12 w-12 rounded-xl object-cover ring-1 ring-white/20"
-                        />
-                      ) : (
-                        <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-white/20 text-[11px] text-sky-100/70">
-                          No image
-                        </span>
-                      )}
-                      <div className="space-y-1">
-                        <p className="font-semibold text-white">{product.name}</p>
-                        <p className="text-xs text-sky-100/70">{product.description ?? "No description"}</p>
+                {products.map((product) => {
+                  const mainImage = product.images[0];
+                  return (
+                    <li key={product.id} className="grid grid-cols-6 items-center gap-3 px-4 py-3 text-sm text-sky-50">
+                      <div className="col-span-2 flex items-center gap-3">
+                        {mainImage ? (
+                          <Image
+                            src={mainImage}
+                            alt={product.name}
+                            width={48}
+                            height={48}
+                            className="h-12 w-12 rounded-xl object-cover ring-1 ring-white/20"
+                          />
+                        ) : (
+                          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-white/20 text-[11px] text-sky-100/70">
+                            No image
+                          </span>
+                        )}
+                        <div className="space-y-1">
+                          <p className="font-semibold text-white">{product.name}</p>
+                          <p className="text-[11px] text-sky-100/70">{product.designTheme}</p>
+                        </div>
                       </div>
-                    </div>
-                    <span>{new Intl.NumberFormat("fr-DZ", { style: "currency", currency: "DZD", maximumFractionDigits: 0 }).format(product.price)}</span>
-                    <span>{product.stock} pcs</span>
-                    <span className="truncate text-xs text-sky-100/80">{product.category ?? "-"}</span>
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        href={`/admin/products/${product.id}`}
-                        className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(product.id)}
-                        className="rounded-full bg-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-50 transition hover:bg-rose-500/30"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                      <span className="text-xs uppercase text-sky-100/80">{product.category}</span>
+                      <div className="space-y-1 text-sm">
+                        <p className="font-semibold text-white">
+                          {new Intl.NumberFormat("fr-DZ", { style: "currency", currency: "DZD", maximumFractionDigits: 0 }).format(
+                            Math.max(product.finalPrice ?? product.basePrice, 0),
+                          )}
+                        </p>
+                        {product.discountPercent > 0 ? (
+                          <p className="text-[11px] text-sky-100/70">
+                            Base{" "}
+                            {new Intl.NumberFormat("fr-DZ", {
+                              style: "currency",
+                              currency: "DZD",
+                              maximumFractionDigits: 0,
+                            }).format(product.basePrice)}{" "}
+                            • -{product.discountPercent}%
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <p>{product.stock} pcs</p>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            product.inStock
+                              ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
+                              : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
+                          }`}
+                        >
+                          {product.inStock ? "Yes" : "No"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(product)}
+                          className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(product.id)}
+                          className="rounded-full bg-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-50 transition hover:bg-rose-500/30"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -271,13 +334,18 @@ export default function AdminProductsPage() {
         <section className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40">
           <ProductForm
             key={formKey}
-            heading="Create"
-            subheading="Add new product"
-            submitLabel="Add product"
-            loading={creating}
+            mode={editingId ? "edit" : "create"}
+            heading="Create / Edit product"
+            subheading={editingId ? "You are editing an existing product" : "Add a new product"}
+            submitLabel={editingId ? "Save changes" : "Add product"}
+            initialValues={formInitial}
+            loading={saving}
             uploading={uploadingImage}
-            onSubmit={handleCreate}
+            cloudinaryConfigured={cloudinaryConfigured}
+            cloudinaryMissing={cloudinaryMissing}
+            onSubmit={handleSubmit}
             onUploadImage={handleUploadImage}
+            onCancelEdit={resetForm}
           />
         </section>
       </div>
@@ -298,8 +366,8 @@ function ProductTableSkeleton() {
             </div>
           </div>
           <span className="block h-3 w-16 rounded-full bg-white/10" />
-          <span className="block h-3 w-10 rounded-full bg-white/10" />
           <span className="block h-3 w-20 rounded-full bg-white/10" />
+          <span className="block h-3 w-10 rounded-full bg-white/10" />
           <div className="flex justify-end gap-2">
             <span className="block h-8 w-14 rounded-full bg-white/10" />
             <span className="block h-8 w-14 rounded-full bg-white/10" />

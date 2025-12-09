@@ -47,7 +47,19 @@ const getSwatchColor = (label: string) => {
   return colorSwatchMap[key] ?? "#e5e7eb";
 };
 
-const buildImageList = (product: Product, activeColor?: ProductColor | null): string[] => {
+type NormalizedColor =
+  | (ProductColor & { id: string; labelFr: string; image?: string })
+  | { id: string; labelFr: string; image?: string };
+
+const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
+  colors.map((color) => {
+    if (typeof color === "string") {
+      return { id: color, labelFr: color, image: undefined };
+    }
+    return color;
+  });
+
+const buildImageList = (product: Product, activeColor?: NormalizedColor | null): string[] => {
   const galleryImages = product.images.gallery ?? [];
   const withColor = activeColor?.image
     ? [activeColor.image, product.images.main, ...galleryImages]
@@ -66,9 +78,10 @@ export type ProductCardProps = {
 };
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
-  const initialColor = product.colors.length === 1 ? product.colors[0] : null;
+  const colorOptions = normalizeColors(product.colors);
+  const initialColor = colorOptions.length === 1 ? colorOptions[0] : null;
   const initialSize = product.sizes.length === 1 ? product.sizes[0] : null;
-  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(initialColor);
+  const [selectedColor, setSelectedColor] = useState<NormalizedColor | null>(initialColor);
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
   const images = useMemo(() => buildImageList(product, selectedColor), [product, selectedColor]);
   const { addItem } = useCart();
@@ -82,7 +95,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const currentImage = images[activeIndex];
   const nextImage = images[(activeIndex + 1) % images.length];
   const isSelectionMissing =
-    (!selectedColor && product.colors.length > 1) || (!selectedSize && product.sizes.length > 1);
+    (!selectedColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -137,7 +150,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     touchStartX.current = null;
   };
 
-  const handleSelectColor = (color: ProductColor) => {
+  const handleSelectColor = (color: NormalizedColor) => {
     setSelectedColor(color);
     setActiveIndex(0);
     setSelectionWarning(null);
@@ -159,10 +172,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       return false;
     }
 
-    const color = selectedColor ?? product.colors[0];
+    const color = selectedColor ?? colorOptions[0];
     const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
-    const colorName = color?.labelFr ?? "Standard";
-    const colorCode = color?.id ?? "default";
+    const colorName = (color as any)?.labelFr ?? "Standard";
+    const colorCode = (color as any)?.id ?? "default";
 
     addItem({
       id: product.id,
@@ -170,7 +183,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       name: product.nameFr,
       price: product.priceDzd,
       currency: product.currency,
-      image: color?.image ?? product.images.main,
+      image: (color as any)?.image ?? product.images.main,
       colorName,
       colorCode,
       size: sizeChoice,
@@ -317,26 +330,38 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2 sm:text-base">{product.nameFr}</h2>
 
             <div className="flex items-center justify-between gap-3">
-              <p className="text-base font-bold text-white tabular-nums sm:text-lg">{formatPrice(product.priceDzd)}</p>
+              {product.discountPercent && product.discountPercent > 0 ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-base font-bold text-emerald-200 tabular-nums sm:text-lg">
+                    {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0))}
+                  </p>
+                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-100">
+                    -{product.discountPercent}%
+                  </span>
+                  <p className="text-xs font-semibold text-white/60 line-through">{formatPrice(product.priceDzd)}</p>
+                </div>
+              ) : (
+                <p className="text-base font-bold text-white tabular-nums sm:text-lg">{formatPrice(product.priceDzd)}</p>
+              )}
             </div>
           </div>
         </Link>
 
         <div className="space-y-1 px-3 pb-2">
-          {product.colors.length > 0 && (
+          {colorOptions.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-neutral-300">
                 <span>Color</span>
-                {!selectedColor && product.colors.length > 1 && (
+                {!selectedColor && colorOptions.length > 1 && (
                   <span className="text-rose-200">Pick a color</span>
                 )}
               </div>
               <div className="flex flex-wrap gap-1">
-                {product.colors.map((color) => (
+                {colorOptions.map((color) => (
                   <Swatch
                     key={color.id}
-                    label={color.labelFr}
-                    colorHex={getSwatchColor(color.labelFr)}
+                    label={(color as any).labelFr}
+                    colorHex={getSwatchColor((color as any).labelFr)}
                     selected={selectedColor?.id === color.id}
                     onSelect={() => handleSelectColor(color)}
                     size="xs"

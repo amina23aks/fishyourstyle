@@ -11,32 +11,34 @@ import {
   updateDoc,
   type DocumentData,
   type Timestamp,
+  type WithFieldValue,
 } from "firebase/firestore";
 
 import { getDb } from "./firebaseClient";
 
+export type AdminProductCategory = "hoodies" | "pants" | "ensembles" | "tshirts";
+
 export type AdminProduct = {
   id: string;
   name: string;
-  price: number;
-  description?: string;
+  slug: string;
+  basePrice: number;
+  discountPercent: number;
+  finalPrice: number;
+  category: AdminProductCategory;
+  designTheme: string;
+  sizes: string[];
+  colors: { hex: string }[];
   stock: number;
-  category?: string;
-  imageUrl?: string;
-  tags?: string[];
-  createdAt?: string;
-  updatedAt?: string;
+  inStock: boolean;
+  images: string[];
+  gender?: "unisex" | "men" | "women";
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 };
 
-export type ProductInput = {
-  name: string;
-  price: number;
-  description?: string;
-  stock: number;
-  category?: string;
-  imageUrl?: string;
-  tags?: string[];
-};
+export type AdminProductInput = Omit<AdminProduct, "id" | "createdAt" | "updatedAt">;
+type AdminProductWrite = AdminProductInput & { updatedAt: Timestamp; createdAt?: Timestamp };
 
 function getDbOrThrow() {
   const db = getDb();
@@ -46,95 +48,179 @@ function getDbOrThrow() {
   return db;
 }
 
-function timestampToISO(timestamp: unknown): string | undefined {
-  if (!timestamp) return undefined;
-  if (timestamp instanceof Date) return timestamp.toISOString();
-  if (typeof timestamp === "string") return timestamp;
-  if (typeof timestamp === "object" && "toDate" in (timestamp as Record<string, unknown>)) {
-    return (timestamp as Timestamp).toDate().toISOString();
+function slugifyName(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+function parseStringArray(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((item) => (typeof item === "string" ? item : String(item))).filter(Boolean);
   }
-  return undefined;
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function parseColorObjects(value: unknown): { hex: string }[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") {
+          return { hex: item };
+        }
+        if (item && typeof item === "object" && "hex" in item) {
+          return { hex: String((item as { hex: unknown }).hex) };
+        }
+        return null;
+      })
+      .filter((item): item is { hex: string } => Boolean(item?.hex));
+  }
+  return [];
+}
+
+function computeFinalPrice(basePrice: number, discountPercent: number) {
+  const base = Number(basePrice) || 0;
+  const discount = Number(discountPercent) || 0;
+  return Math.max(base * (1 - discount / 100), 0);
 }
 
 function normalizeProduct(data: DocumentData, id: string): AdminProduct {
+  const basePrice = typeof data.basePrice === "number" ? data.basePrice : Number(data.basePrice ?? 0);
+  const discountPercent =
+    typeof data.discountPercent === "number" ? data.discountPercent : Number(data.discountPercent ?? 0);
+
+  const finalPrice =
+    typeof data.finalPrice === "number"
+      ? data.finalPrice
+      : computeFinalPrice(basePrice, Number.isFinite(discountPercent) ? discountPercent : 0);
+
   return {
     id,
     name: typeof data.name === "string" ? data.name : "Untitled product",
-    price: typeof data.price === "number" ? data.price : Number(data.price ?? 0),
-    description: typeof data.description === "string" ? data.description : undefined,
+    slug: typeof data.slug === "string" && data.slug.length ? data.slug : slugifyName(data.name ?? id),
+    basePrice,
+    discountPercent: Number.isFinite(discountPercent) ? discountPercent : 0,
+    finalPrice,
+    category: (data.category as AdminProductCategory) ?? "tshirts",
+    designTheme: typeof data.designTheme === "string" ? data.designTheme : "basic",
+    sizes: parseStringArray(data.sizes),
+    colors: parseColorObjects(data.colors),
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
-    category: typeof data.category === "string" ? data.category : undefined,
-    imageUrl: typeof data.imageUrl === "string" ? data.imageUrl : undefined,
-    tags: Array.isArray(data.tags)
-      ? data.tags.map((tag) => (typeof tag === "string" ? tag : String(tag))).filter(Boolean)
-      : undefined,
-    createdAt: timestampToISO(data.createdAt),
-    updatedAt: timestampToISO(data.updatedAt),
+    inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
+    images: Array.isArray(data.images) ? (data.images as string[]).filter(Boolean) : [],
+    gender: typeof data.gender === "string" ? (data.gender as AdminProduct["gender"]) : undefined,
+    createdAt: (data.createdAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
+    updatedAt: (data.updatedAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
   };
 }
 
-function sanitizePayload(input: ProductInput, includeCreatedAt = false) {
+function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWrite> {
   const payload: Record<string, unknown> = {
-    name: input.name,
-    price: input.price,
-    stock: input.stock,
-    tags: input.tags ?? [],
+    name: input.name.trim(),
+    slug: input.slug || slugifyName(input.name),
+    basePrice: Number(input.basePrice),
+    discountPercent: Number(input.discountPercent) || 0,
+    finalPrice: computeFinalPrice(Number(input.basePrice), Number(input.discountPercent) || 0),
+    category: input.category,
+    designTheme: input.designTheme,
+    sizes: input.sizes ?? [],
+    colors: input.colors ?? [],
+    stock: Number(input.stock),
+    inStock: Boolean(input.inStock),
+    images: input.images ?? [],
+    gender: input.gender ?? null,
+    createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
 
-  if (input.description !== undefined) payload.description = input.description;
-  if (input.category !== undefined) payload.category = input.category;
-  if (input.imageUrl !== undefined) payload.imageUrl = input.imageUrl;
-  if (includeCreatedAt) {
-    payload.createdAt = serverTimestamp();
-  }
-
-  return payload;
+  return payload as WithFieldValue<AdminProductWrite>;
 }
 
-export async function fetchProducts(): Promise<AdminProduct[]> {
+function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<AdminProductWrite>> {
+  const payload: Record<string, unknown> = {
+    updatedAt: serverTimestamp(),
+  };
+
+  if (patch.name !== undefined) {
+    payload.name = patch.name.trim();
+    payload.slug = slugifyName(patch.name);
+  }
+  if (patch.slug !== undefined) payload.slug = slugifyName(patch.slug);
+  if (patch.basePrice !== undefined) payload.basePrice = Number(patch.basePrice);
+  if (patch.discountPercent !== undefined) payload.discountPercent = Number(patch.discountPercent) || 0;
+  if (patch.basePrice !== undefined || patch.discountPercent !== undefined) {
+    const base = patch.basePrice !== undefined ? Number(patch.basePrice) : 0;
+    const discount = patch.discountPercent !== undefined ? Number(patch.discountPercent) || 0 : 0;
+    payload.finalPrice = computeFinalPrice(base, discount);
+  }
+  if (patch.category !== undefined) payload.category = patch.category;
+  if (patch.designTheme !== undefined) payload.designTheme = patch.designTheme;
+  if (patch.sizes !== undefined) payload.sizes = patch.sizes;
+  if (patch.colors !== undefined) payload.colors = patch.colors;
+  if (patch.stock !== undefined) payload.stock = Number(patch.stock);
+  if (patch.inStock !== undefined) payload.inStock = Boolean(patch.inStock);
+  if (patch.images !== undefined) payload.images = patch.images;
+  if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
+
+  return payload as WithFieldValue<Partial<AdminProductWrite>>;
+}
+
+function wrapPermission<T>(fn: () => Promise<T>): Promise<T> {
+  return fn().catch((err) => {
+    if (typeof err === "object" && err && "code" in err && (err as { code?: string }).code === "permission-denied") {
+      throw new Error("Missing or insufficient permissions.");
+    }
+    throw err;
+  });
+}
+
+export async function listAdminProducts(): Promise<AdminProduct[]> {
   const db = getDbOrThrow();
   const productsQuery = query(collection(db, "products"), orderBy("createdAt", "desc"));
-  const snapshot = await getDocs(productsQuery);
-  return snapshot.docs.map((docSnapshot) => normalizeProduct(docSnapshot.data(), docSnapshot.id));
+  return wrapPermission(async () => {
+    const snapshot = await getDocs(productsQuery);
+    return snapshot.docs.map((docSnapshot) => normalizeProduct(docSnapshot.data(), docSnapshot.id));
+  });
 }
 
 export async function fetchProductById(productId: string): Promise<AdminProduct | null> {
   const db = getDbOrThrow();
   const ref = doc(db, "products", productId);
-  const snapshot = await getDoc(ref);
-  if (!snapshot.exists()) return null;
-  return normalizeProduct(snapshot.data(), snapshot.id);
+  return wrapPermission(async () => {
+    const snapshot = await getDoc(ref);
+    if (!snapshot.exists()) return null;
+    return normalizeProduct(snapshot.data(), snapshot.id);
+  });
 }
 
-export async function createProduct(input: ProductInput): Promise<string> {
+export async function createAdminProduct(input: AdminProductInput): Promise<void> {
   const db = getDbOrThrow();
-  const payload = sanitizePayload(input, true);
-  const ref = await addDoc(collection(db, "products"), payload);
-  return ref.id;
+  const payload = sanitizeCreate(input);
+  return wrapPermission(async () => {
+    await addDoc(collection(db, "products"), payload);
+  });
 }
 
-export async function updateProduct(productId: string, updates: Partial<ProductInput>): Promise<void> {
+export async function updateAdminProduct(productId: string, updates: Partial<AdminProduct>): Promise<void> {
   const db = getDbOrThrow();
-  const payload = sanitizePayload(
-    {
-      name: updates.name ?? "",
-      price: updates.price ?? 0,
-      stock: updates.stock ?? 0,
-      description: updates.description,
-      category: updates.category,
-      imageUrl: updates.imageUrl,
-      tags: updates.tags,
-    },
-    false,
-  );
-
+  const payload = sanitizeUpdate(updates);
   const ref = doc(db, "products", productId);
-  await updateDoc(ref, payload);
+  return wrapPermission(async () => updateDoc(ref, payload));
 }
 
-export async function deleteProduct(productId: string): Promise<void> {
+export async function deleteAdminProduct(productId: string): Promise<void> {
   const db = getDbOrThrow();
   const ref = doc(db, "products", productId);
-  await deleteDoc(ref);
+  return wrapPermission(async () => deleteDoc(ref));
 }

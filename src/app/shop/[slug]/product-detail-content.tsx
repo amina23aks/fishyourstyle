@@ -13,14 +13,26 @@ import { useFlyToCart } from "@/lib/useFlyToCart";
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
 
-const buildImageList = (color: ProductColor | undefined, fallback: string[]) => {
-  const galleryImages = color?.image ? [color.image, ...fallback] : fallback;
+type NormalizedColor =
+  | (ProductColor & { id: string; labelFr: string; image?: string })
+  | { id: string; labelFr: string; image?: string };
+
+const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
+  colors.map((color) => {
+    if (typeof color === "string") {
+      return { id: color, labelFr: color, image: undefined };
+    }
+    return color;
+  });
+
+const buildImageList = (color: NormalizedColor | undefined, fallback: string[]) => {
+  const galleryImages = (color as any)?.image ? [(color as any).image, ...fallback] : fallback;
   const uniqueImages = Array.from(new Set(galleryImages.filter(Boolean)));
   return uniqueImages.length > 0 ? uniqueImages : fallback;
 };
 
-const swatchHex = (color: ProductColor) => {
-  const label = color.labelFr.toLowerCase().replace(/\s+/g, "");
+const swatchHex = (color: NormalizedColor) => {
+  const label = (color as any).labelFr.toLowerCase().replace(/\s+/g, "");
   const map: Record<string, string> = {
     noir: "#1f2937",
     black: "#111827",
@@ -44,8 +56,9 @@ const swatchHex = (color: ProductColor) => {
 const sizeLabel = (size: string) => size.toUpperCase();
 
 export function ProductDetailContent({ product }: { product: Product }) {
-  const [activeColor, setActiveColor] = useState<ProductColor | undefined>(
-    product.colors.length === 1 ? product.colors[0] : undefined,
+  const colorOptions = normalizeColors(product.colors);
+  const [activeColor, setActiveColor] = useState<NormalizedColor | undefined>(
+    colorOptions.length === 1 ? colorOptions[0] : undefined,
   );
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
@@ -78,8 +91,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
       return false;
     }
 
-    const colorName = activeColor?.labelFr ?? "Standard";
-    const colorCode = activeColor?.id ?? "default";
+    const colorName = (activeColor as any)?.labelFr ?? "Standard";
+    const colorCode = (activeColor as any)?.id ?? "default";
     const size = selectedSize ?? "Taille unique";
 
     addItem({
@@ -88,7 +101,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
       name: product.nameFr,
       price: product.priceDzd,
       currency: product.currency,
-      image: activeColor?.image ?? product.images.main,
+      image: (activeColor as any)?.image ?? product.images.main,
       colorName,
       colorCode,
       size,
@@ -99,10 +112,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
     return true;
   };
 
-  const infoRows = [{ label: "Genre", value: product.gender }];
+  const infoRows = product.gender ? [{ label: "Genre", value: product.gender }] : [];
 
   const isSelectionMissing =
-    (!activeColor && product.colors.length > 1) || (!selectedSize && product.sizes.length > 1);
+    (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
@@ -189,17 +202,33 @@ export function ProductDetailContent({ product }: { product: Product }) {
           <div className="space-y-2">
             <p className="text-[11px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.nameFr}</h1>
-            <p className="text-xl font-bold text-white sm:text-2xl">{formatPrice(product.priceDzd, product.currency)}</p>
+            {product.discountPercent && product.discountPercent > 0 ? (
+              <div className="flex items-center gap-2">
+                <p className="text-xl font-bold text-emerald-200 sm:text-2xl">
+                  {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0), product.currency)}
+                </p>
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-100">
+                  -{product.discountPercent}%
+                </span>
+                <p className="text-sm font-semibold text-white/60 line-through">
+                  {formatPrice(product.priceDzd, product.currency)}
+                </p>
+              </div>
+            ) : (
+              <p className="text-xl font-bold text-white sm:text-2xl">
+                {formatPrice(product.priceDzd, product.currency)}
+              </p>
+            )}
             <p className="text-sm leading-relaxed text-neutral-300">{product.descriptionFr}</p>
           </div>
 
           <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
             <div className="flex flex-wrap gap-2">
-              {product.colors.map((color) => (
+              {colorOptions.map((color) => (
                 <Swatch
                   key={color.id}
-                  label={color.labelFr}
+                  label={(color as any).labelFr}
                   colorHex={swatchHex(color)}
                   selected={color.id === activeColor?.id}
                   onSelect={() => {
