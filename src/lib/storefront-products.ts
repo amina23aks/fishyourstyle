@@ -70,14 +70,20 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
 }
 
 export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]> {
-  const db = getDb(); // the same way as admin-products.ts
+  const db = getDb();
+  if (!db) {
+    throw new Error("Firebase is not configured. Please check environment variables.");
+  }
   const productsRef = collection(db, "products");
   const snapshot = await getDocs(query(productsRef));
   return snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id));
 }
 
 export async function fetchStorefrontProductBySlug(slug: string): Promise<StorefrontProduct | null> {
-  const db = getDb(); // the same way as admin-products.ts
+  const db = getDb();
+  if (!db) {
+    throw new Error("Firebase is not configured. Please check environment variables.");
+  }
   const productsRef = collection(db, "products");
   const constraints: QueryConstraint[] = [where("slug", "==", slug), limit(1)];
   const snapshot = await getDocs(query(productsRef, ...constraints));
