@@ -71,14 +71,15 @@ export function CategoryManager({
     }
   };
 
-  // Removing a custom entry immediately drops it from all admin lists; product forms fall back to defaults if a deleted
-  // slug was previously selected so existing products avoid orphaned values during edits.
+  // Deleting an option removes it from admin lists and storefront filters immediately.
+  // Products that reference a removed slug keep their stored value, but product forms will
+  // automatically fall back to the first available option when editing.
   const handleDelete = async (item: SelectableOption, type: "category" | "design") => {
-    if (!item.id || item.isDefault) return;
     if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
-    setDeleting(item.id);
+    const targetId = item.id ?? item.slug;
+    setDeleting(targetId);
     try {
-      const res = await fetch(`/api/categories/${item.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/categories/${targetId}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed to delete ${type}`);
       if (type === "category") {
         onCategoriesChange(categories.filter((cat) => cat.slug !== item.slug));
@@ -102,7 +103,7 @@ export function CategoryManager({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <p className="text-sm font-semibold text-white">Manage categories & designs</p>
-          <p className="text-xs text-sky-100/70">Add new entries and remove custom ones. Defaults stay protected.</p>
+          <p className="text-xs text-sky-100/70">Add new entries or remove any that you no longer need.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -162,20 +163,18 @@ export function CategoryManager({
           className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
         >
           <span className="font-semibold">{cat.name}</span>
-          {cat.isDefault ? null : (
-            <button
-              type="button"
-              disabled={deleting === cat.id}
-              onClick={() => handleDelete(cat, "category")}
-              className="text-lg text-rose-300 transition hover:text-rose-200 disabled:opacity-60"
-                      aria-label={`Delete category ${cat.name}`}
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
+          <button
+            type="button"
+            disabled={deleting === cat.id}
+            onClick={() => handleDelete(cat, "category")}
+            className="text-lg text-rose-300 transition hover:text-rose-200 disabled:opacity-60"
+            aria-label={`Delete category ${cat.name}`}
+          >
+            🗑️
+          </button>
+        </div>
+      ))
+    )}
           </div>
         </div>
 
@@ -218,20 +217,18 @@ export function CategoryManager({
           className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
         >
           <span className="font-semibold">{theme.name}</span>
-          {theme.isDefault ? null : (
-            <button
-              type="button"
-              disabled={deleting === theme.id}
-              onClick={() => handleDelete(theme, "design")}
-              className="text-lg text-rose-300 transition hover:text-rose-200 disabled:opacity-60"
-                      aria-label={`Delete design ${theme.name}`}
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
+          <button
+            type="button"
+            disabled={deleting === theme.id}
+            onClick={() => handleDelete(theme, "design")}
+            className="text-lg text-rose-300 transition hover:text-rose-200 disabled:opacity-60"
+            aria-label={`Delete design ${theme.name}`}
+          >
+            🗑️
+          </button>
+        </div>
+      ))
+    )}
           </div>
         </div>
       </div>
