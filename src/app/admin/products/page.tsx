@@ -12,7 +12,6 @@ import {
   type AdminProduct,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
-import { CategoryManager } from "./components/CategoryManager";
 
 type Toast = { type: "success" | "error"; message: string };
 
@@ -113,8 +112,7 @@ export default function AdminProductsPage() {
     async (values: ProductFormValues) => {
       setSaving(true);
       setError(null);
-      const designTheme =
-        values.designTheme === "custom" ? values.designThemeCustom.trim() || "custom" : values.designTheme;
+      const designTheme = values.designTheme || "basic";
       const payload: any = {
         name: values.name.trim(),
         slug: slugify(values.name),
@@ -185,19 +183,14 @@ export default function AdminProductsPage() {
   const startEdit = useCallback((product: AdminProduct) => {
     setEditingId(product.id);
     
-    // Check if designTheme is a custom value (not in fixed list)
-    const fixedThemes = ["basic", "cars", "anime", "nature", "harry-potter"];
-    const productTheme = product.designTheme || "basic";
-    const isCustomTheme = !fixedThemes.includes(productTheme.toLowerCase());
-    
     setFormInitial({
       name: product.name,
       description: product.description ?? "",
       basePrice: product.basePrice?.toString() ?? "",
       discountPercent: product.discountPercent?.toString() ?? "0",
       category: product.category,
-      designTheme: isCustomTheme ? "custom" : productTheme,
-      designThemeCustom: isCustomTheme ? productTheme : "",
+      designTheme: product.designTheme || "basic",
+      designThemeCustom: "",
       stock: product.stock?.toString() ?? "",
       inStock: product.inStock,
       sizes: product.sizes,
@@ -362,11 +355,10 @@ export default function AdminProductsPage() {
             cloudinaryConfigured={cloudinaryConfigured}
             cloudinaryMissing={cloudinaryMissing}
             onSubmit={handleSubmit}
-            onUploadImage={handleUploadImage}
-            onCancelEdit={resetForm}
-          />
-          <CategoryManager />
-        </section>
+          onUploadImage={handleUploadImage}
+          onCancelEdit={resetForm}
+        />
+      </section>
       </div>
     </div>
   );

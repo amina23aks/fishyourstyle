@@ -153,7 +153,6 @@ export function ProductForm({
     { slug: "anime", name: "Anime", isDefault: true },
     { slug: "nature", name: "Nature", isDefault: true },
     { slug: "harry-potter", name: "Harry Potter", isDefault: true },
-    { slug: "custom", name: "Custom", isDefault: true },
   ];
 
   const [categories, setCategories] = useState<Selectable[]>(() => {
@@ -413,10 +412,11 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2 text-sm text-sky-100/90">
-              <span className="font-semibold text-white">Category</span>
+          <span className="font-semibold text-white">Category</span>
           <div className="flex flex-wrap items-center gap-2">
             {categories.map((cat) => {
               const isCustom = !cat.isDefault && cat.id;
+              const isSelected = values.category === cat.slug;
               const key = cat.id ? `cat-${cat.id}` : `default-${cat.slug}`;
               return (
                 <span key={key} className="relative inline-flex items-center gap-1 mr-1 mb-2">
@@ -427,7 +427,7 @@ export function ProductForm({
                 >
                   {cat.name}
                   </button>
-                  {isCustom && (
+                  {isCustom && isSelected && (
                     <button
                       type="button"
                       title="Delete category"
@@ -543,11 +543,11 @@ export function ProductForm({
 
         <div className="space-y-2 text-sm text-sky-100/90">
           <span className="font-semibold text-white">Design theme</span>
+
           <div className="flex flex-wrap items-center gap-2">
             {designThemes.map((theme) => {
-              const active = values.designTheme === theme.slug || (theme.slug === "custom" && values.designTheme === "custom");
-              const isDefault = ["basic", "cars", "anime", "nature", "harry-potter", "custom"].includes(theme.slug);
-              const isCustom = !isDefault && theme.id;
+              const active = values.designTheme === theme.slug;
+              const isCustom = !theme.isDefault && theme.id;
               const key = theme.id ? `design-${theme.id}` : `default-${theme.slug}`;
               return (
                 <span key={key} className="relative inline-flex items-center gap-1 mr-1 mb-2">
@@ -555,14 +555,12 @@ export function ProductForm({
                   type="button"
                     onClick={() => setValues((prev) => ({
                       ...prev,
-                      designTheme: theme.slug === "custom" ? "custom" : theme.slug,
-                      designThemeCustom: theme.slug === "custom" ? prev.designThemeCustom : "",
+                      designTheme: theme.slug,
                     }))}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active ? "border-white bg-white text-slate-900" : "border-white/20 bg-white/5 text-white/80"}`}
                 >
-                  {theme.slug === "custom" ? "Custom" : capitalize(theme.name)}
+                  {capitalize(theme.name)}
                   </button>
-                  {isCustom && (
+                  {isCustom && active && (
                     <button
                       type="button"
                       className="ml-0.5 text-white/70 hover:text-rose-400 cursor-pointer p-0 bg-transparent border-none"
@@ -590,15 +588,17 @@ export function ProductForm({
                 </span>
               );
             })}
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewDesign((prev) => !prev);
+                setNewDesignName("");
+              }}
+              className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10"
+            >
+              + Add design
+            </button>
           </div>
-          {values.designTheme === "custom" ? (
-            <input
-              value={values.designThemeCustom}
-              onChange={(e) => setValues((prev) => ({ ...prev, designThemeCustom: e.target.value }))}
-              placeholder="Type your theme"
-              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-            />
-          ) : null}
           {showNewDesign && (
             <div className="flex flex-wrap gap-2">
               <input
