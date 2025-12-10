@@ -155,22 +155,11 @@ export function ProductForm({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const defaultDesigns: SelectableOption[] = useMemo(
-    () => [
-      { slug: "basic", name: "Basic", isDefault: true },
-      { slug: "cars", name: "Cars", isDefault: true },
-      { slug: "anime", name: "Anime", isDefault: true },
-      { slug: "nature", name: "Nature", isDefault: true },
-      { slug: "harry-potter", name: "Harry Potter", isDefault: true },
-    ],
-    [],
-  );
-
   const [designThemeOptions, setDesignThemeOptions] = useState<SelectableOption[]>(() => {
     const initial = initialValues?.designTheme
       ? [{ slug: initialValues.designTheme, name: capitalize(initialValues.designTheme) }]
       : [];
-    return mergeSelectables(defaultDesigns, mergeSelectables(initialValues?.designTheme ? initial : [], designThemes));
+    return mergeSelectables(designThemes, initialValues?.designTheme ? initial : []);
   });
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newDesignName, setNewDesignName] = useState("");
@@ -179,11 +168,10 @@ export function ProductForm({
 
   const syncDesignThemes = useCallback(
     (next: SelectableOption[]) => {
-      const merged = mergeSelectables(defaultDesigns, next);
-      setDesignThemeOptions(merged);
-      onDesignThemesChange(merged);
+      setDesignThemeOptions(next);
+      onDesignThemesChange(next);
     },
-    [defaultDesigns, onDesignThemesChange],
+    [onDesignThemesChange],
   );
 
   useEffect(() => {
@@ -195,8 +183,10 @@ export function ProductForm({
   }, [initialValues]);
 
   useEffect(() => {
-    // If a custom category or design is removed, fall back to the first available option (defaults stay present)
-    // to avoid saving products with orphaned slugs.
+    if (!values.category && categories.length > 0) {
+      setValues((prev) => ({ ...prev, category: prev.category || categories[0]?.slug || defaultValues.category }));
+      return;
+    }
     if (!categories.some((cat) => cat.slug === values.category)) {
       const fallback = categories[0]?.slug ?? defaultValues.category;
       setValues((prev) => ({ ...prev, category: fallback }));
@@ -204,10 +194,15 @@ export function ProductForm({
   }, [categories, values.category]);
 
   useEffect(() => {
-    if (!designThemeOptions.some((theme) => theme.slug === values.designTheme)) {
-      setValues((prev) => ({ ...prev, designTheme: designThemeOptions[0]?.slug ?? "basic" }));
+    const initial = values.designTheme
+      ? [{ slug: values.designTheme, name: capitalize(values.designTheme), isDefault: false }]
+      : [];
+    const merged = mergeSelectables(designThemes, initial);
+    setDesignThemeOptions(merged);
+    if (!merged.some((theme) => theme.slug === values.designTheme)) {
+      setValues((prev) => ({ ...prev, designTheme: merged[0]?.slug ?? "basic" }));
     }
-  }, [designThemeOptions, values.designTheme]);
+  }, [designThemes, values.designTheme]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -257,14 +252,6 @@ export function ProductForm({
     const discount = Number(values.discountPercent || "");
     return getDiscountPreview(Number.isFinite(base) ? base : null, Number.isFinite(discount) ? discount : null);
   }, [values.basePrice, values.discountPercent]);
-
-  useEffect(() => {
-    const merged = mergeSelectables(
-      defaultDesigns,
-      mergeSelectables(designThemes, values.designTheme ? [{ slug: values.designTheme, name: capitalize(values.designTheme) }] : []),
-    );
-    setDesignThemeOptions(merged);
-  }, [defaultDesigns, designThemes, values.designTheme]);
 
   const handleAddCategory = async () => {
     const trimmed = newCategoryName.trim();

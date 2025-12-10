@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import type { Category } from "@/lib/categories";
+import { DEFAULT_CATEGORY_OPTIONS, DEFAULT_DESIGN_OPTIONS } from "@/lib/categories";
 import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
@@ -24,19 +25,8 @@ const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 const cloudinaryConfigured = Boolean(cloudName && uploadPreset);
 const cloudinaryMissing = !cloudName && !uploadPreset;
 const allowedSizes = ["S", "M", "L", "XL"] as const;
-const builtInCategories: SelectableOption[] = [
-  { slug: "hoodies", name: "Hoodies", isDefault: true },
-  { slug: "pants", name: "Pants", isDefault: true },
-  { slug: "ensembles", name: "Ensembles", isDefault: true },
-  { slug: "tshirts", name: "Tshirts", isDefault: true },
-];
-const builtInDesignThemes: SelectableOption[] = [
-  { slug: "basic", name: "Basic", isDefault: true },
-  { slug: "cars", name: "Cars", isDefault: true },
-  { slug: "anime", name: "Anime", isDefault: true },
-  { slug: "nature", name: "Nature", isDefault: true },
-  { slug: "harry-potter", name: "Harry Potter", isDefault: true },
-];
+const builtInCategories: SelectableOption[] = [...DEFAULT_CATEGORY_OPTIONS];
+const builtInDesignThemes: SelectableOption[] = [...DEFAULT_DESIGN_OPTIONS];
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -101,7 +91,7 @@ export default function AdminProductsPage() {
       setCategories(mergeBySlug(builtInCategories, mapped));
     } catch (err) {
       console.error("Failed to load categories", err);
-      setCategories([...builtInCategories]);
+      setCategories((prev) => mergeBySlug(builtInCategories, prev));
     } finally {
       setLoadingCategories(false);
     }
@@ -118,7 +108,7 @@ export default function AdminProductsPage() {
       setDesignThemes(mergeBySlug(builtInDesignThemes, mapped));
     } catch (err) {
       console.error("Failed to load design themes", err);
-      setDesignThemes([...builtInDesignThemes]);
+      setDesignThemes((prev) => mergeBySlug(builtInDesignThemes, prev));
     } finally {
       setLoadingDesignThemes(false);
     }

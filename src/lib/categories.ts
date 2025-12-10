@@ -12,101 +12,61 @@ export type Category = {
   updatedAt: Timestamp;
 };
 
+const DEFAULT_ENTRIES: Array<{
+  id: string;
+  name: string;
+  slug: string;
+  type: "category" | "design";
+}> = [
+  { id: "hoodies", name: "Hoodies", slug: "hoodies", type: "category" },
+  { id: "pants", name: "Pants", slug: "pants", type: "category" },
+  { id: "ensembles", name: "Ensembles", slug: "ensembles", type: "category" },
+  { id: "tshirts", name: "Tshirts", slug: "tshirts", type: "category" },
+  { id: "basic", name: "Basic", slug: "basic", type: "design" },
+  { id: "cars", name: "Cars", slug: "cars", type: "design" },
+  { id: "anime", name: "Anime", slug: "anime", type: "design" },
+  { id: "nature", name: "Nature", slug: "nature", type: "design" },
+  { id: "harry-potter", name: "Harry Potter", slug: "harry-potter", type: "design" },
+];
+
+export const DEFAULT_CATEGORY_OPTIONS = DEFAULT_ENTRIES.filter((item) => item.type === "category").map((item) => ({
+  id: item.id,
+  name: item.name,
+  slug: item.slug,
+  isDefault: true,
+  type: item.type,
+}));
+
+export const DEFAULT_DESIGN_OPTIONS = DEFAULT_ENTRIES.filter((item) => item.type === "design").map((item) => ({
+  id: item.id,
+  name: item.name,
+  slug: item.slug,
+  isDefault: true,
+  type: item.type,
+}));
+
 function normalizeCategory(data: DocumentData, id: string): Category {
+  const slug = typeof data.slug === "string" ? data.slug : "";
+  const isDefault = DEFAULT_ENTRIES.some((entry) => entry.slug === slug);
   return {
     id,
     name: typeof data.name === "string" ? data.name : "",
-    slug: typeof data.slug === "string" ? data.slug : "",
+    slug,
     type: data.type === "design" ? "design" : "category",
+    isDefault,
     createdAt: (data.createdAt as Timestamp) ?? serverTimestamp(),
     updatedAt: (data.updatedAt as Timestamp) ?? serverTimestamp(),
   };
 }
 
 function fallbackCategories(type?: "category" | "design"): Category[] {
-  const base: Category[] = [
-    {
-      id: "hoodies",
-      name: "Hoodies",
-      slug: "hoodies",
-      type: "category",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-    {
-      id: "pants",
-      name: "Pants",
-      slug: "pants",
-      type: "category",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-    {
-      id: "ensembles",
-      name: "Ensembles",
-      slug: "ensembles",
-      type: "category",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-    {
-      id: "tshirts",
-      name: "Tshirts",
-      slug: "tshirts",
-      type: "category",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-    {
-      id: "basic",
-      name: "Basic",
-      slug: "basic",
-      type: "design",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-    {
-      id: "cars",
-      name: "Cars",
-      slug: "cars",
-      type: "design",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-    {
-      id: "anime",
-      name: "Anime",
-      slug: "anime",
-      type: "design",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-    {
-      id: "nature",
-      name: "Nature",
-      slug: "nature",
-      type: "design",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-    {
-      id: "harry-potter",
-      name: "Harry Potter",
-      slug: "harry-potter",
-      type: "design",
-      isDefault: true,
-      createdAt: new Date() as unknown as Timestamp,
-      updatedAt: new Date() as unknown as Timestamp,
-    },
-  ];
+  const timestamp = new Date() as unknown as Timestamp;
+  const base: Category[] = DEFAULT_ENTRIES.map((entry) => ({
+    ...entry,
+    isDefault: true,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  }));
 
   if (!type) return base;
   return base.filter((item) => item.type === type);
@@ -134,7 +94,12 @@ export async function fetchAllCategories(type?: "category" | "design"): Promise<
       ? query(categoriesRef, where("type", "==", type), orderBy("name", "asc"))
       : query(categoriesRef, orderBy("name", "asc"));
     const snapshot = await getDocs(baseQuery);
-    return snapshot.docs.map((doc) => normalizeCategory(doc.data(), doc.id));
+    const fetched = snapshot.docs.map((doc) => normalizeCategory(doc.data(), doc.id));
+    const defaults = fallbackCategories(type);
+    const merged = new Map<string, Category>();
+    defaults.forEach((item) => merged.set(item.slug, item));
+    fetched.forEach((item) => merged.set(item.slug, item));
+    return Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     if (isPermissionDenied(error)) {
       console.warn("Firestore permission denied while reading categories; using fallback list.");

@@ -19,7 +19,7 @@ type CategoryManagerProps = {
 const mergeBySlug = (base: SelectableOption[], extra: SelectableOption[]) => {
   const map = new Map<string, SelectableOption>();
   base.forEach((item) => map.set(item.slug, item));
-  extra.forEach((item) => map.set(item.slug, { ...item, isDefault: map.get(item.slug)?.isDefault }));
+  extra.forEach((item) => map.set(item.slug, { ...item, isDefault: map.get(item.slug)?.isDefault ?? item.isDefault }));
   return Array.from(map.values());
 };
 
@@ -76,6 +76,7 @@ export function CategoryManager({
   // automatically fall back to the first available option when editing.
   const handleDelete = async (item: SelectableOption, type: "category" | "design") => {
     if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
+    if (item.isDefault) return;
     const targetId = item.id ?? item.slug;
     setDeleting(targetId);
     try {
@@ -163,15 +164,17 @@ export function CategoryManager({
           className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
         >
           <span className="font-semibold">{cat.name}</span>
-          <button
-            type="button"
-            disabled={deleting === cat.id}
-            onClick={() => handleDelete(cat, "category")}
-            className="text-lg text-rose-300 transition hover:text-rose-200 disabled:opacity-60"
-            aria-label={`Delete category ${cat.name}`}
-          >
-            🗑️
-          </button>
+          {!cat.isDefault ? (
+            <button
+              type="button"
+              disabled={deleting === cat.id}
+              onClick={() => handleDelete(cat, "category")}
+              className="text-lg text-rose-300 transition hover:text-rose-200 disabled:opacity-60"
+              aria-label={`Delete category ${cat.name}`}
+            >
+              🗑️
+            </button>
+          ) : null}
         </div>
       ))
     )}
@@ -217,15 +220,17 @@ export function CategoryManager({
           className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
         >
           <span className="font-semibold">{theme.name}</span>
-          <button
-            type="button"
-            disabled={deleting === theme.id}
-            onClick={() => handleDelete(theme, "design")}
-            className="text-lg text-rose-300 transition hover:text-rose-200 disabled:opacity-60"
-            aria-label={`Delete design ${theme.name}`}
-          >
-            🗑️
-          </button>
+          {!theme.isDefault ? (
+            <button
+              type="button"
+              disabled={deleting === theme.id}
+              onClick={() => handleDelete(theme, "design")}
+              className="text-lg text-rose-300 transition hover:text-rose-200 disabled:opacity-60"
+              aria-label={`Delete design ${theme.name}`}
+            >
+              🗑️
+            </button>
+          ) : null}
         </div>
       ))
     )}
