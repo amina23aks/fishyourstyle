@@ -138,13 +138,13 @@ export function ProductDetailContent({ product }: { product: Product }) {
     (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 lg:px-8 py-6">
-      <div className="flex flex-col lg:flex-row gap-5 items-start">
+    <main className="mx-auto max-w-5xl px-4 lg:px-8 py-8">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
         <div className="flex-1 flex justify-center">
-          <div className="w-full max-w-[340px] min-h-[420px] max-h-[450px] h-full flex items-center">
+          <div className="w-full max-w-[400px] min-h-[550px] max-h-[550px] h-[550px] flex items-center">
             {/* Product image as before, but fixed height */}
             <div className="w-full h-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-              <div className="relative w-full h-full aspect-[4/5]">
+              <div className="relative w-full h-full aspect-[4/5.2]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentImage}
@@ -168,26 +168,26 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
           </div>
         </div>
-        <div className="flex-[1.05] flex flex-col w-full">
-          <div className="flex-1 space-y-2 rounded-2xl border border-white/10 bg-black/40 p-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-4 lg:p-4 lg:self-stretch h-full">
-            <div className="space-y-0.5">
+        <div className="flex-[1.1] flex flex-col h-[550px] max-h-[550px] min-h-[550px] overflow-hidden">
+          <div className="flex-1 space-y-4 rounded-2xl border border-white/10 bg-black/40 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-7 lg:self-stretch h-full overflow-y-auto">
+            <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
-              <p className="text-[13px] font-medium text-white/90 capitalize">{collectionName}</p>
-              <h1 className="text-lg font-semibold text-white sm:text-xl leading-tight">{product.nameFr}</h1>
+              <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
+              <h1 className="text-lg font-semibold text-white sm:text-xl">{product.nameFr}</h1>
               {product.discountPercent && product.discountPercent > 0 ? (
                 <div className="flex items-center gap-2">
-                  <p className="text-lg font-bold text-emerald-200 sm:text-xl">
+                  <p className="text-xl font-bold text-emerald-200 sm:text-2xl">
                     {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0), product.currency)}
                   </p>
                   <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-100">
                     -{product.discountPercent}%
                   </span>
-                  <p className="text-xs font-semibold text-white/60 line-through">
+                  <p className="text-sm font-semibold text-white/60 line-through">
                     {formatPrice(product.priceDzd, product.currency)}
                   </p>
                 </div>
               ) : (
-                <p className="text-lg font-bold text-white sm:text-xl">
+                <p className="text-xl font-bold text-white sm:text-2xl">
                   {formatPrice(product.priceDzd, product.currency)}
                 </p>
               )}
@@ -195,7 +195,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
             <div className="space-y-1">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {colorOptions.map((color) => {
                   const hexValue = swatchHex(color);
                   const label = color.labelFr ?? color.id ?? "Color";
@@ -210,7 +210,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                         setActiveImage(0);
                         setSelectionError(null);
                       }}
-                      size="xs"
+                      size="lg"
                       showLabel={false}
                     />
                   );
@@ -220,7 +220,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
             <div className="space-y-1">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {product.sizes.map((size) => {
                   const isSelected = selectedSize === size;
                   return (
@@ -232,7 +232,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                         setSelectionError(null);
                       }}
                       aria-pressed={isSelected}
-                      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/20 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
                       whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.97 }}
                     >
@@ -244,10 +244,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
 
             {(infoRows.length > 0 || (product.descriptionFr && product.descriptionFr.trim())) && (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
                 {product.descriptionFr && product.descriptionFr.trim() && (
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                  <div className="max-h-[140px] overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5">
                     <p className="text-sm leading-relaxed text-neutral-300 break-words">
                       {product.descriptionFr}
                     </p>
