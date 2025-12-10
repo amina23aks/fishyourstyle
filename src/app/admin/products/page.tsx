@@ -10,6 +10,7 @@ import {
   listAdminProducts,
   updateAdminProduct,
   type AdminProduct,
+  type AdminProductInput,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
@@ -113,7 +114,7 @@ export default function AdminProductsPage() {
       setSaving(true);
       setError(null);
       const designTheme = values.designTheme || "basic";
-      const payload: any = {
+      const payload: AdminProductInput = {
         name: values.name.trim(),
         slug: slugify(values.name),
         basePrice: Number(values.basePrice || 0),
