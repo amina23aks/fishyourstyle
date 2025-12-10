@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy, where, serverTimestamp, type DocumentData, type Timestamp } from "firebase/firestore";
 import { getServerDb } from "./firestore";
 
@@ -84,6 +85,20 @@ function fallbackCategories(type?: "category" | "design"): Category[] {
   return base.filter((item) => item.type === type);
 }
 
+function isPermissionDenied(error: unknown): boolean {
+  return error instanceof FirebaseError && error.code === "permission-denied";
+}
+
+// NOTE FOR OWNER:
+// Public storefront pages need read access to the following Firestore collections:
+//   - products
+//   - categories (type "category" and "design")
+//   - designThemes (if you split designs into their own collection)
+// In production, configure Firestore Security Rules to allow reads for these public collections
+// or adjust the app to require authentication before reading them.
+// Example dev-only rule (do not use in locked-down production):
+// match /products/{id} { allow read: if true; }
+
 export async function fetchAllCategories(type?: "category" | "design"): Promise<Category[]> {
   try {
     const db = getServerDb();
@@ -94,7 +109,11 @@ export async function fetchAllCategories(type?: "category" | "design"): Promise<
     const snapshot = await getDocs(baseQuery);
     return snapshot.docs.map((doc) => normalizeCategory(doc.data(), doc.id));
   } catch (error) {
-    console.error("Failed to fetch categories from Firestore, using fallbacks:", error);
+    if (isPermissionDenied(error)) {
+      console.warn("Firestore permission denied while reading categories; using fallback list.");
+    } else {
+      console.error("Failed to fetch categories from Firestore, using fallbacks:", error);
+    }
     return fallbackCategories(type);
   }
 }

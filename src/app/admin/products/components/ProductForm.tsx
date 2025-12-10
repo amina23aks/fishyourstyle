@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 import type { AdminProductCategory } from "@/lib/admin-products";
-import type { Category } from "@/lib/categories";
 import type { SelectableOption } from "@/types/selectable";
 
 export type ProductFormValues = {
@@ -37,6 +36,9 @@ type ProductFormProps = {
   onUploadImage: (file: File) => Promise<string>;
   onCancelEdit?: () => void;
   categories: SelectableOption[];
+  designThemes: SelectableOption[];
+  onDesignThemesChange: (next: SelectableOption[]) => void;
+  onReloadDesignThemes: () => Promise<void>;
 };
 
 const normalizeColors = (input: unknown): { hex: string }[] => {
@@ -137,6 +139,9 @@ export function ProductForm({
   onUploadImage,
   onCancelEdit,
   categories,
+  designThemes,
+  onDesignThemesChange,
+  onReloadDesignThemes,
 }: ProductFormProps) {
   const [values, setValues] = useState<ProductFormValues>({
     ...defaultValues,
@@ -157,15 +162,23 @@ export function ProductForm({
     [],
   );
 
-  const [designThemes, setDesignThemes] = useState<SelectableOption[]>(() => {
+  const [designThemeOptions, setDesignThemeOptions] = useState<SelectableOption[]>(() => {
     const initial = initialValues?.designTheme
       ? [{ slug: initialValues.designTheme, name: capitalize(initialValues.designTheme) }]
       : [];
-    return mergeSelectables(defaultDesigns, initial);
+    return mergeSelectables(defaultDesigns, mergeSelectables(initialValues?.designTheme ? initial : [], designThemes));
   });
   const [newDesignName, setNewDesignName] = useState("");
   const [showNewDesign, setShowNewDesign] = useState(false);
-  const [designThemesChanged, setDesignThemesChanged] = useState(false);
+
+  const syncDesignThemes = useCallback(
+    (next: SelectableOption[]) => {
+      const merged = mergeSelectables(defaultDesigns, next);
+      setDesignThemeOptions(merged);
+      onDesignThemesChange(merged);
+    },
+    [defaultDesigns, onDesignThemesChange],
+  );
 
   useEffect(() => {
     setValues((prev) => ({
@@ -232,56 +245,15 @@ export function ProductForm({
   }, [values.basePrice, values.discountPercent]);
 
   useEffect(() => {
-    const loadOptions = async () => {
-      try {
-        const fetchedDesigns = await fetch("/api/categories?type=design").then((res) => (res.ok ? res.json() : []));
-        if (Array.isArray(fetchedDesigns)) {
-          const mapped = fetchedDesigns.map((c: Category) => ({ slug: c.slug, name: c.name, id: c.id }));
-          setDesignThemes((prev) => mergeSelectables(defaultDesigns, [...mapped, ...prev]));
-        }
-      } catch (err) {
-        console.error("Failed to load options", err);
-      }
-    };
-    loadOptions();
-  }, [defaultDesigns]);
-
-  const saveDesignThemesToBackend = async () => {
-    try {
-      const updatedDesignThemes = await Promise.all(
-        designThemes.map(async (theme) => {
-          if (theme.isDefault) return theme;
-          if (theme.id) {
-            const res = await fetch(`/api/categories/${theme.id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: capitalize(theme.name), slug: theme.slug }),
-            });
-            if (res.ok) {
-              const { id } = await res.json();
-              return { ...theme, id };
-            }
-          } else {
-            const res = await fetch("/api/categories", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: capitalize(theme.name), slug: theme.slug, type: "design" }),
-            });
-            if (res.ok) {
-              const { id } = await res.json();
-              return { ...theme, id };
-            }
-          }
-          return theme;
-        }),
-      );
-      setDesignThemes(updatedDesignThemes);
-      setValues((prev) => ({ ...prev, designTheme: updatedDesignThemes.find((t) => t.slug === prev.designTheme)?.slug || "basic" }));
-      setDesignThemesChanged(false);
-    } catch (err) {
-      console.error("Failed to save design themes", err);
+    const merged = mergeSelectables(
+      defaultDesigns,
+      mergeSelectables(designThemes, values.designTheme ? [{ slug: values.designTheme, name: capitalize(values.designTheme) }] : []),
+    );
+    setDesignThemeOptions(merged);
+    if (!merged.some((theme) => theme.slug === values.designTheme)) {
+      setValues((prev) => ({ ...prev, designTheme: merged[0]?.slug ?? "basic" }));
     }
-  };
+  }, [defaultDesigns, designThemes, values.designTheme]);
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
@@ -385,7 +357,7 @@ export function ProductForm({
           <span className="font-semibold text-white">Design theme</span>
 
           <div className="flex flex-wrap items-center gap-2">
-            {designThemes.map((theme) => {
+            {designThemeOptions.map((theme) => {
               const active = values.designTheme === theme.slug;
               const isCustom = !theme.isDefault && theme.id;
               const key = theme.id ? `design-${theme.id}` : `default-${theme.slug}`;
@@ -411,11 +383,12 @@ export function ProductForm({
                         if (!confirmed) return;
                         try {
                           await fetch(`/api/categories/${theme.id}`, { method: "DELETE" });
-                        setDesignThemes((prev) => prev.filter((t) => t.slug !== theme.slug));
+                        const next = designThemeOptions.filter((t) => t.slug !== theme.slug);
+                        syncDesignThemes(next);
                         if (values.designTheme === theme.slug) {
                           setValues((prev) => ({ ...prev, designTheme: "basic", designThemeCustom: "" }));
-                          }
-                        setDesignThemesChanged(true);
+                        }
+                        await onReloadDesignThemes();
                         } catch (err) {
                           console.error("Failed to delete design", err);
                         }
@@ -459,11 +432,12 @@ export function ProductForm({
                       });
                       if (res.ok) {
                         const { id } = await res.json();
-                        setDesignThemes((prev) =>
-                          mergeSelectables(prev, [{ slug, name: capitalize(newDesignName), id, isDefault: false }]),
-                        );
+                        const next = mergeSelectables(designThemeOptions, [
+                          { slug, name: capitalize(newDesignName), id, isDefault: false },
+                        ]);
+                        syncDesignThemes(next);
                         setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
-                        setDesignThemesChanged(true);
+                        await onReloadDesignThemes();
                       }
                     } catch (err) {
                       console.error("Failed to add design", err);
@@ -486,11 +460,12 @@ export function ProductForm({
                     });
                     if (res.ok) {
                       const { id } = await res.json();
-                      setDesignThemes((prev) =>
-                        mergeSelectables(prev, [{ slug, name: capitalize(newDesignName), id, isDefault: false }]),
-                      );
+                      const next = mergeSelectables(designThemeOptions, [
+                        { slug, name: capitalize(newDesignName), id, isDefault: false },
+                      ]);
+                      syncDesignThemes(next);
                       setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
-                      setDesignThemesChanged(true);
+                      await onReloadDesignThemes();
                     }
                   } catch (err) {
                     console.error("Failed to add design", err);
@@ -503,18 +478,6 @@ export function ProductForm({
                 Add design
               </button>
             </div>
-          )}
-          {designThemesChanged && (
-            <button
-              type="button"
-              className="ml-3 rounded border border-emerald-400 bg-emerald-400 px-3 py-1.5 text-xs font-semibold text-black hover:bg-emerald-300"
-              onClick={async () => {
-                await saveDesignThemesToBackend();
-                setDesignThemesChanged(false);
-              }}
-            >
-              Save
-            </button>
           )}
         </div>
 

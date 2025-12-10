@@ -139,12 +139,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 lg:px-8 py-8">
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
         <div className="flex-1 flex justify-center">
-          <div className="w-full max-w-[400px] min-h-[550px] max-h-[550px] h-[550px] flex items-center">
+          <div className="w-full max-w-[360px] min-h-[460px] max-h-[480px] h-[480px] flex items-center">
             {/* Product image as before, but fixed height */}
             <div className="w-full h-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-              <div className="relative w-full h-full aspect-[4/5.2]">
+              <div className="relative w-full h-full aspect-[4/5]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentImage}
@@ -168,9 +168,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
           </div>
         </div>
-        <div className="flex-[1.1] flex flex-col max-h-[520px] min-h-[500px] overflow-hidden">
-          <div className="flex-1 space-y-3 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5 lg:self-stretch h-full overflow-y-auto">
-            <div className="space-y-1.5">
+        <div className="flex-[1.05] flex flex-col max-h-[470px] min-h-[450px] overflow-hidden">
+          <div className="flex-1 space-y-2.5 rounded-2xl border border-white/10 bg-black/40 p-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-4 lg:self-stretch h-full overflow-y-auto">
+            <div className="space-y-1">
               <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
               <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
               <h1 className="text-lg font-semibold text-white sm:text-xl">{product.nameFr}</h1>
@@ -210,7 +210,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                         setActiveImage(0);
                         setSelectionError(null);
                       }}
-                      size="sm"
+                      size="xs"
                       showLabel={false}
                     />
                   );
@@ -232,7 +232,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                         setSelectionError(null);
                       }}
                       aria-pressed={isSelected}
-                      className={`rounded-full border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/20 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+                      className={`rounded-full border px-2 py-1 text-[10.5px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/20 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
                       whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.97 }}
                     >

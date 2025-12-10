@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import {
   collection,
   getDocs,
@@ -78,6 +79,10 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
   };
 }
 
+function isPermissionDenied(error: unknown): boolean {
+  return error instanceof FirebaseError && error.code === "permission-denied";
+}
+
 export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]> {
   try {
     const db = getServerDb();
@@ -85,7 +90,11 @@ export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]>
     const snapshot = await getDocs(query(productsRef));
     return snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id));
   } catch (error) {
-    console.error("Failed to fetch storefront products from Firestore, returning empty list:", error);
+    if (isPermissionDenied(error)) {
+      console.warn("Firestore permission denied while reading storefront products; returning empty list.");
+    } else {
+      console.error("Failed to fetch storefront products from Firestore, returning empty list:", error);
+    }
     return [];
   }
 }

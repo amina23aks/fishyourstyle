@@ -30,6 +30,13 @@ const builtInCategories: SelectableOption[] = [
   { slug: "ensembles", name: "Ensembles", isDefault: true },
   { slug: "tshirts", name: "Tshirts", isDefault: true },
 ];
+const builtInDesignThemes: SelectableOption[] = [
+  { slug: "basic", name: "Basic", isDefault: true },
+  { slug: "cars", name: "Cars", isDefault: true },
+  { slug: "anime", name: "Anime", isDefault: true },
+  { slug: "nature", name: "Nature", isDefault: true },
+  { slug: "harry-potter", name: "Harry Potter", isDefault: true },
+];
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -74,7 +81,9 @@ export default function AdminProductsPage() {
   const [formKey, setFormKey] = useState(() => Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>(() => [...builtInCategories]);
+  const [designThemes, setDesignThemes] = useState<SelectableOption[]>(() => [...builtInDesignThemes]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingDesignThemes, setLoadingDesignThemes] = useState(false);
 
   const showToast = useCallback((payload: Toast) => {
     setToast(payload);
@@ -98,6 +107,23 @@ export default function AdminProductsPage() {
     }
   }, []);
 
+  const loadDesignThemes = useCallback(async () => {
+    setLoadingDesignThemes(true);
+    try {
+      const res = await fetch("/api/categories?type=design");
+      const fetched: Category[] = res.ok ? await res.json() : [];
+      const mapped = Array.isArray(fetched)
+        ? fetched.map((cat) => ({ id: cat.id, name: cat.name, slug: cat.slug, isDefault: cat.isDefault }))
+        : [];
+      setDesignThemes(mergeBySlug(builtInDesignThemes, mapped));
+    } catch (err) {
+      console.error("Failed to load design themes", err);
+      setDesignThemes([...builtInDesignThemes]);
+    } finally {
+      setLoadingDesignThemes(false);
+    }
+  }, []);
+
   const loadProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -115,7 +141,8 @@ export default function AdminProductsPage() {
   useEffect(() => {
     loadProducts();
     loadCategories();
-  }, [loadCategories, loadProducts]);
+    loadDesignThemes();
+  }, [loadCategories, loadDesignThemes, loadProducts]);
 
   const handleUploadImage = useCallback(
     async (file: File) => {
@@ -401,14 +428,21 @@ export default function AdminProductsPage() {
             onUploadImage={handleUploadImage}
             onCancelEdit={resetForm}
             categories={categories}
+            designThemes={designThemes}
+            onDesignThemesChange={setDesignThemes}
+            onReloadDesignThemes={loadDesignThemes}
           />
         </section>
       </div>
       <CategoryManager
         categories={categories}
+        designThemes={designThemes}
         onCategoriesChange={setCategories}
-        onReload={loadCategories}
-        loading={loadingCategories}
+        onDesignThemesChange={setDesignThemes}
+        onReloadCategories={loadCategories}
+        onReloadDesignThemes={loadDesignThemes}
+        loadingCategories={loadingCategories}
+        loadingDesignThemes={loadingDesignThemes}
       />
     </div>
   );

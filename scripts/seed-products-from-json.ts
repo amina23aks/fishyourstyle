@@ -1,11 +1,12 @@
 /**
  * One-time seeding script to push legacy JSON products into Firestore.
- * Use for initial migration only; do not run on every deploy.
+ * Use for initial migration only; do not run on every deploy or inside Vercel builds.
+ * Requires FIREBASE_* environment variables (same as the app) and a local Firebase project with write access.
  *
- * Run with:
- *   ts-node scripts/seed-products-from-json.ts
- * or via npm:
+ * Run locally with:
  *   npm run seed:products
+ * or:
+ *   ts-node scripts/seed-products-from-json.ts
  */
 
 import { readFile } from "fs/promises";
