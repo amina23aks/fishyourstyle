@@ -22,9 +22,10 @@ const cloudinaryMissing = !cloudName && !uploadPreset;
 
 const defaultForm: ProductFormValues = {
   name: "",
+  description: "",
   basePrice: "",
   discountPercent: "0",
-  category: "hoodies",
+  category: "", // Will be set from categories list
   designTheme: "basic",
   designThemeCustom: "",
   stock: "",
@@ -113,7 +114,7 @@ export default function AdminProductsPage() {
       setError(null);
       const designTheme =
         values.designTheme === "custom" ? values.designThemeCustom.trim() || "custom" : values.designTheme;
-      const payload = {
+      const payload: any = {
         name: values.name.trim(),
         slug: slugify(values.name),
         basePrice: Number(values.basePrice || 0),
@@ -126,8 +127,17 @@ export default function AdminProductsPage() {
         stock: Number(values.stock || 0),
         images: values.images,
         inStock: values.inStock,
-        gender: values.gender || undefined,
       };
+      
+      // Only include description if it's explicitly set (not empty string)
+      if (values.description && values.description.trim() !== "") {
+        payload.description = values.description.trim();
+      }
+      
+      // Only include gender if it's explicitly set (not empty string)
+      if (values.gender && values.gender.trim() !== "") {
+        payload.gender = values.gender.trim().toLowerCase();
+      }
 
       try {
         if (editingId) {
@@ -173,13 +183,20 @@ export default function AdminProductsPage() {
 
   const startEdit = useCallback((product: AdminProduct) => {
     setEditingId(product.id);
+    
+    // Check if designTheme is a custom value (not in fixed list)
+    const fixedThemes = ["basic", "cars", "anime", "nature", "harry-potter"];
+    const productTheme = product.designTheme || "basic";
+    const isCustomTheme = !fixedThemes.includes(productTheme.toLowerCase());
+    
     setFormInitial({
       name: product.name,
+      description: product.description ?? "",
       basePrice: product.basePrice?.toString() ?? "",
       discountPercent: product.discountPercent?.toString() ?? "0",
       category: product.category,
-      designTheme: product.designTheme || "basic",
-      designThemeCustom: "",
+      designTheme: isCustomTheme ? "custom" : productTheme,
+      designThemeCustom: isCustomTheme ? productTheme : "",
       stock: product.stock?.toString() ?? "",
       inStock: product.inStock,
       sizes: product.sizes,

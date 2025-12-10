@@ -1,12 +1,43 @@
-"use client";
-
-import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import Hero from "@/components/Hero";
-import { logPageView } from "@/lib/firebaseAnalytics";
-import { ProductCard } from "./shop/product-card";
-import { getAllProducts } from "@/lib/products";
-import { Product } from "@/types/product";
+import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
+import type { Product } from "@/types/product";
+import HomeClient from "./home-client";
+
+export const revalidate = 3600;
+
+function mapStorefrontToProduct(sp: StorefrontProduct): Product {
+  const mainImage = sp.images?.[0] ?? "/placeholder.png";
+  const gallery = sp.images?.slice(1) ?? [];
+  return {
+    id: sp.id,
+    slug: sp.slug,
+    nameFr: sp.name,
+    nameAr: sp.name,
+    category: sp.category as any,
+    kind: sp.category,
+    fit: "regular",
+    priceDzd: sp.finalPrice ?? sp.basePrice,
+    currency: "DZD",
+    gender: sp.gender ?? "",
+    sizes: sp.sizes ?? [],
+    colors: (sp.colors ?? []).map((hex) => ({
+      id: hex,
+      labelFr: hex,
+      labelAr: hex,
+      image: mainImage,
+    })),
+    images: { main: mainImage, gallery },
+    descriptionFr: sp.description ?? "",
+    descriptionAr: sp.description ?? "",
+    status: "active",
+    designTheme: sp.designTheme,
+    tags: sp.tags ?? [],
+    discountPercent: sp.discountPercent ?? 0,
+    stock: sp.stock ?? 0,
+    inStock: sp.inStock ?? false,
+  } as Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean };
+}
 
 const reasons = [
   {
@@ -23,30 +54,13 @@ const reasons = [
   },
 ];
 
-export default function Home() {
-  useEffect(() => {
-    logPageView("home");
-  }, []);
-
-  const products = useMemo(() => {
-    // Home Shop preview changes: surface 2 of each key category so the preview feels balanced
-    const all = getAllProducts();
-    const pick = (category: Product["category"], count: number) =>
-      all.filter((item) => item.category === category).slice(0, count);
-
-    const curated = [
-      ...pick("hoodies", 2),
-      ...pick("pants", 2),
-      ...pick("ensembles", 2),
-    ];
-
-    if (curated.length < 6) {
-      const remaining = all.filter((product) => !curated.includes(product));
-      curated.push(...remaining.slice(0, 6 - curated.length));
-    }
-
-    return curated;
-  }, []);
+export default async function Home() {
+  const storefrontProducts = await fetchAllStorefrontProducts().catch((error) => {
+    console.error("Failed to fetch products:", error);
+    return [];
+  });
+  const allProducts = storefrontProducts.map(mapStorefrontToProduct);
+  const products = allProducts.slice(0, 8);
 
   return (
     <div className="flex w-full flex-col gap-12">
@@ -62,13 +76,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="overflow-x-auto pb-2">
-            <div className="grid min-w-full grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
+          <HomeClient products={products} />
 
           <div className="flex w-full justify-center pt-2">
             <Link

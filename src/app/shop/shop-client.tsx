@@ -5,16 +5,18 @@ import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 
-const collectionPills = [
-  { label: "All", value: "all" },
+type ShopClientProps = {
+  products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];
+};
+
+const DEFAULT_COLLECTION_FILTERS = [
   { label: "Hoodies", value: "hoodies" },
   { label: "Pants", value: "pants" },
   { label: "Ensembles", value: "ensembles" },
   { label: "Tshirts", value: "tshirts" },
 ] as const;
 
-const designPills = [
-  { label: "All", value: "all" },
+const DEFAULT_DESIGN_FILTERS = [
   { label: "Cars", value: "cars" },
   { label: "Nature", value: "nature" },
   { label: "Anime", value: "anime" },
@@ -22,12 +24,55 @@ const designPills = [
   { label: "Basic", value: "basic" },
 ] as const;
 
-type Props = { products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number })[] };
+function capitalizeLabel(value: string | undefined | null): string {
+  if (!value) return "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
-export default function ShopClient({ products }: Props) {
-  const [collectionFilter, setCollectionFilter] = useState<(typeof collectionPills)[number]["value"]>("all");
-  const [designFilter, setDesignFilter] = useState<(typeof designPills)[number]["value"]>("all");
+export default function ShopClient({ products }: ShopClientProps) {
+  const [collectionFilter, setCollectionFilter] = useState<string>("all");
+  const [designFilter, setDesignFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+
+  const collectionValues = useMemo(() => {
+    const dynamic = Array.from(
+      new Set(
+        (products ?? [])
+          .map((p) => p.category)
+          .filter(Boolean)
+          .map((value) => (typeof value === "string" ? value : String(value))),
+      ),
+    );
+    const dynamicPills = dynamic
+      .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val))
+      .map((val) => ({ label: capitalizeLabel(val), value: val }));
+    const allPill = { label: "All", value: "all" as const };
+    return [allPill, ...DEFAULT_COLLECTION_FILTERS, ...dynamicPills];
+  }, [products]);
+
+  const designValues = useMemo(() => {
+    const dynamic = Array.from(
+      new Set(
+        (products ?? [])
+          .map((p) => p.designTheme)
+          .filter(Boolean)
+          .map((value) => (typeof value === "string" ? value : String(value))),
+      ),
+    );
+    const dynamicPills = dynamic
+      .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val))
+      .map((val) => ({ label: capitalizeLabel(val), value: val }));
+    const allPill = { label: "All", value: "all" as const };
+    return [allPill, ...DEFAULT_DESIGN_FILTERS, ...dynamicPills];
+  }, [products]);
+
+  const collectionPills = useMemo(() => {
+    return collectionValues;
+  }, [collectionValues]);
+
+  const allDesignPills = useMemo(() => {
+    return designValues;
+  }, [designValues]);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -56,9 +101,9 @@ export default function ShopClient({ products }: Props) {
         </div>
 
         <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/40">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.25em] text-neutral-300">Collections</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-100">Collections</p>
               <div className="flex flex-wrap gap-2">
                 {collectionPills.map((pill) => {
                   const active = collectionFilter === pill.value;
@@ -81,9 +126,9 @@ export default function ShopClient({ products }: Props) {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.25em] text-neutral-300">Design</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-100">Design</p>
               <div className="flex flex-wrap gap-2">
-                {designPills.map((pill) => {
+                {allDesignPills.map((pill) => {
                   const active = designFilter === pill.value;
                   return (
                     <button
@@ -105,12 +150,12 @@ export default function ShopClient({ products }: Props) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs uppercase tracking-[0.25em] text-neutral-300">Search</label>
+            <label className="text-xs uppercase tracking-[0.25em] text-slate-100">Search</label>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher par nom ou tag…"
-              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 placeholder:text-slate-300 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
           </div>
         </div>
@@ -125,7 +170,7 @@ export default function ShopClient({ products }: Props) {
             transition: { staggerChildren: 0.08 },
           },
         }}
-        className="grid grid-cols-2 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        className="mt-10 grid grid-cols-1 gap-8 md:gap-10 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr"
       >
         {filteredProducts.map((product) => (
           <motion.div

@@ -1,7 +1,5 @@
-import { motion } from "@/lib/motion";
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
-import { ProductCard } from "./product-card";
 import ShopClient from "./shop-client";
 
 export const revalidate = 3600;
@@ -19,7 +17,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     fit: "regular",
     priceDzd: sp.finalPrice ?? sp.basePrice,
     currency: "DZD",
-    gender: sp.gender ?? "unisex",
+    gender: sp.gender ?? "", // Don't default to "unisex" - empty string means not set
     sizes: sp.sizes ?? [],
     colors: (sp.colors ?? []).map((hex) => ({
       id: hex,
@@ -35,11 +33,19 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     designTheme: sp.designTheme,
     tags: sp.tags ?? [],
     discountPercent: sp.discountPercent ?? 0,
-  } as Product & { designTheme?: string; tags?: string[]; discountPercent?: number };
+    stock: sp.stock ?? 0,
+    inStock: sp.inStock ?? false,
+  } as Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean };
 }
 
 export default async function ShopPage() {
-  const storefrontProducts = await fetchAllStorefrontProducts();
+  let storefrontProducts: StorefrontProduct[] = [];
+  try {
+    storefrontProducts = await fetchAllStorefrontProducts();
+  } catch (error) {
+    console.error("Failed to fetch products:", error);
+  }
+
   const products = storefrontProducts.map(mapStorefrontToProduct);
 
   return (

@@ -8,7 +8,7 @@ import {
   type QueryConstraint
 } from "firebase/firestore";
 
-import { getDb } from "./firebaseClient";
+import { getServerDb } from "./firestore";
 
 export type StorefrontProduct = {
   id: string;
@@ -18,7 +18,7 @@ export type StorefrontProduct = {
   basePrice: number;
   discountPercent: number;
   finalPrice: number;
-  category: "hoodies" | "pants" | "ensembles" | "tshirts";
+  category: string;
   designTheme: string;
   sizes: string[];
   colors: string[];
@@ -50,6 +50,13 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
 
   const imagesArray = Array.isArray(data.images) ? (data.images as string[]).filter(Boolean) : [];
 
+  const validGenders: (StorefrontProduct["gender"])[] = ["unisex", "men", "women"];
+  const genderValue = data.gender;
+  const gender =
+    typeof genderValue === "string" && validGenders.includes(genderValue as any)
+      ? (genderValue as StorefrontProduct["gender"])
+      : undefined;
+
   return {
     id,
     slug: typeof data.slug === "string" ? data.slug : "",
@@ -58,11 +65,11 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     basePrice,
     discountPercent: Number.isFinite(discountPercent) ? discountPercent : 0,
     finalPrice,
-    category: (data.category as StorefrontProduct["category"]) ?? "tshirts",
+    category: typeof data.category === "string" ? data.category : "tshirts",
     designTheme: typeof data.designTheme === "string" ? data.designTheme : "basic",
     sizes: Array.isArray(data.sizes) ? (data.sizes as string[]) : [],
     colors: colorsArray,
-    gender: typeof data.gender === "string" ? (data.gender as StorefrontProduct["gender"]) : undefined,
+    gender,
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
     inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
     images: imagesArray,
@@ -70,14 +77,14 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
 }
 
 export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]> {
-  const db = getDb(); // the same way as admin-products.ts
+  const db = getServerDb();
   const productsRef = collection(db, "products");
   const snapshot = await getDocs(query(productsRef));
   return snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id));
 }
 
 export async function fetchStorefrontProductBySlug(slug: string): Promise<StorefrontProduct | null> {
-  const db = getDb(); // the same way as admin-products.ts
+  const db = getServerDb();
   const productsRef = collection(db, "products");
   const constraints: QueryConstraint[] = [where("slug", "==", slug), limit(1)];
   const snapshot = await getDocs(query(productsRef, ...constraints));

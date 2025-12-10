@@ -5,6 +5,8 @@ import Link from "next/link";
 import { motion } from "@/lib/motion";
 import PageShell from "@/components/PageShell";
 import { useCart } from "@/context/cart";
+import { ColorDot } from "@/components/ColorDot";
+import { colorCodeToHex } from "@/lib/colorUtils";
 
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
@@ -83,7 +85,10 @@ export default function CartPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-white line-clamp-2">{item.name}</h3>
-                        <p className="text-xs text-sky-200 mt-1">{item.colorName} · {item.size}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-sky-200 mt-1">
+                          <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
+                          <span>{item.size}</span>
+                        </div>
                         <p className="text-xs text-sky-300 mt-1">{formatPrice(item.price)} each</p>
                       </div>
                       <button

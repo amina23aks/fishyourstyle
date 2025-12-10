@@ -42,9 +42,20 @@ const colorSwatchMap: Record<string, string> = {
   beigeclair: "#e5d5b5",
 };
 
-const getSwatchColor = (label: string) => {
-  const key = label.toLowerCase().replace(/\s+/g, "");
-  return colorSwatchMap[key] ?? "#e5e7eb";
+const getSwatchColor = (color: NormalizedColor): string => {
+  // If color is a string (hex), use it directly
+  if (typeof color === "string") {
+    return color;
+  }
+  
+  // If color.id is a hex string, use it
+  if (color.id && /^#([0-9A-F]{3}){1,2}$/i.test(color.id)) {
+    return color.id;
+  }
+  
+  // Otherwise, try to map from label
+  const label = (color as any).labelFr?.toLowerCase().replace(/\s+/g, "") ?? "";
+  return colorSwatchMap[label] ?? color.id ?? "#e5e7eb";
 };
 
 type NormalizedColor =
@@ -249,7 +260,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5 sm:aspect-[5/6] lg:aspect-[5/6.2]">
+          <div className="relative aspect-[3/4] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
             <AnimatePresence>
               <motion.div
                 key={currentImage}
@@ -294,10 +305,21 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
               <div className="absolute left-2.5 right-2.5 top-2.5 flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-white">
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] text-emerald-700 shadow-sm shadow-black/10">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  In stock
-                </span>
+                {(() => {
+                  const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
+                  return (
+                    <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] shadow-sm shadow-black/10 ${
+                      isOutOfStock
+                        ? "bg-red-500/90 text-white"
+                        : "bg-white/90 text-emerald-700"
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        isOutOfStock ? "bg-white" : "bg-emerald-500"
+                      }`} />
+                      {isOutOfStock ? "Out of stock" : "In stock"}
+                    </span>
+                  );
+                })()}
               </div>
 
             {images.length > 1 && (
@@ -357,17 +379,21 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 )}
               </div>
               <div className="flex flex-wrap gap-1">
-                {colorOptions.map((color) => (
-                  <Swatch
-                    key={color.id}
-                    label={(color as any).labelFr}
-                    colorHex={getSwatchColor((color as any).labelFr)}
-                    selected={selectedColor?.id === color.id}
-                    onSelect={() => handleSelectColor(color)}
-                    size="xs"
-                    showLabel={false}
-                  />
-                ))}
+                {colorOptions.slice(0, 3).map((color) => {
+                  const hexValue = getSwatchColor(color);
+                  const label = typeof color === "string" ? color : (color as any).labelFr ?? color.id ?? "Color";
+                  return (
+                    <Swatch
+                      key={color.id}
+                      label={label}
+                      colorHex={hexValue}
+                      selected={selectedColor?.id === color.id}
+                      onSelect={() => handleSelectColor(color)}
+                      size="card"
+                      showLabel={false}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -413,10 +439,18 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             {selectionWarning ?? "\u00a0"}
           </p>
 
-          <AnimatedAddToCartButton
-            onClick={handleAddToCart}
-            className={`w-full justify-center ${isSelectionMissing ? "opacity-80" : ""}`.trim()}
-          />
+          {(() => {
+            const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
+            return (
+              <AnimatedAddToCartButton
+                onClick={handleAddToCart}
+                disabled={isOutOfStock}
+                className={`w-full justify-center ${
+                  isSelectionMissing || isOutOfStock ? "opacity-60 cursor-not-allowed" : ""
+                }`.trim()}
+              />
+            );
+          })()}
         </div>
       </motion.article>
     </>

@@ -1,6 +1,6 @@
 import productsData from "@/data/products.json";
 
-import { Product, ProductCategory } from "@/types/product";
+import { Product } from "@/types/product";
 
 export const products: Product[] = productsData as Product[];
 
@@ -10,6 +10,5 @@ export const getAllProducts = (): Product[] =>
 export const getProductBySlug = (slug: string): Product | undefined =>
   products.find((product) => product.slug === slug);
 
-export const getProductsByCategory = (
-  category: ProductCategory,
-): Product[] => products.filter((product) => product.category === category);
+export const getProductsByCategory = (category: string): Product[] =>
+  products.filter((product) => product.category === category);

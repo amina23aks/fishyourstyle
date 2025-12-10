@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 
 import { useCart, type CartItem } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
+import { ColorDot } from "@/components/ColorDot";
+import { colorCodeToHex } from "@/lib/colorUtils";
 import {
   ECONOMIC_SHIPPING,
   getEconomicShippingByWilaya,
@@ -291,7 +293,10 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="text-sm font-semibold text-white line-clamp-2">{item.name}</p>
-                              <p className="text-xs text-sky-200">{item.colorName} · {item.size}</p>
+                              <div className="flex items-center gap-1.5 text-xs text-sky-200">
+                                <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
+                                <span>{item.size}</span>
+                              </div>
                             </div>
                             <button
                               type="button"

@@ -19,7 +19,7 @@ function mapStorefrontToProduct(sp: Awaited<ReturnType<typeof fetchStorefrontPro
     fit: "regular",
     priceDzd: sp?.finalPrice ?? sp?.basePrice ?? 0,
     currency: "DZD",
-    gender: sp?.gender ?? "unisex",
+    gender: sp?.gender ?? "", // Don't default to "unisex" - empty string means not set
     sizes: sp?.sizes ?? [],
     colors: (sp?.colors ?? []).map((hex) => ({
       id: hex,

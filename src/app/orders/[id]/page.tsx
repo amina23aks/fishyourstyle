@@ -8,6 +8,8 @@ import PageShell from "@/components/PageShell";
 import { ECONOMIC_SHIPPING, getEconomicShippingByWilaya } from "@/data/shipping";
 import { getProductBySlug } from "@/lib/products";
 import type { Order, OrderItem, ShippingInfo } from "@/types/order";
+import { ColorDot } from "@/components/ColorDot";
+import { colorCodeToHex } from "@/lib/colorUtils";
 
 type EditOrderModalProps = {
   order: Order;
@@ -257,9 +259,10 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <p className="text-sm font-semibold text-white truncate">{item.name}</p>
-                        <p className="text-xs text-sky-200">
-                          {item.colorName} · {item.size}
-                        </p>
+                        <div className="flex items-center gap-1.5 text-xs text-sky-200">
+                          <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
+                          <span>{item.size}</span>
+                        </div>
                         <p className="text-xs text-sky-100">
                           {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
                         </p>
@@ -643,9 +646,10 @@ export default function OrderDetailsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-semibold text-white">{item.name}</h3>
-                      <p className="text-sm text-sky-200 mt-1">
-                        {item.colorName} · {item.size}
-                      </p>
+                      <div className="flex items-center gap-1.5 text-sm text-sky-200 mt-1">
+                        <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
+                        <span>{item.size}</span>
+                      </div>
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-sm text-sky-100">Quantity: {item.quantity}</p>
                         <p className="text-sm font-semibold text-white">

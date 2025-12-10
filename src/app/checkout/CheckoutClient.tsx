@@ -6,6 +6,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageShell from "@/components/PageShell";
 import { useCart } from "@/context/cart";
+import { ColorDot } from "@/components/ColorDot";
+import { colorCodeToHex } from "@/lib/colorUtils";
 import {
   ECONOMIC_SHIPPING,
   getEconomicShippingByWilaya,
@@ -476,7 +478,10 @@ export default function CheckoutClient() {
                       </div>
                       <div>
                         <p className="font-medium text-white">{item.name}</p>
-                        <p className="text-sky-200">{item.colorName} · {item.size}</p>
+                        <div className="flex items-center gap-1.5 text-sky-200">
+                          <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
+                          <span>{item.size}</span>
+                        </div>
                       </div>
                     </div>
                     <p className="tabular-nums text-white">

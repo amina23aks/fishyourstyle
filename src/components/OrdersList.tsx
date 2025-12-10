@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
+import { ColorDot } from "@/components/ColorDot";
+import { colorCodeToHex } from "@/lib/colorUtils";
 
 export default function OrdersList() {
   const router = useRouter();
@@ -83,7 +85,7 @@ export default function OrdersList() {
     if (order.items.length === 0) return "Empty order";
     if (order.items.length === 1) {
       const item = order.items[0];
-      return `${item.name} (${item.colorName}, ${item.size}) × ${item.quantity}`;
+      return `${item.name} (${item.size}) × ${item.quantity}`;
     }
     return `${order.items.length} items`;
   };

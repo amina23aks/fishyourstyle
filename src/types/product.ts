@@ -1,12 +1,7 @@
 /**
  * Product categories available in the store.
  */
-export type ProductCategory =
-  | "hoodies"
-  | "pants"
-  | "tshirts"
-  | "sweatshirts"
-  | "ensembles";
+export type ProductCategory = string;
 
 /**
  * Product color variant with bilingual labels and image.
@@ -72,7 +67,7 @@ export type Product = {
   /** Product status - only "active" products are shown */
   status: "active" | "inactive";
   /** Optional design theme for filtering */
-  designTheme?: "basic" | "cars" | "nature" | "anime" | "harry-potter";
+  designTheme?: string;
   /** Optional search tags */
   tags?: string[];
   /** Discount percent (0-100) */

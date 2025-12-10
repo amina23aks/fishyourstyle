@@ -7,6 +7,7 @@ import type { AdminProductCategory } from "@/lib/admin-products";
 
 export type ProductFormValues = {
   name: string;
+  description: string;
   basePrice: string;
   discountPercent: string;
   category: AdminProductCategory;
@@ -53,6 +54,7 @@ const normalizeColors = (input: unknown): { hex: string }[] => {
 
 const defaultValues: ProductFormValues = {
   name: "",
+  description: "",
   basePrice: "",
   discountPercent: "0",
   category: "hoodies",
@@ -71,6 +73,14 @@ const currencyFormatter = new Intl.NumberFormat("fr-DZ", {
   currency: "DZD",
   maximumFractionDigits: 0,
 });
+
+const slugify = (value: string): string =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 
 function clampDiscount(value: number | null) {
   if (value === null || Number.isNaN(value)) return 0;
@@ -119,6 +129,20 @@ export function ProductForm({
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categories, setCategories] = useState<AdminProductCategory[]>(() => {
+    const defaults: AdminProductCategory[] = ["hoodies", "pants", "ensembles", "tshirts"];
+    const initial = initialValues?.category ? [initialValues.category] : [];
+    return Array.from(new Set([...defaults, ...initial]));
+  });
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [designThemes, setDesignThemes] = useState<string[]>(() => {
+    const defaults = ["basic", "cars", "anime", "nature", "custom"];
+    const initial = initialValues?.designTheme ? [initialValues.designTheme] : [];
+    return Array.from(new Set([...defaults, ...initial]));
+  });
+  const [newDesignName, setNewDesignName] = useState("");
+  const [showNewDesign, setShowNewDesign] = useState(false);
 
   useEffect(() => {
     setValues((prev) => ({
@@ -126,6 +150,13 @@ export function ProductForm({
       ...initialValues,
       colors: normalizeColors(initialValues?.colors ?? prev.colors),
     }));
+    if (initialValues?.category) {
+      setCategories((prev) => {
+        const next = new Set(prev);
+        next.add(initialValues.category as AdminProductCategory);
+        return Array.from(next);
+      });
+    }
   }, [initialValues]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -211,6 +242,17 @@ export function ProductForm({
           <span className="text-[11px] text-sky-100/70">Slug preview: {computedSlug || "—"}</span>
         </label>
 
+        <label className="space-y-2 text-sm text-sky-100/90 md:col-span-2">
+          <span className="font-semibold text-white">Description (optional)</span>
+          <textarea
+            value={values.description}
+            onChange={(e) => setValues((prev) => ({ ...prev, description: e.target.value }))}
+            rows={3}
+            className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40 resize-none"
+            placeholder="Enter product description..."
+          />
+        </label>
+
         <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-sky-900/30">
           <label className="space-y-2 text-sm text-sky-100/90">
             <span className="font-semibold text-white">Base price (DZD)</span>
@@ -245,9 +287,10 @@ export function ProductForm({
 
         <div className="space-y-2 text-sm text-sky-100/90">
           <span className="font-semibold text-white">Category</span>
-          <div className="flex flex-wrap gap-2">
-            {(["hoodies", "pants", "ensembles", "tshirts"] as const).map((cat) => {
+          <div className="flex flex-wrap items-center gap-2">
+            {categories.map((cat) => {
               const active = values.category === cat;
+              const isDefault = ["hoodies", "pants", "ensembles", "tshirts"].includes(cat);
               return (
                 <button
                   key={cat}
@@ -258,17 +301,61 @@ export function ProductForm({
                   }`}
                 >
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  {!isDefault && (
+                    <span
+                      className="ml-2 text-[10px] text-slate-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCategories((prev) => prev.filter((c) => c !== cat));
+                        if (values.category === cat) {
+                          setValues((prev) => ({ ...prev, category: "hoodies" }));
+                        }
+                      }}
+                    >
+                      ×
+                    </span>
+                  )}
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewCategory((prev) => !prev);
+                setNewCategoryName("");
+              }}
+              className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10"
+            >
+              + Add category
+            </button>
           </div>
+          {showNewCategory && (
+            <input
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const slug = slugify(newCategoryName);
+                  if (!slug) return;
+                  setCategories((prev) => Array.from(new Set([...prev, slug])));
+                  setValues((prev) => ({ ...prev, category: slug }));
+                  setNewCategoryName("");
+                  setShowNewCategory(false);
+                }
+              }}
+              placeholder="New category name"
+              className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+            />
+          )}
         </div>
 
         <div className="space-y-2 text-sm text-sky-100/90">
           <span className="font-semibold text-white">Design theme</span>
-          <div className="flex flex-wrap gap-2">
-            {["basic", "cars", "anime", "nature", "custom"].map((theme) => {
+          <div className="flex flex-wrap items-center gap-2">
+            {designThemes.map((theme) => {
               const active = values.designTheme === theme || (theme === "custom" && values.designTheme === "custom");
+              const isDefault = ["basic", "cars", "anime", "nature", "custom"].includes(theme);
               return (
                 <button
                   key={theme}
@@ -277,6 +364,7 @@ export function ProductForm({
                     setValues((prev) => ({
                       ...prev,
                       designTheme: theme === "custom" ? "custom" : theme,
+                      designThemeCustom: theme === "custom" ? prev.designThemeCustom : "",
                     }))
                   }
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
@@ -284,9 +372,33 @@ export function ProductForm({
                   }`}
                 >
                   {theme === "custom" ? "Custom" : theme.charAt(0).toUpperCase() + theme.slice(1)}
+                  {!isDefault && (
+                    <span
+                      className="ml-2 text-[10px] text-slate-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDesignThemes((prev) => prev.filter((t) => t !== theme));
+                        if (values.designTheme === theme) {
+                          setValues((prev) => ({ ...prev, designTheme: "basic", designThemeCustom: "" }));
+                        }
+                      }}
+                    >
+                      ×
+                    </span>
+                  )}
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewDesign((prev) => !prev);
+                setNewDesignName("");
+              }}
+              className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10"
+            >
+              + Add design
+            </button>
           </div>
           {values.designTheme === "custom" ? (
             <input
@@ -296,6 +408,41 @@ export function ProductForm({
               className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
             />
           ) : null}
+          {showNewDesign && (
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={newDesignName}
+                onChange={(e) => setNewDesignName(e.target.value)}
+                placeholder="New design name"
+                className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const slug = slugify(newDesignName);
+                    if (!slug) return;
+                    setDesignThemes((prev) => Array.from(new Set([...prev, slug])));
+                    setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
+                    setNewDesignName("");
+                    setShowNewDesign(false);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const slug = slugify(newDesignName);
+                  if (!slug) return;
+                  setDesignThemes((prev) => Array.from(new Set([...prev, slug])));
+                  setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
+                  setNewDesignName("");
+                  setShowNewDesign(false);
+                }}
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15"
+              >
+                Add design
+              </button>
+            </div>
+          )}
         </div>
 
         <label className="space-y-2 text-sm text-sky-100/90">

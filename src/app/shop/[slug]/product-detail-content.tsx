@@ -31,8 +31,19 @@ const buildImageList = (color: NormalizedColor | undefined, fallback: string[]) 
   return uniqueImages.length > 0 ? uniqueImages : fallback;
 };
 
-const swatchHex = (color: NormalizedColor) => {
-  const label = (color as any).labelFr.toLowerCase().replace(/\s+/g, "");
+const swatchHex = (color: NormalizedColor): string => {
+  // If color is a string (hex), use it directly
+  if (typeof color === "string") {
+    return color;
+  }
+  
+  // If color.id is a hex string, use it
+  if (color.id && /^#([0-9A-F]{3}){1,2}$/i.test(color.id)) {
+    return color.id;
+  }
+  
+  // Otherwise, try to map from label
+  const label = (color as any).labelFr?.toLowerCase().replace(/\s+/g, "") ?? "";
   const map: Record<string, string> = {
     noir: "#1f2937",
     black: "#111827",
@@ -50,12 +61,20 @@ const swatchHex = (color: NormalizedColor) => {
     beigeclair: "#e5d5b5",
   };
 
-  return map[label] ?? "#e5e7eb";
+  return map[label] ?? color.id ?? "#e5e7eb";
 };
 
 const sizeLabel = (size: string) => size.toUpperCase();
+const capitalizeLabel = (value: string | undefined | null): string => {
+  if (!value) return "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+};
 
 export function ProductDetailContent({ product }: { product: Product }) {
+  const collectionName =
+    product.designTheme && product.designTheme !== "basic"
+      ? capitalizeLabel(product.designTheme)
+      : capitalizeLabel(product.category);
   const colorOptions = normalizeColors(product.colors);
   const [activeColor, setActiveColor] = useState<NormalizedColor | undefined>(
     colorOptions.length === 1 ? colorOptions[0] : undefined,
@@ -74,7 +93,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
     [activeColor, product.images.gallery, product.images.main],
   );
 
-  const currentImage = imageList[activeImage] ?? product.images.main;
+  // Ensure currentImage always defaults to the first image or placeholder
+  const currentImage = imageList[activeImage] ?? imageList[0] ?? product.images.main ?? "/placeholder.png";
+  
+  // Single image mode: if only one image, show it as full hero without thumbnails
+  const isSingleImage = imageList.length <= 1;
 
   const handleThumbnailSelect = (index: number) => {
     setActiveImage(index);
@@ -112,15 +135,16 @@ export function ProductDetailContent({ product }: { product: Product }) {
     return true;
   };
 
-  const infoRows = product.gender ? [{ label: "Genre", value: product.gender }] : [];
+  // Only show gender if it's explicitly set (not empty string)
+  const infoRows = product.gender && product.gender.trim() !== "" ? [{ label: "Genre", value: product.gender }] : [];
 
   const isSelectionMissing =
     (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[108px_minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start">
-        {imageList.length > 1 && (
+    <main className="mx-auto max-w-6xl px-6 lg:px-8 py-10">
+      <div className={`grid grid-cols-1 items-start gap-10 ${isSingleImage ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]" : "lg:grid-cols-[108px_minmax(0,3fr)_minmax(0,2fr)]"} lg:items-start`}>
+        {!isSingleImage && (
           <div className="hidden lg:flex lg:flex-col lg:gap-3 lg:self-start">
             {imageList.map((image, index) => {
               const isActive = index === activeImage;
@@ -146,8 +170,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
         )}
 
-        <div className="flex flex-col gap-3 lg:gap-4">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+        <div className="flex flex-col gap-3">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)] max-h-[560px]">
             <div className="relative aspect-[4/5.2] w-full sm:aspect-[4/5.4] lg:aspect-[4/5.3]">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -171,7 +195,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
           </div>
 
-          {imageList.length > 1 && (
+          {!isSingleImage && (
             <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:hidden">
               {imageList.map((image, index) => {
                 const isActive = index === activeImage;
@@ -198,9 +222,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
           )}
         </div>
 
-        <div className="flex h-full flex-col justify-between space-y-3 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5 lg:self-stretch">
+        <div className="flex h-full flex-col justify-between space-y-6 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5 lg:self-stretch">
           <div className="space-y-2">
             <p className="text-[11px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
+            <p className="text-sm font-medium text-white/90 capitalize">{collectionName}</p>
             <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.nameFr}</h1>
             {product.discountPercent && product.discountPercent > 0 ? (
               <div className="flex items-center gap-2">
@@ -219,32 +244,36 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 {formatPrice(product.priceDzd, product.currency)}
               </p>
             )}
-            <p className="text-sm leading-relaxed text-neutral-300">{product.descriptionFr}</p>
           </div>
 
           <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
-            <div className="flex flex-wrap gap-2">
-              {colorOptions.map((color) => (
-                <Swatch
-                  key={color.id}
-                  label={(color as any).labelFr}
-                  colorHex={swatchHex(color)}
-                  selected={color.id === activeColor?.id}
-                  onSelect={() => {
-                    setActiveColor(color);
-                    setActiveImage(0);
-                    setSelectionError(null);
-                  }}
-                  size="md"
-                />
-              ))}
+            <div className="flex flex-wrap gap-1.5">
+              {colorOptions.map((color) => {
+                const hexValue = swatchHex(color);
+                const label = typeof color === "string" ? color : (color as any).labelFr ?? color.id ?? "Color";
+                return (
+                  <Swatch
+                    key={color.id}
+                    label={label}
+                    colorHex={hexValue}
+                    selected={color.id === activeColor?.id}
+                    onSelect={() => {
+                      setActiveColor(color);
+                      setActiveImage(0);
+                      setSelectionError(null);
+                    }}
+                    size="lg"
+                    showLabel={false}
+                  />
+                );
+              })}
             </div>
           </div>
 
           <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {product.sizes.map((size) => {
                 const isSelected = selectedSize === size;
                 return (
@@ -256,7 +285,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                       setSelectionError(null);
                     }}
                     aria-pressed={isSelected}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
                     whileHover={{ y: -1 }}
                     whileTap={{ scale: 0.97 }}
                   >
@@ -267,20 +296,31 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
-            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {infoRows.map((row) => (
-                <li
-                  key={row.label}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90"
-                >
-                  <span className="text-white/70">{row.label}</span>
-                  <span className="font-semibold">{row.value}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {(infoRows.length > 0 || (product.descriptionFr && product.descriptionFr.trim())) && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
+              {product.descriptionFr && product.descriptionFr.trim() && (
+                <div className="max-h-[140px] overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5">
+                  <p className="text-sm leading-relaxed text-neutral-300 break-words">
+                    {product.descriptionFr}
+                  </p>
+                </div>
+              )}
+              {infoRows.length > 0 && (
+                <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                  {infoRows.map((row) => (
+                    <li
+                      key={row.label}
+                      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/90"
+                    >
+                      <span className="text-white/70">{row.label}</span>
+                      <span className="font-semibold">{row.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           <p className="min-h-[24px] text-sm text-rose-200" aria-live="polite">
             {selectionError ?? "\u00a0"}

@@ -16,12 +16,13 @@ import {
 
 import { getDb } from "./firebaseClient";
 
-export type AdminProductCategory = "hoodies" | "pants" | "ensembles" | "tshirts";
+export type AdminProductCategory = string;
 
 export type AdminProduct = {
   id: string;
   name: string;
   slug: string;
+  description?: string;
   basePrice: number;
   discountPercent: number;
   finalPrice: number;
@@ -109,6 +110,7 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     id,
     name: typeof data.name === "string" ? data.name : "Untitled product",
     slug: typeof data.slug === "string" && data.slug.length ? data.slug : slugifyName(data.name ?? id),
+    description: typeof data.description === "string" && data.description.trim() ? data.description.trim() : undefined,
     basePrice,
     discountPercent: Number.isFinite(discountPercent) ? discountPercent : 0,
     finalPrice,
@@ -144,6 +146,11 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     updatedAt: serverTimestamp(),
   };
 
+  // Only include description if it's a non-empty string
+  if (input.description && typeof input.description === "string" && input.description.trim()) {
+    payload.description = input.description.trim();
+  }
+
   return payload as WithFieldValue<AdminProductWrite>;
 }
 
@@ -157,6 +164,14 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
     payload.slug = slugifyName(patch.name);
   }
   if (patch.slug !== undefined) payload.slug = slugifyName(patch.slug);
+  if (patch.description !== undefined) {
+    // Only include description if it's a non-empty string, otherwise set to null to remove it
+    if (patch.description && typeof patch.description === "string" && patch.description.trim()) {
+      payload.description = patch.description.trim();
+    } else {
+      payload.description = null;
+    }
+  }
   if (patch.basePrice !== undefined) payload.basePrice = Number(patch.basePrice);
   if (patch.discountPercent !== undefined) payload.discountPercent = Number(patch.discountPercent) || 0;
   if (patch.basePrice !== undefined || patch.discountPercent !== undefined) {
