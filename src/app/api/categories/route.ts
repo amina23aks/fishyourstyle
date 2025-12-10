@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { fetchAllCategories, createCategory } from "@/lib/categories";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const categories = await fetchAllCategories();
+    const { searchParams } = new URL(request.url);
+    const typeParam = searchParams.get("type");
+    const type = typeParam === "design" ? "design" : typeParam === "category" ? "category" : undefined;
+    const categories = await fetchAllCategories(type);
     return NextResponse.json(categories);
   } catch (error) {
     console.error("Failed to fetch categories:", error);
@@ -14,12 +17,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, slug } = body;
+    const { name, slug, type } = body;
     if (!name || !slug) {
       return NextResponse.json({ error: "Name and slug are required" }, { status: 400 });
     }
-    const id = await createCategory(name, slug);
-    return NextResponse.json({ id, name, slug });
+    const id = await createCategory(name, slug, type === "design" ? "design" : "category");
+    return NextResponse.json({ id, name, slug, type: type === "design" ? "design" : "category" });
   } catch (error) {
     console.error("Failed to create category:", error);
     return NextResponse.json({ error: "Failed to create category" }, { status: 500 });

@@ -3,9 +3,13 @@
 import { useMemo, useState } from "react";
 import { ProductCard } from "./shop/product-card";
 import type { Product } from "@/types/product";
+import { DEFAULT_COLLECTION_FILTERS, DEFAULT_DESIGN_FILTERS } from "@/lib/filter-config";
+import type { Category } from "@/lib/categories";
 
 type Props = {
   products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];
+  categories?: Category[];
+  designThemes?: Category[];
 };
 
 function capitalizeLabel(value: string | undefined | null): string {
@@ -13,43 +17,61 @@ function capitalizeLabel(value: string | undefined | null): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export default function HomeClient({ products }: Props) {
+export default function HomeClient({ products, categories, designThemes }: Props) {
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
 
-  const collectionValues = useMemo(
-    () =>
-      Array.from(new Set(products.map((p) => p.category).filter(Boolean))).map((value) =>
-        typeof value === "string" ? value : String(value),
-      ),
-    [products],
-  );
-
-  const designValues = useMemo(
-    () =>
-      Array.from(new Set(products.map((p) => p.designTheme).filter(Boolean))).map((value) =>
-        typeof value === "string" ? value : String(value),
-      ),
-    [products],
-  );
-
   const collectionPills = useMemo(() => {
-    const allPill = { label: "All", value: "all" };
-    const categoryPills = collectionValues.map((value) => ({
-      label: capitalizeLabel(value),
-      value,
-    }));
-    return [allPill, ...categoryPills];
-  }, [collectionValues]);
+    const fetched = (categories ?? []).map((c) => c.slug);
+    const dynamic = Array.from(
+      new Set(
+        (products ?? [])
+          .map((p) => p.category)
+          .filter(Boolean)
+          .map((value) => (typeof value === "string" ? value : String(value))),
+      ),
+    );
+    const dynamicPills = dynamic
+      .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val) && !fetched.includes(val))
+      .map((val) => ({
+        label: capitalizeLabel(val),
+        value: val,
+      }));
+    const fetchedPills = fetched
+      .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val))
+      .map((val) => ({
+        label: capitalizeLabel(val),
+        value: val,
+      }));
+    const allPill = { label: "All", value: "all" as const };
+    return [allPill, ...DEFAULT_COLLECTION_FILTERS, ...fetchedPills, ...dynamicPills];
+  }, [products, categories]);
 
   const designPills = useMemo(() => {
-    const allPill = { label: "All", value: "all" };
-    const themePills = designValues.map((value) => ({
-      label: capitalizeLabel(value),
-      value,
-    }));
-    return [allPill, ...themePills];
-  }, [designValues]);
+    const fetched = (designThemes ?? []).map((c) => c.slug);
+    const dynamic = Array.from(
+      new Set(
+        (products ?? [])
+          .map((p) => p.designTheme)
+          .filter(Boolean)
+          .map((value) => (typeof value === "string" ? value : String(value))),
+      ),
+    );
+    const dynamicPills = dynamic
+      .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val) && !fetched.includes(val))
+      .map((val) => ({
+        label: capitalizeLabel(val),
+        value: val,
+      }));
+    const fetchedPills = fetched
+      .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val))
+      .map((val) => ({
+        label: capitalizeLabel(val),
+        value: val,
+      }));
+    const allPill = { label: "All", value: "all" as const };
+    return [allPill, ...DEFAULT_DESIGN_FILTERS, ...fetchedPills, ...dynamicPills];
+  }, [products, designThemes]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -113,11 +135,17 @@ export default function HomeClient({ products }: Props) {
         </div>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-8 md:gap-10 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr">
-        {filteredProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+      {filteredProducts.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/80">
+          No products in this category yet.
+        </div>
+      ) : (
+        <div className="mt-10 grid grid-cols-1 gap-8 md:gap-10 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr">
+          {filteredProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
     </>
   );
 }

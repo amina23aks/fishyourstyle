@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
+import { fetchAllCategories } from "@/lib/categories";
 
 export const revalidate = 3600;
 
@@ -55,10 +56,24 @@ const reasons = [
 ];
 
 export default async function Home() {
+  let errorMessage: string | null = null;
+  let categories = [];
+  let designThemes = [];
   const storefrontProducts = await fetchAllStorefrontProducts().catch((error) => {
     console.error("Failed to fetch products:", error);
+    errorMessage = "Products are temporarily unavailable.";
     return [];
   });
+  try {
+    categories = await fetchAllCategories("category");
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+  }
+  try {
+    designThemes = await fetchAllCategories("design");
+  } catch (error) {
+    console.error("Failed to fetch design themes:", error);
+  }
   const allProducts = storefrontProducts.map(mapStorefrontToProduct);
   const products = allProducts.slice(0, 8);
 
@@ -76,7 +91,12 @@ export default async function Home() {
             </div>
           </div>
 
-          <HomeClient products={products} />
+          <HomeClient products={products} categories={categories} designThemes={designThemes} />
+          {errorMessage ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
+              {errorMessage}
+            </div>
+          ) : null}
 
           <div className="flex w-full justify-center pt-2">
             <Link

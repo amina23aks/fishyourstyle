@@ -260,47 +260,51 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <div className="relative aspect-[3/4] w-full overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
-            <AnimatePresence>
-              <motion.div
-                key={currentImage}
-                initial={{ opacity: 0.4, scale: 1.02 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.35, easing: "ease" }}
-                className="absolute inset-0"
-              >
-                <Image
-                  src={currentImage}
-                  alt={product.nameFr}
-                  ref={imageRef}
-                  fill
-                  priority={false}
-                  sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                  className="h-full w-full object-cover"
-                />
-              </motion.div>
-              {isHovering && images.length > 1 && (
+          <div className="relative aspect-[3/4] w-full min-h-[270px] overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
+            {currentImage ? (
+              <AnimatePresence>
                 <motion.div
-                  key={`${currentImage}-hover`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  key={currentImage}
+                  initial={{ opacity: 0.4, scale: 1.02 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4, easing: "ease" }}
+                  transition={{ duration: 0.35, easing: "ease" }}
                   className="absolute inset-0"
                 >
-                    <Image
-                      src={nextImage}
-                      alt={product.nameFr}
-                      ref={imageRef}
-                      fill
-                      priority={false}
-                      sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                      className="h-full w-full object-cover"
+                  <Image
+                    src={currentImage}
+                    alt={product.nameFr}
+                    ref={imageRef}
+                    fill
+                    priority={false}
+                    sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                    className="h-full w-full object-cover"
                   />
                 </motion.div>
-              )}
-            </AnimatePresence>
+                {isHovering && images.length > 1 && (
+                  <motion.div
+                    key={`${currentImage}-hover`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, easing: "ease" }}
+                    className="absolute inset-0"
+                  >
+                      <Image
+                        src={nextImage}
+                        alt={product.nameFr}
+                        ref={imageRef}
+                        fill
+                        priority={false}
+                        sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                        className="h-full w-full object-cover"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            ) : (
+              <span className="flex h-full items-center justify-center text-slate-300 bg-white/10 w-full text-sm font-medium">No image</span>
+            )}
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 

@@ -12,6 +12,7 @@ import {
   type AdminProduct,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { CategoryManager } from "./components/CategoryManager";
 
 type Toast = { type: "success" | "error"; message: string };
 
@@ -364,6 +365,7 @@ export default function AdminProductsPage() {
             onUploadImage={handleUploadImage}
             onCancelEdit={resetForm}
           />
+          <CategoryManager />
         </section>
       </div>
     </div>

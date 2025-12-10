@@ -1,10 +1,11 @@
-import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy, serverTimestamp, type DocumentData, type Timestamp } from "firebase/firestore";
+import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy, where, serverTimestamp, type DocumentData, type Timestamp } from "firebase/firestore";
 import { getServerDb } from "./firestore";
 
 export type Category = {
   id: string;
   name: string;
   slug: string;
+  type?: "category" | "design";
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -14,24 +15,29 @@ function normalizeCategory(data: DocumentData, id: string): Category {
     id,
     name: typeof data.name === "string" ? data.name : "",
     slug: typeof data.slug === "string" ? data.slug : "",
+    type: data.type === "design" ? "design" : "category",
     createdAt: (data.createdAt as Timestamp) ?? serverTimestamp(),
     updatedAt: (data.updatedAt as Timestamp) ?? serverTimestamp(),
   };
 }
 
-export async function fetchAllCategories(): Promise<Category[]> {
+export async function fetchAllCategories(type?: "category" | "design"): Promise<Category[]> {
   const db = getServerDb();
   const categoriesRef = collection(db, "categories");
-  const snapshot = await getDocs(query(categoriesRef, orderBy("name", "asc")));
+  const baseQuery = type
+    ? query(categoriesRef, where("type", "==", type), orderBy("name", "asc"))
+    : query(categoriesRef, orderBy("name", "asc"));
+  const snapshot = await getDocs(baseQuery);
   return snapshot.docs.map((doc) => normalizeCategory(doc.data(), doc.id));
 }
 
-export async function createCategory(name: string, slug: string): Promise<string> {
+export async function createCategory(name: string, slug: string, type: "category" | "design" = "category"): Promise<string> {
   const db = getServerDb();
   const categoriesRef = collection(db, "categories");
   const docRef = await addDoc(categoriesRef, {
     name,
     slug,
+    type,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

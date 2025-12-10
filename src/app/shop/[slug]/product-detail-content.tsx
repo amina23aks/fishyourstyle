@@ -142,198 +142,150 @@ export function ProductDetailContent({ product }: { product: Product }) {
     (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 lg:px-8 py-10">
-      <div className={`grid grid-cols-1 items-start gap-10 ${isSingleImage ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]" : "lg:grid-cols-[108px_minmax(0,3fr)_minmax(0,2fr)]"} lg:items-start`}>
-        {!isSingleImage && (
-          <div className="hidden lg:flex lg:flex-col lg:gap-3 lg:self-start">
-            {imageList.map((image, index) => {
-              const isActive = index === activeImage;
-              return (
-                <button
-                  key={image}
-                  type="button"
-                  aria-label={`Voir l'image ${index + 1}`}
-                  onClick={() => handleThumbnailSelect(index)}
-                  className={`group relative aspect-square overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${isActive ? "border-white" : "border-white/10 hover:border-white/40"}`}
-                >
-                  <Image
-                    src={image}
-                    alt={`${product.nameFr} miniature ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="100px"
-                  />
-                  <span className="absolute inset-0 bg-black/20 opacity-0 transition group-hover:opacity-100" aria-hidden />
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-3">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)] max-h-[560px]">
-            <div className="relative aspect-[4/5.2] w-full sm:aspect-[4/5.4] lg:aspect-[4/5.3]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentImage}
-                  initial={{ opacity: 0.5, scale: 1.02 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0.4, scale: 0.98 }}
-                  transition={{ duration: 0.35, easing: "ease" }}
-                  className="absolute inset-0"
-                >
-                  <Image
-                    src={currentImage}
-                    alt={product.nameFr}
-                    fill
-                    ref={imageRef}
-                    className="h-full w-full object-cover"
-                    sizes="(min-width: 1024px) 42vw, 100vw"
-                  />
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {!isSingleImage && (
-            <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:hidden">
-              {imageList.map((image, index) => {
-                const isActive = index === activeImage;
-                return (
-                  <button
-                    key={image}
-                    type="button"
-                    aria-label={`Voir l'image ${index + 1}`}
-                    onClick={() => handleThumbnailSelect(index)}
-                    className={`group relative aspect-square overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${isActive ? "border-white" : "border-white/10 hover:border-white/40"}`}
+    <main className="mx-auto max-w-5xl px-4 lg:px-8 py-8">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <div className="flex-1 flex justify-center">
+          <div className="w-full max-w-[400px] min-h-[550px] max-h-[550px] h-[550px] flex items-center">
+            {/* Product image as before, but fixed height */}
+            <div className="w-full h-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+              <div className="relative w-full h-full aspect-[4/5.2]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentImage}
+                    initial={{ opacity: 0.5, scale: 1.02 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0.4, scale: 0.98 }}
+                    transition={{ duration: 0.35, easing: "ease" }}
+                    className="absolute inset-0"
                   >
                     <Image
-                      src={image}
-                      alt={`${product.nameFr} miniature ${index + 1}`}
+                      src={currentImage}
+                      alt={product.nameFr}
                       fill
-                      className="object-cover"
-                      sizes="100px"
+                      ref={imageRef}
+                      className="object-cover h-full"
+                      sizes="(min-width: 1024px) 42vw, 100vw"
                     />
-                    <span className="absolute inset-0 bg-black/20 opacity-0 transition group-hover:opacity-100" aria-hidden />
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="flex h-full flex-col justify-between space-y-6 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5 lg:self-stretch">
-          <div className="space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
-            <p className="text-sm font-medium text-white/90 capitalize">{collectionName}</p>
-            <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.nameFr}</h1>
-            {product.discountPercent && product.discountPercent > 0 ? (
-              <div className="flex items-center gap-2">
-                <p className="text-xl font-bold text-emerald-200 sm:text-2xl">
-                  {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0), product.currency)}
-                </p>
-                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-100">
-                  -{product.discountPercent}%
-                </span>
-                <p className="text-sm font-semibold text-white/60 line-through">
-                  {formatPrice(product.priceDzd, product.currency)}
-                </p>
+                  </motion.div>
+                </AnimatePresence>
               </div>
-            ) : (
-              <p className="text-xl font-bold text-white sm:text-2xl">
-                {formatPrice(product.priceDzd, product.currency)}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
-            <div className="flex flex-wrap gap-1.5">
-              {colorOptions.map((color) => {
-                const hexValue = swatchHex(color);
-                const label = typeof color === "string" ? color : (color as any).labelFr ?? color.id ?? "Color";
-                return (
-                  <Swatch
-                    key={color.id}
-                    label={label}
-                    colorHex={hexValue}
-                    selected={color.id === activeColor?.id}
-                    onSelect={() => {
-                      setActiveColor(color);
-                      setActiveImage(0);
-                      setSelectionError(null);
-                    }}
-                    size="lg"
-                    showLabel={false}
-                  />
-                );
-              })}
             </div>
           </div>
-
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
-            <div className="flex flex-wrap gap-1.5">
-              {product.sizes.map((size) => {
-                const isSelected = selectedSize === size;
-                return (
-                  <motion.button
-                    key={size}
-                    type="button"
-                    onClick={() => {
-                      setSelectedSize(size);
-                      setSelectionError(null);
-                    }}
-                    aria-pressed={isSelected}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    {sizeLabel(size)}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-
-          {(infoRows.length > 0 || (product.descriptionFr && product.descriptionFr.trim())) && (
-            <div className="space-y-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
-              {product.descriptionFr && product.descriptionFr.trim() && (
-                <div className="max-h-[140px] overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5">
-                  <p className="text-sm leading-relaxed text-neutral-300 break-words">
-                    {product.descriptionFr}
+        </div>
+        <div className="flex-[1.1] flex flex-col h-[550px] max-h-[550px] min-h-[550px] overflow-hidden">
+          <div className="flex-1 space-y-4 rounded-2xl border border-white/10 bg-black/40 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-7 lg:self-stretch h-full overflow-y-auto">
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
+              <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
+              <h1 className="text-lg font-semibold text-white sm:text-xl">{product.nameFr}</h1>
+              {product.discountPercent && product.discountPercent > 0 ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-bold text-emerald-200 sm:text-2xl">
+                    {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0), product.currency)}
+                  </p>
+                  <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-100">
+                    -{product.discountPercent}%
+                  </span>
+                  <p className="text-sm font-semibold text-white/60 line-through">
+                    {formatPrice(product.priceDzd, product.currency)}
                   </p>
                 </div>
-              )}
-              {infoRows.length > 0 && (
-                <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                  {infoRows.map((row) => (
-                    <li
-                      key={row.label}
-                      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/90"
-                    >
-                      <span className="text-white/70">{row.label}</span>
-                      <span className="font-semibold">{row.value}</span>
-                    </li>
-                  ))}
-                </ul>
+              ) : (
+                <p className="text-xl font-bold text-white sm:text-2xl">
+                  {formatPrice(product.priceDzd, product.currency)}
+                </p>
               )}
             </div>
-          )}
 
-          <p className="min-h-[24px] text-sm text-rose-200" aria-live="polite">
-            {selectionError ?? "\u00a0"}
-          </p>
+            <div className="space-y-1">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
+              <div className="flex flex-wrap gap-1">
+                {colorOptions.map((color) => {
+                  const hexValue = swatchHex(color);
+                  const label = typeof color === "string" ? color : (color as any).labelFr ?? color.id ?? "Color";
+                  return (
+                    <Swatch
+                      key={color.id}
+                      label={label}
+                      colorHex={hexValue}
+                      selected={color.id === activeColor?.id}
+                      onSelect={() => {
+                        setActiveColor(color);
+                        setActiveImage(0);
+                        setSelectionError(null);
+                      }}
+                      size="lg"
+                      showLabel={false}
+                    />
+                  );
+                })}
+              </div>
+            </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <AnimatedAddToCartButton
-              onClick={handleAddToCart}
-              className={`w-full justify-center sm:w-auto ${
-                isSelectionMissing ? "opacity-80" : ""
-              }`.trim()}
-            />
-            <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
+            <div className="space-y-1">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
+              <div className="flex flex-wrap gap-1">
+                {product.sizes.map((size) => {
+                  const isSelected = selectedSize === size;
+                  return (
+                    <motion.button
+                      key={size}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSize(size);
+                        setSelectionError(null);
+                      }}
+                      aria-pressed={isSelected}
+                      className={`rounded-full border px-2 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      {sizeLabel(size)}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {(infoRows.length > 0 || (product.descriptionFr && product.descriptionFr.trim())) && (
+              <div className="space-y-1">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
+                {product.descriptionFr && product.descriptionFr.trim() && (
+                  <div className="max-h-[140px] overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5">
+                    <p className="text-sm leading-relaxed text-neutral-300 break-words">
+                      {product.descriptionFr}
+                    </p>
+                  </div>
+                )}
+                {infoRows.length > 0 && (
+                  <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                    {infoRows.map((row) => (
+                      <li
+                        key={row.label}
+                        className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/90"
+                      >
+                        <span className="text-white/70">{row.label}</span>
+                        <span className="font-semibold">{row.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            <p className="min-h-[24px] text-sm text-rose-200" aria-live="polite">
+              {selectionError ?? "\u00a0"}
+            </p>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <AnimatedAddToCartButton
+                onClick={handleAddToCart}
+                className={`w-full justify-center sm:w-auto ${
+                  isSelectionMissing ? "opacity-80" : ""
+                }`.trim()}
+              />
+              <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
+            </div>
           </div>
         </div>
       </div>

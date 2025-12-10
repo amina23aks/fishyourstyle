@@ -1,6 +1,7 @@
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import ShopClient from "./shop-client";
+import { fetchAllCategories } from "@/lib/categories";
 
 export const revalidate = 3600;
 
@@ -40,17 +41,33 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
 
 export default async function ShopPage() {
   let storefrontProducts: StorefrontProduct[] = [];
+  let errorMessage: string | null = null;
+  let categories: Awaited<ReturnType<typeof fetchAllCategories>> = [];
+  let designThemes: Awaited<ReturnType<typeof fetchAllCategories>> = [];
   try {
     storefrontProducts = await fetchAllStorefrontProducts();
   } catch (error) {
     console.error("Failed to fetch products:", error);
+    errorMessage = "Products are temporarily unavailable.";
+  }
+
+  try {
+    categories = await fetchAllCategories("category");
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+  }
+
+  try {
+    designThemes = await fetchAllCategories("design");
+  } catch (error) {
+    console.error("Failed to fetch design themes:", error);
   }
 
   const products = storefrontProducts.map(mapStorefrontToProduct);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 overscroll-y-contain">
-      <ShopClient products={products} />
+      <ShopClient products={products} errorMessage={errorMessage} categories={categories} designThemes={designThemes} />
     </main>
   );
 }
