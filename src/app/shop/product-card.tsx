@@ -19,8 +19,10 @@ import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { useCart } from "@/context/cart";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 
-import { Product, ProductColor } from "@/types/product";
+import { Product } from "@/types/product";
 import { Swatch } from "./swatch";
+
+type ProductWithInventory = Product & { stock?: number; inStock?: boolean };
 
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
@@ -42,35 +44,38 @@ const colorSwatchMap: Record<string, string> = {
   beigeclair: "#e5d5b5",
 };
 
+type NormalizedColor = {
+  id: string;
+  labelFr: string;
+  labelAr?: string;
+  image?: string;
+};
+
 const getSwatchColor = (color: NormalizedColor): string => {
-  // If color is a string (hex), use it directly
-  if (typeof color === "string") {
-    return color;
-  }
-  
   // If color.id is a hex string, use it
   if (color.id && /^#([0-9A-F]{3}){1,2}$/i.test(color.id)) {
     return color.id;
   }
-  
+
   // Otherwise, try to map from label
-  const label = (color as any).labelFr?.toLowerCase().replace(/\s+/g, "") ?? "";
+  const label = color.labelFr?.toLowerCase().replace(/\s+/g, "") ?? "";
   return colorSwatchMap[label] ?? color.id ?? "#e5e7eb";
 };
-
-type NormalizedColor =
-  | (ProductColor & { id: string; labelFr: string; image?: string })
-  | { id: string; labelFr: string; image?: string };
 
 const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
   colors.map((color) => {
     if (typeof color === "string") {
       return { id: color, labelFr: color, image: undefined };
     }
-    return color;
+    return {
+      id: color.id,
+      labelFr: color.labelFr,
+      labelAr: "labelAr" in color ? color.labelAr : undefined,
+      image: "image" in color ? color.image : undefined,
+    };
   });
 
-const buildImageList = (product: Product, activeColor?: NormalizedColor | null): string[] => {
+const buildImageList = (product: ProductWithInventory, activeColor?: NormalizedColor | null): string[] => {
   const galleryImages = product.images.gallery ?? [];
   const withColor = activeColor?.image
     ? [activeColor.image, product.images.main, ...galleryImages]
@@ -84,7 +89,7 @@ const skeletonShimmer =
   "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.4s_ease_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent";
 
 export type ProductCardProps = {
-  product: Product;
+  product: ProductWithInventory;
   loading?: boolean;
 };
 
@@ -185,8 +190,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
     const color = selectedColor ?? colorOptions[0];
     const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
-    const colorName = (color as any)?.labelFr ?? "Standard";
-    const colorCode = (color as any)?.id ?? "default";
+    const colorName = color?.labelFr ?? "Standard";
+    const colorCode = color?.id ?? "default";
 
     addItem({
       id: product.id,
@@ -194,7 +199,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       name: product.nameFr,
       price: product.priceDzd,
       currency: product.currency,
-      image: (color as any)?.image ?? product.images.main,
+      image: color?.image ?? product.images.main,
       colorName,
       colorCode,
       size: sizeChoice,
@@ -207,6 +212,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     return true;
   }, [
     addItem,
+    colorOptions,
+    flyToCart,
     product.colors,
     product.currency,
     product.id,
@@ -217,7 +224,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     product.sizes,
     selectedColor,
     selectedSize,
-    flyToCart,
   ]);
 
   if (loading) {
@@ -385,7 +391,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               <div className="flex flex-wrap gap-1">
                 {colorOptions.slice(0, 3).map((color) => {
                   const hexValue = getSwatchColor(color);
-                  const label = typeof color === "string" ? color : (color as any).labelFr ?? color.id ?? "Color";
+                  const label = color.labelFr ?? color.id ?? "Color";
                   return (
                     <Swatch
                       key={color.id}

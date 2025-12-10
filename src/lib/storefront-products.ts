@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import {
   collection,
   getDocs,
@@ -26,6 +27,7 @@ export type StorefrontProduct = {
   stock: number;
   inStock: boolean;
   images: string[];
+  tags?: string[];
 };
 
 function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
@@ -50,10 +52,10 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
 
   const imagesArray = Array.isArray(data.images) ? (data.images as string[]).filter(Boolean) : [];
 
-  const validGenders: (StorefrontProduct["gender"])[] = ["unisex", "men", "women"];
+  const validGenders: StorefrontProduct["gender"][] = ["unisex", "men", "women"];
   const genderValue = data.gender;
   const gender =
-    typeof genderValue === "string" && validGenders.includes(genderValue as any)
+    typeof genderValue === "string" && validGenders.includes(genderValue as StorefrontProduct["gender"])
       ? (genderValue as StorefrontProduct["gender"])
       : undefined;
 
@@ -73,22 +75,41 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
     inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
     images: imagesArray,
+    tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
   };
 }
 
+function isPermissionDenied(error: unknown): boolean {
+  return error instanceof FirebaseError && error.code === "permission-denied";
+}
+
 export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]> {
-  const db = getServerDb();
-  const productsRef = collection(db, "products");
-  const snapshot = await getDocs(query(productsRef));
-  return snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id));
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const snapshot = await getDocs(query(productsRef));
+    return snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id));
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      console.warn("Firestore permission denied while reading storefront products; returning empty list.");
+    } else {
+      console.error("Failed to fetch storefront products from Firestore, returning empty list:", error);
+    }
+    return [];
+  }
 }
 
 export async function fetchStorefrontProductBySlug(slug: string): Promise<StorefrontProduct | null> {
-  const db = getServerDb();
-  const productsRef = collection(db, "products");
-  const constraints: QueryConstraint[] = [where("slug", "==", slug), limit(1)];
-  const snapshot = await getDocs(query(productsRef, ...constraints));
-  if (snapshot.empty) return null;
-  const doc = snapshot.docs[0];
-  return normalizeProduct(doc.data(), doc.id);
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const constraints: QueryConstraint[] = [where("slug", "==", slug), limit(1)];
+    const snapshot = await getDocs(query(productsRef, ...constraints));
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return normalizeProduct(doc.data(), doc.id);
+  } catch (error) {
+    console.error(`Failed to fetch product by slug "${slug}" from Firestore:`, error);
+    return null;
+  }
 }

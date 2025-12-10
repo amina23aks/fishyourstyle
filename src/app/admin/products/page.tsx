@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
+import { CategoryManager } from "./components/CategoryManager";
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
   createAdminProduct,
@@ -10,9 +11,12 @@ import {
   listAdminProducts,
   updateAdminProduct,
   type AdminProduct,
+  type AdminProductInput,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
-import { CategoryManager } from "./components/CategoryManager";
+import type { Category } from "@/lib/categories";
+import { DEFAULT_CATEGORY_OPTIONS, DEFAULT_DESIGN_OPTIONS } from "@/lib/categories";
+import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
 
@@ -20,6 +24,9 @@ const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 const cloudinaryConfigured = Boolean(cloudName && uploadPreset);
 const cloudinaryMissing = !cloudName && !uploadPreset;
+const allowedSizes = ["S", "M", "L", "XL"] as const;
+const builtInCategories: SelectableOption[] = [...DEFAULT_CATEGORY_OPTIONS];
+const builtInDesignThemes: SelectableOption[] = [...DEFAULT_DESIGN_OPTIONS];
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -46,6 +53,13 @@ function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
+const mergeBySlug = (base: SelectableOption[], extra: SelectableOption[]) => {
+  const map = new Map<string, SelectableOption>();
+  base.forEach((item) => map.set(item.slug, item));
+  extra.forEach((item) => map.set(item.slug, { ...item, isDefault: map.get(item.slug)?.isDefault }));
+  return Array.from(map.values());
+};
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,10 +70,48 @@ export default function AdminProductsPage() {
   const [formInitial, setFormInitial] = useState<ProductFormValues>(defaultForm);
   const [formKey, setFormKey] = useState(() => Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<SelectableOption[]>(() => [...builtInCategories]);
+  const [designThemes, setDesignThemes] = useState<SelectableOption[]>(() => [...builtInDesignThemes]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingDesignThemes, setLoadingDesignThemes] = useState(false);
 
   const showToast = useCallback((payload: Toast) => {
     setToast(payload);
     setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  const loadCategories = useCallback(async () => {
+    setLoadingCategories(true);
+    try {
+      const res = await fetch("/api/categories?type=category");
+      const fetched: Category[] = res.ok ? await res.json() : [];
+      const mapped = Array.isArray(fetched)
+        ? fetched.map((cat) => ({ id: cat.id, name: cat.name, slug: cat.slug, isDefault: cat.isDefault }))
+        : [];
+      setCategories(mergeBySlug(builtInCategories, mapped));
+    } catch (err) {
+      console.error("Failed to load categories", err);
+      setCategories((prev) => mergeBySlug(builtInCategories, prev));
+    } finally {
+      setLoadingCategories(false);
+    }
+  }, []);
+
+  const loadDesignThemes = useCallback(async () => {
+    setLoadingDesignThemes(true);
+    try {
+      const res = await fetch("/api/categories?type=design");
+      const fetched: Category[] = res.ok ? await res.json() : [];
+      const mapped = Array.isArray(fetched)
+        ? fetched.map((cat) => ({ id: cat.id, name: cat.name, slug: cat.slug, isDefault: cat.isDefault }))
+        : [];
+      setDesignThemes(mergeBySlug(builtInDesignThemes, mapped));
+    } catch (err) {
+      console.error("Failed to load design themes", err);
+      setDesignThemes((prev) => mergeBySlug(builtInDesignThemes, prev));
+    } finally {
+      setLoadingDesignThemes(false);
+    }
   }, []);
 
   const loadProducts = useCallback(async () => {
@@ -78,7 +130,9 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     loadProducts();
-  }, [loadProducts]);
+    loadCategories();
+    loadDesignThemes();
+  }, [loadCategories, loadDesignThemes, loadProducts]);
 
   const handleUploadImage = useCallback(
     async (file: File) => {
@@ -113,9 +167,8 @@ export default function AdminProductsPage() {
     async (values: ProductFormValues) => {
       setSaving(true);
       setError(null);
-      const designTheme =
-        values.designTheme === "custom" ? values.designThemeCustom.trim() || "custom" : values.designTheme;
-      const payload: any = {
+      const designTheme = values.designTheme || "basic";
+      const payload: AdminProductInput = {
         name: values.name.trim(),
         slug: slugify(values.name),
         basePrice: Number(values.basePrice || 0),
@@ -134,10 +187,13 @@ export default function AdminProductsPage() {
       if (values.description && values.description.trim() !== "") {
         payload.description = values.description.trim();
       }
-      
+
       // Only include gender if it's explicitly set (not empty string)
       if (values.gender && values.gender.trim() !== "") {
-        payload.gender = values.gender.trim().toLowerCase();
+        const genderValue = values.gender.trim().toLowerCase();
+        if (genderValue === "unisex" || genderValue === "men" || genderValue === "women") {
+          payload.gender = genderValue;
+        }
       }
 
       try {
@@ -185,22 +241,19 @@ export default function AdminProductsPage() {
   const startEdit = useCallback((product: AdminProduct) => {
     setEditingId(product.id);
     
-    // Check if designTheme is a custom value (not in fixed list)
-    const fixedThemes = ["basic", "cars", "anime", "nature", "harry-potter"];
-    const productTheme = product.designTheme || "basic";
-    const isCustomTheme = !fixedThemes.includes(productTheme.toLowerCase());
-    
     setFormInitial({
       name: product.name,
       description: product.description ?? "",
       basePrice: product.basePrice?.toString() ?? "",
       discountPercent: product.discountPercent?.toString() ?? "0",
       category: product.category,
-      designTheme: isCustomTheme ? "custom" : productTheme,
-      designThemeCustom: isCustomTheme ? productTheme : "",
+      designTheme: product.designTheme || "basic",
+      designThemeCustom: "",
       stock: product.stock?.toString() ?? "",
       inStock: product.inStock,
-      sizes: product.sizes,
+      sizes: (product.sizes || [])
+        .map((size) => size.toUpperCase())
+        .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
       colors: product.colors,
       images: product.images,
       gender: product.gender ?? "",
@@ -364,10 +417,25 @@ export default function AdminProductsPage() {
             onSubmit={handleSubmit}
             onUploadImage={handleUploadImage}
             onCancelEdit={resetForm}
+            categories={categories}
+            designThemes={designThemes}
+            onCategoriesChange={setCategories}
+            onDesignThemesChange={setDesignThemes}
+            onReloadCategories={loadCategories}
+            onReloadDesignThemes={loadDesignThemes}
           />
-          <CategoryManager />
         </section>
       </div>
+      <CategoryManager
+        categories={categories}
+        designThemes={designThemes}
+        onCategoriesChange={setCategories}
+        onDesignThemesChange={setDesignThemes}
+        onReloadCategories={loadCategories}
+        onReloadDesignThemes={loadDesignThemes}
+        loadingCategories={loadingCategories}
+        loadingDesignThemes={loadingDesignThemes}
+      />
     </div>
   );
 }

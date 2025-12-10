@@ -82,7 +82,7 @@ export default function ShopClient({ products, errorMessage, categories, designT
 
       if (!term) return true;
       const tags = (product.tags ?? []) as string[];
-      const haystack = `${product.nameFr ?? product.name ?? ""} ${tags.join(" ")}`.toLowerCase();
+      const haystack = `${product.nameFr} ${tags.join(" ")}`.toLowerCase();
       return haystack.includes(term);
     });
   }, [collectionFilter, designFilter, products, search]);

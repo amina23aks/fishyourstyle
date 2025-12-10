@@ -9,7 +9,7 @@
  */
 
 import { collection, doc, setDoc, getDocs, query, where, serverTimestamp } from "firebase/firestore";
-import { getServerDb } from "../src/lib/categories";
+import { getServerDb } from "../src/lib/firestore";
 
 const defaultCategories = [
   { name: "Hoodies", slug: "hoodies" },
