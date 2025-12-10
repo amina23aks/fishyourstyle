@@ -79,18 +79,28 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
 }
 
 export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]> {
-  const db = getServerDb();
-  const productsRef = collection(db, "products");
-  const snapshot = await getDocs(query(productsRef));
-  return snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id));
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const snapshot = await getDocs(query(productsRef));
+    return snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id));
+  } catch (error) {
+    console.error("Failed to fetch storefront products from Firestore, returning empty list:", error);
+    return [];
+  }
 }
 
 export async function fetchStorefrontProductBySlug(slug: string): Promise<StorefrontProduct | null> {
-  const db = getServerDb();
-  const productsRef = collection(db, "products");
-  const constraints: QueryConstraint[] = [where("slug", "==", slug), limit(1)];
-  const snapshot = await getDocs(query(productsRef, ...constraints));
-  if (snapshot.empty) return null;
-  const doc = snapshot.docs[0];
-  return normalizeProduct(doc.data(), doc.id);
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const constraints: QueryConstraint[] = [where("slug", "==", slug), limit(1)];
+    const snapshot = await getDocs(query(productsRef, ...constraints));
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return normalizeProduct(doc.data(), doc.id);
+  } catch (error) {
+    console.error(`Failed to fetch product by slug "${slug}" from Firestore:`, error);
+    return null;
+  }
 }

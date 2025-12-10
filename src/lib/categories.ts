@@ -22,14 +22,81 @@ function normalizeCategory(data: DocumentData, id: string): Category {
   };
 }
 
+function fallbackCategories(type?: "category" | "design"): Category[] {
+  const base: Category[] = [
+    {
+      id: "hoodies",
+      name: "Hoodies",
+      slug: "hoodies",
+      type: "category",
+      isDefault: true,
+      createdAt: new Date() as unknown as Timestamp,
+      updatedAt: new Date() as unknown as Timestamp,
+    },
+    {
+      id: "pants",
+      name: "Pants",
+      slug: "pants",
+      type: "category",
+      isDefault: true,
+      createdAt: new Date() as unknown as Timestamp,
+      updatedAt: new Date() as unknown as Timestamp,
+    },
+    {
+      id: "ensembles",
+      name: "Ensembles",
+      slug: "ensembles",
+      type: "category",
+      isDefault: true,
+      createdAt: new Date() as unknown as Timestamp,
+      updatedAt: new Date() as unknown as Timestamp,
+    },
+    {
+      id: "tshirts",
+      name: "Tshirts",
+      slug: "tshirts",
+      type: "category",
+      isDefault: true,
+      createdAt: new Date() as unknown as Timestamp,
+      updatedAt: new Date() as unknown as Timestamp,
+    },
+    {
+      id: "basic",
+      name: "Basic",
+      slug: "basic",
+      type: "design",
+      isDefault: true,
+      createdAt: new Date() as unknown as Timestamp,
+      updatedAt: new Date() as unknown as Timestamp,
+    },
+    {
+      id: "nautical",
+      name: "Nautical",
+      slug: "nautical",
+      type: "design",
+      isDefault: true,
+      createdAt: new Date() as unknown as Timestamp,
+      updatedAt: new Date() as unknown as Timestamp,
+    },
+  ];
+
+  if (!type) return base;
+  return base.filter((item) => item.type === type);
+}
+
 export async function fetchAllCategories(type?: "category" | "design"): Promise<Category[]> {
-  const db = getServerDb();
-  const categoriesRef = collection(db, "categories");
-  const baseQuery = type
-    ? query(categoriesRef, where("type", "==", type), orderBy("name", "asc"))
-    : query(categoriesRef, orderBy("name", "asc"));
-  const snapshot = await getDocs(baseQuery);
-  return snapshot.docs.map((doc) => normalizeCategory(doc.data(), doc.id));
+  try {
+    const db = getServerDb();
+    const categoriesRef = collection(db, "categories");
+    const baseQuery = type
+      ? query(categoriesRef, where("type", "==", type), orderBy("name", "asc"))
+      : query(categoriesRef, orderBy("name", "asc"));
+    const snapshot = await getDocs(baseQuery);
+    return snapshot.docs.map((doc) => normalizeCategory(doc.data(), doc.id));
+  } catch (error) {
+    console.error("Failed to fetch categories from Firestore, using fallbacks:", error);
+    return fallbackCategories(type);
+  }
 }
 
 export async function createCategory(name: string, slug: string, type: "category" | "design" = "category"): Promise<string> {
