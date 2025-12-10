@@ -141,19 +141,25 @@ export function ProductForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   type Selectable = { id?: string; slug: string; name: string; isDefault?: boolean };
 
-  const defaultCategories: Selectable[] = [
-    { slug: "hoodies", name: "Hoodies", isDefault: true },
-    { slug: "pants", name: "Pants", isDefault: true },
-    { slug: "ensembles", name: "Ensembles", isDefault: true },
-    { slug: "tshirts", name: "Tshirts", isDefault: true },
-  ];
-  const defaultDesigns: Selectable[] = [
-    { slug: "basic", name: "Basic", isDefault: true },
-    { slug: "cars", name: "Cars", isDefault: true },
-    { slug: "anime", name: "Anime", isDefault: true },
-    { slug: "nature", name: "Nature", isDefault: true },
-    { slug: "harry-potter", name: "Harry Potter", isDefault: true },
-  ];
+  const defaultCategories: Selectable[] = useMemo(
+    () => [
+      { slug: "hoodies", name: "Hoodies", isDefault: true },
+      { slug: "pants", name: "Pants", isDefault: true },
+      { slug: "ensembles", name: "Ensembles", isDefault: true },
+      { slug: "tshirts", name: "Tshirts", isDefault: true },
+    ],
+    [],
+  );
+  const defaultDesigns: Selectable[] = useMemo(
+    () => [
+      { slug: "basic", name: "Basic", isDefault: true },
+      { slug: "cars", name: "Cars", isDefault: true },
+      { slug: "anime", name: "Anime", isDefault: true },
+      { slug: "nature", name: "Nature", isDefault: true },
+      { slug: "harry-potter", name: "Harry Potter", isDefault: true },
+    ],
+    [],
+  );
 
   const [categories, setCategories] = useState<Selectable[]>(() => {
     const initial = initialValues?.category
@@ -258,7 +264,7 @@ export function ProductForm({
       }
     };
     loadOptions();
-  }, []);
+  }, [defaultCategories, defaultDesigns]);
 
   const saveCategoriesToBackend = async () => {
     try {
