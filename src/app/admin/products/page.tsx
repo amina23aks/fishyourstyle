@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
+import { CategoryManager } from "./components/CategoryManager";
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
   createAdminProduct,
@@ -13,6 +14,8 @@ import {
   type AdminProductInput,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import type { Category } from "@/lib/categories";
+import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
 
@@ -21,6 +24,12 @@ const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 const cloudinaryConfigured = Boolean(cloudName && uploadPreset);
 const cloudinaryMissing = !cloudName && !uploadPreset;
 const allowedSizes = ["S", "M", "L", "XL"] as const;
+const builtInCategories: SelectableOption[] = [
+  { slug: "hoodies", name: "Hoodies", isDefault: true },
+  { slug: "pants", name: "Pants", isDefault: true },
+  { slug: "ensembles", name: "Ensembles", isDefault: true },
+  { slug: "tshirts", name: "Tshirts", isDefault: true },
+];
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -47,6 +56,13 @@ function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
+const mergeBySlug = (base: SelectableOption[], extra: SelectableOption[]) => {
+  const map = new Map<string, SelectableOption>();
+  base.forEach((item) => map.set(item.slug, item));
+  extra.forEach((item) => map.set(item.slug, { ...item, isDefault: map.get(item.slug)?.isDefault }));
+  return Array.from(map.values());
+};
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,10 +73,29 @@ export default function AdminProductsPage() {
   const [formInitial, setFormInitial] = useState<ProductFormValues>(defaultForm);
   const [formKey, setFormKey] = useState(() => Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<SelectableOption[]>(() => [...builtInCategories]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   const showToast = useCallback((payload: Toast) => {
     setToast(payload);
     setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  const loadCategories = useCallback(async () => {
+    setLoadingCategories(true);
+    try {
+      const res = await fetch("/api/categories?type=category");
+      const fetched: Category[] = res.ok ? await res.json() : [];
+      const mapped = Array.isArray(fetched)
+        ? fetched.map((cat) => ({ id: cat.id, name: cat.name, slug: cat.slug, isDefault: cat.isDefault }))
+        : [];
+      setCategories(mergeBySlug(builtInCategories, mapped));
+    } catch (err) {
+      console.error("Failed to load categories", err);
+      setCategories([...builtInCategories]);
+    } finally {
+      setLoadingCategories(false);
+    }
   }, []);
 
   const loadProducts = useCallback(async () => {
@@ -79,7 +114,8 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     loadProducts();
-  }, [loadProducts]);
+    loadCategories();
+  }, [loadCategories, loadProducts]);
 
   const handleUploadImage = useCallback(
     async (file: File) => {
@@ -362,11 +398,18 @@ export default function AdminProductsPage() {
             cloudinaryConfigured={cloudinaryConfigured}
             cloudinaryMissing={cloudinaryMissing}
             onSubmit={handleSubmit}
-          onUploadImage={handleUploadImage}
-          onCancelEdit={resetForm}
-        />
-      </section>
+            onUploadImage={handleUploadImage}
+            onCancelEdit={resetForm}
+            categories={categories}
+          />
+        </section>
       </div>
+      <CategoryManager
+        categories={categories}
+        onCategoriesChange={setCategories}
+        onReload={loadCategories}
+        loading={loadingCategories}
+      />
     </div>
   );
 }

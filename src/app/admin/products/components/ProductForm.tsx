@@ -5,6 +5,7 @@ import Image from "next/image";
 
 import type { AdminProductCategory } from "@/lib/admin-products";
 import type { Category } from "@/lib/categories";
+import type { SelectableOption } from "@/types/selectable";
 
 export type ProductFormValues = {
   name: string;
@@ -35,6 +36,7 @@ type ProductFormProps = {
   onSubmit: (values: ProductFormValues) => Promise<void>;
   onUploadImage: (file: File) => Promise<string>;
   onCancelEdit?: () => void;
+  categories: SelectableOption[];
 };
 
 const normalizeColors = (input: unknown): { hex: string }[] => {
@@ -134,6 +136,7 @@ export function ProductForm({
   onSubmit,
   onUploadImage,
   onCancelEdit,
+  categories,
 }: ProductFormProps) {
   const [values, setValues] = useState<ProductFormValues>({
     ...defaultValues,
@@ -142,18 +145,8 @@ export function ProductForm({
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  type Selectable = { id?: string; slug: string; name: string; isDefault?: boolean };
 
-  const defaultCategories: Selectable[] = useMemo(
-    () => [
-      { slug: "hoodies", name: "Hoodies", isDefault: true },
-      { slug: "pants", name: "Pants", isDefault: true },
-      { slug: "ensembles", name: "Ensembles", isDefault: true },
-      { slug: "tshirts", name: "Tshirts", isDefault: true },
-    ],
-    [],
-  );
-  const defaultDesigns: Selectable[] = useMemo(
+  const defaultDesigns: SelectableOption[] = useMemo(
     () => [
       { slug: "basic", name: "Basic", isDefault: true },
       { slug: "cars", name: "Cars", isDefault: true },
@@ -164,23 +157,14 @@ export function ProductForm({
     [],
   );
 
-  const [categories, setCategories] = useState<Selectable[]>(() => {
-    const initial = initialValues?.category
-      ? [{ slug: initialValues.category, name: capitalize(initialValues.category) }]
-      : [];
-    return mergeSelectables(defaultCategories, initial);
-  });
-  const [designThemes, setDesignThemes] = useState<Selectable[]>(() => {
+  const [designThemes, setDesignThemes] = useState<SelectableOption[]>(() => {
     const initial = initialValues?.designTheme
       ? [{ slug: initialValues.designTheme, name: capitalize(initialValues.designTheme) }]
       : [];
     return mergeSelectables(defaultDesigns, initial);
   });
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [showNewCategory, setShowNewCategory] = useState(false);
   const [newDesignName, setNewDesignName] = useState("");
   const [showNewDesign, setShowNewDesign] = useState(false);
-  const [categoriesChanged, setCategoriesChanged] = useState(false);
   const [designThemesChanged, setDesignThemesChanged] = useState(false);
 
   useEffect(() => {
@@ -189,15 +173,14 @@ export function ProductForm({
       ...initialValues,
       colors: normalizeColors(initialValues?.colors ?? prev.colors),
     }));
-    const categorySlug = initialValues?.category;
-    if (categorySlug) {
-      setCategories((prev) => {
-        const next = new Set(prev);
-        next.add({ slug: categorySlug, name: capitalize(categorySlug) });
-        return Array.from(next);
-      });
-    }
   }, [initialValues]);
+
+  useEffect(() => {
+    if (!categories.some((cat) => cat.slug === values.category)) {
+      const fallback = categories[0]?.slug ?? defaultValues.category;
+      setValues((prev) => ({ ...prev, category: fallback }));
+    }
+  }, [categories, values.category]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -251,14 +234,7 @@ export function ProductForm({
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const [fetchedCategories, fetchedDesigns] = await Promise.all([
-          fetch("/api/categories?type=category").then((res) => (res.ok ? res.json() : [])),
-          fetch("/api/categories?type=design").then((res) => (res.ok ? res.json() : [])),
-        ]);
-        if (Array.isArray(fetchedCategories)) {
-          const mapped = fetchedCategories.map((c: Category) => ({ slug: c.slug, name: c.name, id: c.id }));
-          setCategories((prev) => mergeSelectables(defaultCategories, [...mapped, ...prev]));
-        }
+        const fetchedDesigns = await fetch("/api/categories?type=design").then((res) => (res.ok ? res.json() : []));
         if (Array.isArray(fetchedDesigns)) {
           const mapped = fetchedDesigns.map((c: Category) => ({ slug: c.slug, name: c.name, id: c.id }));
           setDesignThemes((prev) => mergeSelectables(defaultDesigns, [...mapped, ...prev]));
@@ -268,44 +244,7 @@ export function ProductForm({
       }
     };
     loadOptions();
-  }, [defaultCategories, defaultDesigns]);
-
-  const saveCategoriesToBackend = async () => {
-    try {
-      const updatedCategories = await Promise.all(
-        categories.map(async (cat) => {
-          if (cat.isDefault) return cat;
-          if (cat.id) {
-            const res = await fetch(`/api/categories/${cat.id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: capitalize(cat.name), slug: cat.slug }),
-            });
-            if (res.ok) {
-              const { id } = await res.json();
-              return { ...cat, id };
-            }
-          } else {
-            const res = await fetch("/api/categories", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: capitalize(cat.name), slug: cat.slug, type: "category" }),
-            });
-            if (res.ok) {
-              const { id } = await res.json();
-              return { ...cat, id };
-            }
-          }
-          return cat;
-        }),
-      );
-      setCategories(updatedCategories);
-      setValues((prev) => ({ ...prev, category: updatedCategories.find((c) => c.slug === prev.category)?.slug || "hoodies" }));
-      setCategoriesChanged(false);
-    } catch (err) {
-      console.error("Failed to save categories", err);
-    }
-  };
+  }, [defaultDesigns]);
 
   const saveDesignThemesToBackend = async () => {
     try {
@@ -425,132 +364,23 @@ export function ProductForm({
           <span className="font-semibold text-white">Category</span>
           <div className="flex flex-wrap items-center gap-2">
             {categories.map((cat) => {
-              const isCustom = !cat.isDefault && cat.id;
               const isSelected = values.category === cat.slug;
               const key = cat.id ? `cat-${cat.id}` : `default-${cat.slug}`;
               return (
-                <span key={key} className="relative inline-flex items-center gap-1 mr-1 mb-2">
                 <button
+                  key={key}
                   type="button"
                   onClick={() => setValues((prev) => ({ ...prev, category: cat.slug }))}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${values.category === cat.slug ? "border-white bg-white text-slate-900" : "border-white/20 bg-white/5 text-white/80"}`}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    isSelected ? "border-white bg-white text-slate-900" : "border-white/20 bg-white/5 text-white/80"
+                  }`}
                 >
                   {cat.name}
-                  </button>
-                  {isCustom && isSelected && (
-                    <button
-                      type="button"
-                      title="Delete category"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const confirmed = window.confirm("Delete this category? Products using it will keep the value.");
-                        if (!confirmed) return;
-                        try {
-                          await fetch(`/api/categories/${cat.id}`, { method: "DELETE" });
-                          setCategories((prev) => prev.filter((c) => c.slug !== cat.slug));
-                          if (values.category === cat.slug) {
-                            setValues((prev) => ({ ...prev, category: "hoodies" }));
-                          }
-                          setCategoriesChanged(true);
-                        } catch (err) {
-                          console.error("Failed to delete category", err);
-                        }
-                      }}
-                      className="ml-0.5 text-white/70 hover:text-rose-400 cursor-pointer p-0 bg-transparent border-none"
-                      style={{fontSize: "1.1em"}}
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </span>
+                </button>
               );
             })}
-            {categoriesChanged && (
-              <button
-                type="button"
-                className="ml-3 rounded border border-emerald-400 bg-emerald-400 px-3 py-1.5 text-xs font-semibold text-black hover:bg-emerald-300"
-                onClick={async () => {
-                  await saveCategoriesToBackend();
-                  setCategoriesChanged(false);
-                }}
-              >
-                Save
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setShowNewCategory((prev) => !prev);
-                setNewCategoryName("");
-              }}
-              className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10"
-            >
-              + Add category
-            </button>
           </div>
-          {showNewCategory && (
-            <div className="flex flex-wrap gap-2">
-              <input
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="New category name"
-                className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-                onKeyDown={async (e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const slug = slugify(newCategoryName);
-                    if (!slug) return;
-                    try {
-                      const res = await fetch("/api/categories", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: capitalize(newCategoryName), slug, type: "category" }),
-                      });
-                      if (res.ok) {
-                        const { id } = await res.json();
-                        setCategories((prev) => mergeSelectables(prev, [{ slug, name: capitalize(newCategoryName), id }]));
-                        setValues((prev) => ({ ...prev, category: slug }));
-                        setCategoriesChanged(true);
-                      }
-                    } catch (err) {
-                      console.error("Failed to add category", err);
-                    }
-                    setNewCategoryName("");
-                    setShowNewCategory(false);
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  const slug = slugify(newCategoryName);
-                  if (!slug) return;
-                  try {
-                    const res = await fetch("/api/categories", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: capitalize(newCategoryName), slug, type: "category" }),
-                    });
-                    if (res.ok) {
-                      const { id } = await res.json();
-                      setCategories((prev) => mergeSelectables(prev, [{ slug, name: capitalize(newCategoryName), id }]));
-                      setValues((prev) => ({ ...prev, category: slug }));
-                      setCategoriesChanged(true);
-                    }
-                  } catch (err) {
-                    console.error("Failed to add category", err);
-                  }
-                  setNewCategoryName("");
-                  setShowNewCategory(false);
-                }}
-                className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15"
-              >
-                Add category
-              </button>
-            </div>
-          )}
         </div>
-
         <div className="space-y-2 text-sm text-sky-100/90">
           <span className="font-semibold text-white">Design theme</span>
 

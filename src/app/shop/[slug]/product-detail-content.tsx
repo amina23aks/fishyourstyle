@@ -168,8 +168,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
           </div>
         </div>
-        <div className="flex-[1.1] flex flex-col h-[550px] max-h-[550px] min-h-[550px] overflow-hidden">
-          <div className="flex-1 space-y-4 rounded-2xl border border-white/10 bg-black/40 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-7 lg:self-stretch h-full overflow-y-auto">
+        <div className="flex-[1.1] flex flex-col max-h-[520px] min-h-[500px] overflow-hidden">
+          <div className="flex-1 space-y-3 rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5 lg:self-stretch h-full overflow-y-auto">
             <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
               <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
@@ -210,7 +210,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                         setActiveImage(0);
                         setSelectionError(null);
                       }}
-                      size="lg"
+                      size="sm"
                       showLabel={false}
                     />
                   );
@@ -232,7 +232,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                         setSelectionError(null);
                       }}
                       aria-pressed={isSelected}
-                      className={`rounded-full border px-2 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+                      className={`rounded-full border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/20 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
                       whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.97 }}
                     >
@@ -244,10 +244,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
 
             {(infoRows.length > 0 || (product.descriptionFr && product.descriptionFr.trim())) && (
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
                 {product.descriptionFr && product.descriptionFr.trim() && (
-                  <div className="max-h-[140px] overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5">
+                  <div className="max-h-[140px] overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                     <p className="text-sm leading-relaxed text-neutral-300 break-words">
                       {product.descriptionFr}
                     </p>
