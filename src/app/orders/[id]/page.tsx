@@ -294,10 +294,22 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                           value={item.colorCode}
                           onChange={(e) => {
                             const product = getProductBySlug(item.slug);
-                            const selectedColor = product?.colors.find((color) => color.id === e.target.value);
-                            const colorName = selectedColor?.labelFr ?? item.colorName;
-                            const colorCode = selectedColor?.id ?? item.colorCode;
-                            const image = selectedColor?.image ?? item.image;
+                            const selectedColor = product?.colors.find((color) => {
+                              if (typeof color === "string") return color === e.target.value;
+                              return color.id === e.target.value;
+                            });
+                            const colorName =
+                              typeof selectedColor === "string"
+                                ? selectedColor
+                                : selectedColor?.labelFr ?? item.colorName;
+                            const colorCode =
+                              typeof selectedColor === "string"
+                                ? selectedColor
+                                : selectedColor?.id ?? item.colorCode;
+                            const image =
+                              typeof selectedColor === "string"
+                                ? item.image
+                                : selectedColor?.image ?? item.image;
 
                             setItems((current) =>
                               current.map((entry, idx) =>
@@ -317,11 +329,15 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                         >
                           {(getProductBySlug(item.slug)?.colors ?? [
                             { id: item.colorCode, labelFr: item.colorName, labelAr: item.colorName, image: item.image },
-                          ]).map((color) => (
-                            <option key={color.id} value={color.id} className="bg-slate-900">
-                              {color.labelFr}
-                            </option>
-                          ))}
+                          ]).map((color) => {
+                            const colorId = typeof color === "string" ? color : color.id;
+                            const colorLabel = typeof color === "string" ? color : color.labelFr;
+                            return (
+                              <option key={colorId} value={colorId} className="bg-slate-900">
+                                {colorLabel}
+                              </option>
+                            );
+                          })}
                         </select>
                       </label>
                       <label className="flex flex-col text-xs text-sky-100 gap-1">

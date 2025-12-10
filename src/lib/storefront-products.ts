@@ -26,6 +26,7 @@ export type StorefrontProduct = {
   stock: number;
   inStock: boolean;
   images: string[];
+  tags?: string[];
 };
 
 function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
@@ -50,10 +51,10 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
 
   const imagesArray = Array.isArray(data.images) ? (data.images as string[]).filter(Boolean) : [];
 
-  const validGenders: (StorefrontProduct["gender"])[] = ["unisex", "men", "women"];
+  const validGenders: StorefrontProduct["gender"][] = ["unisex", "men", "women"];
   const genderValue = data.gender;
   const gender =
-    typeof genderValue === "string" && validGenders.includes(genderValue as any)
+    typeof genderValue === "string" && validGenders.includes(genderValue as StorefrontProduct["gender"])
       ? (genderValue as StorefrontProduct["gender"])
       : undefined;
 
@@ -73,6 +74,7 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
     inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
     images: imagesArray,
+    tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
   };
 }
 

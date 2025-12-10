@@ -15,7 +15,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     slug: sp.slug,
     nameFr: sp.name,
     nameAr: sp.name,
-    category: sp.category as any,
+    category: sp.category,
     kind: sp.category,
     fit: "regular",
     priceDzd: sp.finalPrice ?? sp.basePrice,
@@ -57,8 +57,8 @@ const reasons = [
 
 export default async function Home() {
   let errorMessage: string | null = null;
-  let categories = [];
-  let designThemes = [];
+  let categories: Awaited<ReturnType<typeof fetchAllCategories>> = [];
+  let designThemes: Awaited<ReturnType<typeof fetchAllCategories>> = [];
   const storefrontProducts = await fetchAllStorefrontProducts().catch((error) => {
     console.error("Failed to fetch products:", error);
     errorMessage = "Products are temporarily unavailable.";

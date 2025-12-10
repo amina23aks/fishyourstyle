@@ -20,6 +20,7 @@ const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 const cloudinaryConfigured = Boolean(cloudName && uploadPreset);
 const cloudinaryMissing = !cloudName && !uploadPreset;
+const allowedSizes = ["S", "M", "L", "XL"] as const;
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -133,10 +134,13 @@ export default function AdminProductsPage() {
       if (values.description && values.description.trim() !== "") {
         payload.description = values.description.trim();
       }
-      
+
       // Only include gender if it's explicitly set (not empty string)
       if (values.gender && values.gender.trim() !== "") {
-        payload.gender = values.gender.trim().toLowerCase();
+        const genderValue = values.gender.trim().toLowerCase();
+        if (genderValue === "unisex" || genderValue === "men" || genderValue === "women") {
+          payload.gender = genderValue;
+        }
       }
 
       try {
@@ -194,7 +198,9 @@ export default function AdminProductsPage() {
       designThemeCustom: "",
       stock: product.stock?.toString() ?? "",
       inStock: product.inStock,
-      sizes: product.sizes,
+      sizes: (product.sizes || [])
+        .map((size) => size.toUpperCase())
+        .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
       colors: product.colors,
       images: product.images,
       gender: product.gender ?? "",

@@ -6,6 +6,7 @@ export type Category = {
   name: string;
   slug: string;
   type?: "category" | "design";
+  isDefault?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };

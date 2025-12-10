@@ -22,6 +22,8 @@ import { useFlyToCart } from "@/lib/useFlyToCart";
 import { Product } from "@/types/product";
 import { Swatch } from "./swatch";
 
+type ProductWithInventory = Product & { stock?: number; inStock?: boolean };
+
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
 
@@ -73,7 +75,7 @@ const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
     };
   });
 
-const buildImageList = (product: Product, activeColor?: NormalizedColor | null): string[] => {
+const buildImageList = (product: ProductWithInventory, activeColor?: NormalizedColor | null): string[] => {
   const galleryImages = product.images.gallery ?? [];
   const withColor = activeColor?.image
     ? [activeColor.image, product.images.main, ...galleryImages]
@@ -87,7 +89,7 @@ const skeletonShimmer =
   "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.4s_ease_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent";
 
 export type ProductCardProps = {
-  product: Product;
+  product: ProductWithInventory;
   loading?: boolean;
 };
 

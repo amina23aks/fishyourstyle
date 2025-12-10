@@ -85,8 +85,11 @@ const slugify = (value: string): string =>
 
 const capitalize = (value: string) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : "");
 
-const mergeSelectables = (base: { slug: string; name: string; isDefault?: boolean }[], extra: { slug: string; name: string }[]) => {
-  const map = new Map<string, { slug: string; name: string; isDefault?: boolean }>();
+const mergeSelectables = (
+  base: { slug: string; name: string; isDefault?: boolean; id?: string }[],
+  extra: { slug: string; name: string; isDefault?: boolean; id?: string }[],
+) => {
+  const map = new Map<string, { slug: string; name: string; isDefault?: boolean; id?: string }>();
   base.forEach((item) => map.set(item.slug, item));
   extra.forEach((item) => map.set(item.slug, { ...item, isDefault: map.get(item.slug)?.isDefault }));
   return Array.from(map.values());
@@ -186,10 +189,11 @@ export function ProductForm({
       ...initialValues,
       colors: normalizeColors(initialValues?.colors ?? prev.colors),
     }));
-    if (initialValues?.category) {
+    const categorySlug = initialValues?.category;
+    if (categorySlug) {
       setCategories((prev) => {
         const next = new Set(prev);
-        next.add(initialValues.category as AdminProductCategory);
+        next.add({ slug: categorySlug, name: capitalize(categorySlug) });
         return Array.from(next);
       });
     }

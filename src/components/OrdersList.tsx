@@ -6,8 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
-import { ColorDot } from "@/components/ColorDot";
-import { colorCodeToHex } from "@/lib/colorUtils";
 
 export default function OrdersList() {
   const router = useRouter();
