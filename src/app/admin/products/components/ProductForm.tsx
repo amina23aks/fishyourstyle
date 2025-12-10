@@ -37,7 +37,9 @@ type ProductFormProps = {
   onCancelEdit?: () => void;
   categories: SelectableOption[];
   designThemes: SelectableOption[];
+  onCategoriesChange: (next: SelectableOption[]) => void;
   onDesignThemesChange: (next: SelectableOption[]) => void;
+  onReloadCategories: () => Promise<void>;
   onReloadDesignThemes: () => Promise<void>;
 };
 
@@ -140,7 +142,9 @@ export function ProductForm({
   onCancelEdit,
   categories,
   designThemes,
+  onCategoriesChange,
   onDesignThemesChange,
+  onReloadCategories,
   onReloadDesignThemes,
 }: ProductFormProps) {
   const [values, setValues] = useState<ProductFormValues>({
@@ -168,7 +172,9 @@ export function ProductForm({
       : [];
     return mergeSelectables(defaultDesigns, mergeSelectables(initialValues?.designTheme ? initial : [], designThemes));
   });
+  const [showNewCategory, setShowNewCategory] = useState(false);
   const [newDesignName, setNewDesignName] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [showNewDesign, setShowNewDesign] = useState(false);
 
   const syncDesignThemes = useCallback(
@@ -189,11 +195,19 @@ export function ProductForm({
   }, [initialValues]);
 
   useEffect(() => {
+    // If a custom category or design is removed, fall back to the first available option (defaults stay present)
+    // to avoid saving products with orphaned slugs.
     if (!categories.some((cat) => cat.slug === values.category)) {
       const fallback = categories[0]?.slug ?? defaultValues.category;
       setValues((prev) => ({ ...prev, category: fallback }));
     }
   }, [categories, values.category]);
+
+  useEffect(() => {
+    if (!designThemeOptions.some((theme) => theme.slug === values.designTheme)) {
+      setValues((prev) => ({ ...prev, designTheme: designThemeOptions[0]?.slug ?? "basic" }));
+    }
+  }, [designThemeOptions, values.designTheme]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -250,10 +264,31 @@ export function ProductForm({
       mergeSelectables(designThemes, values.designTheme ? [{ slug: values.designTheme, name: capitalize(values.designTheme) }] : []),
     );
     setDesignThemeOptions(merged);
-    if (!merged.some((theme) => theme.slug === values.designTheme)) {
-      setValues((prev) => ({ ...prev, designTheme: merged[0]?.slug ?? "basic" }));
-    }
   }, [defaultDesigns, designThemes, values.designTheme]);
+
+  const handleAddCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    const slug = slugify(trimmed);
+    if (!slug) return;
+    try {
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: capitalize(trimmed), slug, type: "category" }),
+      });
+      if (!res.ok) throw new Error("Failed to add category");
+      const { id } = await res.json();
+      const next = mergeSelectables(categories, [{ slug, name: capitalize(trimmed), id, isDefault: false }]);
+      onCategoriesChange(next);
+      setValues((prev) => ({ ...prev, category: slug }));
+      await onReloadCategories();
+    } catch (err) {
+      console.error("Failed to add category", err);
+    } finally {
+      setNewCategoryName("");
+      setShowNewCategory(false);
+    }
+  };
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
@@ -344,14 +379,49 @@ export function ProductForm({
                   type="button"
                   onClick={() => setValues((prev) => ({ ...prev, category: cat.slug }))}
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    isSelected ? "border-white bg-white text-slate-900" : "border-white/20 bg-white/5 text-white/80"
+                    isSelected
+                      ? "border-white bg-white text-slate-900"
+                      : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
                   }`}
                 >
                   {cat.name}
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewCategory((prev) => !prev);
+                setNewCategoryName("");
+              }}
+              className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10"
+            >
+              + Add category
+            </button>
           </div>
+          {showNewCategory && (
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="New category name"
+                className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleAddCategory();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => void handleAddCategory()}
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15"
+              >
+                Add category
+              </button>
+            </div>
+          )}
         </div>
         <div className="space-y-2 text-sm text-sky-100/90">
           <span className="font-semibold text-white">Design theme</span>
@@ -359,46 +429,25 @@ export function ProductForm({
           <div className="flex flex-wrap items-center gap-2">
             {designThemeOptions.map((theme) => {
               const active = values.designTheme === theme.slug;
-              const isCustom = !theme.isDefault && theme.id;
               const key = theme.id ? `design-${theme.id}` : `default-${theme.slug}`;
               return (
-                <span key={key} className="relative inline-flex items-center gap-1 mr-1 mb-2">
                 <button
+                  key={key}
                   type="button"
-                    onClick={() => setValues((prev) => ({
+                  onClick={() =>
+                    setValues((prev) => ({
                       ...prev,
                       designTheme: theme.slug,
-                    }))}
+                    }))
+                  }
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? "border-white bg-white text-slate-900"
+                      : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                  }`}
                 >
                   {capitalize(theme.name)}
-                  </button>
-                  {isCustom && active && (
-                    <button
-                      type="button"
-                      className="ml-0.5 text-white/70 hover:text-rose-400 cursor-pointer p-0 bg-transparent border-none"
-                      title="Delete design"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const confirmed = window.confirm("Delete this design? Products using it will keep the value.");
-                        if (!confirmed) return;
-                        try {
-                          await fetch(`/api/categories/${theme.id}`, { method: "DELETE" });
-                        const next = designThemeOptions.filter((t) => t.slug !== theme.slug);
-                        syncDesignThemes(next);
-                        if (values.designTheme === theme.slug) {
-                          setValues((prev) => ({ ...prev, designTheme: "basic", designThemeCustom: "" }));
-                        }
-                        await onReloadDesignThemes();
-                        } catch (err) {
-                          console.error("Failed to delete design", err);
-                        }
-                      }}
-                      style={{fontSize: "1.1em"}}
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </span>
+                </button>
               );
             })}
             <button
@@ -422,18 +471,19 @@ export function ProductForm({
                 onKeyDown={async (e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    const slug = slugify(newDesignName);
+                    const trimmed = newDesignName.trim();
+                    const slug = slugify(trimmed);
                     if (!slug) return;
                     try {
                       const res = await fetch("/api/categories", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: capitalize(newDesignName), slug, type: "design" }),
+                        body: JSON.stringify({ name: capitalize(trimmed), slug, type: "design" }),
                       });
                       if (res.ok) {
                         const { id } = await res.json();
                         const next = mergeSelectables(designThemeOptions, [
-                          { slug, name: capitalize(newDesignName), id, isDefault: false },
+                          { slug, name: capitalize(trimmed), id, isDefault: false },
                         ]);
                         syncDesignThemes(next);
                         setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
@@ -450,18 +500,19 @@ export function ProductForm({
               <button
                 type="button"
                 onClick={async () => {
-                  const slug = slugify(newDesignName);
+                  const trimmed = newDesignName.trim();
+                  const slug = slugify(trimmed);
                   if (!slug) return;
                   try {
                     const res = await fetch("/api/categories", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: capitalize(newDesignName), slug, type: "design" }),
+                      body: JSON.stringify({ name: capitalize(trimmed), slug, type: "design" }),
                     });
                     if (res.ok) {
                       const { id } = await res.json();
                       const next = mergeSelectables(designThemeOptions, [
-                        { slug, name: capitalize(newDesignName), id, isDefault: false },
+                        { slug, name: capitalize(trimmed), id, isDefault: false },
                       ]);
                       syncDesignThemes(next);
                       setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));

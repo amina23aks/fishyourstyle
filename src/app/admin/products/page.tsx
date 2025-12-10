@@ -429,7 +429,9 @@ export default function AdminProductsPage() {
             onCancelEdit={resetForm}
             categories={categories}
             designThemes={designThemes}
+            onCategoriesChange={setCategories}
             onDesignThemesChange={setDesignThemes}
+            onReloadCategories={loadCategories}
             onReloadDesignThemes={loadDesignThemes}
           />
         </section>
