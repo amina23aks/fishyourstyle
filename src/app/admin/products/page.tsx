@@ -40,6 +40,26 @@ const allowedSizes = ["S", "M", "L", "XL"] as const;
 const builtInCategories: SelectableOption[] = DEFAULT_CATEGORY_OPTIONS.map(toSelectableOption);
 const builtInDesignThemes: SelectableOption[] = DEFAULT_DESIGN_OPTIONS.map(toSelectableOption);
 
+const deriveFromProducts = (products: AdminProduct[]) => {
+  const categories = Array.from(new Set(products.map((product) => product.category).filter(Boolean))).map((slug) => ({
+    id: slug,
+    name: typeof slug === "string" ? slug : String(slug),
+    label: typeof slug === "string" ? slug : String(slug),
+    slug: typeof slug === "string" ? slug : String(slug),
+    isDefault: DEFAULT_CATEGORY_OPTIONS.some((item) => item.slug === slug),
+  }));
+
+  const designs = Array.from(new Set(products.map((product) => product.designTheme).filter(Boolean))).map((slug) => ({
+    id: slug,
+    name: typeof slug === "string" ? slug : String(slug),
+    label: typeof slug === "string" ? slug : String(slug),
+    slug: typeof slug === "string" ? slug : String(slug),
+    isDefault: DEFAULT_DESIGN_OPTIONS.some((item) => item.slug === slug),
+  }));
+
+  return { categories, designs };
+};
+
 const defaultForm: ProductFormValues = {
   name: "",
   description: "",
@@ -99,10 +119,15 @@ export default function AdminProductsPage() {
       setDesignThemes(mergeBySlug(builtInDesignThemes, data.designs.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories and designs", err);
-      setCategories((prev) => (prev.length ? prev : builtInCategories));
-      setDesignThemes((prev) => (prev.length ? prev : builtInDesignThemes));
+      const derived = deriveFromProducts(products);
+      setCategories((prev) =>
+        prev.length ? prev : mergeBySlug(builtInCategories, derived.categories.map(toSelectableOption)),
+      );
+      setDesignThemes((prev) =>
+        prev.length ? prev : mergeBySlug(builtInDesignThemes, derived.designs.map(toSelectableOption)),
+      );
     }
-  }, []);
+  }, [products]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -112,9 +137,12 @@ export default function AdminProductsPage() {
       setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories", err);
-      setCategories((prev) => (prev.length ? prev : builtInCategories));
+      const derived = deriveFromProducts(products);
+      setCategories((prev) =>
+        prev.length ? prev : mergeBySlug(builtInCategories, derived.categories.map(toSelectableOption)),
+      );
     }
-  }, []);
+  }, [products]);
 
   const loadDesignThemes = useCallback(async () => {
     try {
@@ -124,9 +152,12 @@ export default function AdminProductsPage() {
       setDesignThemes(mergeBySlug(builtInDesignThemes, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load design themes", err);
-      setDesignThemes((prev) => (prev.length ? prev : builtInDesignThemes));
+      const derived = deriveFromProducts(products);
+      setDesignThemes((prev) =>
+        prev.length ? prev : mergeBySlug(builtInDesignThemes, derived.designs.map(toSelectableOption)),
+      );
     }
-  }, []);
+  }, [products]);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -144,8 +175,11 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     loadProducts();
+  }, [loadProducts]);
+
+  useEffect(() => {
     loadCollectionsAndDesigns();
-  }, [loadCollectionsAndDesigns, loadProducts]);
+  }, [loadCollectionsAndDesigns]);
 
   const handleUploadImage = useCallback(
     async (file: File) => {

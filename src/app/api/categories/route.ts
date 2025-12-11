@@ -45,8 +45,10 @@ export async function POST(request: Request) {
     await addCategory(name);
     return NextResponse.json({ name, type: "category" });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create category";
+    const status = /permission/i.test(message) ? 403 : 500;
     console.error("Failed to create category:", error);
-    return NextResponse.json({ error: "Failed to create category" }, { status: 500 });
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -68,7 +70,9 @@ export async function DELETE(request: Request) {
     await deleteCategory(slug);
     return NextResponse.json({ slug, type: "category" });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete entry";
+    const status = /permission/i.test(message) ? 403 : 500;
     console.error("Failed to delete category or design:", error);
-    return NextResponse.json({ error: "Failed to delete entry" }, { status: 500 });
+    return NextResponse.json({ error: message }, { status });
   }
 }

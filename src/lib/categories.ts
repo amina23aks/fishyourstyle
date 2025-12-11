@@ -173,14 +173,21 @@ async function addEntry(label: string, type: "collection" | "design"): Promise<v
   const db = getServerDb();
   const docRef = doc(db, CATEGORY_COLLECTION, slug);
 
-  await setDoc(docRef, {
-    name: trimmed,
-    label: trimmed,
-    slug,
-    type,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  try {
+    await setDoc(docRef, {
+      name: trimmed,
+      label: trimmed,
+      slug,
+      type,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    if (handlePermissionDenied(error)) {
+      throw new Error("You do not have permission to add categories/designs. Check Firestore rules.");
+    }
+    throw error;
+  }
 }
 
 export async function addCategory(label: string): Promise<void> {
@@ -206,9 +213,10 @@ async function deleteByIdOrSlug(idOrSlug: string, type: "collection" | "design")
     await deleteDoc(docRef);
     return;
   } catch (error) {
-    if (!(error instanceof FirebaseError) || error.code !== "permission-denied") {
-      console.warn("Direct delete failed, attempting by slug", error);
+    if (handlePermissionDenied(error)) {
+      throw new Error("You do not have permission to delete categories/designs. Check Firestore rules.");
     }
+    console.warn("Direct delete failed, attempting by slug", error);
   }
 
   const categoriesRef = collection(db, CATEGORY_COLLECTION);
