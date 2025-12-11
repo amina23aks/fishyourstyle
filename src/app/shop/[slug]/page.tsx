@@ -1,14 +1,10 @@
 import { notFound } from "next/navigation";
 
-import {
-  fetchAllStorefrontProducts,
-  fetchStorefrontProductBySlug,
-  type StorefrontProduct,
-} from "@/lib/storefront-products";
+import { fetchStorefrontProductBySlug, type StorefrontProduct } from "@/lib/storefront-products";
 import { ProductDetailContent } from "./product-detail-content";
 import type { Product } from "@/types/product";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const mainImage = sp.images?.[0] ?? "/placeholder.png";
@@ -39,11 +35,6 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     tags: sp.tags ?? [],
     discountPercent: sp.discountPercent ?? 0,
   };
-}
-
-export async function generateStaticParams() {
-  const all = await fetchAllStorefrontProducts();
-  return all.map((product) => ({ slug: product.slug }));
 }
 
 type ProductDetailPageParams = {
