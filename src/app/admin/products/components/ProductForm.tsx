@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 import type { AdminProductCategory } from "@/lib/admin-products";
+import { addCategory, addDesign } from "@/lib/categories";
 import type { SelectableOption } from "@/types/selectable";
 
 export type ProductFormValues = {
@@ -258,14 +259,8 @@ export function ProductForm({
     const slug = slugify(trimmed);
     if (!slug) return;
     try {
-      const res = await fetch("/api/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: capitalize(trimmed), slug, type: "category" }),
-      });
-      if (!res.ok) throw new Error("Failed to add category");
-      const { id } = await res.json();
-      const next = mergeSelectables(categories, [{ slug, name: capitalize(trimmed), id, isDefault: false }]);
+      await addCategory(capitalize(trimmed));
+      const next = mergeSelectables(categories, [{ slug, name: capitalize(trimmed), id: slug, isDefault: false }]);
       onCategoriesChange(next);
       setValues((prev) => ({ ...prev, category: slug }));
       await onReloadCategories();
@@ -462,20 +457,13 @@ export function ProductForm({
                     const slug = slugify(trimmed);
                     if (!slug) return;
                     try {
-                      const res = await fetch("/api/categories", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: capitalize(trimmed), slug, type: "design" }),
-                      });
-                      if (res.ok) {
-                        const { id } = await res.json();
-                        const next = mergeSelectables(designThemeOptions, [
-                          { slug, name: capitalize(trimmed), id, isDefault: false },
-                        ]);
-                        syncDesignThemes(next);
-                        setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
-                        await onReloadDesignThemes();
-                      }
+                      await addDesign(capitalize(trimmed));
+                      const next = mergeSelectables(designThemeOptions, [
+                        { slug, name: capitalize(trimmed), id: slug, isDefault: false },
+                      ]);
+                      syncDesignThemes(next);
+                      setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
+                      await onReloadDesignThemes();
                     } catch (err) {
                       console.error("Failed to add design", err);
                     }
@@ -486,28 +474,21 @@ export function ProductForm({
               />
               <button
                 type="button"
-                onClick={async () => {
-                  const trimmed = newDesignName.trim();
-                  const slug = slugify(trimmed);
-                  if (!slug) return;
-                  try {
-                    const res = await fetch("/api/categories", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: capitalize(trimmed), slug, type: "design" }),
-                    });
-                    if (res.ok) {
-                      const { id } = await res.json();
-                      const next = mergeSelectables(designThemeOptions, [
-                        { slug, name: capitalize(trimmed), id, isDefault: false },
-                      ]);
-                      syncDesignThemes(next);
-                      setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
-                      await onReloadDesignThemes();
-                    }
-                  } catch (err) {
-                    console.error("Failed to add design", err);
-                  }
+              onClick={async () => {
+                const trimmed = newDesignName.trim();
+                const slug = slugify(trimmed);
+                if (!slug) return;
+                try {
+                  await addDesign(capitalize(trimmed));
+                  const next = mergeSelectables(designThemeOptions, [
+                    { slug, name: capitalize(trimmed), id: slug, isDefault: false },
+                  ]);
+                  syncDesignThemes(next);
+                  setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
+                  await onReloadDesignThemes();
+                } catch (err) {
+                  console.error("Failed to add design", err);
+                }
                   setNewDesignName("");
                   setShowNewDesign(false);
                 }}

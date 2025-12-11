@@ -1,133 +1,42 @@
 import { FirebaseError } from "firebase/app";
-import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy, where, serverTimestamp, type DocumentData, type Timestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
+
 import { getServerDb } from "./firestore";
 
-export type Category = {
+export type SelectableItem = {
   id: string;
-  name: string;
+  label: string;
   slug: string;
-  type?: "category" | "design";
   isDefault?: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
 };
 
-const DEFAULT_ENTRIES: Array<{
-  id: string;
-  name: string;
-  slug: string;
-  type: "category" | "design";
-}> = [
-  { id: "hoodies", name: "Hoodies", slug: "hoodies", type: "category" },
-  { id: "pants", name: "Pants", slug: "pants", type: "category" },
-  { id: "ensembles", name: "Ensembles", slug: "ensembles", type: "category" },
-  { id: "tshirts", name: "Tshirts", slug: "tshirts", type: "category" },
-  { id: "basic", name: "Basic", slug: "basic", type: "design" },
-  { id: "cars", name: "Cars", slug: "cars", type: "design" },
-  { id: "anime", name: "Anime", slug: "anime", type: "design" },
-  { id: "nature", name: "Nature", slug: "nature", type: "design" },
-  { id: "harry-potter", name: "Harry Potter", slug: "harry-potter", type: "design" },
+const DEFAULT_CATEGORIES: SelectableItem[] = [
+  { id: "hoodies", label: "Hoodies", slug: "hoodies", isDefault: true },
+  { id: "pants", label: "Pants", slug: "pants", isDefault: true },
+  { id: "ensembles", label: "Ensembles", slug: "ensembles", isDefault: true },
+  { id: "tshirts", label: "Tshirts", slug: "tshirts", isDefault: true },
+  { id: "amina", label: "Amina", slug: "amina", isDefault: true },
 ];
 
-export const DEFAULT_CATEGORY_OPTIONS = DEFAULT_ENTRIES.filter((item) => item.type === "category").map((item) => ({
-  id: item.id,
-  name: item.name,
-  slug: item.slug,
-  isDefault: true,
-  type: item.type,
-}));
+const DEFAULT_DESIGNS: SelectableItem[] = [
+  { id: "basic", label: "Basic", slug: "basic", isDefault: true },
+  { id: "cars", label: "Cars", slug: "cars", isDefault: true },
+  { id: "anime", label: "Anime", slug: "anime", isDefault: true },
+  { id: "nature", label: "Nature", slug: "nature", isDefault: true },
+  { id: "harry-potter", label: "Harry Potter", slug: "harry-potter", isDefault: true },
+];
 
-export const DEFAULT_DESIGN_OPTIONS = DEFAULT_ENTRIES.filter((item) => item.type === "design").map((item) => ({
-  id: item.id,
-  name: item.name,
-  slug: item.slug,
-  isDefault: true,
-  type: item.type,
-}));
-
-function normalizeCategory(data: DocumentData, id: string): Category {
-  const slug = typeof data.slug === "string" ? data.slug : "";
-  const isDefault = DEFAULT_ENTRIES.some((entry) => entry.slug === slug);
-  return {
-    id,
-    name: typeof data.name === "string" ? data.name : "",
-    slug,
-    type: data.type === "design" ? "design" : "category",
-    isDefault,
-    createdAt: (data.createdAt as Timestamp) ?? serverTimestamp(),
-    updatedAt: (data.updatedAt as Timestamp) ?? serverTimestamp(),
-  };
-}
-
-function fallbackCategories(type?: "category" | "design"): Category[] {
-  const timestamp = new Date() as unknown as Timestamp;
-  const base: Category[] = DEFAULT_ENTRIES.map((entry) => ({
-    ...entry,
-    isDefault: true,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  }));
-
-  if (!type) return base;
-  return base.filter((item) => item.type === type);
-}
-
-function isPermissionDenied(error: unknown): boolean {
-  return error instanceof FirebaseError && error.code === "permission-denied";
-}
-
-// NOTE FOR OWNER:
-// Public storefront pages need read access to the following Firestore collections:
-//   - products
-//   - categories (type "category" and "design")
-//   - designThemes (if you split designs into their own collection)
-// In production, configure Firestore Security Rules to allow reads for these public collections
-// or adjust the app to require authentication before reading them.
-// Example dev-only rule (do not use in locked-down production):
-// match /products/{id} { allow read: if true; }
-
-export async function fetchAllCategories(type?: "category" | "design"): Promise<Category[]> {
-  try {
-    const db = getServerDb();
-    const categoriesRef = collection(db, "categories");
-    const baseQuery = type
-      ? query(categoriesRef, where("type", "==", type), orderBy("name", "asc"))
-      : query(categoriesRef, orderBy("name", "asc"));
-    const snapshot = await getDocs(baseQuery);
-    const fetched = snapshot.docs.map((doc) => normalizeCategory(doc.data(), doc.id));
-    const defaults = fallbackCategories(type);
-    const merged = new Map<string, Category>();
-    defaults.forEach((item) => merged.set(item.slug, item));
-    fetched.forEach((item) => merged.set(item.slug, item));
-    return Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name));
-  } catch (error) {
-    if (isPermissionDenied(error)) {
-      console.warn("Firestore permission denied while reading categories; using fallback list.");
-    } else {
-      console.error("Failed to fetch categories from Firestore, using fallbacks:", error);
-    }
-    return fallbackCategories(type);
-  }
-}
-
-export async function createCategory(name: string, slug: string, type: "category" | "design" = "category"): Promise<string> {
-  const db = getServerDb();
-  const categoriesRef = collection(db, "categories");
-  const docRef = await addDoc(categoriesRef, {
-    name,
-    slug,
-    type,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return docRef.id;
-}
-
-export async function deleteCategory(id: string): Promise<void> {
-  const db = getServerDb();
-  const categoryRef = doc(db, "categories", id);
-  await deleteDoc(categoryRef);
-}
+const CATEGORY_COLLECTION = "categories";
 
 function slugify(value: string): string {
   return value
@@ -138,7 +47,129 @@ function slugify(value: string): string {
     .replace(/-+/g, "-");
 }
 
+function mergeOptions(defaults: SelectableItem[], fetched: SelectableItem[]): SelectableItem[] {
+  const merged = new Map<string, SelectableItem>();
+
+  defaults.forEach((item) => merged.set(item.slug, item));
+  fetched.forEach((item) => {
+    const existing = merged.get(item.slug);
+    merged.set(item.slug, { ...item, isDefault: existing?.isDefault ?? item.isDefault });
+  });
+
+  return Array.from(merged.values()).sort((a, b) => a.label.localeCompare(b.label));
+}
+
+async function fetchFromFirestore(type: "category" | "design"): Promise<SelectableItem[]> {
+  const db = getServerDb();
+  const categoriesRef = collection(db, CATEGORY_COLLECTION);
+  const snapshot = await getDocs(query(categoriesRef, where("type", "==", type), orderBy("name", "asc")));
+
+  return snapshot.docs.map((docSnap) => {
+    const data = docSnap.data();
+    const label = typeof data.name === "string" ? data.name : typeof data.label === "string" ? data.label : "";
+    const slug = typeof data.slug === "string" && data.slug ? data.slug : slugify(label);
+    const isDefault = [...DEFAULT_CATEGORIES, ...DEFAULT_DESIGNS].some((entry) => entry.slug === slug);
+    return {
+      id: docSnap.id,
+      label,
+      slug,
+      isDefault,
+    } satisfies SelectableItem;
+  });
+}
+
+function handlePermissionDenied(error: unknown) {
+  return error instanceof FirebaseError && error.code === "permission-denied";
+}
+
+export async function getSelectableCategories(): Promise<SelectableItem[]> {
+  try {
+    const fetched = await fetchFromFirestore("category");
+    return mergeOptions(DEFAULT_CATEGORIES, fetched);
+  } catch (error) {
+    if (!handlePermissionDenied(error)) {
+      console.error("Failed to fetch categories from Firestore; using defaults.", error);
+    }
+    return DEFAULT_CATEGORIES;
+  }
+}
+
+export async function getSelectableDesigns(): Promise<SelectableItem[]> {
+  try {
+    const fetched = await fetchFromFirestore("design");
+    return mergeOptions(DEFAULT_DESIGNS, fetched);
+  } catch (error) {
+    if (!handlePermissionDenied(error)) {
+      console.error("Failed to fetch designs from Firestore; using defaults.", error);
+    }
+    return DEFAULT_DESIGNS;
+  }
+}
+
+export async function getSelectableCollectionsAndDesigns(): Promise<{
+  collections: SelectableItem[];
+  designs: SelectableItem[];
+}> {
+  const [collections, designs] = await Promise.all([getSelectableCategories(), getSelectableDesigns()]);
+  return { collections, designs };
+}
+
+async function addEntry(label: string, type: "category" | "design"): Promise<void> {
+  const trimmed = label.trim();
+  if (!trimmed) return;
+
+  const db = getServerDb();
+  const categoriesRef = collection(db, CATEGORY_COLLECTION);
+
+  await addDoc(categoriesRef, {
+    name: trimmed,
+    label: trimmed,
+    slug: slugify(trimmed),
+    type,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function addCategory(label: string): Promise<void> {
+  return addEntry(label, "category");
+}
+
+export async function addDesign(label: string): Promise<void> {
+  return addEntry(label, "design");
+}
+
+async function deleteByIdOrSlug(idOrSlug: string, type: "category" | "design") {
+  const db = getServerDb();
+  const categoriesRef = collection(db, CATEGORY_COLLECTION);
+  const docRef = doc(db, CATEGORY_COLLECTION, idOrSlug);
+
+  try {
+    await deleteDoc(docRef);
+    return;
+  } catch (error) {
+    if (!(error instanceof FirebaseError) || error.code !== "permission-denied") {
+      console.warn("Direct delete failed, attempting by slug", error);
+    }
+  }
+
+  const slug = slugify(idOrSlug);
+  const matches = await getDocs(query(categoriesRef, where("slug", "==", slug), where("type", "==", type)));
+  const deletions = matches.docs.map((snap) => deleteDoc(snap.ref));
+  await Promise.all(deletions);
+}
+
+export async function deleteCategory(idOrSlug: string): Promise<void> {
+  return deleteByIdOrSlug(idOrSlug, "category");
+}
+
+export async function deleteDesign(idOrSlug: string): Promise<void> {
+  return deleteByIdOrSlug(idOrSlug, "design");
+}
+
+export const DEFAULT_CATEGORY_OPTIONS = DEFAULT_CATEGORIES;
+export const DEFAULT_DESIGN_OPTIONS = DEFAULT_DESIGNS;
+
 export function generateSlug(name: string): string {
   return slugify(name);
 }
-

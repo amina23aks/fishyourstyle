@@ -5,13 +5,13 @@ import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 import { DEFAULT_COLLECTION_FILTERS, DEFAULT_DESIGN_FILTERS } from "@/lib/filter-config";
-import type { Category } from "@/lib/categories";
+import type { SelectableItem } from "@/lib/categories";
 
 type ShopClientProps = {
   products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];
   errorMessage?: string | null;
-  categories?: Category[];
-  designThemes?: Category[];
+  categories?: SelectableItem[];
+  designThemes?: SelectableItem[];
 };
 
 function capitalizeLabel(value: string | undefined | null): string {

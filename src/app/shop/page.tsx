@@ -1,7 +1,12 @@
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import ShopClient from "./shop-client";
-import { fetchAllCategories } from "@/lib/categories";
+import {
+  DEFAULT_CATEGORY_OPTIONS,
+  DEFAULT_DESIGN_OPTIONS,
+  getSelectableCategories,
+  getSelectableDesigns,
+} from "@/lib/categories";
 
 export const revalidate = 3600;
 
@@ -42,8 +47,8 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
 export default async function ShopPage() {
   let storefrontProducts: StorefrontProduct[] = [];
   let errorMessage: string | null = null;
-  let categories: Awaited<ReturnType<typeof fetchAllCategories>> = [];
-  let designThemes: Awaited<ReturnType<typeof fetchAllCategories>> = [];
+  let categories: Awaited<ReturnType<typeof getSelectableCategories>> = [];
+  let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
   try {
     storefrontProducts = await fetchAllStorefrontProducts();
   } catch (error) {
@@ -52,15 +57,17 @@ export default async function ShopPage() {
   }
 
   try {
-    categories = await fetchAllCategories("category");
+    categories = await getSelectableCategories();
   } catch (error) {
     console.error("Failed to fetch categories:", error);
+    categories = DEFAULT_CATEGORY_OPTIONS;
   }
 
   try {
-    designThemes = await fetchAllCategories("design");
+    designThemes = await getSelectableDesigns();
   } catch (error) {
     console.error("Failed to fetch design themes:", error);
+    designThemes = DEFAULT_DESIGN_OPTIONS;
   }
 
   const products = storefrontProducts.map(mapStorefrontToProduct);

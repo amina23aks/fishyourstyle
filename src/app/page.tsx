@@ -3,7 +3,12 @@ import Hero from "@/components/Hero";
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
-import { fetchAllCategories } from "@/lib/categories";
+import {
+  DEFAULT_CATEGORY_OPTIONS,
+  DEFAULT_DESIGN_OPTIONS,
+  getSelectableCategories,
+  getSelectableDesigns,
+} from "@/lib/categories";
 
 export const revalidate = 3600;
 
@@ -57,22 +62,24 @@ const reasons = [
 
 export default async function Home() {
   let errorMessage: string | null = null;
-  let categories: Awaited<ReturnType<typeof fetchAllCategories>> = [];
-  let designThemes: Awaited<ReturnType<typeof fetchAllCategories>> = [];
+  let categories: Awaited<ReturnType<typeof getSelectableCategories>> = [];
+  let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
   const storefrontProducts = await fetchAllStorefrontProducts().catch((error) => {
     console.error("Failed to fetch products:", error);
     errorMessage = "Products are temporarily unavailable.";
     return [];
   });
   try {
-    categories = await fetchAllCategories("category");
+    categories = await getSelectableCategories();
   } catch (error) {
     console.error("Failed to fetch categories:", error);
+    categories = DEFAULT_CATEGORY_OPTIONS;
   }
   try {
-    designThemes = await fetchAllCategories("design");
+    designThemes = await getSelectableDesigns();
   } catch (error) {
     console.error("Failed to fetch design themes:", error);
+    designThemes = DEFAULT_DESIGN_OPTIONS;
   }
   const allProducts = storefrontProducts.map(mapStorefrontToProduct);
   const products = allProducts.slice(0, 8);

@@ -165,7 +165,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
           </div>
         </div>
-        <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/40 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-6">
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/40 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5">
           <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
@@ -228,7 +228,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                       setSelectionError(null);
                     }}
                     aria-pressed={isSelected}
-                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+                    className={`rounded-full border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
                     whileHover={{ y: -1 }}
                     whileTap={{ scale: 0.97 }}
                   >
@@ -244,7 +244,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
               <div className="space-y-1">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
                 {product.descriptionFr && product.descriptionFr.trim() && (
-                  <div className="max-h-[140px] overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5">
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
                     <p className="text-sm leading-relaxed text-neutral-300 break-words">
                       {product.descriptionFr}
                     </p>
