@@ -113,16 +113,27 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories");
       if (!res.ok) throw new Error("Failed to fetch categories");
       const data = coerceCollectionsAndDesigns(await res.json());
-      setCategories(mergeBySlug(builtInCategories, data.collections.map(toSelectableOption)));
-      setDesignThemes(mergeBySlug(builtInDesignThemes, data.designs.map(toSelectableOption)));
+      const derived = deriveFromProducts(products);
+      setCategories(
+        mergeBySlug(builtInCategories, [
+          ...data.collections.map(toSelectableOption),
+          ...derived.categories.map(toSelectableOption),
+        ]),
+      );
+      setDesignThemes(
+        mergeBySlug(builtInDesignThemes, [
+          ...data.designs.map(toSelectableOption),
+          ...derived.designs.map(toSelectableOption),
+        ]),
+      );
     } catch (err) {
       console.error("Failed to load categories and designs", err);
       const derived = deriveFromProducts(products);
       setCategories((prev) =>
-        prev.length ? prev : mergeBySlug(builtInCategories, derived.categories.map(toSelectableOption)),
+        mergeBySlug(mergeBySlug(builtInCategories, derived.categories.map(toSelectableOption)), prev),
       );
       setDesignThemes((prev) =>
-        prev.length ? prev : mergeBySlug(builtInDesignThemes, derived.designs.map(toSelectableOption)),
+        mergeBySlug(mergeBySlug(builtInDesignThemes, derived.designs.map(toSelectableOption)), prev),
       );
     }
   }, [products]);
@@ -132,12 +143,18 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories?type=category");
       if (!res.ok) throw new Error("Failed to fetch categories");
       const fetched = (await res.json()) as SelectableItem[];
-      setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
+      const derived = deriveFromProducts(products);
+      setCategories(
+        mergeBySlug(builtInCategories, [
+          ...fetched.map(toSelectableOption),
+          ...derived.categories.map(toSelectableOption),
+        ]),
+      );
     } catch (err) {
       console.error("Failed to load categories", err);
       const derived = deriveFromProducts(products);
       setCategories((prev) =>
-        prev.length ? prev : mergeBySlug(builtInCategories, derived.categories.map(toSelectableOption)),
+        mergeBySlug(mergeBySlug(builtInCategories, derived.categories.map(toSelectableOption)), prev),
       );
     }
   }, [products]);
@@ -147,12 +164,18 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories?type=design");
       if (!res.ok) throw new Error("Failed to fetch design themes");
       const fetched = (await res.json()) as SelectableItem[];
-      setDesignThemes(mergeBySlug(builtInDesignThemes, fetched.map(toSelectableOption)));
+      const derived = deriveFromProducts(products);
+      setDesignThemes(
+        mergeBySlug(builtInDesignThemes, [
+          ...fetched.map(toSelectableOption),
+          ...derived.designs.map(toSelectableOption),
+        ]),
+      );
     } catch (err) {
       console.error("Failed to load design themes", err);
       const derived = deriveFromProducts(products);
       setDesignThemes((prev) =>
-        prev.length ? prev : mergeBySlug(builtInDesignThemes, derived.designs.map(toSelectableOption)),
+        mergeBySlug(mergeBySlug(builtInDesignThemes, derived.designs.map(toSelectableOption)), prev),
       );
     }
   }, [products]);
