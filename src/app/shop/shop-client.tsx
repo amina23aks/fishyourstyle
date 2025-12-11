@@ -5,7 +5,7 @@ import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 import { DEFAULT_COLLECTION_FILTERS, DEFAULT_DESIGN_FILTERS } from "@/lib/filter-config";
-import type { SelectableItem } from "@/lib/categories";
+import type { SelectableItem } from "@/lib/categories-shared";
 
 type ShopClientProps = {
   products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];

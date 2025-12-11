@@ -37,6 +37,7 @@ Products are stored in Firestore and the storefront reads directly from that col
   - This runs `scripts/seed-products.ts`, reading `src/data/products.json` and writing to the `products` collection using the slug as the doc ID. Existing docs are updated instead of duplicated.
 - To clear and reseed: delete the `products` collection in the Firebase console (or `firebase firestore:delete --project $FIREBASE_PROJECT_ID --recursive --collection products` if you have the CLI), then rerun the seed command above.
 - If the JSON changes aren’t appearing in Firestore, verify those three env vars are present in your shell session and that `FIREBASE_PRIVATE_KEY` preserves newlines (escaped as `\n` or pasted as actual newlines). The seed script will throw if any credential is missing.
+- Managing categories/designs via the dashboard uses the same Admin credentials; if they’re absent and your Firestore rules only allow `products`/`orders`, you’ll see a permission error when adding or deleting. Either loosen the rules for the `categories` collection or set the Admin env vars above so server-side calls can bypass client rules.
 
 ## Cloudflare Pages deployment tips
 

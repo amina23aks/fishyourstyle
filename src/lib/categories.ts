@@ -1,75 +1,20 @@
 import { FirebaseError } from "firebase/app";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  serverTimestamp,
-  setDoc,
-  where,
-} from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 
 import { getServerDb } from "./firestore";
 import { isFirebaseConfigured } from "./firebaseConfig";
-
-export type SelectableItem = {
-  /**
-   * Stable identifier used for slugs and Firestore document IDs.
-   * This is returned even when Firestore is unavailable so UI pills stay consistent.
-   */
-  id: string;
-  /** Human-friendly label shown in the UI. */
-  label: string;
-  /** Deterministic slug (alias for `id`) for filters and product association. */
-  slug: string;
-  /** Whether the entry is protected from deletion. */
-  isDefault: boolean;
-};
-
-const DEFAULT_CATEGORIES: SelectableItem[] = [
-  { id: "hoodies", label: "Hoodies", slug: "hoodies", isDefault: true },
-  { id: "pants", label: "Pants", slug: "pants", isDefault: true },
-  { id: "ensembles", label: "Ensembles", slug: "ensembles", isDefault: true },
-  { id: "tshirts", label: "Tshirts", slug: "tshirts", isDefault: true },
-];
-
-const DEFAULT_DESIGNS: SelectableItem[] = [
-  { id: "basic", label: "Basic", slug: "basic", isDefault: true },
-  { id: "cars", label: "Cars", slug: "cars", isDefault: true },
-  { id: "anime", label: "Anime", slug: "anime", isDefault: true },
-  { id: "nature", label: "Nature", slug: "nature", isDefault: true },
-  { id: "harry-potter", label: "Harry Potter", slug: "harry-potter", isDefault: true },
-];
+import { getAdminDb, isAdminConfigured } from "./firebaseAdmin";
+import {
+  DEFAULT_CATEGORIES,
+  DEFAULT_DESIGNS,
+  DEFAULT_KEYS,
+  mergeWithDefaults,
+  slugify,
+  type SelectableItem,
+} from "./categories-shared";
+export type { SelectableItem } from "./categories-shared";
 
 const CATEGORY_COLLECTION = "categories";
-const DEFAULT_KEYS = new Set([...DEFAULT_CATEGORIES, ...DEFAULT_DESIGNS].map((item) => item.slug));
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
-function mergeWithDefaults(defaults: SelectableItem[], fetched: SelectableItem[]): SelectableItem[] {
-  const merged = new Map<string, SelectableItem>();
-
-  defaults.forEach((item) => merged.set(item.slug, item));
-  fetched.forEach((item) => {
-    const slug = item.slug || item.id;
-    const isDefault = merged.get(slug)?.isDefault ?? DEFAULT_KEYS.has(slug);
-    merged.set(slug, { ...item, id: slug, slug, isDefault });
-  });
-
-  return Array.from(merged.values()).sort((a, b) => {
-    if (a.isDefault && !b.isDefault) return -1;
-    if (!a.isDefault && b.isDefault) return 1;
-    return a.label.localeCompare(b.label);
-  });
-}
 
 function normalizeType(value: unknown): "collection" | "design" | null {
   if (typeof value !== "string") return null;
@@ -100,8 +45,16 @@ function buildSelectableFromDoc(
 }
 
 async function fetchFromFirestore(type: "collection" | "design"): Promise<SelectableItem[]> {
-  if (!isFirebaseConfigured()) {
+  if (!isFirebaseConfigured() && !isAdminConfigured()) {
     return [];
+  }
+
+  const adminDb = getAdminDb();
+  if (adminDb) {
+    const snapshot = await adminDb.collection(CATEGORY_COLLECTION).get();
+    return snapshot.docs
+      .map((docSnap) => buildSelectableFromDoc(docSnap.data() as Record<string, unknown>, docSnap.id, type))
+      .filter((item): item is SelectableItem => Boolean(item));
   }
 
   const db = getServerDb();
@@ -165,11 +118,33 @@ async function addEntry(label: string, type: "collection" | "design"): Promise<v
   const trimmed = label.trim();
   if (!trimmed) return;
 
-  if (!isFirebaseConfigured()) {
-    throw new Error("Firebase is not configured. Please add your Firebase environment variables.");
+  if (!isFirebaseConfigured() && !isAdminConfigured()) {
+    throw new Error(
+      "Firebase is not configured. Please add your Firebase environment variables (client or Admin SDK) to manage categories/designs.",
+    );
   }
 
   const slug = slugify(trimmed);
+  const adminDb = getAdminDb();
+  if (adminDb) {
+    try {
+      await adminDb.collection(CATEGORY_COLLECTION).doc(slug).set({
+        name: trimmed,
+        label: trimmed,
+        slug,
+        type,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      return;
+    } catch (error) {
+      console.error("Admin SDK failed to add entry", error);
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to add category/design via Admin SDK. Check credentials and Firestore.");
+    }
+  }
+
   const db = getServerDb();
   const docRef = doc(db, CATEGORY_COLLECTION, slug);
 
@@ -184,7 +159,9 @@ async function addEntry(label: string, type: "collection" | "design"): Promise<v
     });
   } catch (error) {
     if (handlePermissionDenied(error)) {
-      throw new Error("You do not have permission to add categories/designs. Check Firestore rules.");
+      throw new Error(
+        "You do not have permission to add categories/designs. Update Firestore rules or configure Admin SDK credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).",
+      );
     }
     throw error;
   }
@@ -202,8 +179,20 @@ async function deleteByIdOrSlug(idOrSlug: string, type: "collection" | "design")
   const slug = slugify(idOrSlug);
   if (DEFAULT_KEYS.has(slug)) return;
 
-  if (!isFirebaseConfigured()) {
-    throw new Error("Firebase is not configured. Please add your Firebase environment variables.");
+  if (!isFirebaseConfigured() && !isAdminConfigured()) {
+    throw new Error(
+      "Firebase is not configured. Please add your Firebase environment variables (client or Admin SDK) to manage categories/designs.",
+    );
+  }
+
+  const adminDb = getAdminDb();
+  if (adminDb) {
+    try {
+      await adminDb.collection(CATEGORY_COLLECTION).doc(slug).delete();
+      return;
+    } catch (error) {
+      console.error("Admin SDK failed to delete entry", error);
+    }
   }
 
   const db = getServerDb();
@@ -214,7 +203,9 @@ async function deleteByIdOrSlug(idOrSlug: string, type: "collection" | "design")
     return;
   } catch (error) {
     if (handlePermissionDenied(error)) {
-      throw new Error("You do not have permission to delete categories/designs. Check Firestore rules.");
+      throw new Error(
+        "You do not have permission to delete categories/designs. Update Firestore rules or configure Admin SDK credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).",
+      );
     }
     console.warn("Direct delete failed, attempting by slug", error);
   }

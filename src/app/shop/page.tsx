@@ -1,12 +1,8 @@
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import ShopClient from "./shop-client";
-import {
-  DEFAULT_CATEGORY_OPTIONS,
-  DEFAULT_DESIGN_OPTIONS,
-  getSelectableCollections,
-  getSelectableDesigns,
-} from "@/lib/categories";
+import { DEFAULT_CATEGORY_OPTIONS, DEFAULT_DESIGN_OPTIONS } from "@/lib/categories-shared";
+import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
 
 export const revalidate = 3600;
 

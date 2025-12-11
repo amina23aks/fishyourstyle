@@ -13,14 +13,7 @@ import {
   type AdminProductInput,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
-import {
-  DEFAULT_CATEGORY_OPTIONS,
-  DEFAULT_DESIGN_OPTIONS,
-  getSelectableCollectionsAndDesigns,
-  getSelectableCollections,
-  getSelectableDesigns,
-  type SelectableItem,
-} from "@/lib/categories";
+import { DEFAULT_CATEGORY_OPTIONS, DEFAULT_DESIGN_OPTIONS, type SelectableItem } from "@/lib/categories-shared";
 import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
@@ -105,6 +98,11 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<SelectableOption[]>(() => [...builtInCategories]);
   const [designThemes, setDesignThemes] = useState<SelectableOption[]>(() => [...builtInDesignThemes]);
 
+  const coerceCollectionsAndDesigns = useCallback(
+    (payload: { collections: SelectableItem[]; designs: SelectableItem[] }) => payload,
+    [],
+  );
+
   const showToast = useCallback((payload: Toast) => {
     setToast(payload);
     setTimeout(() => setToast(null), 3500);
@@ -114,7 +112,7 @@ export default function AdminProductsPage() {
     try {
       const res = await fetch("/api/categories");
       if (!res.ok) throw new Error("Failed to fetch categories");
-      const data = (await res.json()) as Awaited<ReturnType<typeof getSelectableCollectionsAndDesigns>>;
+      const data = coerceCollectionsAndDesigns(await res.json());
       setCategories(mergeBySlug(builtInCategories, data.collections.map(toSelectableOption)));
       setDesignThemes(mergeBySlug(builtInDesignThemes, data.designs.map(toSelectableOption)));
     } catch (err) {
@@ -133,7 +131,7 @@ export default function AdminProductsPage() {
     try {
       const res = await fetch("/api/categories?type=category");
       if (!res.ok) throw new Error("Failed to fetch categories");
-      const fetched = (await res.json()) as Awaited<ReturnType<typeof getSelectableCollections>>;
+      const fetched = (await res.json()) as SelectableItem[];
       setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories", err);
@@ -148,7 +146,7 @@ export default function AdminProductsPage() {
     try {
       const res = await fetch("/api/categories?type=design");
       if (!res.ok) throw new Error("Failed to fetch design themes");
-      const fetched = (await res.json()) as Awaited<ReturnType<typeof getSelectableDesigns>>;
+      const fetched = (await res.json()) as SelectableItem[];
       setDesignThemes(mergeBySlug(builtInDesignThemes, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load design themes", err);
