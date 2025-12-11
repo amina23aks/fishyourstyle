@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   addCategory,
   addDesign,
-  getSelectableCategories,
+  getSelectableCollections,
   getSelectableCollectionsAndDesigns,
   getSelectableDesigns,
 } from "@/lib/categories";
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const typeParam = searchParams.get("type");
     if (typeParam === "category") {
-      const categories = await getSelectableCategories();
+      const categories = await getSelectableCollections();
       return NextResponse.json(categories);
     }
 

@@ -6,7 +6,7 @@ import HomeClient from "./home-client";
 import {
   DEFAULT_CATEGORY_OPTIONS,
   DEFAULT_DESIGN_OPTIONS,
-  getSelectableCategories,
+  getSelectableCollections,
   getSelectableDesigns,
 } from "@/lib/categories";
 
@@ -62,7 +62,7 @@ const reasons = [
 
 export default async function Home() {
   let errorMessage: string | null = null;
-  let categories: Awaited<ReturnType<typeof getSelectableCategories>> = [];
+  let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
   const storefrontProducts = await fetchAllStorefrontProducts().catch((error) => {
     console.error("Failed to fetch products:", error);
@@ -70,7 +70,7 @@ export default async function Home() {
     return [];
   });
   try {
-    categories = await getSelectableCategories();
+    categories = await getSelectableCollections();
   } catch (error) {
     console.error("Failed to fetch categories:", error);
     categories = DEFAULT_CATEGORY_OPTIONS;

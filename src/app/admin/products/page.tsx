@@ -17,8 +17,8 @@ import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import {
   DEFAULT_CATEGORY_OPTIONS,
   DEFAULT_DESIGN_OPTIONS,
-  getSelectableCategories,
   getSelectableCollectionsAndDesigns,
+  getSelectableCollections,
   getSelectableDesigns,
   type SelectableItem,
 } from "@/lib/categories";
@@ -113,7 +113,7 @@ export default function AdminProductsPage() {
   const loadCategories = useCallback(async () => {
     setLoadingCategories(true);
     try {
-      const fetched = await getSelectableCategories();
+      const fetched = await getSelectableCollections();
       setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories", err);

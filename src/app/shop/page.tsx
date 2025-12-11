@@ -4,7 +4,7 @@ import ShopClient from "./shop-client";
 import {
   DEFAULT_CATEGORY_OPTIONS,
   DEFAULT_DESIGN_OPTIONS,
-  getSelectableCategories,
+  getSelectableCollections,
   getSelectableDesigns,
 } from "@/lib/categories";
 
@@ -47,7 +47,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
 export default async function ShopPage() {
   let storefrontProducts: StorefrontProduct[] = [];
   let errorMessage: string | null = null;
-  let categories: Awaited<ReturnType<typeof getSelectableCategories>> = [];
+  let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
   try {
     storefrontProducts = await fetchAllStorefrontProducts();
@@ -57,7 +57,7 @@ export default async function ShopPage() {
   }
 
   try {
-    categories = await getSelectableCategories();
+    categories = await getSelectableCollections();
   } catch (error) {
     console.error("Failed to fetch categories:", error);
     categories = DEFAULT_CATEGORY_OPTIONS;

@@ -7,7 +7,7 @@ import {
   addDesign,
   deleteCategory,
   deleteDesign,
-  getSelectableCategories,
+  getSelectableCollections,
   getSelectableDesigns,
 } from "@/lib/categories";
 import type { SelectableOption } from "@/types/selectable";
@@ -53,7 +53,7 @@ export function CategoryManager({
     try {
       if (type === "category") {
         await addCategory(trimmed);
-        const refreshed = (await getSelectableCategories()).map((item) => ({
+        const refreshed = (await getSelectableCollections()).map((item) => ({
           id: item.id,
           name: item.label,
           slug: item.slug,
@@ -86,13 +86,16 @@ export function CategoryManager({
   // automatically fall back to the first available option when editing.
   const handleDelete = async (item: SelectableOption, type: "category" | "design") => {
     if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
-    if (item.isDefault) return;
+    if (item.isDefault) {
+      alert("Default options are protected and cannot be deleted.");
+      return;
+    }
     const targetId = item.id ?? item.slug;
     setDeleting(targetId);
     try {
       if (type === "category") {
         await deleteCategory(targetId);
-        const refreshed = (await getSelectableCategories()).map((cat) => ({
+        const refreshed = (await getSelectableCollections()).map((cat) => ({
           id: cat.id,
           name: cat.label,
           slug: cat.slug,
@@ -118,8 +121,16 @@ export function CategoryManager({
     }
   };
 
-  const orderedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
-  const orderedDesigns = [...designThemes].sort((a, b) => a.name.localeCompare(b.name));
+  const orderedCategories = [...categories].sort((a, b) => {
+    if (a.isDefault && !b.isDefault) return -1;
+    if (!a.isDefault && b.isDefault) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  const orderedDesigns = [...designThemes].sort((a, b) => {
+    if (a.isDefault && !b.isDefault) return -1;
+    if (!a.isDefault && b.isDefault) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   return (
     <section className="space-y-6 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40">
