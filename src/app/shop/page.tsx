@@ -4,7 +4,7 @@ import ShopClient from "./shop-client";
 import { DEFAULT_CATEGORY_OPTIONS, DEFAULT_DESIGN_OPTIONS } from "@/lib/categories-shared";
 import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
 
-export const revalidate = 3600;
+export const revalidate = 0;
 
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const mainImage = sp.images?.[0] ?? "/placeholder.png";
