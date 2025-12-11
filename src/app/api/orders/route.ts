@@ -14,6 +14,7 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { getServerDb } from "@/lib/firestore";
+import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { NewOrder, ShippingInfo, Order, OrderStatus } from "@/types/order";
 
 /**
@@ -123,6 +124,13 @@ export async function POST(request: NextRequest) {
       ...orderData,
       status: "pending",
     };
+
+    if (!isFirebaseConfigured()) {
+      return NextResponse.json(
+        { error: "Firebase is not configured. Please add your Firebase environment variables." },
+        { status: 503 },
+      );
+    }
 
     // Get Firestore instance
     console.log("[api/orders] Getting Firestore instance...");

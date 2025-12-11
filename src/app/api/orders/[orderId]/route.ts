@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc, serverTimestamp, Timestamp, updateDoc } from "firebase/firestore";
 import { getServerDb } from "@/lib/firestore";
+import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { Order, OrderItem, OrderStatus, ShippingInfo } from "@/types/order";
 
 function timestampToISO(timestamp: unknown): string {
@@ -105,6 +106,13 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   try {
+    if (!isFirebaseConfigured()) {
+      return NextResponse.json(
+        { error: "Firebase is not configured. Please add your Firebase environment variables." },
+        { status: 503 },
+      );
+    }
+
     const db = getServerDb();
     const orderRef = doc(db, "orders", orderId);
     const snapshot = await getDoc(orderRef);

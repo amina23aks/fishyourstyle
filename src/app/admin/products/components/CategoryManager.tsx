@@ -76,6 +76,8 @@ export function CategoryManager({
       }
     } catch (err) {
       console.error(err);
+      const message = err instanceof Error ? err.message : "Unable to update categories";
+      alert(message);
     } finally {
       setAdding(null);
     }
@@ -116,6 +118,8 @@ export function CategoryManager({
       }
     } catch (err) {
       console.error(err);
+      const message = err instanceof Error ? err.message : "Unable to delete entry";
+      alert(message);
     } finally {
       setDeleting(null);
     }

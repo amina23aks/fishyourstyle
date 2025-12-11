@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 
 import { getServerDb } from "./firestore";
+import { isFirebaseConfigured } from "./firebaseConfig";
 
 export type SelectableItem = {
   /**
@@ -91,6 +92,10 @@ function buildSelectableFromDoc(
 }
 
 async function fetchFromFirestore(type: "collection" | "design"): Promise<SelectableItem[]> {
+  if (!isFirebaseConfigured()) {
+    return [];
+  }
+
   const db = getServerDb();
   const categoriesRef = collection(db, CATEGORY_COLLECTION);
   const snapshot = await getDocs(categoriesRef);
@@ -152,6 +157,10 @@ async function addEntry(label: string, type: "collection" | "design"): Promise<v
   const trimmed = label.trim();
   if (!trimmed) return;
 
+  if (!isFirebaseConfigured()) {
+    throw new Error("Firebase is not configured. Please add your Firebase environment variables.");
+  }
+
   const slug = slugify(trimmed);
   const db = getServerDb();
   const docRef = doc(db, CATEGORY_COLLECTION, slug);
@@ -177,6 +186,10 @@ export async function addDesign(label: string): Promise<void> {
 async function deleteByIdOrSlug(idOrSlug: string, type: "collection" | "design") {
   const slug = slugify(idOrSlug);
   if (DEFAULT_KEYS.has(slug)) return;
+
+  if (!isFirebaseConfigured()) {
+    throw new Error("Firebase is not configured. Please add your Firebase environment variables.");
+  }
 
   const db = getServerDb();
   const docRef = doc(db, CATEGORY_COLLECTION, slug);
