@@ -174,6 +174,8 @@ export function ProductForm({
       : [];
     return mergeSelectables(designThemes, initialValues?.designTheme ? initial : []);
   });
+  const [isDeletingCategory, setIsDeletingCategory] = useState<string | null>(null);
+  const [isDeletingDesign, setIsDeletingDesign] = useState<string | null>(null);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newDesignName, setNewDesignName] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -286,6 +288,70 @@ export function ProductForm({
     }
   };
 
+  const handleDeleteCategory = useCallback(
+    async (category: SelectableOption) => {
+      if (category.isDefault) return;
+      if (!window.confirm(`Delete category "${category.name}"?`)) return;
+      const slug = category.slug;
+      setIsDeletingCategory(slug);
+      try {
+        const response = await fetch(`/api/categories?slug=${encodeURIComponent(slug)}&type=category`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => null);
+          throw new Error(data?.error ?? "Failed to delete category");
+        }
+        const next = categories.filter((cat) => cat.slug !== slug);
+        onCategoriesChange(next);
+        setValues((prev) => ({
+          ...prev,
+          category: prev.category === slug ? next[0]?.slug ?? defaultValues.category : prev.category,
+        }));
+        await onReloadCategories();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to delete category";
+        console.error("Failed to delete category", err);
+        alert(message);
+      } finally {
+        setIsDeletingCategory(null);
+      }
+    },
+    [categories, onCategoriesChange, onReloadCategories],
+  );
+
+  const handleDeleteDesign = useCallback(
+    async (design: SelectableOption) => {
+      if (design.isDefault) return;
+      if (!window.confirm(`Delete design "${design.name}"?`)) return;
+      const slug = design.slug;
+      setIsDeletingDesign(slug);
+      try {
+        const response = await fetch(`/api/categories?slug=${encodeURIComponent(slug)}&type=design`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => null);
+          throw new Error(data?.error ?? "Failed to delete design");
+        }
+        const next = designThemeOptions.filter((theme) => theme.slug !== slug);
+        syncDesignThemes(next);
+        setValues((prev) => ({
+          ...prev,
+          designTheme: prev.designTheme === slug ? next[0]?.slug ?? "basic" : prev.designTheme,
+        }));
+        await onReloadDesignThemes();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to delete design";
+        console.error("Failed to delete design", err);
+        alert(message);
+      } finally {
+        setIsDeletingDesign(null);
+      }
+    },
+    [designThemeOptions, onReloadDesignThemes, syncDesignThemes],
+  );
+
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="flex items-start justify-between gap-3">
@@ -370,18 +436,30 @@ export function ProductForm({
               const isSelected = values.category === cat.slug;
               const key = cat.id ? `cat-${cat.id}` : `default-${cat.slug}`;
               return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setValues((prev) => ({ ...prev, category: cat.slug }))}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    isSelected
-                      ? "border-white bg-white text-slate-900"
-                      : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                  }`}
-                >
-                  {cat.name}
-                </button>
+                <div key={key} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setValues((prev) => ({ ...prev, category: cat.slug }))}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      isSelected
+                        ? "border-white bg-white text-slate-900"
+                        : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                  {!cat.isDefault ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteCategory(cat)}
+                      disabled={isDeletingCategory === cat.slug}
+                      className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-rose-100 transition hover:bg-white/20 disabled:opacity-50"
+                      aria-label={`Delete category ${cat.name}`}
+                    >
+                      ✕
+                    </button>
+                  ) : null}
+                </div>
               );
             })}
             <button
@@ -427,23 +505,35 @@ export function ProductForm({
               const active = values.designTheme === theme.slug;
               const key = theme.id ? `design-${theme.id}` : `default-${theme.slug}`;
               return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() =>
-                    setValues((prev) => ({
-                      ...prev,
-                      designTheme: theme.slug,
-                    }))
-                  }
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    active
-                      ? "border-white bg-white text-slate-900"
-                      : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                  }`}
-                >
-                  {capitalize(theme.name)}
-                </button>
+                <div key={key} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValues((prev) => ({
+                        ...prev,
+                        designTheme: theme.slug,
+                      }))
+                    }
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? "border-white bg-white text-slate-900"
+                        : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                    }`}
+                  >
+                    {capitalize(theme.name)}
+                  </button>
+                  {!theme.isDefault ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteDesign(theme)}
+                      disabled={isDeletingDesign === theme.slug}
+                      className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-rose-100 transition hover:bg-white/20 disabled:opacity-50"
+                      aria-label={`Delete design ${theme.name}`}
+                    >
+                      ✕
+                    </button>
+                  ) : null}
+                </div>
               );
             })}
             <button

@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
-import { CategoryManager } from "./components/CategoryManager";
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
   createAdminProduct,
@@ -85,8 +84,6 @@ export default function AdminProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>(() => [...builtInCategories]);
   const [designThemes, setDesignThemes] = useState<SelectableOption[]>(() => [...builtInDesignThemes]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
-  const [loadingDesignThemes, setLoadingDesignThemes] = useState(false);
 
   const showToast = useCallback((payload: Toast) => {
     setToast(payload);
@@ -94,8 +91,6 @@ export default function AdminProductsPage() {
   }, []);
 
   const loadCollectionsAndDesigns = useCallback(async () => {
-    setLoadingCategories(true);
-    setLoadingDesignThemes(true);
     try {
       const res = await fetch("/api/categories");
       if (!res.ok) throw new Error("Failed to fetch categories");
@@ -104,16 +99,12 @@ export default function AdminProductsPage() {
       setDesignThemes(mergeBySlug(builtInDesignThemes, data.designs.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories and designs", err);
-      setCategories(builtInCategories);
-      setDesignThemes(builtInDesignThemes);
-    } finally {
-      setLoadingCategories(false);
-      setLoadingDesignThemes(false);
+      setCategories((prev) => (prev.length ? prev : builtInCategories));
+      setDesignThemes((prev) => (prev.length ? prev : builtInDesignThemes));
     }
   }, []);
 
   const loadCategories = useCallback(async () => {
-    setLoadingCategories(true);
     try {
       const res = await fetch("/api/categories?type=category");
       if (!res.ok) throw new Error("Failed to fetch categories");
@@ -121,14 +112,11 @@ export default function AdminProductsPage() {
       setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories", err);
-      setCategories(builtInCategories);
-    } finally {
-      setLoadingCategories(false);
+      setCategories((prev) => (prev.length ? prev : builtInCategories));
     }
   }, []);
 
   const loadDesignThemes = useCallback(async () => {
-    setLoadingDesignThemes(true);
     try {
       const res = await fetch("/api/categories?type=design");
       if (!res.ok) throw new Error("Failed to fetch design themes");
@@ -136,9 +124,7 @@ export default function AdminProductsPage() {
       setDesignThemes(mergeBySlug(builtInDesignThemes, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load design themes", err);
-      setDesignThemes(builtInDesignThemes);
-    } finally {
-      setLoadingDesignThemes(false);
+      setDesignThemes((prev) => (prev.length ? prev : builtInDesignThemes));
     }
   }, []);
 
@@ -453,14 +439,6 @@ export default function AdminProductsPage() {
           />
         </section>
       </div>
-      <CategoryManager
-        categories={categories}
-        designThemes={designThemes}
-        onReloadCategories={loadCategories}
-        onReloadDesignThemes={loadDesignThemes}
-        loadingCategories={loadingCategories}
-        loadingDesignThemes={loadingDesignThemes}
-      />
     </div>
   );
 }
