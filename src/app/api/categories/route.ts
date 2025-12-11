@@ -1,13 +1,28 @@
 import { NextResponse } from "next/server";
-import { fetchAllCategories, createCategory } from "@/lib/categories";
+import {
+  addCategory,
+  addDesign,
+  getSelectableCategories,
+  getSelectableCollectionsAndDesigns,
+  getSelectableDesigns,
+} from "@/lib/categories";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const typeParam = searchParams.get("type");
-    const type = typeParam === "design" ? "design" : typeParam === "category" ? "category" : undefined;
-    const categories = await fetchAllCategories(type);
-    return NextResponse.json(categories);
+    if (typeParam === "category") {
+      const categories = await getSelectableCategories();
+      return NextResponse.json(categories);
+    }
+
+    if (typeParam === "design") {
+      const designs = await getSelectableDesigns();
+      return NextResponse.json(designs);
+    }
+
+    const collectionsAndDesigns = await getSelectableCollectionsAndDesigns();
+    return NextResponse.json(collectionsAndDesigns);
   } catch (error) {
     console.error("Failed to fetch categories:", error);
     return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 });
@@ -17,12 +32,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, slug, type } = body;
-    if (!name || !slug) {
-      return NextResponse.json({ error: "Name and slug are required" }, { status: 400 });
+    const { name, type } = body;
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
-    const id = await createCategory(name, slug, type === "design" ? "design" : "category");
-    return NextResponse.json({ id, name, slug, type: type === "design" ? "design" : "category" });
+    if (type === "design") {
+      await addDesign(name);
+      return NextResponse.json({ name, type: "design" });
+    }
+    await addCategory(name);
+    return NextResponse.json({ name, type: "category" });
   } catch (error) {
     console.error("Failed to create category:", error);
     return NextResponse.json({ error: "Failed to create category" }, { status: 500 });

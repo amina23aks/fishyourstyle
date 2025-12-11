@@ -14,8 +14,14 @@ import {
   type AdminProductInput,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
-import type { Category } from "@/lib/categories";
-import { DEFAULT_CATEGORY_OPTIONS, DEFAULT_DESIGN_OPTIONS } from "@/lib/categories";
+import {
+  DEFAULT_CATEGORY_OPTIONS,
+  DEFAULT_DESIGN_OPTIONS,
+  getSelectableCategories,
+  getSelectableCollectionsAndDesigns,
+  getSelectableDesigns,
+  type SelectableItem,
+} from "@/lib/categories";
 import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
@@ -24,9 +30,16 @@ const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 const cloudinaryConfigured = Boolean(cloudName && uploadPreset);
 const cloudinaryMissing = !cloudName && !uploadPreset;
+const toSelectableOption = (item: SelectableItem): SelectableOption => ({
+  id: item.id,
+  name: item.label,
+  slug: item.slug,
+  isDefault: item.isDefault,
+});
+
 const allowedSizes = ["S", "M", "L", "XL"] as const;
-const builtInCategories: SelectableOption[] = [...DEFAULT_CATEGORY_OPTIONS];
-const builtInDesignThemes: SelectableOption[] = [...DEFAULT_DESIGN_OPTIONS];
+const builtInCategories: SelectableOption[] = DEFAULT_CATEGORY_OPTIONS.map(toSelectableOption);
+const builtInDesignThemes: SelectableOption[] = DEFAULT_DESIGN_OPTIONS.map(toSelectableOption);
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -80,18 +93,31 @@ export default function AdminProductsPage() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
+  const loadCollectionsAndDesigns = useCallback(async () => {
+    setLoadingCategories(true);
+    setLoadingDesignThemes(true);
+    try {
+      const { collections, designs } = await getSelectableCollectionsAndDesigns();
+      setCategories(mergeBySlug(builtInCategories, collections.map(toSelectableOption)));
+      setDesignThemes(mergeBySlug(builtInDesignThemes, designs.map(toSelectableOption)));
+    } catch (err) {
+      console.error("Failed to load categories and designs", err);
+      setCategories(builtInCategories);
+      setDesignThemes(builtInDesignThemes);
+    } finally {
+      setLoadingCategories(false);
+      setLoadingDesignThemes(false);
+    }
+  }, []);
+
   const loadCategories = useCallback(async () => {
     setLoadingCategories(true);
     try {
-      const res = await fetch("/api/categories?type=category");
-      const fetched: Category[] = res.ok ? await res.json() : [];
-      const mapped = Array.isArray(fetched)
-        ? fetched.map((cat) => ({ id: cat.id, name: cat.name, slug: cat.slug, isDefault: cat.isDefault }))
-        : [];
-      setCategories(mergeBySlug(builtInCategories, mapped));
+      const fetched = await getSelectableCategories();
+      setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories", err);
-      setCategories((prev) => mergeBySlug(builtInCategories, prev));
+      setCategories(builtInCategories);
     } finally {
       setLoadingCategories(false);
     }
@@ -100,15 +126,11 @@ export default function AdminProductsPage() {
   const loadDesignThemes = useCallback(async () => {
     setLoadingDesignThemes(true);
     try {
-      const res = await fetch("/api/categories?type=design");
-      const fetched: Category[] = res.ok ? await res.json() : [];
-      const mapped = Array.isArray(fetched)
-        ? fetched.map((cat) => ({ id: cat.id, name: cat.name, slug: cat.slug, isDefault: cat.isDefault }))
-        : [];
-      setDesignThemes(mergeBySlug(builtInDesignThemes, mapped));
+      const fetched = await getSelectableDesigns();
+      setDesignThemes(mergeBySlug(builtInDesignThemes, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load design themes", err);
-      setDesignThemes((prev) => mergeBySlug(builtInDesignThemes, prev));
+      setDesignThemes(builtInDesignThemes);
     } finally {
       setLoadingDesignThemes(false);
     }
@@ -130,9 +152,8 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     loadProducts();
-    loadCategories();
-    loadDesignThemes();
-  }, [loadCategories, loadDesignThemes, loadProducts]);
+    loadCollectionsAndDesigns();
+  }, [loadCollectionsAndDesigns, loadProducts]);
 
   const handleUploadImage = useCallback(
     async (file: File) => {

@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 
-import { generateSlug } from "@/lib/categories";
+import {
+  addCategory,
+  addDesign,
+  deleteCategory,
+  deleteDesign,
+  getSelectableCategories,
+  getSelectableDesigns,
+} from "@/lib/categories";
 import type { SelectableOption } from "@/types/selectable";
 
 type CategoryManagerProps = {
@@ -42,25 +49,28 @@ export function CategoryManager({
     const rawName = type === "category" ? newCategoryName : newDesignName;
     const trimmed = rawName.trim();
     if (!trimmed) return;
-    const slug = generateSlug(trimmed);
     setAdding(type);
     try {
-      const res = await fetch("/api/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed, slug, type }),
-      });
-      if (!res.ok) throw new Error(`Failed to add ${type}`);
-      const { id } = await res.json();
-      const next = mergeBySlug(type === "category" ? categories : designThemes, [
-        { id, name: trimmed, slug, isDefault: false },
-      ]);
       if (type === "category") {
-        onCategoriesChange(next);
+        await addCategory(trimmed);
+        const refreshed = (await getSelectableCategories()).map((item) => ({
+          id: item.id,
+          name: item.label,
+          slug: item.slug,
+          isDefault: item.isDefault,
+        }));
+        onCategoriesChange(mergeBySlug(categories, refreshed));
         setNewCategoryName("");
         await onReloadCategories();
       } else {
-        onDesignThemesChange(next);
+        await addDesign(trimmed);
+        const refreshed = (await getSelectableDesigns()).map((item) => ({
+          id: item.id,
+          name: item.label,
+          slug: item.slug,
+          isDefault: item.isDefault,
+        }));
+        onDesignThemesChange(mergeBySlug(designThemes, refreshed));
         setNewDesignName("");
         await onReloadDesignThemes();
       }
@@ -80,13 +90,25 @@ export function CategoryManager({
     const targetId = item.id ?? item.slug;
     setDeleting(targetId);
     try {
-      const res = await fetch(`/api/categories/${targetId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`Failed to delete ${type}`);
       if (type === "category") {
-        onCategoriesChange(categories.filter((cat) => cat.slug !== item.slug));
+        await deleteCategory(targetId);
+        const refreshed = (await getSelectableCategories()).map((cat) => ({
+          id: cat.id,
+          name: cat.label,
+          slug: cat.slug,
+          isDefault: cat.isDefault,
+        }));
+        onCategoriesChange(mergeBySlug([], refreshed));
         await onReloadCategories();
       } else {
-        onDesignThemesChange(designThemes.filter((theme) => theme.slug !== item.slug));
+        await deleteDesign(targetId);
+        const refreshed = (await getSelectableDesigns()).map((theme) => ({
+          id: theme.id,
+          name: theme.label,
+          slug: theme.slug,
+          isDefault: theme.isDefault,
+        }));
+        onDesignThemesChange(mergeBySlug([], refreshed));
         await onReloadDesignThemes();
       }
     } catch (err) {

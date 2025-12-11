@@ -4,12 +4,12 @@ import { useMemo, useState } from "react";
 import { ProductCard } from "./shop/product-card";
 import type { Product } from "@/types/product";
 import { DEFAULT_COLLECTION_FILTERS, DEFAULT_DESIGN_FILTERS } from "@/lib/filter-config";
-import type { Category } from "@/lib/categories";
+import type { SelectableItem } from "@/lib/categories";
 
 type Props = {
   products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];
-  categories?: Category[];
-  designThemes?: Category[];
+  categories?: SelectableItem[];
+  designThemes?: SelectableItem[];
 };
 
 function capitalizeLabel(value: string | undefined | null): string {
