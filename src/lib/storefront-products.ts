@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 
 import { getServerDb } from "./firestore";
+import { isFirebaseConfigured } from "./firebaseConfig";
 
 export type StorefrontProduct = {
   id: string;
@@ -84,6 +85,11 @@ function isPermissionDenied(error: unknown): boolean {
 }
 
 export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]> {
+  if (!isFirebaseConfigured()) {
+    console.warn("Firebase env vars are missing; returning an empty product list.");
+    return [];
+  }
+
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
@@ -100,6 +106,11 @@ export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]>
 }
 
 export async function fetchStorefrontProductBySlug(slug: string): Promise<StorefrontProduct | null> {
+  if (!isFirebaseConfigured()) {
+    console.warn("Firebase env vars are missing; unable to fetch product by slug.");
+    return null;
+  }
+
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");

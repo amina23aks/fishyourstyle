@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ProductCard } from "./shop/product-card";
 import type { Product } from "@/types/product";
 import { DEFAULT_COLLECTION_FILTERS, DEFAULT_DESIGN_FILTERS } from "@/lib/filter-config";
-import type { SelectableItem } from "@/lib/categories";
+import type { SelectableItem } from "@/lib/categories-shared";
 
 type Props = {
   products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];

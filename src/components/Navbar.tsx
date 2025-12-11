@@ -104,6 +104,11 @@ export function Navbar() {
     };
   }, [isAccountMenuOpen]);
 
+  const closeAllMenus = () => {
+    setIsMenuOpen(false);
+    setIsAccountMenuOpen(false);
+  };
+
   const toggleDrawer = () => setIsDrawerOpen((previous) => !previous);
   const toggleMenu = () => setIsMenuOpen((previous) => !previous);
   const toggleAccountMenu = () => {
@@ -148,6 +153,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={closeAllMenus}
                 className={`rounded-full px-4 py-2 transition-colors duration-200 ${
                   active
                     ? "bg-white/20 text-white shadow-inner shadow-white/10"
@@ -309,6 +315,7 @@ export function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
+                    onClick={closeAllMenus}
                     className={`flex items-center justify-between rounded-xl px-3 py-2 transition ${
                       active
                         ? "bg-white/15 text-white"

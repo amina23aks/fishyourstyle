@@ -138,11 +138,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
     (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 lg:px-8 py-8">
-      <div className="grid gap-8 items-start lg:grid-cols-2">
+    <main className="mx-auto max-w-5xl px-4 lg:px-8 py-6">
+      <div className="grid gap-6 items-start lg:grid-cols-2">
         <div className="flex justify-center">
-          <div className="w-full max-w-[420px] rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-            <div className="relative h-full w-full aspect-[4/5] max-h-[520px]">
+          <div className="w-full max-w-[360px] rounded-xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_8px_22px_rgba(0,0,0,0.28)]">
+            <div className="relative h-full w-full aspect-[4/5] max-h-[460px]">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentImage}
@@ -158,39 +158,39 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     fill
                     ref={imageRef}
                     className="object-cover"
-                    sizes="(min-width: 1024px) 42vw, 100vw"
+                    sizes="(min-width: 1024px) 38vw, 100vw"
                   />
                 </motion.div>
               </AnimatePresence>
             </div>
           </div>
         </div>
-        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/40 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:p-5">
-          <div className="space-y-1.5">
+        <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/40 p-4 shadow-[0_8px_22px_rgba(0,0,0,0.28)] sm:p-5">
+          <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
-            <h1 className="text-lg font-semibold text-white sm:text-xl leading-tight">{product.nameFr}</h1>
+            <h1 className="text-lg font-semibold text-white leading-tight">{product.nameFr}</h1>
             {product.discountPercent && product.discountPercent > 0 ? (
               <div className="flex items-center gap-2">
-                <p className="text-xl font-bold text-emerald-200 sm:text-2xl">
+                <p className="text-lg font-bold text-emerald-200 sm:text-xl">
                   {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0), product.currency)}
                 </p>
                 <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-100">
                   -{product.discountPercent}%
                 </span>
-                <p className="text-sm font-semibold text-white/60 line-through">
+                <p className="text-xs font-semibold text-white/60 line-through">
                   {formatPrice(product.priceDzd, product.currency)}
                 </p>
               </div>
             ) : (
-              <p className="text-xl font-bold text-white sm:text-2xl">
+              <p className="text-lg font-bold text-white sm:text-xl">
                 {formatPrice(product.priceDzd, product.currency)}
               </p>
             )}
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
             <div className="flex flex-wrap gap-1.5">
               {colorOptions.map((color) => {
                 const hexValue = swatchHex(color);
@@ -206,7 +206,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                       setActiveImage(0);
                       setSelectionError(null);
                     }}
-                    size="sm"
+                    size="xs"
                     showLabel={false}
                   />
                 );
@@ -215,7 +215,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
             <div className="flex flex-wrap gap-1.5">
               {product.sizes.map((size) => {
                 const isSelected = selectedSize === size;
@@ -228,7 +228,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                       setSelectionError(null);
                     }}
                     aria-pressed={isSelected}
-                    className={`rounded-full border px-2 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+                    className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
                     whileHover={{ y: -1 }}
                     whileTap={{ scale: 0.97 }}
                   >
@@ -242,10 +242,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
           <div className="space-y-3">
             {(infoRows.length > 0 || (product.descriptionFr && product.descriptionFr.trim())) && (
               <div className="space-y-1">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/80">Détails</h2>
+                <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Détails</h2>
                 {product.descriptionFr && product.descriptionFr.trim() && (
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
-                    <p className="text-sm leading-relaxed text-neutral-300 break-words">
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                    <p className="text-[13px] leading-relaxed text-neutral-300 break-words">
                       {product.descriptionFr}
                     </p>
                   </div>
@@ -255,7 +255,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     {infoRows.map((row) => (
                       <li
                         key={row.label}
-                        className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/90"
+                        className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[13px] text-white/90"
                       >
                         <span className="text-white/70">{row.label}</span>
                         <span className="font-semibold">{row.value}</span>
@@ -266,7 +266,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
               </div>
             )}
 
-            <p className="min-h-[20px] text-sm text-rose-200" aria-live="polite">
+            <p className="min-h-[18px] text-[13px] text-rose-200" aria-live="polite">
               {selectionError ?? "\u00a0"}
             </p>
 
@@ -277,7 +277,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   isSelectionMissing ? "opacity-80" : ""
                 }`.trim()}
               />
-              <p className="text-xs text-neutral-400">Livraison rapide & échanges simples.</p>
+              <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>
             </div>
           </div>
         </div>

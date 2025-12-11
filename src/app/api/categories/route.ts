@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import {
   addCategory,
   addDesign,
-  getSelectableCategories,
+  deleteCategory,
+  deleteDesign,
+  getSelectableCollections,
   getSelectableCollectionsAndDesigns,
   getSelectableDesigns,
 } from "@/lib/categories";
@@ -12,7 +14,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const typeParam = searchParams.get("type");
     if (typeParam === "category") {
-      const categories = await getSelectableCategories();
+      const categories = await getSelectableCollections();
       return NextResponse.json(categories);
     }
 
@@ -43,7 +45,34 @@ export async function POST(request: Request) {
     await addCategory(name);
     return NextResponse.json({ name, type: "category" });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create category";
+    const status = /permission/i.test(message) ? 403 : 500;
     console.error("Failed to create category:", error);
-    return NextResponse.json({ error: "Failed to create category" }, { status: 500 });
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const slug = searchParams.get("slug");
+    const typeParam = searchParams.get("type") ?? "category";
+
+    if (!slug) {
+      return NextResponse.json({ error: "Slug is required" }, { status: 400 });
+    }
+
+    if (typeParam === "design") {
+      await deleteDesign(slug);
+      return NextResponse.json({ slug, type: "design" });
+    }
+
+    await deleteCategory(slug);
+    return NextResponse.json({ slug, type: "category" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete entry";
+    const status = /permission/i.test(message) ? 403 : 500;
+    console.error("Failed to delete category or design:", error);
+    return NextResponse.json({ error: message }, { status });
   }
 }

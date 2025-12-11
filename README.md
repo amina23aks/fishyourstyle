@@ -28,11 +28,16 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## One-time Firestore seeding from JSON
+## Firestore product seeding
 
-- Ensure Firebase Admin env vars are set: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (with newlines escaped as `\\n`).
-- Run: `npm run seed:products`
-- The script reads `src/data/products.json`, uses slug as deterministic doc ID, and will update existing docs (idempotent).
+Products are stored in Firestore and the storefront reads directly from that collection (the JSON file is only for initial data).
+
+- Required env vars for the Admin SDK: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (use `\\n` for newlines).
+- Seed or reseed locally with: `npm run seed:products`
+  - This runs `scripts/seed-products.ts`, reading `src/data/products.json` and writing to the `products` collection using the slug as the doc ID. Existing docs are updated instead of duplicated.
+- To clear and reseed: delete the `products` collection in the Firebase console (or `firebase firestore:delete --project $FIREBASE_PROJECT_ID --recursive --collection products` if you have the CLI), then rerun the seed command above.
+- If the JSON changes aren’t appearing in Firestore, verify those three env vars are present in your shell session and that `FIREBASE_PRIVATE_KEY` preserves newlines (escaped as `\n` or pasted as actual newlines). The seed script will throw if any credential is missing.
+- Managing categories/designs via the dashboard uses the same Admin credentials; if they’re absent and your Firestore rules only allow `products`/`orders`, you’ll see a permission error when adding or deleting. Either loosen the rules for the `categories` collection or set the Admin env vars above so server-side calls can bypass client rules.
 
 ## Cloudflare Pages deployment tips
 

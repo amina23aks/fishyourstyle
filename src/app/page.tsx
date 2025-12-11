@@ -3,14 +3,10 @@ import Hero from "@/components/Hero";
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
-import {
-  DEFAULT_CATEGORY_OPTIONS,
-  DEFAULT_DESIGN_OPTIONS,
-  getSelectableCategories,
-  getSelectableDesigns,
-} from "@/lib/categories";
+import { DEFAULT_CATEGORY_OPTIONS, DEFAULT_DESIGN_OPTIONS } from "@/lib/categories-shared";
+import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
 
-export const revalidate = 3600;
+export const revalidate = 0;
 
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const mainImage = sp.images?.[0] ?? "/placeholder.png";
@@ -62,7 +58,7 @@ const reasons = [
 
 export default async function Home() {
   let errorMessage: string | null = null;
-  let categories: Awaited<ReturnType<typeof getSelectableCategories>> = [];
+  let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
   const storefrontProducts = await fetchAllStorefrontProducts().catch((error) => {
     console.error("Failed to fetch products:", error);
@@ -70,7 +66,7 @@ export default async function Home() {
     return [];
   });
   try {
-    categories = await getSelectableCategories();
+    categories = await getSelectableCollections();
   } catch (error) {
     console.error("Failed to fetch categories:", error);
     categories = DEFAULT_CATEGORY_OPTIONS;
