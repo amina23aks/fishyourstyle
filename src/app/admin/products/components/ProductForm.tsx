@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 import type { AdminProductCategory } from "@/lib/admin-products";
-import { addCategory, addDesign } from "@/lib/categories";
 import type { SelectableOption } from "@/types/selectable";
 
 export type ProductFormValues = {
@@ -107,6 +106,19 @@ function clampDiscount(value: number | null) {
   if (value < 0) return 0;
   if (value > 90) return 90;
   return value;
+}
+
+async function persistSelectable(name: string, type: "category" | "design") {
+  const response = await fetch("/api/categories", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, type }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error ?? "Unable to save entry");
+  }
 }
 
 function getDiscountPreview(basePrice: number | null, discountPercent: number | null) {
@@ -259,13 +271,15 @@ export function ProductForm({
     const slug = slugify(trimmed);
     if (!slug) return;
     try {
-      await addCategory(capitalize(trimmed));
+      await persistSelectable(capitalize(trimmed), "category");
       const next = mergeSelectables(categories, [{ slug, name: capitalize(trimmed), id: slug, isDefault: false }]);
       onCategoriesChange(next);
       setValues((prev) => ({ ...prev, category: slug }));
       await onReloadCategories();
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to add category";
       console.error("Failed to add category", err);
+      alert(message);
     } finally {
       setNewCategoryName("");
       setShowNewCategory(false);
@@ -457,7 +471,7 @@ export function ProductForm({
                     const slug = slugify(trimmed);
                     if (!slug) return;
                     try {
-                      await addDesign(capitalize(trimmed));
+                      await persistSelectable(capitalize(trimmed), "design");
                       const next = mergeSelectables(designThemeOptions, [
                         { slug, name: capitalize(trimmed), id: slug, isDefault: false },
                       ]);
@@ -465,7 +479,9 @@ export function ProductForm({
                       setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
                       await onReloadDesignThemes();
                     } catch (err) {
+                      const message = err instanceof Error ? err.message : "Failed to add design";
                       console.error("Failed to add design", err);
+                      alert(message);
                     }
                     setNewDesignName("");
                     setShowNewDesign(false);
@@ -479,7 +495,7 @@ export function ProductForm({
                 const slug = slugify(trimmed);
                 if (!slug) return;
                 try {
-                  await addDesign(capitalize(trimmed));
+                  await persistSelectable(capitalize(trimmed), "design");
                   const next = mergeSelectables(designThemeOptions, [
                     { slug, name: capitalize(trimmed), id: slug, isDefault: false },
                   ]);
@@ -487,7 +503,9 @@ export function ProductForm({
                   setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
                   await onReloadDesignThemes();
                 } catch (err) {
+                  const message = err instanceof Error ? err.message : "Failed to add design";
                   console.error("Failed to add design", err);
+                  alert(message);
                 }
                   setNewDesignName("");
                   setShowNewDesign(false);

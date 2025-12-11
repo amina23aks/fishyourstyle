@@ -71,6 +71,14 @@ function mergeWithDefaults(defaults: SelectableItem[], fetched: SelectableItem[]
   });
 }
 
+function normalizeType(value: unknown): "collection" | "design" | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.toLowerCase();
+  if (["collection", "category"].includes(normalized)) return "collection";
+  if (["design", "theme", "design-theme", "designtheme"].includes(normalized)) return "design";
+  return null;
+}
+
 function buildSelectableFromDoc(
   data: Record<string, unknown>,
   fallbackId: string,
@@ -78,8 +86,8 @@ function buildSelectableFromDoc(
 ): SelectableItem | null {
   const label = typeof data.name === "string" ? data.name : typeof data.label === "string" ? data.label : fallbackId;
   const slug = typeof data.slug === "string" && data.slug ? data.slug : slugify(label);
-  const type = (typeof data.type === "string" ? data.type : "collection").toLowerCase();
-  if (type !== requestedType && !(requestedType === "collection" && type === "category")) {
+  const normalizedType = normalizeType(data.type) ?? requestedType;
+  if (normalizedType !== requestedType) {
     return null;
   }
 
