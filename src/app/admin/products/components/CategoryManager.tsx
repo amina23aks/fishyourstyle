@@ -2,39 +2,20 @@
 
 import { useState } from "react";
 
-import {
-  addCategory,
-  addDesign,
-  deleteCategory,
-  deleteDesign,
-  getSelectableCollections,
-  getSelectableDesigns,
-} from "@/lib/categories";
 import type { SelectableOption } from "@/types/selectable";
 
 type CategoryManagerProps = {
   categories: SelectableOption[];
   designThemes: SelectableOption[];
-  onCategoriesChange: (next: SelectableOption[]) => void;
-  onDesignThemesChange: (next: SelectableOption[]) => void;
   onReloadCategories: () => Promise<void>;
   onReloadDesignThemes: () => Promise<void>;
   loadingCategories?: boolean;
   loadingDesignThemes?: boolean;
 };
 
-const mergeBySlug = (base: SelectableOption[], extra: SelectableOption[]) => {
-  const map = new Map<string, SelectableOption>();
-  base.forEach((item) => map.set(item.slug, item));
-  extra.forEach((item) => map.set(item.slug, { ...item, isDefault: map.get(item.slug)?.isDefault ?? item.isDefault }));
-  return Array.from(map.values());
-};
-
 export function CategoryManager({
   categories,
   designThemes,
-  onCategoriesChange,
-  onDesignThemesChange,
   onReloadCategories,
   onReloadDesignThemes,
   loadingCategories,
@@ -51,28 +32,23 @@ export function CategoryManager({
     if (!trimmed) return;
     setAdding(type);
     try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed, type }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.error ?? "Unable to update categories");
+      }
+
       if (type === "category") {
-        await addCategory(trimmed);
-        const refreshed = (await getSelectableCollections()).map((item) => ({
-          id: item.id,
-          name: item.label,
-          slug: item.slug,
-          isDefault: item.isDefault,
-        }));
-        onCategoriesChange(mergeBySlug(categories, refreshed));
-        setNewCategoryName("");
         await onReloadCategories();
+        setNewCategoryName("");
       } else {
-        await addDesign(trimmed);
-        const refreshed = (await getSelectableDesigns()).map((item) => ({
-          id: item.id,
-          name: item.label,
-          slug: item.slug,
-          isDefault: item.isDefault,
-        }));
-        onDesignThemesChange(mergeBySlug(designThemes, refreshed));
-        setNewDesignName("");
         await onReloadDesignThemes();
+        setNewDesignName("");
       }
     } catch (err) {
       console.error(err);
@@ -95,25 +71,18 @@ export function CategoryManager({
     const targetId = item.id ?? item.slug;
     setDeleting(targetId);
     try {
+      const response = await fetch(`/api/categories?slug=${encodeURIComponent(targetId)}&type=${type}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.error ?? "Unable to delete entry");
+      }
+
       if (type === "category") {
-        await deleteCategory(targetId);
-        const refreshed = (await getSelectableCollections()).map((cat) => ({
-          id: cat.id,
-          name: cat.label,
-          slug: cat.slug,
-          isDefault: cat.isDefault,
-        }));
-        onCategoriesChange(mergeBySlug([], refreshed));
         await onReloadCategories();
       } else {
-        await deleteDesign(targetId);
-        const refreshed = (await getSelectableDesigns()).map((theme) => ({
-          id: theme.id,
-          name: theme.label,
-          slug: theme.slug,
-          isDefault: theme.isDefault,
-        }));
-        onDesignThemesChange(mergeBySlug([], refreshed));
         await onReloadDesignThemes();
       }
     } catch (err) {

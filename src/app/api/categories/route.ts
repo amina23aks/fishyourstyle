@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import {
   addCategory,
   addDesign,
+  deleteCategory,
+  deleteDesign,
   getSelectableCollections,
   getSelectableCollectionsAndDesigns,
   getSelectableDesigns,
@@ -45,5 +47,28 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Failed to create category:", error);
     return NextResponse.json({ error: "Failed to create category" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const slug = searchParams.get("slug");
+    const typeParam = searchParams.get("type") ?? "category";
+
+    if (!slug) {
+      return NextResponse.json({ error: "Slug is required" }, { status: 400 });
+    }
+
+    if (typeParam === "design") {
+      await deleteDesign(slug);
+      return NextResponse.json({ slug, type: "design" });
+    }
+
+    await deleteCategory(slug);
+    return NextResponse.json({ slug, type: "category" });
+  } catch (error) {
+    console.error("Failed to delete category or design:", error);
+    return NextResponse.json({ error: "Failed to delete entry" }, { status: 500 });
   }
 }

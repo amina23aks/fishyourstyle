@@ -97,9 +97,11 @@ export default function AdminProductsPage() {
     setLoadingCategories(true);
     setLoadingDesignThemes(true);
     try {
-      const { collections, designs } = await getSelectableCollectionsAndDesigns();
-      setCategories(mergeBySlug(builtInCategories, collections.map(toSelectableOption)));
-      setDesignThemes(mergeBySlug(builtInDesignThemes, designs.map(toSelectableOption)));
+      const res = await fetch("/api/categories");
+      if (!res.ok) throw new Error("Failed to fetch categories");
+      const data = (await res.json()) as Awaited<ReturnType<typeof getSelectableCollectionsAndDesigns>>;
+      setCategories(mergeBySlug(builtInCategories, data.collections.map(toSelectableOption)));
+      setDesignThemes(mergeBySlug(builtInDesignThemes, data.designs.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories and designs", err);
       setCategories(builtInCategories);
@@ -113,7 +115,9 @@ export default function AdminProductsPage() {
   const loadCategories = useCallback(async () => {
     setLoadingCategories(true);
     try {
-      const fetched = await getSelectableCollections();
+      const res = await fetch("/api/categories?type=category");
+      if (!res.ok) throw new Error("Failed to fetch categories");
+      const fetched = (await res.json()) as Awaited<ReturnType<typeof getSelectableCollections>>;
       setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories", err);
@@ -126,7 +130,9 @@ export default function AdminProductsPage() {
   const loadDesignThemes = useCallback(async () => {
     setLoadingDesignThemes(true);
     try {
-      const fetched = await getSelectableDesigns();
+      const res = await fetch("/api/categories?type=design");
+      if (!res.ok) throw new Error("Failed to fetch design themes");
+      const fetched = (await res.json()) as Awaited<ReturnType<typeof getSelectableDesigns>>;
       setDesignThemes(mergeBySlug(builtInDesignThemes, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load design themes", err);
@@ -450,8 +456,6 @@ export default function AdminProductsPage() {
       <CategoryManager
         categories={categories}
         designThemes={designThemes}
-        onCategoriesChange={setCategories}
-        onDesignThemesChange={setDesignThemes}
         onReloadCategories={loadCategories}
         onReloadDesignThemes={loadDesignThemes}
         loadingCategories={loadingCategories}
