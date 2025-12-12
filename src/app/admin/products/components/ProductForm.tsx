@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 
 import type { AdminProductCategory } from "@/lib/admin-products";
@@ -165,6 +166,7 @@ export function ProductForm({
     ...initialValues,
     colors: normalizeColors(initialValues?.colors ?? defaultValues.colors),
   });
+  const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -176,6 +178,10 @@ export function ProductForm({
   });
   const [isDeletingCategory, setIsDeletingCategory] = useState<string | null>(null);
   const [isDeletingDesign, setIsDeletingDesign] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    type: "category" | "design";
+    item: SelectableOption;
+  } | null>(null);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newDesignName, setNewDesignName] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -188,6 +194,10 @@ export function ProductForm({
     },
     [onDesignThemesChange],
   );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setValues((prev) => ({
@@ -288,10 +298,8 @@ export function ProductForm({
     }
   };
 
-  const handleDeleteCategory = useCallback(
+  const performDeleteCategory = useCallback(
     async (category: SelectableOption) => {
-      if (category.isDefault) return;
-      if (!window.confirm(`Delete category "${category.name}"?`)) return;
       const slug = category.slug;
       setIsDeletingCategory(slug);
       try {
@@ -320,10 +328,8 @@ export function ProductForm({
     [categories, onCategoriesChange, onReloadCategories],
   );
 
-  const handleDeleteDesign = useCallback(
+  const performDeleteDesign = useCallback(
     async (design: SelectableOption) => {
-      if (design.isDefault) return;
-      if (!window.confirm(`Delete design "${design.name}"?`)) return;
       const slug = design.slug;
       setIsDeletingDesign(slug);
       try {
@@ -352,8 +358,35 @@ export function ProductForm({
     [designThemeOptions, onReloadDesignThemes, syncDesignThemes],
   );
 
+  const requestDeleteCategory = useCallback((category: SelectableOption) => {
+    if (category.isDefault) return;
+    setPendingDelete({ type: "category", item: category });
+  }, []);
+
+  const requestDeleteDesign = useCallback((design: SelectableOption) => {
+    if (design.isDefault) return;
+    setPendingDelete({ type: "design", item: design });
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+
+    try {
+      if (pendingDelete.type === "category") {
+        await performDeleteCategory(pendingDelete.item);
+      } else {
+        await performDeleteDesign(pendingDelete.item);
+      }
+    } finally {
+      setPendingDelete(null);
+    }
+  }, [pendingDelete, performDeleteCategory, performDeleteDesign]);
+
+  const deletingSlug = isDeletingCategory ?? isDeletingDesign;
+
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <>
+      <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.3em] text-sky-200">{heading}</p>
@@ -451,7 +484,7 @@ export function ProductForm({
                   {!cat.isDefault ? (
                     <button
                       type="button"
-                      onClick={() => void handleDeleteCategory(cat)}
+                      onClick={() => requestDeleteCategory(cat)}
                       disabled={isDeletingCategory === cat.slug}
                       className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-rose-100 transition hover:bg-white/20 disabled:opacity-50"
                       aria-label={`Delete category ${cat.name}`}
@@ -520,21 +553,21 @@ export function ProductForm({
                         : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
                     }`}
                   >
-                    {capitalize(theme.name)}
+                  {capitalize(theme.name)}
+                </button>
+                {!theme.isDefault ? (
+                  <button
+                    type="button"
+                    onClick={() => requestDeleteDesign(theme)}
+                    disabled={isDeletingDesign === theme.slug}
+                    className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-rose-100 transition hover:bg-white/20 disabled:opacity-50"
+                    aria-label={`Delete design ${theme.name}`}
+                  >
+                    ✕
                   </button>
-                  {!theme.isDefault ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteDesign(theme)}
-                      disabled={isDeletingDesign === theme.slug}
-                      className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-rose-100 transition hover:bg-white/20 disabled:opacity-50"
-                      aria-label={`Delete design ${theme.name}`}
-                    >
-                      ✕
-                    </button>
-                  ) : null}
-                </div>
-              );
+                ) : null}
+              </div>
+            );
             })}
             <button
               type="button"
@@ -774,19 +807,58 @@ export function ProductForm({
 
       {error ? <p className="text-sm text-rose-200">{error}</p> : null}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={loading || uploading || isSubmitting}
-          className="inline-flex items-center gap-2 rounded-full bg-emerald-400/90 px-5 py-3 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-900/50 transition hover:bg-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting || loading ? "Saving..." : submitLabel}
-        </button>
-        <span className="text-xs text-sky-100/70">
-          Values accept commas for tags, sizes, and colors. Discounted price is preview-only until saved.
-        </span>
-      </div>
-    </form>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={loading || uploading || isSubmitting}
+            className="inline-flex items-center gap-2 rounded-full bg-emerald-400/90 px-5 py-3 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-900/50 transition hover:bg-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting || loading ? "Saving..." : submitLabel}
+          </button>
+          <span className="text-xs text-sky-100/70">
+            Values accept commas for tags, sizes, and colors. Discounted price is preview-only until saved.
+          </span>
+        </div>
+      </form>
+
+      {mounted && pendingDelete
+        ? createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm" role="dialog" aria-modal>
+              <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-slate-950/95 p-6 text-white shadow-2xl shadow-black/40">
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Confirm delete</p>
+                  <h3 className="text-lg font-semibold">
+                    Delete {pendingDelete.type === "category" ? "category" : "design"} "{pendingDelete.item.name}"?
+                  </h3>
+                  <p className="text-sm text-sky-100/80">
+                    This will remove it from all selectors. Products using it will fall back to the first available option.
+                  </p>
+                </div>
+
+                <div className="mt-6 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    disabled={Boolean(deletingSlug)}
+                    className="flex-1 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {deletingSlug ? "Deleting..." : "Yes, delete"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingDelete(null)}
+                    disabled={Boolean(deletingSlug)}
+                    className="flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    No, keep it
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 

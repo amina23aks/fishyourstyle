@@ -74,6 +74,7 @@ export function Navbar() {
   useEffect(() => {
     setIsMenuOpen(false);
     setIsAccountMenuOpen(false);
+    setIsDrawerOpen(false);
   }, [pathname]);
 
   useEffect(() => {

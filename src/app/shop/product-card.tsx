@@ -94,12 +94,27 @@ export type ProductCardProps = {
 };
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
-  const colorOptions = normalizeColors(product.colors);
-  const initialColor = colorOptions.length === 1 ? colorOptions[0] : null;
-  const initialSize = product.sizes.length === 1 ? product.sizes[0] : null;
+  const colorOptions = useMemo(() => normalizeColors(product.colors), [product.colors]);
+  const colorOptionKey = useMemo(
+    () => colorOptions.map((color) => `${color.id}-${color.image ?? ""}`).join("|"),
+    [colorOptions],
+  );
+  const initialColor = useMemo(
+    () => (colorOptions.length === 1 ? colorOptions[0] : null),
+    [colorOptions, colorOptionKey],
+  );
+  const sizeKey = useMemo(() => product.sizes.join("|"), [product.sizes]);
+  const initialSize = useMemo(
+    () => (product.sizes.length === 1 ? product.sizes[0] : null),
+    [product.sizes, sizeKey],
+  );
   const [selectedColor, setSelectedColor] = useState<NormalizedColor | null>(initialColor);
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
-  const images = useMemo(() => buildImageList(product, selectedColor), [product, selectedColor]);
+  const galleryKey = useMemo(() => (product.images.gallery ?? []).join("|"), [product.images.gallery]);
+  const images = useMemo(
+    () => buildImageList(product, selectedColor),
+    [galleryKey, product.images.main, product.slug, selectedColor],
+  );
   const { addItem } = useCart();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
@@ -118,7 +133,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     setSelectedColor(initialColor);
     setSelectedSize(initialSize);
     setSelectionWarning(null);
-  }, [initialColor, initialSize, product.id]);
+  }, [colorOptionKey, initialColor, initialSize, product.slug, sizeKey]);
 
   const handleNav = useCallback(
     (
