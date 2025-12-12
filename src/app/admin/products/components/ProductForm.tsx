@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 
 import type { AdminProductCategory } from "@/lib/admin-products";
@@ -165,6 +166,7 @@ export function ProductForm({
     ...initialValues,
     colors: normalizeColors(initialValues?.colors ?? defaultValues.colors),
   });
+  const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -192,6 +194,10 @@ export function ProductForm({
     },
     [onDesignThemesChange],
   );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setValues((prev) => ({
@@ -815,40 +821,43 @@ export function ProductForm({
         </div>
       </form>
 
-      {pendingDelete ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-slate-950/95 p-6 text-white shadow-2xl shadow-black/40">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Confirm delete</p>
-              <h3 className="text-lg font-semibold">
-                Delete {pendingDelete.type === "category" ? "category" : "design"} "{pendingDelete.item.name}"?
-              </h3>
-              <p className="text-sm text-sky-100/80">
-                This will remove it from all selectors. Products using it will fall back to the first available option.
-              </p>
-            </div>
+      {mounted && pendingDelete
+        ? createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm" role="dialog" aria-modal>
+              <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-slate-950/95 p-6 text-white shadow-2xl shadow-black/40">
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Confirm delete</p>
+                  <h3 className="text-lg font-semibold">
+                    Delete {pendingDelete.type === "category" ? "category" : "design"} "{pendingDelete.item.name}"?
+                  </h3>
+                  <p className="text-sm text-sky-100/80">
+                    This will remove it from all selectors. Products using it will fall back to the first available option.
+                  </p>
+                </div>
 
-            <div className="mt-6 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={Boolean(deletingSlug)}
-                className="flex-1 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {deletingSlug ? "Deleting..." : "Yes, delete"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                disabled={Boolean(deletingSlug)}
-                className="flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                No, keep it
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+                <div className="mt-6 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    disabled={Boolean(deletingSlug)}
+                    className="flex-1 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {deletingSlug ? "Deleting..." : "Yes, delete"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingDelete(null)}
+                    disabled={Boolean(deletingSlug)}
+                    className="flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    No, keep it
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
