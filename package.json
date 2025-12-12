@@ -10,21 +10,22 @@
     "seed:products": "ts-node scripts/seed-products.ts"
   },
   "dependencies": {
-    "firebase": "11.0.0",
+    "firebase": "^11.0.0",
     "firebase-admin": "^12.7.0",
     "next": "15.5.7",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "1.13.16",
     "@tailwindcss/postcss": "^4.1.17",
-    "@types/node": "22.0.0",
+    "@types/node": "^22.0.0",
     "@types/react": "18.3.0",
     "autoprefixer": "^10.4.22",
     "eslint": "9.0.0",
     "eslint-config-next": "15.5.2",
-    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "ts-node": "^10.9.2",
