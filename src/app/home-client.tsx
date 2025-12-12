@@ -22,52 +22,66 @@ export default function HomeClient({ products, categories, designThemes }: Props
   const [designFilter, setDesignFilter] = useState<string>("all");
 
   const collectionPills = useMemo(() => {
-    const fetched = (categories ?? []).map((c) => c.slug);
-    const dynamic = Array.from(
-      new Set(
-        (products ?? [])
-          .map((p) => p.category)
-          .filter(Boolean)
-          .map((value) => (typeof value === "string" ? value : String(value))),
-      ),
-    );
+    const fetched = (categories ?? []).map((c) => ({
+      slug: c.slug,
+      label: c.label ?? capitalizeLabel(c.slug),
+    }));
+    const fetchedSlugs = fetched.map((item) => item.slug);
+    const allowDynamicCollections = fetched.length === 0;
+    const dynamic = allowDynamicCollections
+      ? Array.from(
+          new Set(
+            (products ?? [])
+              .map((p) => p.category)
+              .filter(Boolean)
+              .map((value) => (typeof value === "string" ? value : String(value))),
+          ),
+        )
+      : [];
     const dynamicPills = dynamic
-      .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val) && !fetched.includes(val))
+      .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val) && !fetchedSlugs.includes(val))
       .map((val) => ({
         label: capitalizeLabel(val),
         value: val,
       }));
     const fetchedPills = fetched
-      .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val))
-      .map((val) => ({
-        label: capitalizeLabel(val),
-        value: val,
+      .filter((item) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === item.slug))
+      .map((item) => ({
+        label: item.label,
+        value: item.slug,
       }));
     const allPill = { label: "All", value: "all" as const };
     return [allPill, ...DEFAULT_COLLECTION_FILTERS, ...fetchedPills, ...dynamicPills];
   }, [products, categories]);
 
   const designPills = useMemo(() => {
-    const fetched = (designThemes ?? []).map((c) => c.slug);
-    const dynamic = Array.from(
-      new Set(
-        (products ?? [])
-          .map((p) => p.designTheme)
-          .filter(Boolean)
-          .map((value) => (typeof value === "string" ? value : String(value))),
-      ),
-    );
+    const fetched = (designThemes ?? []).map((c) => ({
+      slug: c.slug,
+      label: c.label ?? capitalizeLabel(c.slug),
+    }));
+    const fetchedSlugs = fetched.map((item) => item.slug);
+    const allowDynamicDesigns = fetched.length === 0;
+    const dynamic = allowDynamicDesigns
+      ? Array.from(
+          new Set(
+            (products ?? [])
+              .map((p) => p.designTheme)
+              .filter(Boolean)
+              .map((value) => (typeof value === "string" ? value : String(value))),
+          ),
+        )
+      : [];
     const dynamicPills = dynamic
-      .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val) && !fetched.includes(val))
+      .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val) && !fetchedSlugs.includes(val))
       .map((val) => ({
         label: capitalizeLabel(val),
         value: val,
       }));
     const fetchedPills = fetched
-      .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val))
-      .map((val) => ({
-        label: capitalizeLabel(val),
-        value: val,
+      .filter((item) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === item.slug))
+      .map((item) => ({
+        label: item.label,
+        value: item.slug,
       }));
     const allPill = { label: "All", value: "all" as const };
     return [allPill, ...DEFAULT_DESIGN_FILTERS, ...fetchedPills, ...dynamicPills];
