@@ -33,26 +33,6 @@ const allowedSizes = ["S", "M", "L", "XL"] as const;
 const builtInCategories: SelectableOption[] = DEFAULT_CATEGORY_OPTIONS.map(toSelectableOption);
 const builtInDesignThemes: SelectableOption[] = DEFAULT_DESIGN_OPTIONS.map(toSelectableOption);
 
-const deriveFromProducts = (products: AdminProduct[]) => {
-  const categories = Array.from(new Set(products.map((product) => product.category).filter(Boolean))).map((slug) => ({
-    id: slug,
-    name: typeof slug === "string" ? slug : String(slug),
-    label: typeof slug === "string" ? slug : String(slug),
-    slug: typeof slug === "string" ? slug : String(slug),
-    isDefault: DEFAULT_CATEGORY_OPTIONS.some((item) => item.slug === slug),
-  }));
-
-  const designs = Array.from(new Set(products.map((product) => product.designTheme).filter(Boolean))).map((slug) => ({
-    id: slug,
-    name: typeof slug === "string" ? slug : String(slug),
-    label: typeof slug === "string" ? slug : String(slug),
-    slug: typeof slug === "string" ? slug : String(slug),
-    isDefault: DEFAULT_DESIGN_OPTIONS.some((item) => item.slug === slug),
-  }));
-
-  return { categories, designs };
-};
-
 const defaultForm: ProductFormValues = {
   name: "",
   description: "",
@@ -110,75 +90,41 @@ export default function AdminProductsPage() {
 
   const loadCollectionsAndDesigns = useCallback(async () => {
     try {
-      const res = await fetch("/api/categories");
+      const res = await fetch("/api/categories", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch categories");
       const data = coerceCollectionsAndDesigns(await res.json());
-      const derived = deriveFromProducts(products);
-      setCategories(
-        mergeBySlug(builtInCategories, [
-          ...data.collections.map(toSelectableOption),
-          ...derived.categories.map(toSelectableOption),
-        ]),
-      );
-      setDesignThemes(
-        mergeBySlug(builtInDesignThemes, [
-          ...data.designs.map(toSelectableOption),
-          ...derived.designs.map(toSelectableOption),
-        ]),
-      );
+      setCategories(mergeBySlug(builtInCategories, data.collections.map(toSelectableOption)));
+      setDesignThemes(mergeBySlug(builtInDesignThemes, data.designs.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories and designs", err);
-      const derived = deriveFromProducts(products);
-      setCategories((prev) =>
-        mergeBySlug(mergeBySlug(builtInCategories, derived.categories.map(toSelectableOption)), prev),
-      );
-      setDesignThemes((prev) =>
-        mergeBySlug(mergeBySlug(builtInDesignThemes, derived.designs.map(toSelectableOption)), prev),
-      );
+      setCategories((prev) => mergeBySlug(builtInCategories, prev));
+      setDesignThemes((prev) => mergeBySlug(builtInDesignThemes, prev));
     }
-  }, [products]);
+  }, [coerceCollectionsAndDesigns]);
 
   const loadCategories = useCallback(async () => {
     try {
-      const res = await fetch("/api/categories?type=category");
+      const res = await fetch("/api/categories?type=category", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch categories");
       const fetched = (await res.json()) as SelectableItem[];
-      const derived = deriveFromProducts(products);
-      setCategories(
-        mergeBySlug(builtInCategories, [
-          ...fetched.map(toSelectableOption),
-          ...derived.categories.map(toSelectableOption),
-        ]),
-      );
+      setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load categories", err);
-      const derived = deriveFromProducts(products);
-      setCategories((prev) =>
-        mergeBySlug(mergeBySlug(builtInCategories, derived.categories.map(toSelectableOption)), prev),
-      );
+      setCategories((prev) => mergeBySlug(builtInCategories, prev));
     }
-  }, [products]);
+  }, []);
 
   const loadDesignThemes = useCallback(async () => {
     try {
-      const res = await fetch("/api/categories?type=design");
+      const res = await fetch("/api/categories?type=design", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch design themes");
       const fetched = (await res.json()) as SelectableItem[];
-      const derived = deriveFromProducts(products);
-      setDesignThemes(
-        mergeBySlug(builtInDesignThemes, [
-          ...fetched.map(toSelectableOption),
-          ...derived.designs.map(toSelectableOption),
-        ]),
-      );
+      setDesignThemes(mergeBySlug(builtInDesignThemes, fetched.map(toSelectableOption)));
     } catch (err) {
       console.error("Failed to load design themes", err);
-      const derived = deriveFromProducts(products);
-      setDesignThemes((prev) =>
-        mergeBySlug(mergeBySlug(builtInDesignThemes, derived.designs.map(toSelectableOption)), prev),
-      );
+      setDesignThemes((prev) => mergeBySlug(builtInDesignThemes, prev));
     }
-  }, [products]);
+  }, []);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);

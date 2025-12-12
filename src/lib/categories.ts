@@ -1,3 +1,5 @@
+import "server-only";
+
 import { FirebaseError } from "firebase/app";
 import { collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 

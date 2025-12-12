@@ -222,6 +222,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       {open && (
         <motion.div
           className="fixed inset-0 z-[70] flex justify-end"
+          style={{ pointerEvents: open ? "auto" : "none" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
