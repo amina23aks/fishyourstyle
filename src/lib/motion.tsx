@@ -8,6 +8,7 @@ import React, {
   forwardRef,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -110,10 +111,19 @@ function createMotionComponent<T extends ElementType>(
 
       const targetStyle = useMemo(
         () => mergeStyles(style, resolveVariant(variants, animate)),
-        [animate, style, variants],
+        // Memoize based on shallow values; callers should prefer stable style objects.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [animate, variants, ...(style ? Object.entries(style).flat() : [])],
       );
 
+      const lastTargetSignature = useRef<string | null>(null);
+
       useEffect(() => {
+        const signature = JSON.stringify(targetStyle ?? {});
+        if (signature === lastTargetSignature.current) {
+          return;
+        }
+        lastTargetSignature.current = signature;
         setCurrentStyle((prev) => mergeStyles(prev, targetStyle));
       }, [targetStyle]);
 
