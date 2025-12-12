@@ -26,14 +26,17 @@ export default function ShopClient({ products, errorMessage, categories, designT
 
   const collectionValues = useMemo(() => {
     const fetched = (categories ?? []).map((c) => c.slug);
-    const dynamic = Array.from(
-      new Set(
-        (products ?? [])
-          .map((p) => p.category)
-          .filter(Boolean)
-          .map((value) => (typeof value === "string" ? value : String(value))),
-      ),
-    );
+    const allowDynamicCollections = fetched.length === 0;
+    const dynamic = allowDynamicCollections
+      ? Array.from(
+          new Set(
+            (products ?? [])
+              .map((p) => p.category)
+              .filter(Boolean)
+              .map((value) => (typeof value === "string" ? value : String(value))),
+          ),
+        )
+      : [];
     const dynamicPills = dynamic
       .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val) && !fetched.includes(val))
       .map((val) => ({ label: capitalizeLabel(val), value: val }));
@@ -46,14 +49,17 @@ export default function ShopClient({ products, errorMessage, categories, designT
 
   const designValues = useMemo(() => {
     const fetched = (designThemes ?? []).map((c) => c.slug);
-    const dynamic = Array.from(
-      new Set(
-        (products ?? [])
-          .map((p) => p.designTheme)
-          .filter(Boolean)
-          .map((value) => (typeof value === "string" ? value : String(value))),
-      ),
-    );
+    const allowDynamicDesigns = fetched.length === 0;
+    const dynamic = allowDynamicDesigns
+      ? Array.from(
+          new Set(
+            (products ?? [])
+              .map((p) => p.designTheme)
+              .filter(Boolean)
+              .map((value) => (typeof value === "string" ? value : String(value))),
+          ),
+        )
+      : [];
     const dynamicPills = dynamic
       .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val) && !fetched.includes(val))
       .map((val) => ({ label: capitalizeLabel(val), value: val }));
