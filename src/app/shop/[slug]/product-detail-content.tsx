@@ -160,59 +160,55 @@ export function ProductDetailContent({ product }: { product: Product }) {
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
       <div className="grid gap-6 items-start lg:grid-cols-[120px_minmax(0,1fr)_360px]">
         <div className="lg:col-span-2">
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 via-white/0 to-white/5 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.32)] sm:p-4">
-            <div className="grid gap-3 lg:grid-cols-[116px_minmax(0,1fr)] lg:items-start">
-              {imageList.length > 1 && (
-                <div className="order-2 flex w-full gap-2 overflow-x-auto pb-1 lg:order-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pr-1 lg:max-h-[520px]">
-                  {imageList.map((url, index) => {
-                    const isActive = index === activeImage;
-                    return (
-                      <button
-                        key={`${url}-${index}`}
-                        type="button"
-                        onClick={() => setActiveImage(index)}
-                        className={`group relative flex-shrink-0 overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
-                          isActive
-                            ? "border-white/70 ring-2 ring-white/80"
-                            : "border-white/15 bg-black/20 hover:border-white/40"
-                        } h-20 w-16 lg:h-[96px] lg:w-full`}
-                        aria-label={`Afficher l'image ${index + 1}`}
-                      >
-                        <Image
-                          src={url}
-                          alt={`${product.nameFr} vignette ${index + 1}`}
-                          fill
-                          className="object-cover"
-                          sizes="120px"
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="order-1 flex justify-center lg:order-2">
-                <div className="relative aspect-[4/5] w-full max-w-[520px] overflow-hidden rounded-2xl bg-white/5">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentImage}
-                      initial={{ opacity: 0.5, scale: 1.02 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0.4, scale: 0.98 }}
-                      transition={{ duration: 0.35, easing: "ease" }}
-                      className="absolute inset-0"
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-5">
+            {imageList.length > 1 && (
+              <div className="order-2 flex w-full gap-2 overflow-x-auto pb-1 lg:order-1 lg:w-[104px] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pr-2 lg:pb-0">
+                {imageList.map((url, index) => {
+                  const isActive = index === activeImage;
+                  return (
+                    <button
+                      key={`${url}-${index}`}
+                      type="button"
+                      onClick={() => setActiveImage(index)}
+                      className={`group relative flex-shrink-0 overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+                        isActive ? "ring-2 ring-white/80 border-white/70" : "bg-black/30 hover:border-white/40"
+                      } h-20 w-16 lg:h-[96px] lg:w-full`}
+                      aria-label={`Afficher l'image ${index + 1}`}
                     >
                       <Image
-                        src={currentImage}
-                        alt={product.nameFr}
+                        src={url}
+                        alt={`${product.nameFr} vignette ${index + 1}`}
                         fill
-                        ref={imageRef}
                         className="object-cover"
-                        sizes="(min-width: 1024px) 45vw, 100vw"
+                        sizes="120px"
                       />
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="order-1 flex w-full justify-center lg:order-2 lg:pl-1">
+              <div className="relative aspect-[4/5] w-full max-w-[720px] overflow-hidden rounded-3xl border border-white/12 bg-black/40 shadow-[0_18px_38px_rgba(0,0,0,0.35)]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentImage}
+                    initial={{ opacity: 0.5, scale: 1.02 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0.4, scale: 0.98 }}
+                    transition={{ duration: 0.35, easing: "ease" }}
+                    className="absolute inset-0"
+                  >
+                    <Image
+                      src={currentImage}
+                      alt={product.nameFr}
+                      fill
+                      ref={imageRef}
+                      className="object-cover"
+                      sizes="(min-width: 1024px) 50vw, 100vw"
+                    />
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </div>
