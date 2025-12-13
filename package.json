@@ -7,11 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:categories": "ts-node scripts/seed-categories.ts",
-    "seed:designThemes": "ts-node scripts/seed-design-themes.ts",
-    "seed:products": "ts-node scripts/seed-products.ts",
-    "seed:all": "npm run seed:categories && npm run seed:designThemes && npm run seed:products",
-    "cleanup:firestore": "ts-node scripts/cleanup-firestore.ts"
+   "seed:categories": "tsx --env-file .env.local scripts/seed-categories.ts",
+   "seed:designThemes": "tsx --env-file .env.local scripts/seed-design-themes.ts",
+   "seed:products": "tsx --env-file .env.local scripts/seed-products.ts",
+   "seed:all": "npm run seed:categories && npm run seed:designThemes && npm run seed:products",
+   "cleanup:firestore": "tsx --env-file .env.local scripts/cleanup-firestore.ts"
   },
   "dependencies": {
     "firebase": "^11.10.0",
@@ -27,12 +27,14 @@
     "@types/node": "^22.19.2",
     "@types/react": "18.3.0",
     "autoprefixer": "^10.4.22",
+    "dotenv": "^17.2.3",
     "eslint": "9.0.0",
     "eslint-config-next": "15.5.2",
     "eslint-plugin-react-hooks": "^5.2.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "5.9.3"
   }
 }
