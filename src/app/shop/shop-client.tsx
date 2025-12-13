@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
-import type { SelectableItem } from "@/lib/categories-shared";
+import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
 
 type ShopClientProps = {
   products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];
@@ -24,54 +24,18 @@ export default function ShopClient({ products, errorMessage, categories, designT
   const [search, setSearch] = useState("");
 
   const collectionValues = useMemo(() => {
-    const fetched = (categories ?? []).map((c) => ({
-      slug: c.slug,
-      label: c.label ?? capitalizeLabel(c.slug),
-    }));
-    const fetchedSlugs = fetched.map((item) => item.slug);
-    const allowDynamicCollections = fetched.length === 0;
-    const dynamic = allowDynamicCollections
-      ? Array.from(
-          new Set(
-            (products ?? [])
-              .map((p) => p.category)
-              .filter(Boolean)
-              .map((value) => (typeof value === "string" ? value : String(value))),
-          ),
-        )
-      : [];
-    const dynamicPills = dynamic
-      .filter((val) => !fetchedSlugs.includes(val))
-      .map((val) => ({ label: capitalizeLabel(val), value: val }));
+    const source = categories && categories.length > 0 ? categories : CANONICAL_CATEGORIES;
     const allPill = { label: "All", value: "all" as const };
-    const fetchedPills = fetched.map((item) => ({ label: item.label, value: item.slug }));
-    return [allPill, ...fetchedPills, ...dynamicPills];
-  }, [products, categories]);
+    const fetchedPills = source.map((item) => ({ label: item.label ?? capitalizeLabel(item.slug), value: item.slug }));
+    return [allPill, ...fetchedPills];
+  }, [categories]);
 
   const designValues = useMemo(() => {
-    const fetched = (designThemes ?? []).map((c) => ({
-      slug: c.slug,
-      label: c.label ?? capitalizeLabel(c.slug),
-    }));
-    const fetchedSlugs = fetched.map((item) => item.slug);
-    const allowDynamicDesigns = fetched.length === 0;
-    const dynamic = allowDynamicDesigns
-      ? Array.from(
-          new Set(
-            (products ?? [])
-              .map((p) => p.designTheme)
-              .filter(Boolean)
-              .map((value) => (typeof value === "string" ? value : String(value))),
-          ),
-        )
-      : [];
-    const dynamicPills = dynamic
-      .filter((val) => !fetchedSlugs.includes(val))
-      .map((val) => ({ label: capitalizeLabel(val), value: val }));
+    const source = designThemes && designThemes.length > 0 ? designThemes : CANONICAL_DESIGNS;
     const allPill = { label: "All", value: "all" as const };
-    const fetchedPills = fetched.map((item) => ({ label: item.label, value: item.slug }));
-    return [allPill, ...fetchedPills, ...dynamicPills];
-  }, [products, designThemes]);
+    const fetchedPills = source.map((item) => ({ label: item.label ?? capitalizeLabel(item.slug), value: item.slug }));
+    return [allPill, ...fetchedPills];
+  }, [designThemes]);
 
   const collectionPills = useMemo(() => {
     return collectionValues;

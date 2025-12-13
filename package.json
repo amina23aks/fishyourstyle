@@ -10,7 +10,8 @@
     "seed:categories": "ts-node scripts/seed-categories.ts",
     "seed:designThemes": "ts-node scripts/seed-design-themes.ts",
     "seed:products": "ts-node scripts/seed-products.ts",
-    "seed:all": "npm run seed:categories && npm run seed:designThemes && npm run seed:products"
+    "seed:all": "npm run seed:categories && npm run seed:designThemes && npm run seed:products",
+    "cleanup:firestore": "ts-node scripts/cleanup-firestore.ts"
   },
   "dependencies": {
     "firebase": "^11.10.0",

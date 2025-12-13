@@ -37,16 +37,18 @@ function getDb() {
 
 async function seedCategories() {
   const db = getDb();
+  const categoriesRef = db.collection("categories");
   let created = 0;
   let updated = 0;
 
   for (const category of CATEGORIES) {
-    const ref = db.collection("categories").doc(category.slug);
+    const ref = categoriesRef.doc(category.slug);
     const snapshot = await ref.get();
     const exists = snapshot.exists;
     const timestamps = exists
       ? { updatedAt: FieldValue.serverTimestamp() }
       : { createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
+
     await ref.set(
       {
         name: category.name,
@@ -57,6 +59,7 @@ async function seedCategories() {
       },
       { merge: true },
     );
+
     if (exists) updated += 1;
     else created += 1;
   }

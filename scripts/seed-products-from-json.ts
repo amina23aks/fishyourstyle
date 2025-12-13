@@ -45,6 +45,19 @@ type JsonProduct = {
   gender?: "unisex" | "men" | "women" | string;
 };
 
+const CATEGORY_SLUG_MAP: Record<string, string> = {
+  hoodie: "hoodies",
+  hoodies: "hoodies",
+  pant: "pants",
+  pants: "pants",
+  ensemble: "ensembles",
+  ensembles: "ensembles",
+  tshirt: "tshirts",
+  tshirts: "tshirts",
+  sweatshirt: "sweatshirts",
+  sweatshirts: "sweatshirts",
+};
+
 const PRODUCTS_PATH = join(process.cwd(), "src", "data", "products.json");
 
 function slugify(value: string) {
@@ -58,6 +71,17 @@ function slugify(value: string) {
 
 function computeFinalPrice(basePrice: number, discountPercent: number) {
   return Math.max(basePrice * (1 - discountPercent / 100), 0);
+}
+
+function normalizeCategory(value: string | undefined | null): string {
+  if (!value) return "tshirts";
+  const normalized = value.toLowerCase().trim();
+  return CATEGORY_SLUG_MAP[normalized] ?? "tshirts";
+}
+
+function normalizeDesignTheme(value: string | undefined | null): string {
+  if (!value) return "simple";
+  return "simple";
 }
 
 function normalizeColors(input: JsonProduct["colors"]): { hex: string }[] {
@@ -80,17 +104,25 @@ function normalizeColors(input: JsonProduct["colors"]): { hex: string }[] {
     .filter((color) => Boolean(color.hex));
 }
 
-function normalizeImages(images: JsonProduct["images"]): string[] {
+function normalizeImages(images: JsonProduct["images"]): { main: string; gallery: string[] } {
+  if (images && typeof images === "object" && !Array.isArray(images)) {
+    const main = typeof images.main === "string" ? images.main : "";
+    const gallery = Array.isArray(images.gallery)
+      ? (images.gallery as unknown[])
+          .map((entry) => (typeof entry === "string" ? entry : null))
+          .filter((entry): entry is string => Boolean(entry))
+      : [];
+    return { main: main || gallery[0] || "", gallery };
+  }
+
   if (Array.isArray(images)) {
-    return images.filter(Boolean) as string[];
+    const [main, ...gallery] = (images as unknown[])
+      .map((entry) => (typeof entry === "string" ? entry : null))
+      .filter((entry): entry is string => Boolean(entry));
+    return { main: main || gallery[0] || "", gallery };
   }
-  if (images && typeof images === "object") {
-    const list: string[] = [];
-    if (images.main) list.push(images.main);
-    if (Array.isArray(images.gallery)) list.push(...images.gallery.filter(Boolean));
-    return list;
-  }
-  return [];
+
+  return { main: "", gallery: [] };
 }
 
 async function findExistingBySlug(productsRef: ReturnType<typeof collection>, slug: string) {
@@ -129,7 +161,8 @@ async function main() {
     const sizes = Array.isArray(item.sizes) ? item.sizes.map((s) => s.toString().toUpperCase()) : [];
     const stock = typeof item.stock === "number" ? item.stock : 0;
     const inStock = typeof item.inStock === "boolean" ? item.inStock : stock > 0;
-    const designTheme = (item.designTheme ?? "simple").toString().toLowerCase();
+    const designTheme = normalizeDesignTheme(item.designTheme);
+    const category = normalizeCategory(item.category);
     const description = (item.descriptionFr ?? item.description ?? "").trim();
 
     const existing = await findExistingBySlug(productsRef, slug);
@@ -143,7 +176,7 @@ async function main() {
       basePrice,
       discountPercent,
       finalPrice,
-      category: item.category ?? "uncategorized",
+      category,
       designTheme,
       sizes,
       colors,

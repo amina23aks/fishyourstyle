@@ -31,7 +31,8 @@ function getDb() {
 
 async function seedDesignThemes() {
   const db = getDb();
-  const ref = db.collection("categories").doc(DESIGN_THEME.slug);
+  const categoriesRef = db.collection("categories");
+  const ref = categoriesRef.doc(DESIGN_THEME.slug);
   const snapshot = await ref.get();
   const exists = snapshot.exists;
   const timestamps = exists
