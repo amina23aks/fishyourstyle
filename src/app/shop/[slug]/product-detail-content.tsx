@@ -158,7 +158,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
-      <div className="grid gap-8 md:grid-cols-[96px_minmax(0,640px)_minmax(0,520px)] items-start">
+      <div className="grid gap-8 md:grid-cols-[96px_minmax(0,440px)_minmax(0,440px)] items-start">
         {imageList.length > 1 ? (
           <div className="hidden md:flex flex-col gap-4">
             {imageList.map((url, index) => {
@@ -189,7 +189,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
         )}
 
         <div className="flex flex-col gap-4">
-          <div className="relative w-full max-w-[640px] aspect-[4/5] rounded-[36px] overflow-hidden border border-white/15 shadow-lg">
+          <div className="relative w-full max-w-[480px] aspect-[4/5] rounded-[36px] overflow-hidden border border-white/15 shadow-lg">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentImage}
@@ -239,7 +239,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
           )}
         </div>
 
-        <div className="w-full max-w-[520px] flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)]">
+        <div className="w-full max-w-[480px] flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)]">
           <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
