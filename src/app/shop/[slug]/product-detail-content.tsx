@@ -157,79 +157,85 @@ export function ProductDetailContent({ product }: { product: Product }) {
     (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 lg:px-8 py-6">
-      <div className="grid gap-6 items-start lg:grid-cols-2">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-full max-w-[360px] rounded-xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_8px_22px_rgba(0,0,0,0.28)]">
-            <div className="relative h-full w-full aspect-[4/5] max-h-[460px]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentImage}
-                  initial={{ opacity: 0.5, scale: 1.02 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0.4, scale: 0.98 }}
-                  transition={{ duration: 0.35, easing: "ease" }}
-                  className="absolute inset-0"
-                >
-                  <Image
-                    src={currentImage}
-                    alt={product.nameFr}
-                    fill
-                    ref={imageRef}
-                    className="object-cover"
-                    sizes="(min-width: 1024px) 38vw, 100vw"
-                  />
-                </motion.div>
-              </AnimatePresence>
+    <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
+      <div className="grid gap-6 items-start lg:grid-cols-[120px_minmax(0,1fr)_360px]">
+        <div className="lg:col-span-2">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 via-white/0 to-white/5 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.32)] sm:p-4">
+            <div className="grid gap-3 lg:grid-cols-[116px_minmax(0,1fr)] lg:items-start">
+              {imageList.length > 1 && (
+                <div className="order-2 flex w-full gap-2 overflow-x-auto pb-1 lg:order-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pr-1 lg:max-h-[520px]">
+                  {imageList.map((url, index) => {
+                    const isActive = index === activeImage;
+                    return (
+                      <button
+                        key={`${url}-${index}`}
+                        type="button"
+                        onClick={() => setActiveImage(index)}
+                        className={`group relative flex-shrink-0 overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+                          isActive
+                            ? "border-white/70 ring-2 ring-white/80"
+                            : "border-white/15 bg-black/20 hover:border-white/40"
+                        } h-20 w-16 lg:h-[96px] lg:w-full`}
+                        aria-label={`Afficher l'image ${index + 1}`}
+                      >
+                        <Image
+                          src={url}
+                          alt={`${product.nameFr} vignette ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          sizes="120px"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="order-1 flex justify-center lg:order-2">
+                <div className="relative aspect-[4/5] w-full max-w-[520px] overflow-hidden rounded-2xl bg-white/5">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentImage}
+                      initial={{ opacity: 0.5, scale: 1.02 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0.4, scale: 0.98 }}
+                      transition={{ duration: 0.35, easing: "ease" }}
+                      className="absolute inset-0"
+                    >
+                      <Image
+                        src={currentImage}
+                        alt={product.nameFr}
+                        fill
+                        ref={imageRef}
+                        className="object-cover"
+                        sizes="(min-width: 1024px) 45vw, 100vw"
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </div>
             </div>
           </div>
-
-          {imageList.length > 1 && (
-            <div className="flex w-full flex-wrap justify-center gap-2">
-              {imageList.map((url, index) => {
-                const isActive = index === activeImage;
-                return (
-                  <button
-                    key={`${url}-${index}`}
-                    type="button"
-                    onClick={() => setActiveImage(index)}
-                    className={`relative h-16 w-14 overflow-hidden rounded-lg border transition ${
-                      isActive ? "border-white shadow-lg shadow-white/20" : "border-white/10 hover:border-white/40"
-                    }`}
-                    aria-label={`Afficher l'image ${index + 1}`}
-                  >
-                    <Image
-                      src={url}
-                      alt={`${product.nameFr} vignette ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="80px"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
-        <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/40 p-4 shadow-[0_8px_22px_rgba(0,0,0,0.28)] sm:p-5">
-          <div className="space-y-1">
+        <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)]">
+          <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
-            <h1 className="text-lg font-semibold text-white leading-tight">{product.nameFr}</h1>
+            <h1 className="text-xl font-semibold text-white leading-tight sm:text-2xl">{product.nameFr}</h1>
             {product.discountPercent && product.discountPercent > 0 ? (
               <div className="flex items-center gap-2">
-                <p className="text-lg font-bold text-emerald-200 sm:text-xl">
+                <p className="text-2xl font-bold text-emerald-200 sm:text-[26px]">
                   {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0), product.currency)}
                 </p>
-                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-100">
+                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-100">
                   -{product.discountPercent}%
                 </span>
-                <p className="text-xs font-semibold text-white/60 line-through">
+                <p className="text-sm font-semibold text-white/60 line-through">
                   {formatPrice(product.priceDzd, product.currency)}
                 </p>
               </div>
             ) : (
-              <p className="text-lg font-bold text-white sm:text-xl">
+              <p className="text-2xl font-bold text-white sm:text-[26px]">
                 {formatPrice(product.priceDzd, product.currency)}
               </p>
             )}
@@ -237,7 +243,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
           <div className="space-y-1">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {colorOptions.map((color) => {
                 const hexValue = swatchHex(color);
                 const label = color.labelFr ?? color.id ?? "Color";
@@ -252,7 +258,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                       setActiveImage(0);
                       setSelectionError(null);
                     }}
-                    size="xs"
+                    size="sm"
                     showLabel={false}
                   />
                 );
@@ -260,9 +266,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
             </div>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-2">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => {
                 const isSelected = selectedSize === size;
                 return (
@@ -274,7 +280,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                       setSelectionError(null);
                     }}
                     aria-pressed={isSelected}
-                    className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
                     whileHover={{ y: -1 }}
                     whileTap={{ scale: 0.97 }}
                   >
