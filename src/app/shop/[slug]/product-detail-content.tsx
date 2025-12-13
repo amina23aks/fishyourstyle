@@ -158,66 +158,88 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
-      <div className="grid gap-6 items-start lg:grid-cols-[120px_minmax(0,1fr)_360px]">
-        <div className="lg:col-span-2">
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 via-white/0 to-white/5 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.32)] sm:p-4">
-            <div className="grid gap-3 lg:grid-cols-[116px_minmax(0,1fr)] lg:items-start">
-              {imageList.length > 1 && (
-                <div className="order-2 flex w-full gap-2 overflow-x-auto pb-1 lg:order-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pr-1 lg:max-h-[520px]">
-                  {imageList.map((url, index) => {
-                    const isActive = index === activeImage;
-                    return (
-                      <button
-                        key={`${url}-${index}`}
-                        type="button"
-                        onClick={() => setActiveImage(index)}
-                        className={`group relative flex-shrink-0 overflow-hidden rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
-                          isActive
-                            ? "border-white/70 ring-2 ring-white/80"
-                            : "border-white/15 bg-black/20 hover:border-white/40"
-                        } h-20 w-16 lg:h-[96px] lg:w-full`}
-                        aria-label={`Afficher l'image ${index + 1}`}
-                      >
-                        <Image
-                          src={url}
-                          alt={`${product.nameFr} vignette ${index + 1}`}
-                          fill
-                          className="object-cover"
-                          sizes="120px"
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="order-1 flex justify-center lg:order-2">
-                <div className="relative aspect-[4/5] w-full max-w-[520px] overflow-hidden rounded-2xl bg-white/5">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentImage}
-                      initial={{ opacity: 0.5, scale: 1.02 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0.4, scale: 0.98 }}
-                      transition={{ duration: 0.35, easing: "ease" }}
-                      className="absolute inset-0"
-                    >
-                      <Image
-                        src={currentImage}
-                        alt={product.nameFr}
-                        fill
-                        ref={imageRef}
-                        className="object-cover"
-                        sizes="(min-width: 1024px) 45vw, 100vw"
-                      />
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
+      <div className="grid gap-8 md:grid-cols-[96px_minmax(0,640px)_minmax(0,520px)] items-start">
+        {imageList.length > 1 ? (
+          <div className="hidden md:flex flex-col gap-4">
+            {imageList.map((url, index) => {
+              const isActive = index === activeImage;
+              return (
+                <button
+                  key={`${url}-${index}`}
+                  type="button"
+                  onClick={() => setActiveImage(index)}
+                  className={`relative h-[96px] w-[96px] overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+                    isActive ? "ring-2 ring-white/60" : "hover:border-white/40"
+                  }`}
+                  aria-label={`Afficher l'image ${index + 1}`}
+                >
+                  <Image
+                    src={url}
+                    alt={`${product.nameFr} vignette ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="120px"
+                  />
+                </button>
+              );
+            })}
           </div>
+        ) : (
+          <div className="hidden md:block" aria-hidden="true" />
+        )}
+
+        <div className="flex flex-col gap-4">
+          <div className="relative w-full max-w-[640px] aspect-[4/5] rounded-[36px] overflow-hidden border border-white/15 shadow-lg">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentImage}
+                initial={{ opacity: 0.5, scale: 1.02 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0.4, scale: 0.98 }}
+                transition={{ duration: 0.35, easing: "ease" }}
+                className="absolute inset-0"
+              >
+                <Image
+                  src={currentImage}
+                  alt={product.nameFr}
+                  fill
+                  ref={imageRef}
+                  className="object-cover"
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {imageList.length > 1 && (
+            <div className="md:hidden flex gap-3 overflow-x-auto pb-2">
+              {imageList.map((url, index) => {
+                const isActive = index === activeImage;
+                return (
+                  <button
+                    key={`${url}-${index}`}
+                    type="button"
+                    onClick={() => setActiveImage(index)}
+                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+                      isActive ? "ring-2 ring-white/60" : "hover:border-white/40"
+                    }`}
+                    aria-label={`Afficher l'image ${index + 1}`}
+                  >
+                    <Image
+                      src={url}
+                      alt={`${product.nameFr} vignette ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="120px"
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)]">
+
+        <div className="w-full max-w-[520px] flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)]">
           <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
