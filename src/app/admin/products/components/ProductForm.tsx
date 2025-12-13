@@ -50,26 +50,26 @@ const normalizeColors = (
 ): ProductFormValues["colors"] | null => {
   if (input === undefined || input === null) return null;
   if (Array.isArray(input)) {
-    const normalized = input
-      .map((item) => {
-        if (typeof item === "string") {
-          return { id: item, labelFr: item, labelAr: item } satisfies ProductFormValues["colors"][number];
-        }
-        if (item && typeof item === "object") {
-          const obj = item as { id?: unknown; labelFr?: unknown; labelAr?: unknown; image?: unknown; hex?: unknown };
-          const id =
-            (typeof obj.id === "string" && obj.id.trim()) ||
-            (typeof obj.hex === "string" && obj.hex.trim()) ||
-            null;
-          if (!id) return null;
-          const labelFr = (typeof obj.labelFr === "string" && obj.labelFr.trim()) || id;
-          const labelAr = typeof obj.labelAr === "string" && obj.labelAr.trim() ? obj.labelAr.trim() : undefined;
-          const image = typeof obj.image === "string" && obj.image.trim() ? obj.image.trim() : undefined;
-          return { id, labelFr, labelAr, image } satisfies ProductFormValues["colors"][number];
-        }
-        return null;
-      })
-      .filter((item): item is NonNullable<ProductFormValues["colors"][number]> => Boolean(item));
+    const normalized = input.reduce<ProductFormValues["colors"]>((acc, item) => {
+      if (typeof item === "string") {
+        acc.push({ id: item, labelFr: item, labelAr: item });
+        return acc;
+      }
+      if (item && typeof item === "object") {
+        const obj = item as { id?: unknown; labelFr?: unknown; labelAr?: unknown; image?: unknown; hex?: unknown };
+        const id =
+          (typeof obj.id === "string" && obj.id.trim()) ||
+          (typeof obj.hex === "string" && obj.hex.trim()) ||
+          null;
+        if (!id) return acc;
+        const labelFr = (typeof obj.labelFr === "string" && obj.labelFr.trim()) || id;
+        const labelAr = typeof obj.labelAr === "string" && obj.labelAr.trim() ? obj.labelAr.trim() : undefined;
+        const image = typeof obj.image === "string" && obj.image.trim() ? obj.image.trim() : undefined;
+        acc.push({ id, labelFr, labelAr, image });
+        return acc;
+      }
+      return acc;
+    }, []);
 
     if (normalized.length > 0) return normalized;
     if (input.length === 0) return [];
