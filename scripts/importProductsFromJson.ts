@@ -78,65 +78,44 @@ function normalizeDesignTheme(value: string | undefined | null): string {
   return "simple";
 }
 
-function normalizeColors(colors: JsonProduct["colors"]): { hex: string }[] {
+function normalizeColors(
+  colors: JsonProduct["colors"]
+): { id: string; labelFr: string; labelAr?: string; image?: string }[] {
   if (!Array.isArray(colors)) return [];
-  
-  return colors.map((color) => {
-    if (typeof color === "string") {
-      // If it's a hex string, use it; otherwise treat as color name
-      if (/^#([0-9A-F]{3}){1,2}$/i.test(color)) {
-        return { hex: color };
+
+  return colors.reduce<{ id: string; labelFr: string; labelAr?: string; image?: string }[]>(
+    (acc, color, index) => {
+      let normalized: { id: string; labelFr: string; labelAr?: string; image?: string } | undefined;
+
+      if (typeof color === "string") {
+        const label = color.trim();
+        const id = label || `color-${index}`;
+        normalized = {
+          id,
+          labelFr: label || id,
+          labelAr: label || id,
+        };
+      } else if (color && typeof color === "object") {
+        const id = String(color.id || color.labelFr || `color-${index}`);
+        const labelFr = (color.labelFr ?? id).trim();
+        const labelAr = (color.labelAr ?? labelFr).trim();
+
+        normalized = {
+          id,
+          labelFr,
+          labelAr,
+          image: color.image,
+        };
       }
-      // Map color names to hex (simplified - you may need to expand this)
-      const colorMap: Record<string, string> = {
-        black: "#111827",
-        noir: "#1f2937",
-        white: "#f9fafb",
-        blanc: "#f9fafb",
-        grey: "#9ca3af",
-        gris: "#9ca3af",
-        gray: "#9ca3af",
-        blue: "#2563eb",
-        bleu: "#2563eb",
-        red: "#ef4444",
-        rouge: "#dc2626",
-        green: "#22c55e",
-        vert: "#16a34a",
-        beige: "#d6c9a5",
-      };
-      const normalized = color.toLowerCase().replace(/\s+/g, "");
-      return { hex: colorMap[normalized] ?? "#e5e7eb" };
-    }
-    
-    // If it's an object with id, try to extract hex from id or use a default
-    if (color && typeof color === "object" && "id" in color) {
-      const colorId = String(color.id);
-      if (/^#([0-9A-F]{3}){1,2}$/i.test(colorId)) {
-        return { hex: colorId };
+
+      if (normalized?.id && normalized?.labelFr) {
+        acc.push(normalized);
       }
-      // Map color names
-      const colorMap: Record<string, string> = {
-        black: "#111827",
-        noir: "#1f2937",
-        white: "#f9fafb",
-        blanc: "#f9fafb",
-        grey: "#9ca3af",
-        gris: "#9ca3af",
-        gray: "#9ca3af",
-        blue: "#2563eb",
-        bleu: "#2563eb",
-        red: "#ef4444",
-        rouge: "#dc2626",
-        green: "#22c55e",
-        vert: "#16a34a",
-        beige: "#d6c9a5",
-      };
-      const normalized = colorId.toLowerCase().replace(/\s+/g, "");
-      return { hex: colorMap[normalized] ?? "#e5e7eb" };
-    }
-    
-    return { hex: "#e5e7eb" };
-  });
+
+      return acc;
+    },
+    []
+  );
 }
 
 async function importProducts() {

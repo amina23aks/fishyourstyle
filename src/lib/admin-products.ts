@@ -29,7 +29,7 @@ export type AdminProduct = {
   category: AdminProductCategory;
   designTheme: string;
   sizes: string[];
-  colors: { hex: string }[];
+  colors: { id: string; labelFr: string; labelAr?: string; image?: string }[];
   stock: number;
   inStock: boolean;
   images: { main: string; gallery: string[] };
@@ -72,20 +72,33 @@ function parseStringArray(value: unknown): string[] {
   return [];
 }
 
-function parseColorObjects(value: unknown): { hex: string }[] {
+function parseColorObjects(value: unknown): AdminProduct["colors"] {
+  const normalizeEntry = (item: unknown) => {
+    if (typeof item === "string") {
+      return { id: item, labelFr: item, labelAr: item };
+    }
+    if (item && typeof item === "object") {
+      const obj = item as { id?: unknown; labelFr?: unknown; labelAr?: unknown; image?: unknown; hex?: unknown };
+      const id =
+        (typeof obj.id === "string" && obj.id.trim()) ||
+        (typeof obj.hex === "string" && obj.hex.trim()) ||
+        null;
+      if (!id) return null;
+      const labelFr = (typeof obj.labelFr === "string" && obj.labelFr.trim()) || id;
+      const labelAr = typeof obj.labelAr === "string" && obj.labelAr.trim() ? obj.labelAr.trim() : undefined;
+      const image = typeof obj.image === "string" && obj.image.trim() ? obj.image.trim() : undefined;
+      return { id, labelFr, labelAr, image } satisfies AdminProduct["colors"][number];
+    }
+    return null;
+  };
+
   if (!value) return [];
   if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (typeof item === "string") {
-          return { hex: item };
-        }
-        if (item && typeof item === "object" && "hex" in item) {
-          return { hex: String((item as { hex: unknown }).hex) };
-        }
-        return null;
-      })
-      .filter((item): item is { hex: string } => Boolean(item?.hex));
+    const normalized = value
+      .map(normalizeEntry)
+      .filter((item): item is NonNullable<ReturnType<typeof normalizeEntry>> => Boolean(item));
+    if (normalized.length === 0 && value.length === 0) return [];
+    return normalized;
   }
   return [];
 }
@@ -150,6 +163,7 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
 }
 
 function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWrite> {
+  const normalizedColors = parseColorObjects(input.colors);
   const payload: Record<string, unknown> = {
     name: input.name.trim(),
     slug: input.slug || slugifyName(input.name),
@@ -159,7 +173,7 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     category: input.category,
     designTheme: input.designTheme,
     sizes: input.sizes ?? [],
-    colors: input.colors ?? [],
+    colors: normalizedColors,
     stock: Number(input.stock),
     inStock: Boolean(input.inStock),
     images: input.images ?? { main: "", gallery: [] },
@@ -204,7 +218,7 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   if (patch.category !== undefined) payload.category = patch.category;
   if (patch.designTheme !== undefined) payload.designTheme = patch.designTheme;
   if (patch.sizes !== undefined) payload.sizes = patch.sizes;
-  if (patch.colors !== undefined) payload.colors = patch.colors;
+  if (patch.colors !== undefined) payload.colors = parseColorObjects(patch.colors);
   if (patch.stock !== undefined) payload.stock = Number(patch.stock);
   if (patch.inStock !== undefined) payload.inStock = Boolean(patch.inStock);
   if (patch.images !== undefined) payload.images = patch.images;

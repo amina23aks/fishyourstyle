@@ -1,6 +1,39 @@
+"use client";
+
 import Link from "next/link";
+import { FormEvent, useState } from "react";
 
 export default function Footer() {
+  const [wishlistEmail, setWishlistEmail] = useState("");
+  const [wishlistStatus, setWishlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [wishlistError, setWishlistError] = useState<string | null>(null);
+
+  const handleWishlistSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setWishlistStatus("loading");
+    setWishlistError(null);
+
+    try {
+      const response = await fetch("/api/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: wishlistEmail.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to join wishlist.");
+      }
+
+      setWishlistStatus("success");
+      setWishlistEmail("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to join wishlist.";
+      setWishlistError(message);
+      setWishlistStatus("error");
+    }
+  };
+
   return (
     <footer className="mt-16 border-t border-white/10 text-sky-50 backdrop-blur-lg">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:flex-row md:items-start md:justify-between">
@@ -126,7 +159,7 @@ export default function Footer() {
               Drop your email to be the first to know when new drops hit your
               wishlist.
             </p>
-            <form className="space-y-2">
+            <form className="space-y-2" onSubmit={handleWishlistSubmit}>
               <label className="sr-only" htmlFor="wishlist-email">
                 Email address
               </label>
@@ -135,14 +168,23 @@ export default function Footer() {
                 type="email"
                 name="email"
                 placeholder="you@example.commimimi"
+                value={wishlistEmail}
+                onChange={(event) => setWishlistEmail(event.target.value)}
                 className="w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-sky-200 focus:border-white/40 focus:outline-none"
               />
               <button
                 type="submit"
-                className="w-full rounded-md bg-gradient-to-r from-sky-400 to-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:-translate-y-0.5"
+                disabled={wishlistStatus === "loading"}
+                className="w-full rounded-md bg-gradient-to-r from-sky-400 to-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Join wishlist
+                {wishlistStatus === "loading" ? "Submitting..." : "Join wishlist"}
               </button>
+              {wishlistStatus === "success" && (
+                <p className="text-[11px] text-emerald-100">Thanks! You&apos;re on the list.</p>
+              )}
+              {wishlistError && (
+                <p className="text-[11px] text-rose-200">{wishlistError}</p>
+              )}
             </form>
           </div>
         </div>

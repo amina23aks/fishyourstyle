@@ -101,19 +101,18 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   );
   const initialColor = useMemo(
     () => (colorOptions.length === 1 ? colorOptions[0] : null),
-    [colorOptions, colorOptionKey],
+    [colorOptions],
   );
   const sizeKey = useMemo(() => product.sizes.join("|"), [product.sizes]);
   const initialSize = useMemo(
     () => (product.sizes.length === 1 ? product.sizes[0] : null),
-    [product.sizes, sizeKey],
+    [product.sizes],
   );
   const [selectedColor, setSelectedColor] = useState<NormalizedColor | null>(initialColor);
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
-  const galleryKey = useMemo(() => (product.images.gallery ?? []).join("|"), [product.images.gallery]);
   const images = useMemo(
     () => buildImageList(product, selectedColor),
-    [galleryKey, product.images.main, product.slug, selectedColor],
+    [product, selectedColor],
   );
   const { addItem } = useCart();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -122,6 +121,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const touchStartX = useRef<number | null>(null);
   const { flyToCart } = useFlyToCart();
+  const stockCount = typeof product.stock === "number" ? product.stock : null;
+  const isOutOfStock =
+    product.inStock === false || (stockCount !== null && stockCount <= 0);
+  const availableStock = stockCount ?? undefined;
 
   const currentImage = images[activeIndex];
   const nextImage = images[(activeIndex + 1) % images.length];
@@ -193,6 +196,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   };
 
   const handleAddToCart = useCallback(() => {
+    if (isOutOfStock) {
+      setSelectionWarning("Out of stock");
+      return false;
+    }
+
     if (!selectedColor && product.colors.length > 1) {
       setSelectionWarning("Please choose a color and size before adding to cart.");
       return false;
@@ -219,6 +227,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       colorCode,
       size: sizeChoice,
       quantity: 1,
+      maxQuantity: availableStock ?? undefined,
     });
 
     setSelectionWarning(null);
@@ -229,6 +238,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     addItem,
     colorOptions,
     flyToCart,
+    availableStock,
+    isOutOfStock,
     product.colors,
     product.currency,
     product.id,
@@ -464,18 +475,13 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             {selectionWarning ?? "\u00a0"}
           </p>
 
-          {(() => {
-            const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
-            return (
-              <AnimatedAddToCartButton
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                className={`w-full justify-center ${
-                  isSelectionMissing || isOutOfStock ? "opacity-60 cursor-not-allowed" : ""
-                }`.trim()}
-              />
-            );
-          })()}
+          <AnimatedAddToCartButton
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+            className={`w-full justify-center ${
+              isSelectionMissing || isOutOfStock ? "opacity-60 cursor-not-allowed" : ""
+            }`.trim()}
+          />
         </div>
       </motion.article>
     </>

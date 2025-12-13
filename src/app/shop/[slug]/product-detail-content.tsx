@@ -84,6 +84,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const { addItem } = useCart();
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const stockCount = typeof product.stock === "number" ? product.stock : null;
+  const isOutOfStock =
+    product.inStock === false || (stockCount !== null && stockCount <= 0);
+  const availableStock = stockCount ?? undefined;
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -119,6 +123,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
     "/placeholder.png";
   
   const handleAddToCart = () => {
+    if (isOutOfStock) {
+      setSelectionError("Out of stock");
+      return false;
+    }
+
     if (!activeColor && product.colors.length > 1) {
       setSelectionError("Please choose a color and size before adding to cart.");
       return false;
@@ -143,6 +152,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
       colorName,
       colorCode,
       size,
+      maxQuantity: availableStock ?? undefined,
     });
 
     setSelectionError(null);
@@ -155,6 +165,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const isSelectionMissing =
     (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
+  const stockMessage = isOutOfStock
+    ? "Out of stock"
+    : typeof availableStock === "number"
+      ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
+      : null;
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
@@ -344,9 +359,16 @@ export function ProductDetailContent({ product }: { product: Product }) {
               {selectionError ?? "\u00a0"}
             </p>
 
+            {stockMessage ? (
+              <p className="text-xs font-semibold text-white" aria-live="polite">
+                {stockMessage}
+              </p>
+            ) : null}
+
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <AnimatedAddToCartButton
                 onClick={handleAddToCart}
+                disabled={isSelectionMissing || isOutOfStock}
                 className={`w-full justify-center sm:w-auto ${
                   isSelectionMissing ? "opacity-80" : ""
                 }`.trim()}
