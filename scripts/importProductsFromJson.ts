@@ -41,6 +41,19 @@ interface JsonProduct {
   discountPercent?: number;
 }
 
+const CATEGORY_SLUG_MAP: Record<string, string> = {
+  hoodie: "hoodies",
+  hoodies: "hoodies",
+  pant: "pants",
+  pants: "pants",
+  ensemble: "ensembles",
+  ensembles: "ensembles",
+  tshirt: "tshirts",
+  tshirts: "tshirts",
+  sweatshirt: "sweatshirts",
+  sweatshirts: "sweatshirts",
+};
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -52,6 +65,17 @@ function slugify(value: string): string {
 
 function computeFinalPrice(basePrice: number, discountPercent: number): number {
   return Math.max(basePrice * (1 - discountPercent / 100), 0);
+}
+
+function normalizeCategorySlug(value: string | undefined | null): string {
+  if (!value) return "tshirts";
+  const normalized = value.toLowerCase().trim();
+  return CATEGORY_SLUG_MAP[normalized] ?? "tshirts";
+}
+
+function normalizeDesignTheme(value: string | undefined | null): string {
+  if (!value) return "simple";
+  return "simple";
 }
 
 function normalizeColors(colors: JsonProduct["colors"]): { hex: string }[] {
@@ -188,19 +212,7 @@ async function importProducts() {
         const discountPercent = jsonProduct.discountPercent ?? 0;
         const finalPrice = computeFinalPrice(jsonProduct.priceDzd, discountPercent);
 
-        // Map designTheme - handle various formats
-        let designTheme = "simple";
-        if (jsonProduct.designTheme) {
-          const theme = jsonProduct.designTheme.toLowerCase();
-          // Map common variations
-          if (theme === "harry potter" || theme === "harry-potter") {
-            designTheme = "harry-potter";
-          } else if (["cars", "nature", "anime", "basic", "simple"].includes(theme)) {
-            designTheme = theme;
-          } else {
-            designTheme = theme; // Use custom theme as-is
-          }
-        }
+        const designTheme = normalizeDesignTheme(jsonProduct.designTheme);
 
         // Map stock and inStock
         let stock = 0;
@@ -222,7 +234,7 @@ async function importProducts() {
           basePrice: jsonProduct.priceDzd,
           discountPercent,
           finalPrice,
-          category: jsonProduct.category,
+          category: normalizeCategorySlug(jsonProduct.category),
           designTheme,
           sizes: (jsonProduct.sizes || []).filter((s): s is "S" | "M" | "L" | "XL" => 
             ["S", "M", "L", "XL"].includes(s.toUpperCase())

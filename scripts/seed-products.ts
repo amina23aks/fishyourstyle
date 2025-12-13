@@ -6,6 +6,18 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import type { Product } from "../src/types/product";
 
 const CANONICAL_CATEGORIES = new Set(["hoodies", "pants", "ensembles", "tshirts", "sweatshirts"]);
+const CATEGORY_SLUG_MAP: Record<string, string> = {
+  hoodie: "hoodies",
+  hoodies: "hoodies",
+  pant: "pants",
+  pants: "pants",
+  ensemble: "ensembles",
+  ensembles: "ensembles",
+  tshirt: "tshirts",
+  tshirts: "tshirts",
+  sweatshirt: "sweatshirts",
+  sweatshirts: "sweatshirts",
+};
 const DESIGN_THEME = "simple";
 
 type JsonProduct = Product & {
@@ -104,10 +116,10 @@ function normalizeColors(value: unknown): Product["colors"] {
 }
 
 function normalizeCategory(category: unknown): string {
-  if (typeof category === "string" && CANONICAL_CATEGORIES.has(category)) {
-    return category;
-  }
-  return "tshirts";
+  if (typeof category !== "string") return "tshirts";
+  const normalized = category.toLowerCase().trim();
+  if (CANONICAL_CATEGORIES.has(normalized)) return normalized;
+  return CATEGORY_SLUG_MAP[normalized] ?? "tshirts";
 }
 
 function normalizeStatus(status: unknown): "active" | "inactive" {

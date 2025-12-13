@@ -7,7 +7,14 @@ import { collection, deleteDoc, doc, getDocs, limit, query, serverTimestamp, set
 import { getServerDb } from "./firestore";
 import { isFirebaseConfigured } from "./firebaseConfig";
 import { getAdminDb, isAdminConfigured } from "./firebaseAdmin";
-import { CANONICAL_CATEGORY_SLUGS, CANONICAL_DESIGN_SLUGS, slugify, type SelectableItem } from "./categories-shared";
+import {
+  CANONICAL_CATEGORIES,
+  CANONICAL_CATEGORY_SLUGS,
+  CANONICAL_DESIGNS,
+  CANONICAL_DESIGN_SLUGS,
+  slugify,
+  type SelectableItem,
+} from "./categories-shared";
 export type { SelectableItem } from "./categories-shared";
 
 const CATEGORY_COLLECTION = "categories";
@@ -70,14 +77,21 @@ function handlePermissionDenied(error: unknown) {
 }
 
 async function getSelectableItems(type: "collection" | "design"): Promise<SelectableItem[]> {
+  const fallback = type === "collection" ? CANONICAL_CATEGORIES : CANONICAL_DESIGNS;
+  const hasFirestoreConfig = isFirebaseConfigured() || isAdminConfigured();
+  if (!hasFirestoreConfig) {
+    return fallback;
+  }
+
   try {
     const fetched = await fetchFromFirestore(type);
-    return fetched;
+    if (fetched.length > 0) return fetched;
+    return [];
   } catch (error) {
     if (!handlePermissionDenied(error)) {
       console.error(`Failed to fetch ${type}s from Firestore`, error);
     }
-    return [];
+    return fallback;
   }
 }
 

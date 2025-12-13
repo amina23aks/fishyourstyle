@@ -39,6 +39,13 @@ Products are stored in Firestore and the storefront reads directly from that col
 - If the JSON changes aren’t appearing in Firestore, verify those three env vars are present in your shell session and that `FIREBASE_PRIVATE_KEY` preserves newlines (escaped as `\n` or pasted as actual newlines). The seed script will throw if any credential is missing.
 - Managing categories/designs via the dashboard uses the same Admin credentials; if they’re absent and your Firestore rules only allow `products`/`orders`, you’ll see a permission error when adding or deleting. Either loosen the rules for the `categories` collection or set the Admin env vars above so server-side calls can bypass client rules.
 
+## Local runbook (Firestore data)
+
+1. *(Optional)* Reset Firestore locally with `CONFIRM_CLEANUP=true npm run cleanup:firestore` to clear `products` and `categories` (design themes live in `categories`).
+2. Seed everything in order: `npm run seed:all` (categories → design themes → products).
+3. Verify Firestore now has 5 collection docs (`hoodies`, `pants`, `ensembles`, `tshirts`, `sweatshirts`) and 1 design doc (`simple`) under `categories`.
+4. Open `/shop` and `/admin` locally to confirm filters reflect Firestore data and that categories/designs cannot be deleted while products reference them.
+
 ## Cloudflare Pages deployment tips
 
 This project is configured for Cloudflare Pages (`wrangler.toml` sets `pages_build_output_dir`). Use `npm run build:pages` (which explicitly disables proxy settings) as the build command in Pages so the `.vercel/output/static` bundle is generated for both Preview and Production environments without npm registry connectivity issues. The `build` script now runs a plain `next build` to avoid recursive invocation when `@cloudflare/next-on-pages` triggers `vercel build` internally. A repo-level `.npmrc` pins the public npm registry and clears proxy settings so the Vercel CLI invoked by `@cloudflare/next-on-pages` does not try to install through a blocked proxy.
