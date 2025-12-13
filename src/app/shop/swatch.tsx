@@ -13,17 +13,17 @@ export type SwatchProps = {
 };
 
 const sizeClasses: Record<NonNullable<SwatchProps["size"]>, string> = {
-  xs: "h-[18px] px-1.5 text-[8.5px]",
-  sm: "h-7 px-2.5 text-[11px]",
+  xs: "h-[22px] px-2 text-[9px]",
+  sm: "h-8 px-3 text-[12px]",
   md: "h-9 px-4 text-sm",
-  lg: "h-9 px-3 text-sm",
+  lg: "h-10 px-3.5 text-sm",
   card: "h-6 px-1.5 text-[8.5px]",
 };
 
 const dotSizes: Record<NonNullable<SwatchProps["size"]>, string> = {
-  xs: "h-2 w-2",
-  sm: "h-2.5 w-2.5",
-  md: "h-3 w-3",
+  xs: "h-2.5 w-2.5",
+  sm: "h-3 w-3",
+  md: "h-3.5 w-3.5",
   lg: "h-4 w-4",
   card: "h-3.5 w-3.5",
 };
@@ -40,7 +40,7 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
         aria-pressed={selected}
         aria-label={label}
         onClick={onSelect}
-        className={`inline-flex items-center gap-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeClasses[size]} ${selected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
+        className={`inline-flex items-center gap-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeClasses[size]} ${selected ? "border-white/80 bg-white/20 text-white shadow-[0_0_0_4px_rgba(255,255,255,0.08)] ring-2 ring-white/80" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
         whileHover={{ transform: "translateY(-1px)" }}
         whileTap={{ scale: 0.97 }}
       >
