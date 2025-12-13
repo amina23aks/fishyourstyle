@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "@/lib/motion";
 
@@ -32,12 +32,6 @@ const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
       labelAr: color.labelAr,
     };
   });
-
-const buildImageList = (color: NormalizedColor | undefined, fallback: string[]) => {
-  const galleryImages = color?.image ? [color.image, ...fallback] : fallback;
-  const uniqueImages = Array.from(new Set(galleryImages.filter(Boolean)));
-  return uniqueImages.length > 0 ? uniqueImages : fallback;
-};
 
 const swatchHex = (color: NormalizedColor): string => {
   // If color.id is a hex string, use it
@@ -91,13 +85,38 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
 
-  const imageList = useMemo(
-    () => buildImageList(activeColor, [product.images.main, ...product.images.gallery]),
-    [activeColor, product.images.gallery, product.images.main],
+  const allImages = useMemo(
+    () => [product.images.main, ...product.images.gallery].filter(Boolean),
+    [product.images.gallery, product.images.main],
   );
 
+  const imageList = useMemo(() => {
+    const galleryImages = activeColor?.image ? [activeColor.image, ...allImages] : allImages;
+    const uniqueImages = Array.from(new Set(galleryImages.filter(Boolean)));
+    return uniqueImages.length > 0 ? uniqueImages : allImages;
+  }, [activeColor?.image, allImages]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && product.images.gallery.length > 0) {
+      console.debug(
+        `Product ${product.slug} has ${product.images.gallery.length} gallery images ready for thumbnails.`,
+      );
+    }
+  }, [product.images.gallery.length, product.slug]);
+
+  useEffect(() => {
+    if (activeImage >= imageList.length) {
+      setActiveImage(0);
+    }
+  }, [activeImage, imageList.length]);
+
   // Ensure currentImage always defaults to the first image or placeholder
-  const currentImage = imageList[activeImage] ?? imageList[0] ?? product.images.main ?? "/placeholder.png";
+  const currentImage =
+    imageList[activeImage] ??
+    imageList[0] ??
+    allImages[0] ??
+    product.images.main ??
+    "/placeholder.png";
   
   const handleAddToCart = () => {
     if (!activeColor && product.colors.length > 1) {
@@ -140,7 +159,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   return (
     <main className="mx-auto max-w-5xl px-4 lg:px-8 py-6">
       <div className="grid gap-6 items-start lg:grid-cols-2">
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-3">
           <div className="w-full max-w-[360px] rounded-xl border border-white/10 bg-gradient-to-b from-white/8 via-white/0 to-white/10 shadow-[0_8px_22px_rgba(0,0,0,0.28)]">
             <div className="relative h-full w-full aspect-[4/5] max-h-[460px]">
               <AnimatePresence mode="wait">
@@ -164,6 +183,33 @@ export function ProductDetailContent({ product }: { product: Product }) {
               </AnimatePresence>
             </div>
           </div>
+
+          {imageList.length > 1 && (
+            <div className="flex w-full flex-wrap justify-center gap-2">
+              {imageList.map((url, index) => {
+                const isActive = index === activeImage;
+                return (
+                  <button
+                    key={`${url}-${index}`}
+                    type="button"
+                    onClick={() => setActiveImage(index)}
+                    className={`relative h-16 w-14 overflow-hidden rounded-lg border transition ${
+                      isActive ? "border-white shadow-lg shadow-white/20" : "border-white/10 hover:border-white/40"
+                    }`}
+                    aria-label={`Afficher l'image ${index + 1}`}
+                  >
+                    <Image
+                      src={url}
+                      alt={`${product.nameFr} vignette ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/40 p-4 shadow-[0_8px_22px_rgba(0,0,0,0.28)] sm:p-5">
           <div className="space-y-1">
