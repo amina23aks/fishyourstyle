@@ -6,9 +6,25 @@ import type { Product } from "@/types/product";
 
 export const dynamic = "force-dynamic";
 
+function normalizeImages(images: StorefrontProduct["images"] | unknown): string[] {
+  if (Array.isArray(images)) {
+    return Array.from(new Set(images.map(String).filter(Boolean)));
+  }
+
+  if (images && typeof images === "object" && !Array.isArray(images)) {
+    const imgObj = images as { main?: unknown; gallery?: unknown };
+    const main = typeof imgObj.main === "string" ? imgObj.main : null;
+    const gallery = Array.isArray(imgObj.gallery) ? imgObj.gallery : [];
+    const combined = [main, ...gallery].filter((img): img is string => typeof img === "string" && Boolean(img));
+    return Array.from(new Set(combined));
+  }
+
+  return [];
+}
+
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
-  const mainImage = sp.images?.main || "/placeholder.png";
-  const gallery = sp.images?.gallery ?? [];
+  const normalizedImages = normalizeImages(sp.images);
+  const [mainImage = "/placeholder.png", ...gallery] = normalizedImages;
   const colors = (sp.colors ?? []).map((color) => {
     if (typeof color === "string") {
       return { id: color, labelFr: color, labelAr: color, image: mainImage };

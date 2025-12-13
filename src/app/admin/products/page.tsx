@@ -57,7 +57,7 @@ function slugify(value: string) {
 }
 
 function buildImagesFromList(images: string[]): { main: string; gallery: string[] } {
-  const filtered = (images ?? []).filter(Boolean);
+  const filtered = Array.from(new Set((images ?? []).map(String).filter(Boolean)));
   const [main, ...gallery] = filtered;
   return { main: main ?? "", gallery };
 }
@@ -263,7 +263,7 @@ export default function AdminProductsPage() {
         .map((size) => size.toUpperCase())
         .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
       colors: product.colors,
-      images: [product.images.main, ...(product.images.gallery ?? [])].filter(Boolean),
+      images: Array.from(new Set([product.images.main, ...(product.images.gallery ?? [])].filter(Boolean))),
       gender: product.gender ?? "",
     });
     setFormKey(Date.now());
