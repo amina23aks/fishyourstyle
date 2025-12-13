@@ -83,24 +83,24 @@ function normalizeColors(
 ): { id: string; labelFr: string; labelAr?: string; image?: string }[] {
   if (!Array.isArray(colors)) return [];
 
-  return colors
-    .map((color, index) => {
+  return colors.reduce<{ id: string; labelFr: string; labelAr?: string; image?: string }[]>(
+    (acc, color, index) => {
+      let normalized: { id: string; labelFr: string; labelAr?: string; image?: string } | undefined;
+
       if (typeof color === "string") {
         const label = color.trim();
         const id = label || `color-${index}`;
-        return {
+        normalized = {
           id,
           labelFr: label || id,
           labelAr: label || id,
         };
-      }
-
-      if (color && typeof color === "object") {
+      } else if (color && typeof color === "object") {
         const id = String(color.id || color.labelFr || `color-${index}`);
         const labelFr = (color.labelFr ?? id).trim();
         const labelAr = (color.labelAr ?? labelFr).trim();
 
-        return {
+        normalized = {
           id,
           labelFr,
           labelAr,
@@ -108,11 +108,14 @@ function normalizeColors(
         };
       }
 
-      return undefined;
-    })
-    .filter((color): color is { id: string; labelFr: string; labelAr?: string; image?: string } =>
-      Boolean(color?.id && color?.labelFr)
-    );
+      if (normalized?.id && normalized?.labelFr) {
+        acc.push(normalized);
+      }
+
+      return acc;
+    },
+    []
+  );
 }
 
 async function importProducts() {
