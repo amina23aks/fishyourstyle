@@ -13,7 +13,7 @@ import {
   type AdminProductInput,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
-import { DEFAULT_CATEGORY_OPTIONS, DEFAULT_DESIGN_OPTIONS, type SelectableItem } from "@/lib/categories-shared";
+import type { SelectableItem } from "@/lib/categories-shared";
 import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
@@ -30,8 +30,6 @@ const toSelectableOption = (item: SelectableItem): SelectableOption => ({
 });
 
 const allowedSizes = ["S", "M", "L", "XL"] as const;
-const builtInCategories: SelectableOption[] = DEFAULT_CATEGORY_OPTIONS.map(toSelectableOption);
-const builtInDesignThemes: SelectableOption[] = DEFAULT_DESIGN_OPTIONS.map(toSelectableOption);
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -39,7 +37,7 @@ const defaultForm: ProductFormValues = {
   basePrice: "",
   discountPercent: "0",
   category: "", // Will be set from categories list
-  designTheme: "basic",
+  designTheme: "simple",
   designThemeCustom: "",
   stock: "",
   inStock: true,
@@ -58,12 +56,11 @@ function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
-const mergeBySlug = (base: SelectableOption[], extra: SelectableOption[]) => {
-  const map = new Map<string, SelectableOption>();
-  base.forEach((item) => map.set(item.slug, item));
-  extra.forEach((item) => map.set(item.slug, { ...item, isDefault: map.get(item.slug)?.isDefault }));
-  return Array.from(map.values());
-};
+function buildImagesFromList(images: string[]): { main: string; gallery: string[] } {
+  const filtered = (images ?? []).filter(Boolean);
+  const [main, ...gallery] = filtered;
+  return { main: main ?? "", gallery };
+}
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -75,8 +72,8 @@ export default function AdminProductsPage() {
   const [formInitial, setFormInitial] = useState<ProductFormValues>(defaultForm);
   const [formKey, setFormKey] = useState(() => Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [categories, setCategories] = useState<SelectableOption[]>(() => [...builtInCategories]);
-  const [designThemes, setDesignThemes] = useState<SelectableOption[]>(() => [...builtInDesignThemes]);
+  const [categories, setCategories] = useState<SelectableOption[]>([]);
+  const [designThemes, setDesignThemes] = useState<SelectableOption[]>([]);
 
   const coerceCollectionsAndDesigns = useCallback(
     (payload: { collections: SelectableItem[]; designs: SelectableItem[] }) => payload,
@@ -93,12 +90,10 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch categories");
       const data = coerceCollectionsAndDesigns(await res.json());
-      setCategories(mergeBySlug(builtInCategories, data.collections.map(toSelectableOption)));
-      setDesignThemes(mergeBySlug(builtInDesignThemes, data.designs.map(toSelectableOption)));
+      setCategories(data.collections.map(toSelectableOption));
+      setDesignThemes(data.designs.map(toSelectableOption));
     } catch (err) {
       console.error("Failed to load categories and designs", err);
-      setCategories((prev) => mergeBySlug(builtInCategories, prev));
-      setDesignThemes((prev) => mergeBySlug(builtInDesignThemes, prev));
     }
   }, [coerceCollectionsAndDesigns]);
 
@@ -107,10 +102,9 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories?type=category", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch categories");
       const fetched = (await res.json()) as SelectableItem[];
-      setCategories(mergeBySlug(builtInCategories, fetched.map(toSelectableOption)));
+      setCategories(fetched.map(toSelectableOption));
     } catch (err) {
       console.error("Failed to load categories", err);
-      setCategories((prev) => mergeBySlug(builtInCategories, prev));
     }
   }, []);
 
@@ -119,10 +113,9 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories?type=design", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch design themes");
       const fetched = (await res.json()) as SelectableItem[];
-      setDesignThemes(mergeBySlug(builtInDesignThemes, fetched.map(toSelectableOption)));
+      setDesignThemes(fetched.map(toSelectableOption));
     } catch (err) {
       console.error("Failed to load design themes", err);
-      setDesignThemes((prev) => mergeBySlug(builtInDesignThemes, prev));
     }
   }, []);
 
@@ -181,7 +174,8 @@ export default function AdminProductsPage() {
     async (values: ProductFormValues) => {
       setSaving(true);
       setError(null);
-      const designTheme = values.designTheme || "basic";
+      const designTheme = values.designTheme || "simple";
+      const images = buildImagesFromList(values.images);
       const payload: AdminProductInput = {
         name: values.name.trim(),
         slug: slugify(values.name),
@@ -193,7 +187,7 @@ export default function AdminProductsPage() {
         sizes: values.sizes,
         colors: values.colors,
         stock: Number(values.stock || 0),
-        images: values.images,
+        images,
         inStock: values.inStock,
       };
       
@@ -261,7 +255,7 @@ export default function AdminProductsPage() {
       basePrice: product.basePrice?.toString() ?? "",
       discountPercent: product.discountPercent?.toString() ?? "0",
       category: product.category,
-      designTheme: product.designTheme || "basic",
+      designTheme: product.designTheme || "simple",
       designThemeCustom: "",
       stock: product.stock?.toString() ?? "",
       inStock: product.inStock,
@@ -269,7 +263,7 @@ export default function AdminProductsPage() {
         .map((size) => size.toUpperCase())
         .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
       colors: product.colors,
-      images: product.images,
+      images: [product.images.main, ...(product.images.gallery ?? [])].filter(Boolean),
       gender: product.gender ?? "",
     });
     setFormKey(Date.now());
@@ -337,7 +331,7 @@ export default function AdminProductsPage() {
             ) : (
               <ul className="divide-y divide-white/10">
                 {products.map((product) => {
-                  const mainImage = product.images[0];
+                  const mainImage = product.images.main || product.images.gallery[0];
                   return (
                     <li key={product.id} className="grid grid-cols-6 items-center gap-3 px-4 py-3 text-sm text-sky-50">
                       <div className="col-span-2 flex items-center gap-3">

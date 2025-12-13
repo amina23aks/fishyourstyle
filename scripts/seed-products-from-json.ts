@@ -129,7 +129,7 @@ async function main() {
     const sizes = Array.isArray(item.sizes) ? item.sizes.map((s) => s.toString().toUpperCase()) : [];
     const stock = typeof item.stock === "number" ? item.stock : 0;
     const inStock = typeof item.inStock === "boolean" ? item.inStock : stock > 0;
-    const designTheme = (item.designTheme ?? "basic").toString().toLowerCase();
+    const designTheme = (item.designTheme ?? "simple").toString().toLowerCase();
     const description = (item.descriptionFr ?? item.description ?? "").trim();
 
     const existing = await findExistingBySlug(productsRef, slug);

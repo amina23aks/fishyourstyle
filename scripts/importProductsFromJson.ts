@@ -189,13 +189,13 @@ async function importProducts() {
         const finalPrice = computeFinalPrice(jsonProduct.priceDzd, discountPercent);
 
         // Map designTheme - handle various formats
-        let designTheme = "basic";
+        let designTheme = "simple";
         if (jsonProduct.designTheme) {
           const theme = jsonProduct.designTheme.toLowerCase();
           // Map common variations
           if (theme === "harry potter" || theme === "harry-potter") {
             designTheme = "harry-potter";
-          } else if (["cars", "nature", "anime", "basic"].includes(theme)) {
+          } else if (["cars", "nature", "anime", "basic", "simple"].includes(theme)) {
             designTheme = theme;
           } else {
             designTheme = theme; // Use custom theme as-is
@@ -210,6 +210,11 @@ async function importProducts() {
         // inStock = jsonProduct.status === "active";
 
         // Map to AdminProductInput format
+        const imagePayload = {
+          main: images[0] ?? "",
+          gallery: images.slice(1),
+        };
+
         const productData: AdminProductInput = {
           name: jsonProduct.nameFr,
           slug: productSlug,
@@ -225,7 +230,7 @@ async function importProducts() {
           colors,
           stock,
           inStock,
-          images,
+          images: imagePayload,
           gender: jsonProduct.gender || undefined,
         };
 

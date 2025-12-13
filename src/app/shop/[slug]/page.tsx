@@ -7,8 +7,18 @@ import type { Product } from "@/types/product";
 export const dynamic = "force-dynamic";
 
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
-  const mainImage = sp.images?.[0] ?? "/placeholder.png";
-  const gallery = sp.images?.slice(1) ?? [];
+  const mainImage = sp.images?.main || "/placeholder.png";
+  const gallery = sp.images?.gallery ?? [];
+  const colors = (sp.colors ?? []).map((color) => {
+    if (typeof color === "string") {
+      return { id: color, labelFr: color, labelAr: color, image: mainImage };
+    }
+    const id = typeof color.id === "string" && color.id ? color.id : mainImage;
+    const labelFr = typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
+    const labelAr = typeof color.labelAr === "string" && color.labelAr ? color.labelAr : labelFr;
+    const image = typeof color.image === "string" && color.image ? color.image : mainImage;
+    return { id, labelFr, labelAr, image };
+  });
   return {
     id: sp.id ?? "unknown",
     slug: sp.slug ?? "",
@@ -21,17 +31,12 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     currency: "DZD",
     gender: sp.gender ?? "", // Don't default to "unisex" - empty string means not set
     sizes: sp.sizes ?? [],
-    colors: (sp.colors ?? []).map((hex) => ({
-      id: hex,
-      labelFr: hex,
-      labelAr: hex,
-      image: mainImage,
-    })),
+    colors,
     images: { main: mainImage, gallery },
     descriptionFr: sp.description ?? "",
     descriptionAr: sp.description ?? "",
     status: "active",
-    designTheme: sp.designTheme ?? "basic",
+    designTheme: sp.designTheme ?? "simple",
     tags: sp.tags ?? [],
     discountPercent: sp.discountPercent ?? 0,
   };

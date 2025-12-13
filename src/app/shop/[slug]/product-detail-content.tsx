@@ -75,7 +75,7 @@ const capitalizeLabel = (value: string | undefined | null): string => {
 
 export function ProductDetailContent({ product }: { product: Product }) {
   const collectionName =
-    product.designTheme && product.designTheme !== "basic"
+    product.designTheme && product.designTheme !== "simple"
       ? capitalizeLabel(product.designTheme)
       : capitalizeLabel(product.category);
   const colorOptions = normalizeColors(product.colors);

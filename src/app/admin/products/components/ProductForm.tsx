@@ -66,7 +66,7 @@ const defaultValues: ProductFormValues = {
   basePrice: "",
   discountPercent: "0",
   category: "hoodies",
-  designTheme: "basic",
+  designTheme: "simple",
   designThemeCustom: "",
   stock: "",
   inStock: true,
@@ -225,7 +225,7 @@ export function ProductForm({
     const merged = mergeSelectables(designThemes, initial);
     setDesignThemeOptions(merged);
     if (!merged.some((theme) => theme.slug === values.designTheme)) {
-      setValues((prev) => ({ ...prev, designTheme: merged[0]?.slug ?? "basic" }));
+      setValues((prev) => ({ ...prev, designTheme: merged[0]?.slug ?? "simple" }));
     }
   }, [designThemes, values.designTheme]);
 
@@ -344,7 +344,7 @@ export function ProductForm({
         syncDesignThemes(next);
         setValues((prev) => ({
           ...prev,
-          designTheme: prev.designTheme === slug ? next[0]?.slug ?? "basic" : prev.designTheme,
+          designTheme: prev.designTheme === slug ? next[0]?.slug ?? "simple" : prev.designTheme,
         }));
         await onReloadDesignThemes();
       } catch (err) {
