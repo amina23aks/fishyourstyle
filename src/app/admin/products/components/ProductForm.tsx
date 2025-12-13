@@ -18,7 +18,7 @@ export type ProductFormValues = {
   stock: string;
   inStock: boolean;
   sizes: ("S" | "M" | "L" | "XL")[];
-  colors: { hex: string }[];
+  colors: { id: string; labelFr: string; labelAr?: string; image?: string }[];
   gender?: "unisex" | "men" | "women" | "";
   images: string[];
 };
@@ -44,20 +44,38 @@ type ProductFormProps = {
   onReloadDesignThemes: () => Promise<void>;
 };
 
-const normalizeColors = (input: unknown): { hex: string }[] => {
-  if (!input) return [];
+const normalizeColors = (
+  input: unknown,
+  fallback: ProductFormValues["colors"],
+): ProductFormValues["colors"] | null => {
+  if (input === undefined || input === null) return null;
   if (Array.isArray(input)) {
-    return input
+    const normalized = input
       .map((item) => {
-        if (typeof item === "string") return { hex: item };
-        if (item && typeof item === "object" && "hex" in item) {
-          return { hex: String((item as { hex: unknown }).hex) };
+        if (typeof item === "string") {
+          return { id: item, labelFr: item, labelAr: item } satisfies ProductFormValues["colors"][number];
+        }
+        if (item && typeof item === "object") {
+          const obj = item as { id?: unknown; labelFr?: unknown; labelAr?: unknown; image?: unknown; hex?: unknown };
+          const id =
+            (typeof obj.id === "string" && obj.id.trim()) ||
+            (typeof obj.hex === "string" && obj.hex.trim()) ||
+            null;
+          if (!id) return null;
+          const labelFr = (typeof obj.labelFr === "string" && obj.labelFr.trim()) || id;
+          const labelAr = typeof obj.labelAr === "string" && obj.labelAr.trim() ? obj.labelAr.trim() : undefined;
+          const image = typeof obj.image === "string" && obj.image.trim() ? obj.image.trim() : undefined;
+          return { id, labelFr, labelAr, image } satisfies ProductFormValues["colors"][number];
         }
         return null;
       })
-      .filter((item): item is { hex: string } => Boolean(item?.hex));
+      .filter((item): item is NonNullable<ProductFormValues["colors"][number]> => Boolean(item));
+
+    if (normalized.length > 0) return normalized;
+    if (input.length === 0) return [];
+    return fallback;
   }
-  return [];
+  return fallback;
 };
 
 const normalizeImages = (images: unknown): string[] => {
@@ -76,7 +94,7 @@ const defaultValues: ProductFormValues = {
   stock: "",
   inStock: true,
   sizes: [],
-  colors: [{ hex: "#000000" }],
+  colors: [{ id: "default", labelFr: "Default", labelAr: "", image: "" }],
   gender: "",
   images: [],
 };
@@ -166,11 +184,13 @@ export function ProductForm({
   onReloadCategories,
   onReloadDesignThemes,
 }: ProductFormProps) {
+  const initialColors = normalizeColors(initialValues?.colors, defaultValues.colors) ?? defaultValues.colors;
+  const initialImages = normalizeImages(initialValues?.images ?? defaultValues.images);
   const [values, setValues] = useState<ProductFormValues>({
     ...defaultValues,
     ...initialValues,
-    colors: normalizeColors(initialValues?.colors ?? defaultValues.colors),
-    images: normalizeImages(initialValues?.images ?? defaultValues.images),
+    colors: initialColors,
+    images: initialImages,
   });
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -209,7 +229,7 @@ export function ProductForm({
     setValues((prev) => ({
       ...prev,
       ...initialValues,
-      colors: normalizeColors(initialValues?.colors ?? prev.colors),
+      colors: normalizeColors(initialValues?.colors, prev.colors) ?? prev.colors,
       images: normalizeImages(initialValues?.images ?? prev.images),
     }));
   }, [initialValues]);
@@ -241,7 +261,16 @@ export function ProductForm({
     setError(null);
     setIsSubmitting(true);
     try {
-      await onSubmit(values);
+      const normalizedColors = values.colors
+        .map((color) => ({
+          id: color.id.trim(),
+          labelFr: (color.labelFr || color.id).trim(),
+          labelAr: color.labelAr?.trim() || undefined,
+          image: color.image?.trim() || undefined,
+        }))
+        .filter((color) => color.id && color.labelFr);
+
+      await onSubmit({ ...values, colors: normalizedColors });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to save product";
       setError(message);
@@ -708,39 +737,97 @@ export function ProductForm({
             <button
               type="button"
               className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/15"
-              onClick={() => setValues((prev) => ({ ...prev, colors: [...prev.colors, { hex: "#ffffff" }] }))}
+              onClick={() =>
+                setValues((prev) => ({
+                  ...prev,
+                  colors: [...prev.colors, { id: "", labelFr: "", labelAr: "", image: "" }],
+                }))
+              }
             >
               + Add Color
             </button>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3">
             {values.colors.map((color, index) => (
-              <div key={index} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-                <input
-                  type="color"
-                  value={color.hex || "#000000"}
-                  onChange={(e) =>
-                    setValues((prev) => {
-                      const next = [...prev.colors];
-                      next[index] = { hex: e.target.value };
-                      return { ...prev, colors: next };
-                    })
-                  }
-                  className="h-9 w-9 cursor-pointer rounded-full border border-white/30 bg-white/10 p-0"
-                />
-                <span className="text-xs text-white/80">{color.hex}</span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValues((prev) => ({
-                      ...prev,
-                      colors: prev.colors.filter((_, i) => i !== index) || [{ hex: "#000000" }],
-                    }))
-                  }
-                  className="text-[11px] text-rose-200 hover:text-rose-100"
-                >
-                  Remove
-                </button>
+              <div
+                key={`${color.id || "color"}-${index}`}
+                className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-3 sm:grid-cols-2"
+              >
+                <label className="space-y-1 text-xs text-sky-100/80">
+                  <span className="font-semibold text-white">ID / Code</span>
+                  <input
+                    value={color.id}
+                    onChange={(e) =>
+                      setValues((prev) => {
+                        const next = [...prev.colors];
+                        next[index] = { ...next[index], id: e.target.value };
+                        return { ...prev, colors: next };
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                    placeholder="#000000 or black"
+                  />
+                </label>
+                <label className="space-y-1 text-xs text-sky-100/80">
+                  <span className="font-semibold text-white">Label (FR)</span>
+                  <input
+                    value={color.labelFr}
+                    onChange={(e) =>
+                      setValues((prev) => {
+                        const next = [...prev.colors];
+                        next[index] = { ...next[index], labelFr: e.target.value };
+                        return { ...prev, colors: next };
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                    placeholder="Noir"
+                  />
+                </label>
+                <label className="space-y-1 text-xs text-sky-100/80">
+                  <span className="font-semibold text-white">Label (AR)</span>
+                  <input
+                    value={color.labelAr ?? ""}
+                    onChange={(e) =>
+                      setValues((prev) => {
+                        const next = [...prev.colors];
+                        next[index] = { ...next[index], labelAr: e.target.value };
+                        return { ...prev, colors: next };
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                    placeholder="أسود"
+                  />
+                </label>
+                <label className="space-y-1 text-xs text-sky-100/80">
+                  <span className="font-semibold text-white">Image URL (optional)</span>
+                  <input
+                    value={color.image ?? ""}
+                    onChange={(e) =>
+                      setValues((prev) => {
+                        const next = [...prev.colors];
+                        next[index] = { ...next[index], image: e.target.value };
+                        return { ...prev, colors: next };
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                    placeholder="https://..."
+                  />
+                </label>
+                <div className="flex items-center justify-end sm:col-span-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValues((prev) => ({
+                        ...prev,
+                        colors:
+                          prev.colors.filter((_, i) => i !== index) || [{ id: "default", labelFr: "Default", labelAr: "", image: "" }],
+                      }))
+                    }
+                    className="text-[11px] text-rose-200 hover:text-rose-100"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
           </div>
