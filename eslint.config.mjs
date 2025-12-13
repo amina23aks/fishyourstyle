@@ -3,8 +3,13 @@ import nextPlugin from "@next/eslint-plugin-next";
 import nextVitals from "eslint-config-next/core-web-vitals.js";
 import nextTs from "eslint-config-next/typescript.js";
 import reactHooks from "eslint-plugin-react-hooks";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const compat = new FlatCompat({ baseDirectory: new URL(".", import.meta.url).pathname });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const eslintConfig = [
   {

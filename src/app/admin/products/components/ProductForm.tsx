@@ -828,7 +828,7 @@ export function ProductForm({
                 <div className="space-y-2">
                   <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Confirm delete</p>
                   <h3 className="text-lg font-semibold">
-                    Delete {pendingDelete.type === "category" ? "category" : "design"} "{pendingDelete.item.name}"?
+                    Delete {pendingDelete.type === "category" ? "category" : "design"} &quot;{pendingDelete.item.name}&quot;?
                   </h3>
                   <p className="text-sm text-sky-100/80">
                     This will remove it from all selectors. Products using it will fall back to the first available option.
