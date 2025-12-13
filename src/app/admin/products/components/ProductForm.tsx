@@ -60,6 +60,11 @@ const normalizeColors = (input: unknown): { hex: string }[] => {
   return [];
 };
 
+const normalizeImages = (images: unknown): string[] => {
+  if (!Array.isArray(images)) return [];
+  return Array.from(new Set(images.map(String).filter(Boolean)));
+};
+
 const defaultValues: ProductFormValues = {
   name: "",
   description: "",
@@ -165,6 +170,7 @@ export function ProductForm({
     ...defaultValues,
     ...initialValues,
     colors: normalizeColors(initialValues?.colors ?? defaultValues.colors),
+    images: normalizeImages(initialValues?.images ?? defaultValues.images),
   });
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -204,6 +210,7 @@ export function ProductForm({
       ...prev,
       ...initialValues,
       colors: normalizeColors(initialValues?.colors ?? prev.colors),
+      images: normalizeImages(initialValues?.images ?? prev.images),
     }));
   }, [initialValues]);
 
@@ -254,7 +261,7 @@ export function ProductForm({
     setError(null);
     try {
       const imageUrl = await onUploadImage(file);
-      setValues((prev) => ({ ...prev, images: [...prev.images, imageUrl] }));
+      setValues((prev) => ({ ...prev, images: normalizeImages([...prev.images, imageUrl]) }));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Image upload failed";
       setError(message);
@@ -768,7 +775,7 @@ export function ProductForm({
                 <span className="text-xs text-sky-100/70">No images yet.</span>
               ) : (
                 values.images.map((url, index) => (
-                  <div key={url} className="relative h-20 w-20 overflow-hidden rounded-xl border border-white/15">
+                  <div key={`${url}-${index}`} className="relative h-20 w-20 overflow-hidden rounded-xl border border-white/15">
                     <Image src={url} alt={`Product ${index + 1}`} fill className="object-cover" />
                     <button
                       type="button"
