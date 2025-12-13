@@ -158,38 +158,64 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
-      <div className="grid gap-6 items-start lg:grid-cols-[120px_minmax(0,1fr)_360px]">
-        <div className="lg:col-span-2">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-5">
+      <div className="grid gap-6 items-start lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="lg:col-span-1">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
             {imageList.length > 1 && (
-              <div className="order-2 flex w-full gap-2 overflow-x-auto pb-1 lg:order-1 lg:w-[104px] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pr-2 lg:pb-0">
-                {imageList.map((url, index) => {
-                  const isActive = index === activeImage;
-                  return (
-                    <button
-                      key={`${url}-${index}`}
-                      type="button"
-                      onClick={() => setActiveImage(index)}
-                      className={`group relative flex-shrink-0 overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
-                        isActive ? "ring-2 ring-white/80 border-white/70" : "bg-black/30 hover:border-white/40"
-                      } h-20 w-16 lg:h-[96px] lg:w-full`}
-                      aria-label={`Afficher l'image ${index + 1}`}
-                    >
-                      <Image
-                        src={url}
-                        alt={`${product.nameFr} vignette ${index + 1}`}
-                        fill
-                        className="object-cover"
-                        sizes="120px"
-                      />
-                    </button>
-                  );
-                })}
-              </div>
+              <>
+                <div className="hidden md:flex md:flex-col gap-4 w-[96px] shrink-0">
+                  {imageList.map((url, index) => {
+                    const isActive = index === activeImage;
+                    return (
+                      <button
+                        key={`${url}-${index}`}
+                        type="button"
+                        onClick={() => setActiveImage(index)}
+                        className={`relative h-[96px] w-[96px] overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+                          isActive ? "ring-2 ring-white/60" : "hover:border-white/40"
+                        }`}
+                        aria-label={`Afficher l'image ${index + 1}`}
+                      >
+                        <Image
+                          src={url}
+                          alt={`${product.nameFr} vignette ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          sizes="120px"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="md:hidden flex gap-3 overflow-x-auto pb-2">
+                  {imageList.map((url, index) => {
+                    const isActive = index === activeImage;
+                    return (
+                      <button
+                        key={`${url}-${index}`}
+                        type="button"
+                        onClick={() => setActiveImage(index)}
+                        className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+                          isActive ? "ring-2 ring-white/60" : "hover:border-white/40"
+                        }`}
+                        aria-label={`Afficher l'image ${index + 1}`}
+                      >
+                        <Image
+                          src={url}
+                          alt={`${product.nameFr} vignette ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          sizes="120px"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             )}
 
-            <div className="order-1 flex w-full justify-center lg:order-2 lg:pl-1">
-              <div className="relative aspect-[4/5] w-full max-w-[720px] overflow-hidden rounded-3xl border border-white/12 bg-black/40 shadow-[0_18px_38px_rgba(0,0,0,0.35)]">
+            <div className="flex w-full justify-center md:justify-start">
+              <div className="relative w-full max-w-[680px] md:w-[680px] md:max-w-[680px] aspect-[4/5] rounded-[36px] overflow-hidden border border-white/15 shadow-lg">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentImage}
