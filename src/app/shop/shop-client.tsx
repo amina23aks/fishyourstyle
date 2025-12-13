@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
-import { DEFAULT_COLLECTION_FILTERS, DEFAULT_DESIGN_FILTERS } from "@/lib/filter-config";
 import type { SelectableItem } from "@/lib/categories-shared";
 
 type ShopClientProps = {
@@ -42,13 +41,11 @@ export default function ShopClient({ products, errorMessage, categories, designT
         )
       : [];
     const dynamicPills = dynamic
-      .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val) && !fetchedSlugs.includes(val))
+      .filter((val) => !fetchedSlugs.includes(val))
       .map((val) => ({ label: capitalizeLabel(val), value: val }));
     const allPill = { label: "All", value: "all" as const };
-    const fetchedPills = fetched
-      .filter((item) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === item.slug))
-      .map((item) => ({ label: item.label, value: item.slug }));
-    return [allPill, ...DEFAULT_COLLECTION_FILTERS, ...fetchedPills, ...dynamicPills];
+    const fetchedPills = fetched.map((item) => ({ label: item.label, value: item.slug }));
+    return [allPill, ...fetchedPills, ...dynamicPills];
   }, [products, categories]);
 
   const designValues = useMemo(() => {
@@ -69,13 +66,11 @@ export default function ShopClient({ products, errorMessage, categories, designT
         )
       : [];
     const dynamicPills = dynamic
-      .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val) && !fetchedSlugs.includes(val))
+      .filter((val) => !fetchedSlugs.includes(val))
       .map((val) => ({ label: capitalizeLabel(val), value: val }));
     const allPill = { label: "All", value: "all" as const };
-    const fetchedPills = fetched
-      .filter((item) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === item.slug))
-      .map((item) => ({ label: item.label, value: item.slug }));
-    return [allPill, ...DEFAULT_DESIGN_FILTERS, ...fetchedPills, ...dynamicPills];
+    const fetchedPills = fetched.map((item) => ({ label: item.label, value: item.slug }));
+    return [allPill, ...fetchedPills, ...dynamicPills];
   }, [products, designThemes]);
 
   const collectionPills = useMemo(() => {
@@ -90,7 +85,7 @@ export default function ShopClient({ products, errorMessage, categories, designT
     const term = search.trim().toLowerCase();
     return products.filter((product) => {
       const category = (product.category as string)?.toLowerCase();
-      const design = (product.designTheme ?? "basic").toLowerCase();
+      const design = (product.designTheme ?? "simple").toLowerCase();
       if (collectionFilter !== "all" && category !== collectionFilter) return false;
       if (designFilter !== "all" && design !== designFilter) return false;
 

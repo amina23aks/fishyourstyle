@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { ProductCard } from "./shop/product-card";
 import type { Product } from "@/types/product";
-import { DEFAULT_COLLECTION_FILTERS, DEFAULT_DESIGN_FILTERS } from "@/lib/filter-config";
 import type { SelectableItem } from "@/lib/categories-shared";
 
 type Props = {
@@ -39,19 +38,17 @@ export default function HomeClient({ products, categories, designThemes }: Props
         )
       : [];
     const dynamicPills = dynamic
-      .filter((val) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === val) && !fetchedSlugs.includes(val))
+      .filter((val) => !fetchedSlugs.includes(val))
       .map((val) => ({
         label: capitalizeLabel(val),
         value: val,
       }));
-    const fetchedPills = fetched
-      .filter((item) => !DEFAULT_COLLECTION_FILTERS.some((d) => d.value === item.slug))
-      .map((item) => ({
-        label: item.label,
-        value: item.slug,
-      }));
+    const fetchedPills = fetched.map((item) => ({
+      label: item.label,
+      value: item.slug,
+    }));
     const allPill = { label: "All", value: "all" as const };
-    return [allPill, ...DEFAULT_COLLECTION_FILTERS, ...fetchedPills, ...dynamicPills];
+    return [allPill, ...fetchedPills, ...dynamicPills];
   }, [products, categories]);
 
   const designPills = useMemo(() => {
@@ -72,25 +69,23 @@ export default function HomeClient({ products, categories, designThemes }: Props
         )
       : [];
     const dynamicPills = dynamic
-      .filter((val) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === val) && !fetchedSlugs.includes(val))
+      .filter((val) => !fetchedSlugs.includes(val))
       .map((val) => ({
         label: capitalizeLabel(val),
         value: val,
       }));
-    const fetchedPills = fetched
-      .filter((item) => !DEFAULT_DESIGN_FILTERS.some((d) => d.value === item.slug))
-      .map((item) => ({
-        label: item.label,
-        value: item.slug,
-      }));
+    const fetchedPills = fetched.map((item) => ({
+      label: item.label,
+      value: item.slug,
+    }));
     const allPill = { label: "All", value: "all" as const };
-    return [allPill, ...DEFAULT_DESIGN_FILTERS, ...fetchedPills, ...dynamicPills];
+    return [allPill, ...fetchedPills, ...dynamicPills];
   }, [products, designThemes]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const category = (product.category as string)?.toLowerCase();
-      const design = (product.designTheme ?? "basic").toLowerCase();
+      const design = (product.designTheme ?? "simple").toLowerCase();
       if (collectionFilter !== "all" && category !== collectionFilter) return false;
       if (designFilter !== "all" && design !== designFilter) return false;
       return true;

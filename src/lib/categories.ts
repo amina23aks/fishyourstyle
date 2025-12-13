@@ -1,20 +1,13 @@
 import "server-only";
 
 import { FirebaseError } from "firebase/app";
-import { collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, limit, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 
 
 import { getServerDb } from "./firestore";
 import { isFirebaseConfigured } from "./firebaseConfig";
 import { getAdminDb, isAdminConfigured } from "./firebaseAdmin";
-import {
-  DEFAULT_CATEGORIES,
-  DEFAULT_DESIGNS,
-  DEFAULT_KEYS,
-  mergeWithDefaults,
-  slugify,
-  type SelectableItem,
-} from "./categories-shared";
+import { CANONICAL_CATEGORY_SLUGS, CANONICAL_DESIGN_SLUGS, slugify, type SelectableItem } from "./categories-shared";
 export type { SelectableItem } from "./categories-shared";
 
 const CATEGORY_COLLECTION = "categories";
@@ -43,7 +36,8 @@ function buildSelectableFromDoc(
     id: slug,
     slug,
     label,
-    isDefault: DEFAULT_KEYS.has(slug),
+    isDefault: CANONICAL_CATEGORY_SLUGS.includes(slug as (typeof CANONICAL_CATEGORY_SLUGS)[number]) ||
+      CANONICAL_DESIGN_SLUGS.includes(slug as (typeof CANONICAL_DESIGN_SLUGS)[number]),
   } satisfies SelectableItem;
 }
 
@@ -54,7 +48,7 @@ async function fetchFromFirestore(type: "collection" | "design"): Promise<Select
 
   const adminDb = getAdminDb();
   if (adminDb) {
-    const snapshot = await adminDb.collection(CATEGORY_COLLECTION).get();
+    const snapshot = await adminDb.collection(CATEGORY_COLLECTION).where("type", "==", type).get();
     return snapshot.docs
       .map((docSnap) => buildSelectableFromDoc(docSnap.data() as Record<string, unknown>, docSnap.id, type))
       .filter((item): item is SelectableItem => Boolean(item));
@@ -62,7 +56,7 @@ async function fetchFromFirestore(type: "collection" | "design"): Promise<Select
 
   const db = getServerDb();
   const categoriesRef = collection(db, CATEGORY_COLLECTION);
-  const snapshot = await getDocs(categoriesRef);
+  const snapshot = await getDocs(query(categoriesRef, where("type", "==", type)));
 
   const items = snapshot.docs
     .map((docSnap) => buildSelectableFromDoc(docSnap.data(), docSnap.id, type))
@@ -75,37 +69,26 @@ function handlePermissionDenied(error: unknown) {
   return error instanceof FirebaseError && error.code === "permission-denied";
 }
 
-async function getSelectableItems(
-  type: "collection" | "design",
-  defaults: SelectableItem[],
-): Promise<SelectableItem[]> {
+async function getSelectableItems(type: "collection" | "design"): Promise<SelectableItem[]> {
   try {
     const fetched = await fetchFromFirestore(type);
-    if (!fetched.length) {
-      return defaults;
-    }
-    return mergeWithDefaults(defaults, fetched);
+    return fetched;
   } catch (error) {
     if (!handlePermissionDenied(error)) {
-      console.error(`Failed to fetch ${type}s from Firestore; using defaults.`, error);
+      console.error(`Failed to fetch ${type}s from Firestore`, error);
     }
-    return defaults;
+    return [];
   }
 }
 
-/**
- * Fetch selectable collections (categories). When Firestore is empty or unreachable,
- * defaults are returned so UI filters remain functional.
- */
+/** Fetch selectable collections (categories) from Firestore only. */
 export async function getSelectableCollections(): Promise<SelectableItem[]> {
-  return getSelectableItems("collection", DEFAULT_CATEGORIES);
+  return getSelectableItems("collection");
 }
 
-/**
- * Fetch selectable design themes with the same fallback logic as collections.
- */
+/** Fetch selectable design themes from Firestore only. */
 export async function getSelectableDesigns(): Promise<SelectableItem[]> {
-  return getSelectableItems("design", DEFAULT_DESIGNS);
+  return getSelectableItems("design");
 }
 
 /** Helper that loads both collections and designs for admin screens. */
@@ -180,15 +163,34 @@ export async function addDesign(label: string): Promise<void> {
 
 async function deleteByIdOrSlug(idOrSlug: string, type: "collection" | "design") {
   const slug = slugify(idOrSlug);
-  if (DEFAULT_KEYS.has(slug)) return;
 
-  if (!isFirebaseConfigured() && !isAdminConfigured()) {
-    throw new Error(
-      "Firebase is not configured. Please add your Firebase environment variables (client or Admin SDK) to manage categories/designs.",
-    );
-  }
+  const referencingField = type === "collection" ? "category" : "designTheme";
 
   const adminDb = getAdminDb();
+  if (adminDb) {
+    const inUseSnapshot = await adminDb
+      .collection("products")
+      .where(referencingField, "==", slug)
+      .limit(1)
+      .get();
+    if (!inUseSnapshot.empty) {
+      throw new Error(`Cannot delete ${type}; products still reference ${slug}.`);
+    }
+  } else {
+    if (!isFirebaseConfigured()) {
+      throw new Error(
+        "Firebase is not configured. Please add your Firebase environment variables (client or Admin SDK) to manage categories/designs.",
+      );
+    }
+
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const inUse = await getDocs(query(productsRef, where(referencingField, "==", slug), limit(1)));
+    if (!inUse.empty) {
+      throw new Error(`Cannot delete ${type}; products still reference ${slug}.`);
+    }
+  }
+
   if (adminDb) {
     try {
       await adminDb.collection(CATEGORY_COLLECTION).doc(slug).delete();
@@ -233,10 +235,6 @@ export async function deleteCategory(idOrSlug: string): Promise<void> {
 export async function deleteDesign(idOrSlug: string): Promise<void> {
   return deleteByIdOrSlug(idOrSlug, "design");
 }
-
-export const DEFAULT_CATEGORY_OPTIONS = DEFAULT_CATEGORIES;
-export const DEFAULT_DESIGN_OPTIONS = DEFAULT_DESIGNS;
-
 // Backwards compatible export for existing imports
 export const getSelectableCategories = getSelectableCollections;
 

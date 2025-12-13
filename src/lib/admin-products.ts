@@ -32,7 +32,7 @@ export type AdminProduct = {
   colors: { hex: string }[];
   stock: number;
   inStock: boolean;
-  images: string[];
+  images: { main: string; gallery: string[] };
   gender?: "unisex" | "men" | "women";
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -96,6 +96,28 @@ function computeFinalPrice(basePrice: number, discountPercent: number) {
   return Math.max(base * (1 - discount / 100), 0);
 }
 
+function normalizeImages(value: unknown): { main: string; gallery: string[] } {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const obj = value as { main?: unknown; gallery?: unknown };
+    const main = typeof obj.main === "string" ? obj.main : "";
+    const gallery = Array.isArray(obj.gallery)
+      ? (obj.gallery as unknown[])
+          .map((item) => (typeof item === "string" ? item : null))
+          .filter((item): item is string => Boolean(item))
+      : [];
+    return { main, gallery };
+  }
+
+  if (Array.isArray(value)) {
+    const [main, ...gallery] = (value as unknown[])
+      .map((item) => (typeof item === "string" ? item : null))
+      .filter((item): item is string => Boolean(item));
+    return { main: main ?? "", gallery };
+  }
+
+  return { main: "", gallery: [] };
+}
+
 function normalizeProduct(data: DocumentData, id: string): AdminProduct {
   const basePrice = typeof data.basePrice === "number" ? data.basePrice : Number(data.basePrice ?? 0);
   const discountPercent =
@@ -115,12 +137,12 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     discountPercent: Number.isFinite(discountPercent) ? discountPercent : 0,
     finalPrice,
     category: (data.category as AdminProductCategory) ?? "tshirts",
-    designTheme: typeof data.designTheme === "string" ? data.designTheme : "basic",
+    designTheme: typeof data.designTheme === "string" ? data.designTheme : "simple",
     sizes: parseStringArray(data.sizes),
     colors: parseColorObjects(data.colors),
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
     inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
-    images: Array.isArray(data.images) ? (data.images as string[]).filter(Boolean) : [],
+    images: normalizeImages(data.images),
     gender: typeof data.gender === "string" ? (data.gender as AdminProduct["gender"]) : undefined,
     createdAt: (data.createdAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
     updatedAt: (data.updatedAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
@@ -140,7 +162,7 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     colors: input.colors ?? [],
     stock: Number(input.stock),
     inStock: Boolean(input.inStock),
-    images: input.images ?? [],
+    images: input.images ?? { main: "", gallery: [] },
     gender: input.gender ?? null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
