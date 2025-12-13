@@ -46,6 +46,34 @@ export type StorefrontProduct = {
   status: "active" | "inactive";
 };
 
+function normalizeImagesField(images: unknown): StorefrontProductImages {
+  const collected: string[] = [];
+
+  if (Array.isArray(images)) {
+    collected.push(...images.map(String));
+  } else if (images && typeof images === "object") {
+    const imagesObj = images as { main?: unknown; gallery?: unknown };
+    if (typeof imagesObj.main === "string") {
+      collected.push(imagesObj.main);
+    }
+    if (Array.isArray(imagesObj.gallery)) {
+      collected.push(...imagesObj.gallery.map(String));
+    }
+  }
+
+  const uniqueImages = Array.from(new Set(collected.filter(Boolean)));
+  let [main, ...gallery] = uniqueImages;
+
+  if (!main && gallery.length > 0) {
+    [main, ...gallery] = gallery;
+  }
+
+  const finalMain = main ?? "";
+  const finalGallery = gallery.filter((url) => url !== finalMain);
+
+  return { main: finalMain, gallery: finalGallery } satisfies StorefrontProductImages;
+}
+
 function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
   const basePrice = typeof data.basePrice === "number" ? data.basePrice : Number(data.basePrice ?? 0);
   const discountPercent =
@@ -76,22 +104,7 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
       }, [])
     : [];
 
-  const imagesValue = (() => {
-    if (data && typeof data.images === "object" && !Array.isArray(data.images)) {
-      const imagesObj = data.images as { main?: unknown; gallery?: unknown };
-      const main = typeof imagesObj.main === "string" && imagesObj.main ? imagesObj.main : "";
-      const gallery = Array.isArray(imagesObj.gallery)
-        ? (imagesObj.gallery as unknown[])
-            .map((img) => (typeof img === "string" ? img : null))
-            .filter((img): img is string => Boolean(img))
-        : [];
-      return { main, gallery } satisfies StorefrontProductImages;
-    }
-
-    const imagesArray = Array.isArray(data.images) ? (data.images as string[]).filter(Boolean) : [];
-    const [main, ...gallery] = imagesArray;
-    return { main: main ?? "", gallery } satisfies StorefrontProductImages;
-  })();
+  const imagesValue = normalizeImagesField(data.images);
 
   const validGenders: StorefrontProduct["gender"][] = ["unisex", "men", "women"];
   const genderValue = data.gender;

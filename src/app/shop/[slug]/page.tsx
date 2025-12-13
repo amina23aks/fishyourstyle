@@ -7,24 +7,36 @@ import type { Product } from "@/types/product";
 export const dynamic = "force-dynamic";
 
 function normalizeImages(images: StorefrontProduct["images"] | unknown): string[] {
+  const collected: string[] = [];
+
   if (Array.isArray(images)) {
-    return Array.from(new Set(images.map(String).filter(Boolean)));
-  }
-
-  if (images && typeof images === "object" && !Array.isArray(images)) {
+    collected.push(...images.map(String));
+  } else if (images && typeof images === "object" && !Array.isArray(images)) {
     const imgObj = images as { main?: unknown; gallery?: unknown };
-    const main = typeof imgObj.main === "string" ? imgObj.main : null;
-    const gallery = Array.isArray(imgObj.gallery) ? imgObj.gallery : [];
-    const combined = [main, ...gallery].filter((img): img is string => typeof img === "string" && Boolean(img));
-    return Array.from(new Set(combined));
+    if (typeof imgObj.main === "string") {
+      collected.push(imgObj.main);
+    }
+    if (Array.isArray(imgObj.gallery)) {
+      collected.push(...imgObj.gallery.map(String));
+    }
   }
 
-  return [];
+  const uniqueImages = Array.from(new Set(collected.filter(Boolean)));
+  let [main, ...gallery] = uniqueImages;
+
+  if (!main && gallery.length > 0) {
+    [main, ...gallery] = gallery;
+  }
+
+  const finalMain = main || "/placeholder.png";
+  const finalGallery = gallery.filter((url) => url !== finalMain);
+
+  return [finalMain, ...finalGallery];
 }
 
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const normalizedImages = normalizeImages(sp.images);
-  const [mainImage = "/placeholder.png", ...gallery] = normalizedImages;
+  const [mainImage, ...gallery] = normalizedImages;
   const colors = (sp.colors ?? []).map((color) => {
     if (typeof color === "string") {
       return { id: color, labelFr: color, labelAr: color, image: mainImage };
