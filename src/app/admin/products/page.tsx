@@ -42,7 +42,7 @@ const defaultForm: ProductFormValues = {
   stock: "",
   inStock: true,
   sizes: [],
-  colors: [{ id: "default", labelFr: "Default", labelAr: "", image: "" }],
+  colors: [{ id: "#000000", labelFr: "#000000", labelAr: "#000000", image: "" }],
   gender: "",
   images: [],
 };

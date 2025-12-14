@@ -94,7 +94,7 @@ const defaultValues: ProductFormValues = {
   stock: "",
   inStock: true,
   sizes: [],
-  colors: [{ id: "default", labelFr: "Default", labelAr: "", image: "" }],
+  colors: [{ id: "#000000", labelFr: "#000000", labelAr: "#000000", image: "" }],
   gender: "",
   images: [],
 };
@@ -740,87 +740,44 @@ export function ProductForm({
               onClick={() =>
                 setValues((prev) => ({
                   ...prev,
-                  colors: [...prev.colors, { id: "", labelFr: "", labelAr: "", image: "" }],
+                  colors: [
+                    ...prev.colors,
+                    { id: "#ffffff", labelFr: "#ffffff", labelAr: "#ffffff", image: prev.colors[0]?.image ?? "" },
+                  ],
                 }))
               }
             >
               + Add Color
             </button>
           </div>
-          <div className="flex flex-col gap-3">
-            {values.colors.map((color, index) => (
-              <div
-                key={`${color.id || "color"}-${index}`}
-                className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-3 sm:grid-cols-2"
-              >
-                <label className="space-y-1 text-xs text-sky-100/80">
-                  <span className="font-semibold text-white">ID / Code</span>
+          <div className="flex flex-wrap gap-3">
+            {values.colors.map((color, index) => {
+              const hexValue = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color.id)
+                ? color.id
+                : "#000000";
+              return (
+                <div key={`${color.id || "color"}-${index}`} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
                   <input
-                    value={color.id}
+                    type="color"
+                    value={hexValue}
                     onChange={(e) =>
                       setValues((prev) => {
                         const next = [...prev.colors];
-                        next[index] = { ...next[index], id: e.target.value };
+                        const nextHex = e.target.value;
+                        next[index] = { ...next[index], id: nextHex, labelFr: nextHex, labelAr: nextHex };
                         return { ...prev, colors: next };
                       })
                     }
-                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-                    placeholder="#000000 or black"
+                    className="h-9 w-9 cursor-pointer rounded-full border border-white/30 bg-white/10 p-0"
                   />
-                </label>
-                <label className="space-y-1 text-xs text-sky-100/80">
-                  <span className="font-semibold text-white">Label (FR)</span>
-                  <input
-                    value={color.labelFr}
-                    onChange={(e) =>
-                      setValues((prev) => {
-                        const next = [...prev.colors];
-                        next[index] = { ...next[index], labelFr: e.target.value };
-                        return { ...prev, colors: next };
-                      })
-                    }
-                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-                    placeholder="Noir"
-                  />
-                </label>
-                <label className="space-y-1 text-xs text-sky-100/80">
-                  <span className="font-semibold text-white">Label (AR)</span>
-                  <input
-                    value={color.labelAr ?? ""}
-                    onChange={(e) =>
-                      setValues((prev) => {
-                        const next = [...prev.colors];
-                        next[index] = { ...next[index], labelAr: e.target.value };
-                        return { ...prev, colors: next };
-                      })
-                    }
-                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-                    placeholder="أسود"
-                  />
-                </label>
-                <label className="space-y-1 text-xs text-sky-100/80">
-                  <span className="font-semibold text-white">Image URL (optional)</span>
-                  <input
-                    value={color.image ?? ""}
-                    onChange={(e) =>
-                      setValues((prev) => {
-                        const next = [...prev.colors];
-                        next[index] = { ...next[index], image: e.target.value };
-                        return { ...prev, colors: next };
-                      })
-                    }
-                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-                    placeholder="https://..."
-                  />
-                </label>
-                <div className="flex items-center justify-end sm:col-span-2">
+                  <span className="text-xs text-white/80">{color.id || hexValue}</span>
                   <button
                     type="button"
                     onClick={() =>
                       setValues((prev) => ({
                         ...prev,
                         colors:
-                          prev.colors.filter((_, i) => i !== index) || [{ id: "default", labelFr: "Default", labelAr: "", image: "" }],
+                          prev.colors.filter((_, i) => i !== index) || [{ id: "#000000", labelFr: "#000000", labelAr: "#000000", image: "" }],
                       }))
                     }
                     className="text-[11px] text-rose-200 hover:text-rose-100"
@@ -828,8 +785,8 @@ export function ProductForm({
                     Remove
                   </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
