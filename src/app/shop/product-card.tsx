@@ -126,7 +126,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     product.inStock === false || (stockCount !== null && stockCount <= 0);
   const availableStock = stockCount ?? undefined;
 
-  const currentImage = images[activeIndex];
+  const currentImage = selectedColor?.image && activeIndex === 0 ? selectedColor.image : images[activeIndex];
   const nextImage = images[(activeIndex + 1) % images.length];
   const isSelectionMissing =
     (!selectedColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);

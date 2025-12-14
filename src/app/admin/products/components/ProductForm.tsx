@@ -195,6 +195,8 @@ export function ProductForm({
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [openColorIndex, setOpenColorIndex] = useState<number | null>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
   const [designThemeOptions, setDesignThemeOptions] = useState<SelectableOption[]>(() => {
     const initial = initialValues?.designTheme
@@ -233,6 +235,27 @@ export function ProductForm({
       images: normalizeImages(initialValues?.images ?? prev.images),
     }));
   }, [initialValues]);
+
+  useEffect(() => {
+    if (openColorIndex !== null && typeof window !== "undefined") {
+      const handler = (event: MouseEvent) => {
+        const target = event.target as HTMLElement | null;
+        if (
+          target?.closest?.("[data-color-popover]") ||
+          ((target?.closest?.("[data-color-trigger]") as HTMLElement | null)?.dataset.index === `${openColorIndex}`)
+        ) {
+          return;
+        }
+        setOpenColorIndex(null);
+        setAnchorRect(null);
+      };
+
+      document.addEventListener("mousedown", handler);
+      return () => {
+        document.removeEventListener("mousedown", handler);
+      };
+    }
+  }, [openColorIndex]);
 
   useEffect(() => {
     if (!values.category && categories.length > 0) {
@@ -762,20 +785,38 @@ export function ProductForm({
                 : "#000000";
               return (
                 <div key={`${color.id || "color"}-${index}`} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+                  <button
+                    type="button"
+                    data-color-trigger
+                    data-index={index}
+                    onClick={(event) => {
+                      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+                      setAnchorRect(rect);
+                      setOpenColorIndex(index);
+                    }}
+                    className="h-9 w-9 rounded-full border border-white/30 bg-white/10 p-0 ring-emerald-300 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2"
+                    style={{ backgroundColor: hexValue }}
+                    aria-label={`Pick color ${index + 1}`}
+                  />
                   <input
-                    type="color"
-                    value={hexValue}
-                    onChange={(e) =>
+                    type="text"
+                    value={color.id}
+                    onChange={(e) => {
+                      const nextHex = e.target.value.trim();
                       setValues((prev) => {
                         const next = [...prev.colors];
-                        const nextHex = e.target.value;
-                        next[index] = { ...next[index], id: nextHex, labelFr: nextHex, labelAr: nextHex };
+                        next[index] = {
+                          ...next[index],
+                          id: nextHex,
+                          labelFr: nextHex,
+                          labelAr: nextHex,
+                        };
                         return { ...prev, colors: next };
-                      })
-                    }
-                    className="h-9 w-9 cursor-pointer rounded-full border border-white/30 bg-white/10 p-0"
+                      });
+                    }}
+                    className="w-28 rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs text-white shadow-inner shadow-sky-900/40 focus:border-white/40 focus:outline-none"
+                    placeholder="#000000"
                   />
-                  <span className="text-xs text-white/80">{color.id || hexValue}</span>
                   <button
                     type="button"
                     onClick={() =>
@@ -794,6 +835,101 @@ export function ProductForm({
             })}
           </div>
         </div>
+
+        {mounted && openColorIndex !== null && anchorRect
+          ? createPortal(
+              <div className="fixed inset-0 z-[120] pointer-events-none" data-color-popover>
+                {(() => {
+                  const popoverWidth = 260;
+                  const spacing = 12;
+                  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 0;
+                  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 0;
+                  const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
+                  const preferredLeft = anchorRect.right + spacing;
+                  let left = preferredLeft + popoverWidth > viewportWidth - 8
+                    ? anchorRect.left - spacing - popoverWidth
+                    : preferredLeft;
+                  if (left < 8) {
+                    left = Math.max(8, (viewportWidth - popoverWidth) / 2);
+                  }
+                  let top = anchorRect.top + scrollY;
+                  const maxTop = scrollY + viewportHeight - 200;
+                  if (top > maxTop) {
+                    top = Math.max(scrollY + 8, maxTop - 12);
+                  }
+
+                  const color = values.colors[openColorIndex];
+                  const hexValue = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color.id)
+                    ? color.id
+                    : "#000000";
+
+                  return (
+                    <div
+                      className="absolute pointer-events-auto rounded-xl border border-white/15 bg-slate-950/95 p-4 shadow-2xl shadow-black/60"
+                      style={{ left, top, width: popoverWidth }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={hexValue}
+                          onChange={(e) =>
+                            setValues((prev) => {
+                              const next = [...prev.colors];
+                              const nextHex = e.target.value;
+                              next[openColorIndex] = {
+                                ...next[openColorIndex],
+                                id: nextHex,
+                                labelFr: nextHex,
+                                labelAr: nextHex,
+                              };
+                              return { ...prev, colors: next };
+                            })
+                          }
+                          className="h-10 w-10 cursor-pointer rounded-lg border border-white/20 bg-white/10 p-0"
+                          aria-label="Select color"
+                        />
+                        <div className="flex flex-col gap-1 flex-1">
+                          <label className="text-[11px] font-semibold text-white">HEX</label>
+                          <input
+                            type="text"
+                            value={color.id}
+                            onChange={(e) => {
+                              const nextHex = e.target.value.trim();
+                              setValues((prev) => {
+                                const next = [...prev.colors];
+                                next[openColorIndex] = {
+                                  ...next[openColorIndex],
+                                  id: nextHex,
+                                  labelFr: nextHex,
+                                  labelAr: nextHex,
+                                };
+                                return { ...prev, colors: next };
+                              });
+                            }}
+                            className="w-full rounded-lg border border-white/20 bg-white/5 px-2 py-1 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/40 focus:outline-none"
+                            placeholder="#000000"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenColorIndex(null);
+                            setAnchorRect(null);
+                          }}
+                          className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/15"
+                        >
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>,
+              document.body,
+            )
+          : null}
 
         <label className="space-y-2 text-sm text-sky-100/90">
           <span className="font-semibold text-white">Gender (optional)</span>
