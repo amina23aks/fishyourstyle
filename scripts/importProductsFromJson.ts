@@ -78,33 +78,24 @@ function normalizeDesignTheme(value: string | undefined | null): string {
   return "simple";
 }
 
-function normalizeColors(
-  colors: JsonProduct["colors"]
-): { id: string; labelFr: string; labelAr?: string; image?: string }[] {
+function normalizeColors(colors: JsonProduct["colors"]): { hex: string }[] {
   if (!Array.isArray(colors)) return [];
 
-  return colors.reduce<{ id: string; labelFr: string; labelAr?: string; image?: string }[]>((acc, color, index) => {
+  return colors.reduce<{ hex: string }[]>((acc, color) => {
     if (typeof color === "string") {
-      const label = color.trim();
-      const id = label || `color-${index}`;
-      acc.push({ id, labelFr: label || id });
+      const hex = color.trim();
+      if (hex) acc.push({ hex });
       return acc;
     }
 
     if (color && typeof color === "object") {
-      const candidate = color as { id?: unknown; labelFr?: unknown; labelAr?: unknown; image?: unknown; hex?: unknown };
-      const id =
-        (typeof candidate.id === "string" && candidate.id.trim()) ||
+      const candidate = color as { hex?: unknown; id?: unknown };
+      const hex =
         (typeof candidate.hex === "string" && candidate.hex.trim()) ||
-        (typeof candidate.labelFr === "string" && candidate.labelFr.trim()) ||
-        `color-${index}`;
-
-      const labelFr = (typeof candidate.labelFr === "string" && candidate.labelFr.trim()) || id;
-      const labelAr = typeof candidate.labelAr === "string" && candidate.labelAr.trim() ? candidate.labelAr.trim() : undefined;
-      const image = typeof candidate.image === "string" && candidate.image.trim() ? candidate.image.trim() : undefined;
-
-      if (id && labelFr) {
-        acc.push({ id, labelFr, labelAr, image });
+        (typeof candidate.id === "string" && candidate.id.trim()) ||
+        null;
+      if (hex) {
+        acc.push({ hex });
       }
     }
 

@@ -29,7 +29,7 @@ export type AdminProduct = {
   category: AdminProductCategory;
   designTheme: string;
   sizes: string[];
-  colors: { id: string; labelFr: string; labelAr?: string; image?: string }[];
+  colors: { hex: string; image?: string }[];
   stock: number;
   inStock: boolean;
   images: { main: string; gallery: string[] };
@@ -75,19 +75,18 @@ function parseStringArray(value: unknown): string[] {
 function parseColorObjects(value: unknown): AdminProduct["colors"] {
   const normalizeEntry = (item: unknown) => {
     if (typeof item === "string") {
-      return { id: item, labelFr: item, labelAr: item };
+      const hex = item.trim();
+      return hex ? { hex } : null;
     }
     if (item && typeof item === "object") {
-      const obj = item as { id?: unknown; labelFr?: unknown; labelAr?: unknown; image?: unknown; hex?: unknown };
-      const id =
-        (typeof obj.id === "string" && obj.id.trim()) ||
+      const obj = item as { id?: unknown; hex?: unknown; image?: unknown };
+      const hex =
         (typeof obj.hex === "string" && obj.hex.trim()) ||
+        (typeof obj.id === "string" && obj.id.trim()) ||
         null;
-      if (!id) return null;
-      const labelFr = (typeof obj.labelFr === "string" && obj.labelFr.trim()) || id;
-      const labelAr = typeof obj.labelAr === "string" && obj.labelAr.trim() ? obj.labelAr.trim() : undefined;
+      if (!hex) return null;
       const image = typeof obj.image === "string" && obj.image.trim() ? obj.image.trim() : undefined;
-      return { id, labelFr, labelAr, image } satisfies AdminProduct["colors"][number];
+      return { hex, image } satisfies AdminProduct["colors"][number];
     }
     return null;
   };
@@ -96,13 +95,7 @@ function parseColorObjects(value: unknown): AdminProduct["colors"] {
   if (Array.isArray(value)) {
     const normalized = value
       .map(normalizeEntry)
-      .filter((item): item is NonNullable<ReturnType<typeof normalizeEntry>> => Boolean(item))
-      .map((item) => {
-        const entry: AdminProduct["colors"][number] = { id: item.id, labelFr: item.labelFr };
-        if (item.labelAr) entry.labelAr = item.labelAr;
-        if (item.image) entry.image = item.image;
-        return entry;
-      });
+      .filter((item): item is NonNullable<ReturnType<typeof normalizeEntry>> => Boolean(item));
     if (normalized.length === 0 && value.length === 0) return [];
     return normalized;
   }

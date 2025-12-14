@@ -4,18 +4,31 @@
 export type ProductCategory = string;
 
 /**
- * Product color variant with bilingual labels and image.
+ * Product color variant.
+ * Primary shape uses hex strings; legacy objects are supported for compatibility.
  */
-export type ProductColor = {
-  /** Unique color identifier (e.g., "black", "grey") */
-  id: string;
-  /** French color label */
-  labelFr: string;
-  /** Arabic color label (optional) */
-  labelAr?: string;
-  /** Image URL for this color variant (optional) */
-  image?: string;
-};
+export type ProductColor =
+  | string
+  | {
+      /** Hex value used as the primary identifier (e.g., "#000000") */
+      hex: string;
+      /** Optional image reference for the color */
+      image?: string;
+      /** Optional legacy fields retained for compatibility */
+      id?: string;
+      labelFr?: string;
+      labelAr?: string;
+    }
+  | {
+      /** Legacy identifier */
+      id: string;
+      /** French color label */
+      labelFr: string;
+      /** Arabic color label (optional) */
+      labelAr?: string;
+      /** Image URL for this color variant (optional) */
+      image?: string;
+    };
 
 /**
  * Product image structure with main image and gallery.
