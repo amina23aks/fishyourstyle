@@ -29,7 +29,7 @@ export type AdminProduct = {
   category: AdminProductCategory;
   designTheme: string;
   sizes: string[];
-  colors: { hex: string }[];
+  colors: { hex: string; image?: string }[];
   stock: number;
   inStock: boolean;
   images: { main: string; gallery: string[] };
@@ -72,22 +72,57 @@ function parseStringArray(value: unknown): string[] {
   return [];
 }
 
-function parseColorObjects(value: unknown): { hex: string }[] {
+function parseColorObjects(value: unknown): AdminProduct["colors"] {
+  const normalizeEntry = (item: unknown) => {
+    if (typeof item === "string") {
+      const hex = item.trim();
+      return hex ? { hex } : null;
+    }
+    if (item && typeof item === "object") {
+      const obj = item as { id?: unknown; hex?: unknown; image?: unknown };
+      const hex =
+        (typeof obj.hex === "string" && obj.hex.trim()) ||
+        (typeof obj.id === "string" && obj.id.trim()) ||
+        null;
+      if (!hex) return null;
+      const image = typeof obj.image === "string" && obj.image.trim() ? obj.image.trim() : undefined;
+      const result: AdminProduct["colors"][number] = image ? { hex, image } : { hex };
+      return result;
+    }
+    return null;
+  };
+
   if (!value) return [];
   if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (typeof item === "string") {
-          return { hex: item };
-        }
-        if (item && typeof item === "object" && "hex" in item) {
-          return { hex: String((item as { hex: unknown }).hex) };
-        }
-        return null;
-      })
-      .filter((item): item is { hex: string } => Boolean(item?.hex));
+    const normalized = value
+      .map(normalizeEntry)
+      .filter((item): item is NonNullable<ReturnType<typeof normalizeEntry>> => Boolean(item));
+    if (normalized.length === 0 && value.length === 0) return [];
+    return normalized;
   }
   return [];
+}
+
+function removeUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    const cleaned = value
+      .map((entry) => removeUndefinedDeep(entry))
+      .filter((entry): entry is Exclude<typeof entry, undefined> => entry !== undefined);
+    return cleaned as unknown as T;
+  }
+
+  if (value && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    Object.entries(value as Record<string, unknown>).forEach(([key, val]) => {
+      const cleaned = removeUndefinedDeep(val);
+      if (cleaned !== undefined) {
+        result[key] = cleaned;
+      }
+    });
+    return result as unknown as T;
+  }
+
+  return value === undefined ? (undefined as unknown as T) : value;
 }
 
 function computeFinalPrice(basePrice: number, discountPercent: number) {
@@ -150,6 +185,7 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
 }
 
 function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWrite> {
+  const normalizedColors = parseColorObjects(input.colors);
   const payload: Record<string, unknown> = {
     name: input.name.trim(),
     slug: input.slug || slugifyName(input.name),
@@ -159,7 +195,7 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     category: input.category,
     designTheme: input.designTheme,
     sizes: input.sizes ?? [],
-    colors: input.colors ?? [],
+    colors: normalizedColors,
     stock: Number(input.stock),
     inStock: Boolean(input.inStock),
     images: input.images ?? { main: "", gallery: [] },
@@ -173,7 +209,7 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     payload.description = input.description.trim();
   }
 
-  return payload as WithFieldValue<AdminProductWrite>;
+  return removeUndefinedDeep(payload) as WithFieldValue<AdminProductWrite>;
 }
 
 function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<AdminProductWrite>> {
@@ -204,13 +240,13 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   if (patch.category !== undefined) payload.category = patch.category;
   if (patch.designTheme !== undefined) payload.designTheme = patch.designTheme;
   if (patch.sizes !== undefined) payload.sizes = patch.sizes;
-  if (patch.colors !== undefined) payload.colors = patch.colors;
+  if (patch.colors !== undefined) payload.colors = parseColorObjects(patch.colors);
   if (patch.stock !== undefined) payload.stock = Number(patch.stock);
   if (patch.inStock !== undefined) payload.inStock = Boolean(patch.inStock);
   if (patch.images !== undefined) payload.images = patch.images;
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
 
-  return payload as WithFieldValue<Partial<AdminProductWrite>>;
+  return removeUndefinedDeep(payload) as WithFieldValue<Partial<AdminProductWrite>>;
 }
 
 function wrapPermission<T>(fn: () => Promise<T>): Promise<T> {

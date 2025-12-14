@@ -23,6 +23,13 @@ export default function CartPage() {
   };
 
   const handleIncrease = (item: typeof items[0]) => {
+    const max = item.maxQuantity;
+    if (typeof max === "number" && max > 0) {
+      const nextQuantity = Math.min(item.quantity + 1, max);
+      if (nextQuantity === item.quantity) return;
+      updateQty(item.id, item.variantKey, nextQuantity);
+      return;
+    }
     updateQty(item.id, item.variantKey, item.quantity + 1);
   };
 
@@ -118,13 +125,17 @@ export default function CartPage() {
                         <motion.button
                           type="button"
                           onClick={() => handleIncrease(item)}
+                          disabled={typeof item.maxQuantity === "number" && item.maxQuantity > 0 && item.quantity >= item.maxQuantity}
                           whileTap={{ scale: 0.9 }}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-colors"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                           aria-label="Increase quantity"
                         >
                           +
                         </motion.button>
                       </div>
+                      {typeof item.maxQuantity === "number" && item.maxQuantity > 0 && item.quantity >= item.maxQuantity && (
+                        <p className="text-[11px] text-amber-200">Max stock reached</p>
+                      )}
                       <div className="text-sm font-semibold text-white tabular-nums">
                         {formatPrice(item.price * item.quantity)}
                       </div>

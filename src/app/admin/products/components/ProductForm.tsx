@@ -17,7 +17,7 @@ export type ProductFormValues = {
   designThemeCustom: string;
   stock: string;
   inStock: boolean;
-  sizes: ("S" | "M" | "L" | "XL")[];
+  sizes: ("S" | "M" | "L" | "XL" | "XXL")[];
   colors: { hex: string }[];
   gender?: "unisex" | "men" | "women" | "";
   images: string[];
@@ -44,20 +44,35 @@ type ProductFormProps = {
   onReloadDesignThemes: () => Promise<void>;
 };
 
-const normalizeColors = (input: unknown): { hex: string }[] => {
-  if (!input) return [];
-  if (Array.isArray(input)) {
-    return input
-      .map((item) => {
-        if (typeof item === "string") return { hex: item };
-        if (item && typeof item === "object" && "hex" in item) {
-          return { hex: String((item as { hex: unknown }).hex) };
-        }
-        return null;
-      })
-      .filter((item): item is { hex: string } => Boolean(item?.hex));
-  }
-  return [];
+const normalizeColors = (
+  input: unknown,
+  fallback: ProductFormValues["colors"],
+): ProductFormValues["colors"] => {
+  if (!Array.isArray(input)) return fallback;
+
+  const normalized = input.reduce<ProductFormValues["colors"]>((acc, item) => {
+    if (typeof item === "string" && item.trim()) {
+      acc.push({ hex: item.trim() });
+      return acc;
+    }
+
+    if (item && typeof item === "object") {
+      const obj = item as { hex?: unknown; id?: unknown };
+      const hex =
+        (typeof obj.hex === "string" && obj.hex.trim()) ||
+        (typeof obj.id === "string" && obj.id.trim()) ||
+        null;
+      if (hex) {
+        acc.push({ hex });
+      }
+    }
+
+    return acc;
+  }, []);
+
+  if (normalized.length > 0) return normalized;
+  if (input.length === 0) return [];
+  return fallback;
 };
 
 const normalizeImages = (images: unknown): string[] => {
@@ -166,11 +181,13 @@ export function ProductForm({
   onReloadCategories,
   onReloadDesignThemes,
 }: ProductFormProps) {
+  const initialColors = normalizeColors(initialValues?.colors, defaultValues.colors);
+  const initialImages = normalizeImages(initialValues?.images ?? defaultValues.images);
   const [values, setValues] = useState<ProductFormValues>({
     ...defaultValues,
     ...initialValues,
-    colors: normalizeColors(initialValues?.colors ?? defaultValues.colors),
-    images: normalizeImages(initialValues?.images ?? defaultValues.images),
+    colors: initialColors,
+    images: initialImages,
   });
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -209,7 +226,7 @@ export function ProductForm({
     setValues((prev) => ({
       ...prev,
       ...initialValues,
-      colors: normalizeColors(initialValues?.colors ?? prev.colors),
+      colors: normalizeColors(initialValues?.colors, prev.colors),
       images: normalizeImages(initialValues?.images ?? prev.images),
     }));
   }, [initialValues]);
@@ -241,7 +258,11 @@ export function ProductForm({
     setError(null);
     setIsSubmitting(true);
     try {
-      await onSubmit(values);
+      const normalizedColors = values.colors
+        .map((color) => ({ hex: color.hex.trim() }))
+        .filter((color) => Boolean(color.hex));
+
+      await onSubmit({ ...values, colors: normalizedColors });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to save product";
       setError(message);
@@ -708,41 +729,64 @@ export function ProductForm({
             <button
               type="button"
               className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/15"
-              onClick={() => setValues((prev) => ({ ...prev, colors: [...prev.colors, { hex: "#ffffff" }] }))}
+              onClick={() =>
+                setValues((prev) => ({
+                  ...prev,
+                  colors: [...prev.colors, { hex: "#ffffff" }],
+                }))
+              }
             >
               + Add Color
             </button>
           </div>
           <div className="flex flex-wrap gap-3">
-            {values.colors.map((color, index) => (
-              <div key={index} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-                <input
-                  type="color"
-                  value={color.hex || "#000000"}
-                  onChange={(e) =>
-                    setValues((prev) => {
-                      const next = [...prev.colors];
-                      next[index] = { hex: e.target.value };
-                      return { ...prev, colors: next };
-                    })
-                  }
-                  className="h-9 w-9 cursor-pointer rounded-full border border-white/30 bg-white/10 p-0"
-                />
-                <span className="text-xs text-white/80">{color.hex}</span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValues((prev) => ({
-                      ...prev,
-                      colors: prev.colors.filter((_, i) => i !== index) || [{ hex: "#000000" }],
-                    }))
-                  }
-                  className="text-[11px] text-rose-200 hover:text-rose-100"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
+            {values.colors.map((color, index) => {
+              const hexValue = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color.hex)
+                ? color.hex
+                : "#000000";
+              return (
+                <div key={`color-${index}`} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+                  <input
+                    type="color"
+                    value={hexValue}
+                    onChange={(e) => {
+                      const nextHex = e.target.value;
+                      setValues((prev) => ({
+                        ...prev,
+                        colors: prev.colors.map((entry, i) => (i === index ? { hex: nextHex } : entry)),
+                      }));
+                    }}
+                    className="h-9 w-9 cursor-pointer rounded-full border border-white/30 bg-white/10 p-0"
+                    aria-label={`Pick color ${index + 1}`}
+                  />
+                  <input
+                    type="text"
+                    value={color.hex}
+                    onChange={(e) => {
+                      const nextHex = e.target.value.trim();
+                      setValues((prev) => ({
+                        ...prev,
+                        colors: prev.colors.map((entry, i) => (i === index ? { hex: nextHex } : entry)),
+                      }));
+                    }}
+                    className="w-28 rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs text-white shadow-inner shadow-sky-900/40 focus:border-white/40 focus:outline-none"
+                    placeholder="#000000"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValues((prev) => ({
+                        ...prev,
+                        colors: prev.colors.filter((_, i) => i !== index) || [{ hex: "#000000" }],
+                      }))
+                    }
+                    className="text-[11px] text-rose-200 hover:text-rose-100"
+                  >
+                    Remove
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 

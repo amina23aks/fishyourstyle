@@ -22,6 +22,7 @@ export type CartItem = {
   size: string;
   quantity: number;
   variantKey: string;
+  maxQuantity?: number;
 };
 
 export type AddItemPayload = {
@@ -35,6 +36,7 @@ export type AddItemPayload = {
   colorCode: string;
   size: string;
   quantity?: number;
+  maxQuantity?: number;
 };
 
 export type CartTotals = {
@@ -105,16 +107,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (existingIndex !== -1) {
         return previous.map((item, index) =>
           index === existingIndex
-            ? { ...item, quantity: item.quantity + quantityToAdd }
+            ? {
+                ...item,
+                quantity: Math.min(
+                  item.quantity + quantityToAdd,
+                  item.maxQuantity ?? item.quantity + quantityToAdd,
+                ),
+              }
             : item,
         );
       }
+
+      const initialQuantity = Math.min(
+        quantityToAdd,
+        payload.maxQuantity ?? quantityToAdd,
+      );
 
       return [
         ...previous,
         {
           ...payload,
-          quantity: quantityToAdd,
+          quantity: initialQuantity,
           variantKey,
         },
       ];
@@ -139,11 +152,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
 
       setItems((previous) =>
-        previous.map((item) =>
-          item.id === id && item.variantKey === variantKey
-            ? { ...item, quantity }
-            : item,
-        ),
+        previous.map((item) => {
+          if (item.id === id && item.variantKey === variantKey) {
+            const max = item.maxQuantity;
+            const nextQuantity =
+              typeof max === "number" && max > 0 ? Math.min(quantity, max) : quantity;
+            return { ...item, quantity: nextQuantity };
+          }
+          return item;
+        }),
       );
     },
     [removeItem],

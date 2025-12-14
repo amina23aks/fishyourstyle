@@ -14,33 +14,36 @@ const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
 
 type NormalizedColor = {
-  id: string;
-  labelFr: string;
+  hex: string;
   image?: string;
-  labelAr?: string;
+  label?: string;
 };
 
 const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
-  colors.map((color) => {
+  colors.reduce<NormalizedColor[]>((acc, color) => {
     if (typeof color === "string") {
-      return { id: color, labelFr: color, image: undefined };
+      acc.push({ hex: color, label: color });
+      return acc;
     }
-    return {
-      id: color.id,
-      labelFr: color.labelFr,
-      image: color.image,
-      labelAr: color.labelAr,
-    };
-  });
+    if ("hex" in color) {
+      const hex = typeof color.hex === "string" ? color.hex : "";
+      const label = typeof color.labelFr === "string" ? color.labelFr : hex;
+      const image = typeof color.image === "string" ? color.image : undefined;
+      if (hex) acc.push({ hex, label, image });
+      return acc;
+    }
+    const id = typeof color.id === "string" ? color.id : "";
+    const label = typeof color.labelFr === "string" ? color.labelFr : id;
+    const image = typeof color.image === "string" ? color.image : undefined;
+    if (id) acc.push({ hex: id, label, image });
+    return acc;
+  }, []);
 
 const swatchHex = (color: NormalizedColor): string => {
-  // If color.id is a hex string, use it
-  if (color.id && /^#([0-9A-F]{3}){1,2}$/i.test(color.id)) {
-    return color.id;
+  if (color.hex && /^#([0-9A-F]{3}){1,2}$/i.test(color.hex)) {
+    return color.hex;
   }
-  
-  // Otherwise, try to map from label
-  const label = color.labelFr?.toLowerCase().replace(/\s+/g, "") ?? "";
+  const label = color.label?.toLowerCase().replace(/\s+/g, "") ?? "";
   const map: Record<string, string> = {
     noir: "#1f2937",
     black: "#111827",
@@ -58,7 +61,7 @@ const swatchHex = (color: NormalizedColor): string => {
     beigeclair: "#e5d5b5",
   };
 
-  return map[label] ?? color.id ?? "#e5e7eb";
+  return map[label] ?? color.hex ?? "#e5e7eb";
 };
 
 const sizeLabel = (size: string) => size.toUpperCase();
@@ -81,20 +84,20 @@ export function ProductDetailContent({ product }: { product: Product }) {
     product.sizes.length === 1 ? product.sizes[0] : undefined,
   );
   const [selectionError, setSelectionError] = useState<string | null>(null);
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const stockCount = typeof product.stock === "number" ? product.stock : null;
+  const isOutOfStock =
+    product.inStock === false || (stockCount !== null && stockCount <= 0);
+  const availableStock = stockCount ?? undefined;
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
     [product.images.gallery, product.images.main],
   );
 
-  const imageList = useMemo(() => {
-    const galleryImages = activeColor?.image ? [activeColor.image, ...allImages] : allImages;
-    const uniqueImages = Array.from(new Set(galleryImages.filter(Boolean)));
-    return uniqueImages.length > 0 ? uniqueImages : allImages;
-  }, [activeColor?.image, allImages]);
+  const imageList = useMemo(() => (allImages.length > 0 ? allImages : [product.images.main]), [allImages, product.images.main]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" && product.images.gallery.length > 0) {
@@ -119,6 +122,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
     "/placeholder.png";
   
   const handleAddToCart = () => {
+    if (isOutOfStock) {
+      setSelectionError("Out of stock");
+      return false;
+    }
+
     if (!activeColor && product.colors.length > 1) {
       setSelectionError("Please choose a color and size before adding to cart.");
       return false;
@@ -129,9 +137,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
       return false;
     }
 
-    const colorName = activeColor?.labelFr ?? "Standard";
-    const colorCode = activeColor?.id ?? "default";
+    const colorName = activeColor?.label ?? activeColor?.hex ?? "Standard";
+    const colorCode = activeColor?.hex ?? "default";
     const size = selectedSize ?? "Taille unique";
+
+    const variantKey = `${product.id}-${colorCode}-${size}`.toLowerCase();
+    const existing = items.find((item) => item.variantKey === variantKey);
+    const maxQty = existing?.maxQuantity ?? availableStock;
+    if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
+      setSelectionError("Max stock reached");
+      return false;
+    }
 
     addItem({
       id: product.id,
@@ -139,10 +155,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
       name: product.nameFr,
       price: product.priceDzd,
       currency: product.currency,
-      image: activeColor?.image ?? product.images.main,
+      image: imageList[activeImage] ?? product.images.main,
       colorName,
       colorCode,
       size,
+      maxQuantity: availableStock ?? undefined,
     });
 
     setSelectionError(null);
@@ -155,6 +172,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const isSelectionMissing =
     (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
+  const stockMessage = isOutOfStock
+    ? "Out of stock"
+    : typeof availableStock === "number"
+      ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
+      : null;
+  const selectionMessage = isSelectionMissing
+    ? "Please choose a color and size before adding to cart."
+    : null;
+  const displayMessage = isOutOfStock
+    ? "Out of stock"
+    : selectionError ?? selectionMessage;
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
@@ -266,18 +294,18 @@ export function ProductDetailContent({ product }: { product: Product }) {
           <div className="space-y-1">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
             <div className="flex flex-wrap gap-2">
-              {colorOptions.map((color) => {
+              {colorOptions.map((color, index) => {
                 const hexValue = swatchHex(color);
-                const label = color.labelFr ?? color.id ?? "Color";
+                const label = color.label ?? color.hex ?? "Color";
                 return (
                   <Swatch
-                    key={color.id}
+                    key={color.hex + index}
                     label={label}
                     colorHex={hexValue}
-                    selected={color.id === activeColor?.id}
+                    selected={color.hex === activeColor?.hex}
                     onSelect={() => {
                       setActiveColor(color);
-                      setActiveImage(0);
+                      setActiveImage(Math.min(index, Math.max(imageList.length - 1, 0)));
                       setSelectionError(null);
                     }}
                     size="sm"
@@ -341,12 +369,19 @@ export function ProductDetailContent({ product }: { product: Product }) {
             )}
 
             <p className="min-h-[18px] text-[13px] text-rose-200" aria-live="polite">
-              {selectionError ?? "\u00a0"}
+              {displayMessage ?? "\u00a0"}
             </p>
+
+            {stockMessage ? (
+              <p className="text-xs font-semibold text-white" aria-live="polite">
+                {stockMessage}
+              </p>
+            ) : null}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <AnimatedAddToCartButton
                 onClick={handleAddToCart}
+                disabled={isSelectionMissing || isOutOfStock}
                 className={`w-full justify-center sm:w-auto ${
                   isSelectionMissing ? "opacity-80" : ""
                 }`.trim()}

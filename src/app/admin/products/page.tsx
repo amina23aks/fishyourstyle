@@ -29,7 +29,7 @@ const toSelectableOption = (item: SelectableItem): SelectableOption => ({
   isDefault: item.isDefault,
 });
 
-const allowedSizes = ["S", "M", "L", "XL"] as const;
+const allowedSizes = ["S", "M", "L", "XL", "XXL"] as const;
 
 const defaultForm: ProductFormValues = {
   name: "",

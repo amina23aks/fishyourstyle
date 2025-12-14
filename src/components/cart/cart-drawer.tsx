@@ -82,6 +82,13 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   };
 
   const handleIncrease = (item: CartItem) => {
+    const max = item.maxQuantity;
+    if (typeof max === "number" && max > 0) {
+      const nextQuantity = Math.min(item.quantity + 1, max);
+      if (nextQuantity === item.quantity) return;
+      updateQty(item.id, item.variantKey, nextQuantity);
+      return;
+    }
     updateQty(item.id, item.variantKey, item.quantity + 1);
   };
 
@@ -274,69 +281,73 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       Back to shop
                     </Link>
                   </div>
-                ) : (
-                  <ul className="space-y-3">
-                    {items.map((item) => (
-                      <li
-                        key={item.variantKey}
-                        className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-black/30"
-                      >
-                        <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-white/10">
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            sizes="80px"
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex flex-1 flex-col gap-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="text-sm font-semibold text-white line-clamp-2">{item.name}</p>
-                              <div className="flex items-center gap-1.5 text-xs text-sky-200">
-                                <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
-                                <span>{item.size}</span>
+                  ) : (
+                    <ul className="space-y-3">
+                      {items.map((item) => (
+                        <li
+                          key={item.variantKey}
+                          className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-black/30"
+                        >
+                          <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-white/10">
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              fill
+                              sizes="80px"
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="flex flex-1 flex-col gap-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-semibold text-white line-clamp-2">{item.name}</p>
+                                <div className="flex items-center gap-1.5 text-xs text-sky-200">
+                                  <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
+                                  <span>{item.size}</span>
+                                </div>
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item.id, item.variantKey)}
+                                className="text-xs text-sky-300 underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:underline"
+                              >
+                                Remove
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => removeItem(item.id, item.variantKey)}
-                              className="text-xs text-sky-300 underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:underline"
-                            >
-                              Remove
-                            </button>
-                          </div>
 
-                          <div className="flex items-center justify-between text-sm text-white">
-                            <div className="flex items-center gap-2">
-                              <motion.button
-                                type="button"
-                                onClick={() => handleDecrease(item)}
-                                whileTap={{ scale: 0.9 }}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                aria-label="Decrease quantity"
-                              >
-                                −
-                              </motion.button>
-                              <span className="min-w-[24px] text-center tabular-nums">{item.quantity}</span>
-                              <motion.button
-                                type="button"
-                                onClick={() => handleIncrease(item)}
-                                whileTap={{ scale: 0.9 }}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                aria-label="Increase quantity"
-                              >
-                                +
-                              </motion.button>
+                            <div className="flex items-center justify-between text-sm text-white">
+                              <div className="flex items-center gap-2">
+                                <motion.button
+                                  type="button"
+                                  onClick={() => handleDecrease(item)}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                  aria-label="Decrease quantity"
+                                >
+                                  −
+                                </motion.button>
+                                <span className="min-w-[24px] text-center tabular-nums">{item.quantity}</span>
+                                <motion.button
+                                  type="button"
+                                  onClick={() => handleIncrease(item)}
+                                  disabled={typeof item.maxQuantity === "number" && item.maxQuantity > 0 && item.quantity >= item.maxQuantity}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:cursor-not-allowed disabled:opacity-60"
+                                  aria-label="Increase quantity"
+                                >
+                                  +
+                                </motion.button>
+                              </div>
+                              <div className="text-sm font-semibold">{formatCurrency(item.price * item.quantity)}</div>
                             </div>
-                            <div className="text-sm font-semibold">{formatCurrency(item.price * item.quantity)}</div>
+                            {typeof item.maxQuantity === "number" && item.maxQuantity > 0 && item.quantity >= item.maxQuantity && (
+                              <p className="text-[11px] text-amber-200">Max stock reached</p>
+                            )}
                           </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
                 <div className="space-y-4 rounded-xl border border-white/10 bg-slate-950/60 p-4">
                   <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-sky-200">

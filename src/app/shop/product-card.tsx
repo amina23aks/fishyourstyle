@@ -45,45 +45,38 @@ const colorSwatchMap: Record<string, string> = {
 };
 
 type NormalizedColor = {
-  id: string;
-  labelFr: string;
-  labelAr?: string;
+  hex: string;
   image?: string;
+  label?: string;
 };
 
 const getSwatchColor = (color: NormalizedColor): string => {
-  // If color.id is a hex string, use it
-  if (color.id && /^#([0-9A-F]{3}){1,2}$/i.test(color.id)) {
-    return color.id;
+  if (color.hex && /^#([0-9A-F]{3}){1,2}$/i.test(color.hex)) {
+    return color.hex;
   }
-
-  // Otherwise, try to map from label
-  const label = color.labelFr?.toLowerCase().replace(/\s+/g, "") ?? "";
-  return colorSwatchMap[label] ?? color.id ?? "#e5e7eb";
+  const label = color.label?.toLowerCase().replace(/\s+/g, "") ?? "";
+  return colorSwatchMap[label] ?? color.hex ?? "#e5e7eb";
 };
 
 const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
-  colors.map((color) => {
+  colors.reduce<NormalizedColor[]>((acc, color) => {
     if (typeof color === "string") {
-      return { id: color, labelFr: color, image: undefined };
+      acc.push({ hex: color, label: color });
+      return acc;
     }
-    return {
-      id: color.id,
-      labelFr: color.labelFr,
-      labelAr: "labelAr" in color ? color.labelAr : undefined,
-      image: "image" in color ? color.image : undefined,
-    };
-  });
-
-const buildImageList = (product: ProductWithInventory, activeColor?: NormalizedColor | null): string[] => {
-  const galleryImages = product.images.gallery ?? [];
-  const withColor = activeColor?.image
-    ? [activeColor.image, product.images.main, ...galleryImages]
-    : [product.images.main, ...galleryImages];
-  const uniqueImages = Array.from(new Set(withColor.filter(Boolean)));
-
-  return uniqueImages.length > 0 ? uniqueImages : [product.images.main];
-};
+    if ("hex" in color) {
+      const hex = typeof color.hex === "string" ? color.hex : "";
+      const label = typeof color.labelFr === "string" ? color.labelFr : hex;
+      const image = typeof color.image === "string" ? color.image : undefined;
+      if (hex) acc.push({ hex, label, image });
+      return acc;
+    }
+    const id = typeof color.id === "string" ? color.id : "";
+    const label = typeof color.labelFr === "string" ? color.labelFr : id;
+    const image = typeof color.image === "string" ? color.image : undefined;
+    if (id) acc.push({ hex: id, label, image });
+    return acc;
+  }, []);
 
 const skeletonShimmer =
   "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.4s_ease_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent";
@@ -96,35 +89,38 @@ export type ProductCardProps = {
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const colorOptions = useMemo(() => normalizeColors(product.colors), [product.colors]);
   const colorOptionKey = useMemo(
-    () => colorOptions.map((color) => `${color.id}-${color.image ?? ""}`).join("|"),
+    () => colorOptions.map((color) => `${color.hex}-${color.image ?? ""}`).join("|"),
     [colorOptions],
   );
   const initialColor = useMemo(
     () => (colorOptions.length === 1 ? colorOptions[0] : null),
-    [colorOptions, colorOptionKey],
+    [colorOptions],
   );
   const sizeKey = useMemo(() => product.sizes.join("|"), [product.sizes]);
   const initialSize = useMemo(
     () => (product.sizes.length === 1 ? product.sizes[0] : null),
-    [product.sizes, sizeKey],
+    [product.sizes],
   );
   const [selectedColor, setSelectedColor] = useState<NormalizedColor | null>(initialColor);
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
-  const galleryKey = useMemo(() => (product.images.gallery ?? []).join("|"), [product.images.gallery]);
-  const images = useMemo(
-    () => buildImageList(product, selectedColor),
-    [galleryKey, product.images.main, product.slug, selectedColor],
-  );
-  const { addItem } = useCart();
+  const images = useMemo(() => {
+    const base = [product.images.main, ...(product.images.gallery ?? [])].filter(Boolean);
+    return base.length > 0 ? base : [product.images.main];
+  }, [product.images.gallery, product.images.main]);
+  const { addItem, items } = useCart();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const touchStartX = useRef<number | null>(null);
   const { flyToCart } = useFlyToCart();
+  const stockCount = typeof product.stock === "number" ? product.stock : null;
+  const isOutOfStock =
+    product.inStock === false || (stockCount !== null && stockCount <= 0);
+  const availableStock = stockCount ?? undefined;
 
-  const currentImage = images[activeIndex];
-  const nextImage = images[(activeIndex + 1) % images.length];
+  const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
+  const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
   const isSelectionMissing =
     (!selectedColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
 
@@ -181,9 +177,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     touchStartX.current = null;
   };
 
-  const handleSelectColor = (color: NormalizedColor) => {
+  const handleSelectColor = (color: NormalizedColor, index: number) => {
     setSelectedColor(color);
-    setActiveIndex(0);
+    setActiveIndex(Math.min(index, Math.max(images.length - 1, 0)));
     setSelectionWarning(null);
   };
 
@@ -193,6 +189,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   };
 
   const handleAddToCart = useCallback(() => {
+    if (isOutOfStock) {
+      setSelectionWarning("Out of stock");
+      return false;
+    }
+
     if (!selectedColor && product.colors.length > 1) {
       setSelectionWarning("Please choose a color and size before adding to cart.");
       return false;
@@ -205,8 +206,16 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
     const color = selectedColor ?? colorOptions[0];
     const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
-    const colorName = color?.labelFr ?? "Standard";
-    const colorCode = color?.id ?? "default";
+    const colorName = color?.label ?? color?.hex ?? "Standard";
+    const colorCode = color?.hex ?? "default";
+
+    const variantKey = `${product.id}-${colorCode}-${sizeChoice}`.toLowerCase();
+    const existing = items.find((item) => item.variantKey === variantKey);
+    const maxQty = existing?.maxQuantity ?? availableStock;
+    if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
+      setSelectionWarning("Max stock reached");
+      return false;
+    }
 
     addItem({
       id: product.id,
@@ -214,11 +223,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       name: product.nameFr,
       price: product.priceDzd,
       currency: product.currency,
-      image: color?.image ?? product.images.main,
+      image: currentImage ?? product.images.main,
       colorName,
       colorCode,
       size: sizeChoice,
       quantity: 1,
+      maxQuantity: availableStock ?? undefined,
     });
 
     setSelectionWarning(null);
@@ -227,8 +237,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     return true;
   }, [
     addItem,
+    currentImage,
     colorOptions,
     flyToCart,
+    availableStock,
+    isOutOfStock,
+    items,
     product.colors,
     product.currency,
     product.id,
@@ -404,16 +418,16 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 )}
               </div>
               <div className="flex flex-wrap gap-1">
-                {colorOptions.slice(0, 3).map((color) => {
+                {colorOptions.slice(0, 3).map((color, index) => {
                   const hexValue = getSwatchColor(color);
-                  const label = color.labelFr ?? color.id ?? "Color";
+                  const label = color.label ?? color.hex ?? "Color";
                   return (
                     <Swatch
-                      key={color.id}
+                      key={color.hex + index}
                       label={label}
                       colorHex={hexValue}
-                      selected={selectedColor?.id === color.id}
-                      onSelect={() => handleSelectColor(color)}
+                      selected={selectedColor?.hex === color.hex}
+                      onSelect={() => handleSelectColor(color, index)}
                       size="card"
                       showLabel={false}
                     />
@@ -464,18 +478,13 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             {selectionWarning ?? "\u00a0"}
           </p>
 
-          {(() => {
-            const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
-            return (
-              <AnimatedAddToCartButton
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                className={`w-full justify-center ${
-                  isSelectionMissing || isOutOfStock ? "opacity-60 cursor-not-allowed" : ""
-                }`.trim()}
-              />
-            );
-          })()}
+          <AnimatedAddToCartButton
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+            className={`w-full justify-center ${
+              isSelectionMissing || isOutOfStock ? "opacity-60 cursor-not-allowed" : ""
+            }`.trim()}
+          />
         </div>
       </motion.article>
     </>

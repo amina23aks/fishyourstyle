@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   collection,
-  addDoc,
   serverTimestamp,
   getDocs,
   doc,
@@ -11,6 +10,7 @@ import {
   where,
   Timestamp,
   updateDoc,
+  runTransaction,
   type DocumentData,
 } from "firebase/firestore";
 import { getServerDb } from "@/lib/firestore";
@@ -158,19 +158,66 @@ export async function POST(request: NextRequest) {
     // Add order to Firestore
     console.log("[api/orders] Attempting to save order to Firestore...");
     const ordersCollection = collection(db, "orders");
+    const productsCollection = collection(db, "products");
     console.log("[api/orders] Orders collection reference obtained.");
-    
-    const docRef = await addDoc(ordersCollection, orderDataForFirestore);
-    console.log("[api/orders] Order saved successfully to Firestore with ID:", docRef.id);
+
+    const aggregatedQuantities = orderToSave.items.reduce<Record<string, number>>((acc, item) => {
+      acc[item.id] = (acc[item.id] ?? 0) + item.quantity;
+      return acc;
+    }, {});
+
+    let createdOrderId: string | null = null;
+    const productSnapshots = new Map<string, DocumentData>();
+
+    await runTransaction(db, async (transaction) => {
+      // Validate stock for each product in the cart
+      for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
+        const productRef = doc(productsCollection, productId);
+        const snapshot = await transaction.get(productRef);
+        if (!snapshot.exists()) {
+          throw new Error(`Product not found: ${productId}`);
+        }
+
+        const data = snapshot.data();
+        productSnapshots.set(productId, data);
+        const rawStock = typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0);
+        const availableStock = data.inStock === false ? 0 : rawStock;
+
+        if (requestedQty > availableStock) {
+          const name = typeof data.name === "string" ? data.name : productId;
+          throw new Error(`Insufficient stock for ${name}`);
+        }
+      }
+
+      // Decrement stock now that validation passed
+      for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
+        const productRef = doc(productsCollection, productId);
+        const data = productSnapshots.get(productId);
+        if (!data) continue;
+        const rawStock = typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0);
+        const nextStock = Math.max(rawStock - requestedQty, 0);
+        transaction.update(productRef, { stock: nextStock, inStock: nextStock > 0 });
+      }
+
+      const orderRef = doc(ordersCollection);
+      createdOrderId = orderRef.id;
+      transaction.set(orderRef, orderDataForFirestore);
+    });
+
+    if (!createdOrderId) {
+      throw new Error("Order ID missing after transaction commit");
+    }
+
+    console.log("[api/orders] Order saved successfully to Firestore with ID:", createdOrderId);
 
     // Return the order ID
     return NextResponse.json(
-      { orderId: docRef.id },
+      { orderId: createdOrderId },
       { status: 201 }
     );
   } catch (error) {
     console.error("[api/orders] FIREBASE WRITE ERROR:", error);
-    
+
     // Log additional error details if available
     if (error instanceof Error) {
       console.error("[api/orders] Error name:", error.name);
@@ -180,9 +227,17 @@ export async function POST(request: NextRequest) {
 
     // Handle Firebase-specific errors
     if (error instanceof Error) {
+      const isStockError =
+        error.message.toLowerCase().includes("insufficient stock") ||
+        error.message.toLowerCase().includes("product not found");
+
       return NextResponse.json(
-        { error: `Failed to create order: ${error.message}` },
-        { status: 500 }
+        {
+          error: isStockError
+            ? "Some items are no longer available. Please review your cart."
+            : `Failed to create order: ${error.message}`,
+        },
+        { status: isStockError ? 400 : 500 }
       );
     }
 

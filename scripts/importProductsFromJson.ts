@@ -80,63 +80,27 @@ function normalizeDesignTheme(value: string | undefined | null): string {
 
 function normalizeColors(colors: JsonProduct["colors"]): { hex: string }[] {
   if (!Array.isArray(colors)) return [];
-  
-  return colors.map((color) => {
+
+  return colors.reduce<{ hex: string }[]>((acc, color) => {
     if (typeof color === "string") {
-      // If it's a hex string, use it; otherwise treat as color name
-      if (/^#([0-9A-F]{3}){1,2}$/i.test(color)) {
-        return { hex: color };
-      }
-      // Map color names to hex (simplified - you may need to expand this)
-      const colorMap: Record<string, string> = {
-        black: "#111827",
-        noir: "#1f2937",
-        white: "#f9fafb",
-        blanc: "#f9fafb",
-        grey: "#9ca3af",
-        gris: "#9ca3af",
-        gray: "#9ca3af",
-        blue: "#2563eb",
-        bleu: "#2563eb",
-        red: "#ef4444",
-        rouge: "#dc2626",
-        green: "#22c55e",
-        vert: "#16a34a",
-        beige: "#d6c9a5",
-      };
-      const normalized = color.toLowerCase().replace(/\s+/g, "");
-      return { hex: colorMap[normalized] ?? "#e5e7eb" };
+      const hex = color.trim();
+      if (hex) acc.push({ hex });
+      return acc;
     }
-    
-    // If it's an object with id, try to extract hex from id or use a default
-    if (color && typeof color === "object" && "id" in color) {
-      const colorId = String(color.id);
-      if (/^#([0-9A-F]{3}){1,2}$/i.test(colorId)) {
-        return { hex: colorId };
+
+    if (color && typeof color === "object") {
+      const candidate = color as { hex?: unknown; id?: unknown };
+      const hex =
+        (typeof candidate.hex === "string" && candidate.hex.trim()) ||
+        (typeof candidate.id === "string" && candidate.id.trim()) ||
+        null;
+      if (hex) {
+        acc.push({ hex });
       }
-      // Map color names
-      const colorMap: Record<string, string> = {
-        black: "#111827",
-        noir: "#1f2937",
-        white: "#f9fafb",
-        blanc: "#f9fafb",
-        grey: "#9ca3af",
-        gris: "#9ca3af",
-        gray: "#9ca3af",
-        blue: "#2563eb",
-        bleu: "#2563eb",
-        red: "#ef4444",
-        rouge: "#dc2626",
-        green: "#22c55e",
-        vert: "#16a34a",
-        beige: "#d6c9a5",
-      };
-      const normalized = colorId.toLowerCase().replace(/\s+/g, "");
-      return { hex: colorMap[normalized] ?? "#e5e7eb" };
     }
-    
-    return { hex: "#e5e7eb" };
-  });
+
+    return acc;
+  }, []);
 }
 
 async function importProducts() {
@@ -236,9 +200,9 @@ async function importProducts() {
           finalPrice,
           category: normalizeCategorySlug(jsonProduct.category),
           designTheme,
-          sizes: (jsonProduct.sizes || []).filter((s): s is "S" | "M" | "L" | "XL" => 
-            ["S", "M", "L", "XL"].includes(s.toUpperCase())
-          ) as ("S" | "M" | "L" | "XL")[],
+          sizes: (jsonProduct.sizes || []).filter((s): s is "S" | "M" | "L" | "XL" | "XXL" =>
+            ["S", "M", "L", "XL", "XXL"].includes(s.toUpperCase())
+          ) as ("S" | "M" | "L" | "XL" | "XXL")[],
           colors,
           stock,
           inStock,
