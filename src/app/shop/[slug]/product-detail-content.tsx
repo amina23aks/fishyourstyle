@@ -177,7 +177,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
     : typeof availableStock === "number"
       ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
       : null;
-  const displayMessage = isOutOfStock ? "Out of stock" : selectionError;
+  const selectionMessage = isSelectionMissing
+    ? "Please choose a color and size before adding to cart."
+    : null;
+  const displayMessage = isOutOfStock
+    ? "Out of stock"
+    : selectionError ?? selectionMessage;
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">

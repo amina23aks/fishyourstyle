@@ -17,7 +17,7 @@ export type ProductFormValues = {
   designThemeCustom: string;
   stock: string;
   inStock: boolean;
-  sizes: ("S" | "M" | "L" | "XL")[];
+  sizes: ("S" | "M" | "L" | "XL" | "XXL")[];
   colors: { hex: string }[];
   gender?: "unisex" | "men" | "women" | "";
   images: string[];
@@ -47,8 +47,7 @@ type ProductFormProps = {
 const normalizeColors = (
   input: unknown,
   fallback: ProductFormValues["colors"],
-): ProductFormValues["colors"] | null => {
-  if (input === undefined || input === null) return null;
+): ProductFormValues["colors"] => {
   if (!Array.isArray(input)) return fallback;
 
   const normalized = input.reduce<ProductFormValues["colors"]>((acc, item) => {
@@ -182,7 +181,7 @@ export function ProductForm({
   onReloadCategories,
   onReloadDesignThemes,
 }: ProductFormProps) {
-  const initialColors = normalizeColors(initialValues?.colors, defaultValues.colors) ?? defaultValues.colors;
+  const initialColors = normalizeColors(initialValues?.colors, defaultValues.colors);
   const initialImages = normalizeImages(initialValues?.images ?? defaultValues.images);
   const [values, setValues] = useState<ProductFormValues>({
     ...defaultValues,
@@ -227,7 +226,7 @@ export function ProductForm({
     setValues((prev) => ({
       ...prev,
       ...initialValues,
-      colors: normalizeColors(initialValues?.colors, prev.colors) ?? prev.colors,
+      colors: normalizeColors(initialValues?.colors, prev.colors),
       images: normalizeImages(initialValues?.images ?? prev.images),
     }));
   }, [initialValues]);
@@ -746,7 +745,7 @@ export function ProductForm({
                 ? color.hex
                 : "#000000";
               return (
-                <div key={`${color.hex || "color"}-${index}`} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+                <div key={`color-${index}`} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
                   <input
                     type="color"
                     value={hexValue}

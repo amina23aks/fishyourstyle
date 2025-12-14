@@ -86,7 +86,8 @@ function parseColorObjects(value: unknown): AdminProduct["colors"] {
         null;
       if (!hex) return null;
       const image = typeof obj.image === "string" && obj.image.trim() ? obj.image.trim() : undefined;
-      return { hex, image } satisfies AdminProduct["colors"][number];
+      const result: AdminProduct["colors"][number] = image ? { hex, image } : { hex };
+      return result;
     }
     return null;
   };
@@ -100,6 +101,28 @@ function parseColorObjects(value: unknown): AdminProduct["colors"] {
     return normalized;
   }
   return [];
+}
+
+function removeUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    const cleaned = value
+      .map((entry) => removeUndefinedDeep(entry))
+      .filter((entry): entry is Exclude<typeof entry, undefined> => entry !== undefined);
+    return cleaned as unknown as T;
+  }
+
+  if (value && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    Object.entries(value as Record<string, unknown>).forEach(([key, val]) => {
+      const cleaned = removeUndefinedDeep(val);
+      if (cleaned !== undefined) {
+        result[key] = cleaned;
+      }
+    });
+    return result as unknown as T;
+  }
+
+  return value === undefined ? (undefined as unknown as T) : value;
 }
 
 function computeFinalPrice(basePrice: number, discountPercent: number) {
@@ -186,7 +209,7 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     payload.description = input.description.trim();
   }
 
-  return payload as WithFieldValue<AdminProductWrite>;
+  return removeUndefinedDeep(payload) as WithFieldValue<AdminProductWrite>;
 }
 
 function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<AdminProductWrite>> {
@@ -223,7 +246,7 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   if (patch.images !== undefined) payload.images = patch.images;
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
 
-  return payload as WithFieldValue<Partial<AdminProductWrite>>;
+  return removeUndefinedDeep(payload) as WithFieldValue<Partial<AdminProductWrite>>;
 }
 
 function wrapPermission<T>(fn: () => Promise<T>): Promise<T> {

@@ -200,9 +200,9 @@ async function importProducts() {
           finalPrice,
           category: normalizeCategorySlug(jsonProduct.category),
           designTheme,
-          sizes: (jsonProduct.sizes || []).filter((s): s is "S" | "M" | "L" | "XL" => 
-            ["S", "M", "L", "XL"].includes(s.toUpperCase())
-          ) as ("S" | "M" | "L" | "XL")[],
+          sizes: (jsonProduct.sizes || []).filter((s): s is "S" | "M" | "L" | "XL" | "XXL" =>
+            ["S", "M", "L", "XL", "XXL"].includes(s.toUpperCase())
+          ) as ("S" | "M" | "L" | "XL" | "XXL")[],
           colors,
           stock,
           inStock,
