@@ -232,7 +232,11 @@ export async function POST(request: NextRequest) {
         error.message.toLowerCase().includes("product not found");
 
       return NextResponse.json(
-        { error: isStockError ? error.message : `Failed to create order: ${error.message}` },
+        {
+          error: isStockError
+            ? "Some items are no longer available. Please review your cart."
+            : `Failed to create order: ${error.message}`,
+        },
         { status: isStockError ? 400 : 500 }
       );
     }

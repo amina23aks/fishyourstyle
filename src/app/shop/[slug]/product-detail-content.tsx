@@ -170,6 +170,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
     : typeof availableStock === "number"
       ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
       : null;
+  const displayMessage = isOutOfStock ? "Out of stock" : selectionError;
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
@@ -356,7 +357,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
             )}
 
             <p className="min-h-[18px] text-[13px] text-rose-200" aria-live="polite">
-              {selectionError ?? "\u00a0"}
+              {displayMessage ?? "\u00a0"}
             </p>
 
             {stockMessage ? (
