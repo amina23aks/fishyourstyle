@@ -262,12 +262,17 @@ export function ProductForm({
     setIsSubmitting(true);
     try {
       const normalizedColors = values.colors
-        .map((color) => ({
-          id: color.id.trim(),
-          labelFr: (color.labelFr || color.id).trim(),
-          labelAr: color.labelAr?.trim() || undefined,
-          image: color.image?.trim() || undefined,
-        }))
+        .map((color) => {
+          const id = color.id.trim();
+          const labelFr = (color.labelFr || color.id).trim();
+          const labelAr = color.labelAr?.trim();
+          const image = color.image?.trim();
+
+          const entry: ProductFormValues["colors"][number] = { id, labelFr };
+          if (labelAr) entry.labelAr = labelAr;
+          if (image) entry.image = image;
+          return entry;
+        })
         .filter((color) => color.id && color.labelFr);
 
       await onSubmit({ ...values, colors: normalizedColors });
@@ -742,7 +747,7 @@ export function ProductForm({
                   ...prev,
                   colors: [
                     ...prev.colors,
-                    { id: "#ffffff", labelFr: "#ffffff", labelAr: "#ffffff", image: prev.colors[0]?.image ?? "" },
+                    { id: "#ffffff", labelFr: "#ffffff", labelAr: "#ffffff", image: "" },
                   ],
                 }))
               }

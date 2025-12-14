@@ -96,7 +96,13 @@ function parseColorObjects(value: unknown): AdminProduct["colors"] {
   if (Array.isArray(value)) {
     const normalized = value
       .map(normalizeEntry)
-      .filter((item): item is NonNullable<ReturnType<typeof normalizeEntry>> => Boolean(item));
+      .filter((item): item is NonNullable<ReturnType<typeof normalizeEntry>> => Boolean(item))
+      .map((item) => {
+        const entry: AdminProduct["colors"][number] = { id: item.id, labelFr: item.labelFr };
+        if (item.labelAr) entry.labelAr = item.labelAr;
+        if (item.image) entry.image = item.image;
+        return entry;
+      });
     if (normalized.length === 0 && value.length === 0) return [];
     return normalized;
   }
