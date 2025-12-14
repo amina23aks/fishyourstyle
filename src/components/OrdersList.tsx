@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 
@@ -14,6 +14,12 @@ export default function OrdersList() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestOrderId, setGuestOrderId] = useState("");
+  const [guestOrders, setGuestOrders] = useState<Order[]>([]);
+  const [isLoadingGuestOrders, setIsLoadingGuestOrders] = useState(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
+  const [guestHasSearched, setGuestHasSearched] = useState(false);
 
   const successOrderId = searchParams.get("orderId");
   const statusParam = searchParams.get("status");
@@ -74,6 +80,60 @@ export default function OrdersList() {
     }
   }, [authLoading, fetchOrders, user]);
 
+  const handleGuestLookup = useCallback(
+    async (event?: FormEvent<HTMLFormElement>) => {
+      event?.preventDefault();
+
+      const trimmedEmail = guestEmail.trim();
+      const trimmedOrderId = guestOrderId.trim();
+
+      setGuestHasSearched(true);
+      setGuestError(null);
+
+      if (!trimmedEmail && !trimmedOrderId) {
+        setGuestError("Enter your email or order ID to find your orders.");
+        setGuestOrders([]);
+        return;
+      }
+
+      setIsLoadingGuestOrders(true);
+
+      try {
+        if (trimmedOrderId) {
+          const response = await fetch(`/api/orders?orderId=${encodeURIComponent(trimmedOrderId)}`);
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || "No orders found for that order ID.");
+          }
+
+          const order = (await response.json()) as Order;
+          setGuestOrders(order ? [order] : []);
+          return;
+        }
+
+        const response = await fetch(`/api/orders?email=${encodeURIComponent(trimmedEmail)}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to find guest orders.");
+        }
+
+        const data = await response.json();
+        const guestOrdersResponse = Array.isArray(data) ? data : [];
+        setGuestOrders(guestOrdersResponse);
+        if (guestOrdersResponse.length === 0) {
+          setGuestError("No orders yet for that email.");
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "We couldn’t load your orders right now.";
+        setGuestError(message);
+        setGuestOrders([]);
+      } finally {
+        setIsLoadingGuestOrders(false);
+      }
+    },
+    [guestEmail, guestOrderId]
+  );
+
   const handleCardClick = (orderId: string) => {
     router.push(`/orders/${orderId}`);
   };
@@ -128,6 +188,95 @@ export default function OrdersList() {
     </div>
   );
 
+  const renderOrders = (ordersToRender: Order[]) => (
+    <div className="grid gap-4">
+      {ordersToRender.map((order) => {
+        const firstItem = order.items[0];
+        const canCancel = order.status === "pending";
+        const canEdit = order.status === "pending";
+        return (
+          <article
+            key={order.id}
+            onClick={() => handleCardClick(order.id)}
+            className={`rounded-2xl border border-white/20 bg-white/10 p-5 text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur cursor-pointer transition hover:border-white/30 hover:bg-white/15 relative ${order.status === "cancelled" ? "opacity-75" : ""}`}
+            data-can-cancel={canCancel}
+            data-can-edit={canEdit}
+          >
+            <div className="flex gap-4">
+              {/* Product thumbnail */}
+              {firstItem && (
+                <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                  <Image
+                    src={firstItem.image}
+                    alt={firstItem.name}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order #{order.id.slice(-8)}</p>
+                    <h3 className="text-lg font-semibold text-white mt-1">{getItemsSummary(order)}</h3>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(order.status)}`}
+                      >
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                      {canEdit && (
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            router.push(`/orders/${order.id}?edit=true`);
+                          }}
+                          className="inline-flex items-center rounded-full border border-violet-200/40 bg-violet-500/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right text-sky-100 mt-2 md:mt-0">
+                    <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
+                    <p className="text-base font-semibold text-white mt-1">
+                      {new Intl.NumberFormat("en-US").format(order.total)} DZD
+                    </p>
+                  </div>
+                </div>
+                <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Customer</dt>
+                    <dd className="text-sm font-medium text-white mt-1">{order.shipping.customerName}</dd>
+                    {order.customerEmail && (
+                      <dd className="text-sm text-sky-100 mt-0.5">{order.customerEmail}</dd>
+                    )}
+                    <dd className="text-sm text-sky-200 mt-0.5">{order.shipping.phone}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Shipping</dt>
+                    <dd className="text-sm text-sky-100 mt-1">{order.shipping.wilaya}</dd>
+                    <dd className="text-sm text-sky-200 mt-0.5">
+                      {order.shipping.mode === "home" ? "Home delivery" : "Stop Desk"} - {new Intl.NumberFormat("en-US").format(order.shipping.price)} DZD
+                    </dd>
+                  </div>
+                  {order.notes && (
+                    <div className="md:col-span-2">
+                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Notes</dt>
+                      <dd className="text-sm text-sky-100 mt-1">{order.notes}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+
   // --- UI STATES ---
   if (authLoading) {
     return (
@@ -143,17 +292,88 @@ export default function OrdersList() {
     return (
       <div className="space-y-6">
         {successBanner}
-        <div className="flex justify-center">
-          <div className="mt-2 w-full max-w-xl rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-sm shadow-sky-900/30 backdrop-blur">
-            <h2 className="mb-2 text-lg font-semibold text-white">Sign in to see your full order history.</h2>
-            <p className="mb-4 text-sm text-sky-100">Guest orders are only visible using your confirmation email or your order ID.</p>
-            <Link
-              href="/account"
-              className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
-            >
-              Go to my account
-            </Link>
+        <div className="mt-2 w-full max-w-4xl rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
+          <div className="space-y-1 text-center">
+            <h2 className="text-xl font-semibold text-white">Check your orders</h2>
+            <p className="text-sm text-sky-100">
+              Please log in to view your saved order history, or look up guest orders using the email address or order ID from your confirmation message.
+            </p>
           </div>
+
+          <form onSubmit={handleGuestLookup} className="mt-6 space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm text-sky-100">
+                Order ID
+                <input
+                  value={guestOrderId}
+                  onChange={(event) => setGuestOrderId(event.target.value)}
+                  placeholder="e.g. 4Gx7zQ1p"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
+                  type="text"
+                />
+                <span className="text-xs text-sky-200">Use the full order ID from your receipt.</span>
+              </label>
+              <label className="flex flex-col gap-1 text-sm text-sky-100">
+                Email
+                <input
+                  value={guestEmail}
+                  onChange={(event) => setGuestEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
+                  type="email"
+                />
+                <span className="text-xs text-sky-200">Look up any orders placed as a guest.</span>
+              </label>
+            </div>
+
+            <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+              <p className="text-sm text-sky-100">Enter either your email or order ID. If you provide both, we’ll search by the order ID.</p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/account"
+                  className="inline-flex items-center rounded-lg border border-sky-200/40 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
+                >
+                  Go to my account
+                </Link>
+                <button
+                  type="submit"
+                  className="inline-flex items-center rounded-lg border border-emerald-200/40 bg-emerald-500/50 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                >
+                  Find my orders
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {guestError && (
+            <div className="mt-4 rounded-2xl border border-rose-200/60 bg-rose-500/15 px-4 py-3 text-rose-50 shadow-inner shadow-rose-900/30">
+              <p className="font-medium">{guestError}</p>
+            </div>
+          )}
+
+          {isLoadingGuestOrders && <div className="mt-4">{renderLoadingSkeleton()}</div>}
+
+          {!isLoadingGuestOrders && guestOrders.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-200">Guest orders</p>
+                <Link
+                  href="/account"
+                  className="text-xs font-semibold text-sky-200 underline-offset-4 hover:underline"
+                >
+                  Sign in for more options
+                </Link>
+              </div>
+              {renderOrders(guestOrders)}
+            </div>
+          )}
+
+          {guestHasSearched && !isLoadingGuestOrders && guestOrders.length === 0 && !guestError && (
+            <div className="mt-4 rounded-2xl border border-white/20 bg-white/5 p-4 text-center text-sky-50">
+              <p className="text-base font-semibold">No orders yet.</p>
+              <p className="text-sm text-sky-100">Check the email or order ID and try again.</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -211,92 +431,7 @@ export default function OrdersList() {
   return (
     <div className="space-y-4">
       {successBanner}
-      <div className="grid gap-4">
-        {orders.map((order) => {
-          const firstItem = order.items[0];
-          const canCancel = order.status === "pending";
-          const canEdit = order.status === "pending";
-          return (
-            <article
-              key={order.id}
-              onClick={() => handleCardClick(order.id)}
-              className={`rounded-2xl border border-white/20 bg-white/10 p-5 text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur cursor-pointer transition hover:border-white/30 hover:bg-white/15 relative ${order.status === "cancelled" ? "opacity-75" : ""}`}
-              data-can-cancel={canCancel}
-              data-can-edit={canEdit}
-            >
-              <div className="flex gap-4">
-                {/* Product thumbnail */}
-                {firstItem && (
-                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                    <Image
-                      src={firstItem.image}
-                      alt={firstItem.name}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order #{order.id.slice(-8)}</p>
-                      <h3 className="text-lg font-semibold text-white mt-1">{getItemsSummary(order)}</h3>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(order.status)}`}
-                        >
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </span>
-                        {canEdit && (
-                          <button
-                            onClick={event => {
-                              event.stopPropagation();
-                              router.push(`/orders/${order.id}?edit=true`);
-                            }}
-                            className="inline-flex items-center rounded-full border border-violet-200/40 bg-violet-500/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right text-sky-100 mt-2 md:mt-0">
-                      <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
-                      <p className="text-base font-semibold text-white mt-1">
-                        {new Intl.NumberFormat("en-US").format(order.total)} DZD
-                      </p>
-                    </div>
-                  </div>
-                  <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
-                    <div>
-                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Customer</dt>
-                      <dd className="text-sm font-medium text-white mt-1">{order.shipping.customerName}</dd>
-                      {order.customerEmail && (
-                        <dd className="text-sm text-sky-100 mt-0.5">{order.customerEmail}</dd>
-                      )}
-                      <dd className="text-sm text-sky-200 mt-0.5">{order.shipping.phone}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Shipping</dt>
-                      <dd className="text-sm text-sky-100 mt-1">{order.shipping.wilaya}</dd>
-                      <dd className="text-sm text-sky-200 mt-0.5">
-                        {order.shipping.mode === "home" ? "Home delivery" : "Stop Desk"} - {new Intl.NumberFormat("en-US").format(order.shipping.price)} DZD
-                      </dd>
-                    </div>
-                    {order.notes && (
-                      <div className="md:col-span-2">
-                        <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Notes</dt>
-                        <dd className="text-sm text-sky-100 mt-1">{order.notes}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+      {renderOrders(orders)}
     </div>
   );
 }

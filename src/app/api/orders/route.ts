@@ -292,14 +292,17 @@ function firestoreDocToOrder(docId: string, data: DocumentData): Order {
  * Fetch orders from Firestore
  * Query params:
  *   - orderId: (optional) Fetch a single order by ID
+ *   - userId: (optional) Fetch orders for a specific authenticated user
+ *   - email: (optional) Fetch guest orders by the customer email
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get("orderId");
     const userId = searchParams.get("userId");
+    const email = searchParams.get("email");
 
-    console.log("[api/orders] GET request received", { orderId, userId });
+    console.log("[api/orders] GET request received", { orderId, userId, email });
 
     const db = getServerDb();
     const ordersCollection = collection(db, "orders");
@@ -340,6 +343,24 @@ export async function GET(request: NextRequest) {
       });
 
       console.log("[api/orders] Fetched", orders.length, "orders for user");
+      return NextResponse.json(orders);
+    }
+
+    if (email && email.trim()) {
+      console.log("[api/orders] Fetching guest orders for email...", { email });
+      const emailOrdersQuery = query(
+        ordersCollection,
+        where("customerEmail", "==", email),
+        orderBy("createdAt", "desc"),
+      );
+      const emailOrdersSnapshot = await getDocs(emailOrdersQuery);
+
+      emailOrdersSnapshot.forEach((snapshotDoc) => {
+        const orderData = firestoreDocToOrder(snapshotDoc.id, snapshotDoc.data());
+        orders.push(orderData);
+      });
+
+      console.log("[api/orders] Fetched", orders.length, "orders for email");
       return NextResponse.json(orders);
     }
 
