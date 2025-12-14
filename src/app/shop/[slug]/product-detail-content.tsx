@@ -122,6 +122,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
     "/placeholder.png";
   
   const handleAddToCart = () => {
+    // Prevent any action if the item is out of stock.
     if (isOutOfStock) {
       setSelectionError("Out of stock");
       return false;
@@ -163,7 +164,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
     });
 
     setSelectionError(null);
-    flyToCart(imageRef.current);
+    if (flyToCart) {
+      flyToCart(imageRef.current);
+    }
     return true;
   };
 
@@ -381,9 +384,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <AnimatedAddToCartButton
                 onClick={handleAddToCart}
-                disabled={isSelectionMissing || isOutOfStock}
+                disabled={isOutOfStock || isSelectionMissing}
                 className={`w-full justify-center sm:w-auto ${
-                  isSelectionMissing ? "opacity-80" : ""
+                  isOutOfStock || isSelectionMissing ? "opacity-60 cursor-not-allowed" : ""
                 }`.trim()}
               />
               <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>

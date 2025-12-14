@@ -96,6 +96,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const addItem = useCallback((payload: AddItemPayload) => {
+    // HARD BLOCK: block all add-to-cart if out of stock per single source of truth
+    if (
+      payload.maxQuantity === 0 ||
+      payload.maxQuantity === null ||
+      payload.maxQuantity === undefined ||
+      (typeof payload.maxQuantity === 'number' && payload.maxQuantity <= 0)
+    ) {
+      return;
+    }
     const variantKey = ensureVariantKey(payload);
     const quantityToAdd = payload.quantity ?? 1;
 

@@ -206,10 +206,16 @@ export default function CheckoutClient() {
       });
 
       if (!response.ok) {
-        console.error("[CheckoutClient] API response not OK:", response.status);
         const errorData = await response.json().catch(() => ({}));
-        console.error("[CheckoutClient] Error data from API:", errorData);
-        throw new Error(errorData.error || "Failed to create order. Please try again.");
+        if (response.status === 400 && errorData?.error && errorData.error.includes("Some items are no longer available")) {
+          setError("Please refresh your cart.");
+          setIsSubmitting(false);
+          return;
+        }
+        // For all other errors, show error but do not throw stack in dev for expected 400
+        setError(errorData.error || "Failed to create order. Please try again.");
+        setIsSubmitting(false);
+        return;
       }
 
       const data = await response.json();

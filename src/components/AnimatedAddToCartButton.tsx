@@ -46,18 +46,29 @@ const CheckIcon = () => (
 export function AnimatedAddToCartButton({ onClick, className, disabled }: AnimatedAddToCartButtonProps) {
   const [state, setState] = useState<ButtonState>("idle");
 
-  const handleClick = useCallback(async () => {
-    if (state !== "idle" || disabled) return;
+  const handleClick = useCallback(() => {
+    if (state !== "idle" || disabled) {
+      return;
+    }
 
-    const result = (await onClick?.()) ?? true;
-    if (result === false) return;
+    // The onClick handler can be sync or async.
+    // We need to handle both cases gracefully.
+    Promise.resolve(onClick?.()).then(result => {
+      // result could be true, false, void, or undefined.
+      // We treat void/undefined as success (true).
+      if (result === false) {
+        // The parent explicitly signaled a failure (e.g. out of stock), so do nothing.
+        return;
+      }
 
-    setState("loading");
+      // The action was successful, so start the animation sequence.
+      setState("loading");
 
-    window.setTimeout(() => {
-      setState("added");
-      window.setTimeout(() => setState("idle"), 900);
-    }, 500);
+      window.setTimeout(() => {
+        setState("added");
+        window.setTimeout(() => setState("idle"), 900);
+      }, 500);
+    });
   }, [disabled, onClick, state]);
 
   const content = useMemo(() => {
@@ -96,7 +107,7 @@ export function AnimatedAddToCartButton({ onClick, className, disabled }: Animat
       type="button"
       disabled={disabled}
       onClick={handleClick}
-      className={`${baseClasses} ${scaleClass} ${className ?? ""} ${disabled ? "opacity-70" : ""}`.trim()}
+      className={`${baseClasses} ${scaleClass} ${className ?? ""} ${disabled ? "opacity-70 cursor-not-allowed pointer-events-none" : ""}`.trim()}
       aria-live="polite"
     >
       {content}

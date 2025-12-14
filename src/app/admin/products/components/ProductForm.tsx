@@ -694,7 +694,7 @@ export function ProductForm({
         <div className="space-y-2 text-sm text-sky-100/90">
           <span className="font-semibold text-white">Sizes</span>
           <div className="flex flex-wrap gap-2">
-            {(["S", "M", "L", "XL"] as const).map((size) => {
+            {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
               const checked = values.sizes.includes(size);
               return (
                 <label
