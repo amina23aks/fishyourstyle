@@ -47,7 +47,8 @@ export function AnimatedAddToCartButton({ onClick, className, disabled }: Animat
   const [state, setState] = useState<ButtonState>("idle");
 
   const handleClick = useCallback(() => {
-    if (state !== "idle" || disabled) {
+    // Extra safeguard: if disabled, do nothing.
+    if (disabled || state !== "idle") {
       return;
     }
 
@@ -102,15 +103,20 @@ export function AnimatedAddToCartButton({ onClick, className, disabled }: Animat
 
   const scaleClass = state === "loading" ? "scale-[0.97]" : state === "added" ? "scale-[0.99]" : "hover:scale-[1.01] active:scale-[0.98]";
 
+  // When disabled, use a different style and ensure no pointer events
+  const disabledClasses = "opacity-50 cursor-not-allowed";
+
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={handleClick}
-      className={`${baseClasses} ${scaleClass} ${className ?? ""} ${disabled ? "opacity-70 cursor-not-allowed pointer-events-none" : ""}`.trim()}
-      aria-live="polite"
-    >
-      {content}
-    </button>
+    <div className="relative">
+      
+      <button
+        type="button"
+        onClick={handleClick}
+        className={`${baseClasses} ${scaleClass} ${className ?? ""} ${disabled ? disabledClasses : ""}`.trim()}
+        aria-live="polite"
+      >
+        {content}
+      </button>
+    </div>
   );
 }

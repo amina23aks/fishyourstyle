@@ -127,7 +127,10 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     colors: colorsArray,
     gender,
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
-    inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
+    inStock:
+      typeof data.inStock === "boolean"
+        ? data.inStock
+        : (typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0)) > 0,
     images: imagesValue,
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
     status: data.status === "inactive" ? "inactive" : "active",

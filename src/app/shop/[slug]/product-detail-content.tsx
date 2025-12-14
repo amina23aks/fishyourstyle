@@ -164,7 +164,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
     });
 
     setSelectionError(null);
-    if (flyToCart) {
+    if (flyToCart && !isOutOfStock) {
       flyToCart(imageRef.current);
     }
     return true;
@@ -375,18 +375,18 @@ export function ProductDetailContent({ product }: { product: Product }) {
               {displayMessage ?? "\u00a0"}
             </p>
 
-            {stockMessage ? (
-              <p className="text-xs font-semibold text-white" aria-live="polite">
+            {!isOutOfStock && stockMessage && (
+              <p className="min-h-[18px] text-xs font-semibold text-white" aria-live="polite">
                 {stockMessage}
               </p>
-            ) : null}
+            )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <AnimatedAddToCartButton
                 onClick={handleAddToCart}
-                disabled={isOutOfStock || isSelectionMissing}
+                disabled={isOutOfStock}
                 className={`w-full justify-center sm:w-auto ${
-                  isOutOfStock || isSelectionMissing ? "opacity-60 cursor-not-allowed" : ""
+                  isSelectionMissing || isOutOfStock ? "opacity-60 cursor-not-allowed" : ""
                 }`.trim()}
               />
               <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>
