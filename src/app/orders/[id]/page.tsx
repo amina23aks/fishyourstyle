@@ -4,12 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { doc, getDoc } from "firebase/firestore";
 import PageShell from "@/components/PageShell";
 import { ECONOMIC_SHIPPING, getEconomicShippingByWilaya } from "@/data/shipping";
 import { getProductBySlug } from "@/lib/products";
 import type { Order, OrderItem, ShippingInfo } from "@/types/order";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
+import { getDb } from "@/lib/firebaseClient";
+import { useAuth } from "@/context/auth";
+import { isAdminUser } from "@/lib/admin";
 
 type EditOrderModalProps = {
   order: Order;
@@ -424,6 +428,8 @@ export default function OrderDetailsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = params.id as string;
+  const { user, loading: authLoading } = useAuth();
+  const isAdmin = useMemo(() => isAdminUser(user), [user]);
 
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -436,24 +442,53 @@ export default function OrderDetailsPage() {
   const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace(`/track-order?orderId=${orderId}`);
+      setIsLoading(false);
+    }
+  }, [authLoading, orderId, router, user]);
+
+  useEffect(() => {
     const fetchOrder = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        const response = await fetch(`/api/orders?orderId=${orderId}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError("Order not found");
-          } else {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Failed to fetch order");
-          }
+        const db = getDb();
+        if (!db) {
+          throw new Error("Unable to connect to orders. Please try again.");
+        }
+
+        const orderRef = doc(db, "orders", orderId);
+        const snapshot = await getDoc(orderRef);
+
+        if (!snapshot.exists()) {
+          setError("Order not found");
           return;
         }
 
-        const data = await response.json();
-        setOrder(data);
+        const data = snapshot.data();
+        const fetchedOrder: Order = {
+          id: snapshot.id,
+          ...data,
+          createdAt:
+            typeof data.createdAt === "string"
+              ? data.createdAt
+              : data.createdAt?.toDate
+                ? data.createdAt.toDate().toISOString()
+                : "",
+        } as Order;
+
+        const isOwner = fetchedOrder.userId && user?.uid ? fetchedOrder.userId === user.uid : false;
+        const authorized = isOwner || isAdmin;
+
+        if (!authorized) {
+          setError("Not authorized");
+          setOrder(null);
+          return;
+        }
+
+        setOrder(fetchedOrder);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
         setError(errorMessage);
@@ -463,10 +498,10 @@ export default function OrderDetailsPage() {
       }
     };
 
-    if (orderId) {
+    if (orderId && user && !authLoading) {
       fetchOrder();
     }
-  }, [orderId]);
+  }, [authLoading, isAdmin, orderId, user]);
 
   useEffect(() => {
     const wantsEdit = searchParams.get("edit") === "true";
@@ -574,6 +609,10 @@ export default function OrderDetailsPage() {
 
   const canCancel = order.status === "pending";
   const canEdit = order.status === "pending";
+
+  if (!authLoading && !user) {
+    return null;
+  }
 
   return (
     <PageShell>

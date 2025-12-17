@@ -4,8 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { collection, getDocs, limit, orderBy, query, where, type QueryConstraint } from "firebase/firestore";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
+import { getDb } from "@/lib/firebaseClient";
 
 export default function OrdersList() {
   const router = useRouter();
@@ -43,14 +45,38 @@ export default function OrdersList() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/orders?userId=${encodeURIComponent(user.uid)}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to fetch orders");
+      const db = getDb();
+      if (!db) {
+        throw new Error("Unable to connect to orders. Please try again.");
       }
 
-      const data = await response.json();
-      setOrders(Array.isArray(data) ? data : []);
+      const constraints: QueryConstraint[] = [
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc"),
+        limit(20),
+      ];
+
+      const ordersRef = collection(db, "orders");
+      const ordersQuery = query(ordersRef, ...constraints);
+      const snapshot = await getDocs(ordersQuery);
+
+      const fetchedOrders: Order[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        const createdAtValue = (data.createdAt as string | { toDate?: () => Date } | undefined) ?? "";
+
+        return {
+          id: doc.id,
+          ...data,
+          createdAt:
+            typeof createdAtValue === "string"
+              ? createdAtValue
+              : createdAtValue?.toDate
+                ? createdAtValue.toDate().toISOString()
+                : "",
+        } as Order;
+      });
+
+      setOrders(fetchedOrders);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       setError(errorMessage);
