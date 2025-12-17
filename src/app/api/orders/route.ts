@@ -324,7 +324,15 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const orderData = firestoreDocToOrder(orderSnapshot.id, orderSnapshot.data());
+      const data = orderSnapshot.data();
+      if (!data) {
+        return NextResponse.json(
+          { error: "Order data missing" },
+          { status: 500 }
+        );
+      }
+
+      const orderData = firestoreDocToOrder(orderSnapshot.id, data);
       console.log("[api/orders] Order fetched successfully:", orderData.id);
       return NextResponse.json(orderData);
     }
