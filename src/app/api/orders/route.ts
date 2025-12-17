@@ -92,17 +92,18 @@ function isAdminUser(decoded: DecodedIdToken | null): boolean {
   return ADMIN_EMAILS.includes(email as (typeof ADMIN_EMAILS)[number]);
 }
 
-function requireAuth(
+async function requireAuth(
   request: NextRequest,
   auth: ReturnType<typeof getAuth>,
-): NextResponse<{ error: string }> | DecodedIdToken {
+): Promise<NextResponse<{ error: string }> | DecodedIdToken> {
   const bearerToken = parseBearerToken(request);
   if (!bearerToken) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
   try {
-    return auth.verifyIdToken(bearerToken);
+    const decoded = await auth.verifyIdToken(bearerToken);
+    return decoded;
   } catch (error) {
     console.error("[api/orders] Token verification failed", error);
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
@@ -488,7 +489,7 @@ export async function PATCH(request: NextRequest) {
     }
     const { db, auth } = adminResources;
 
-    const decoded = requireAuth(request, auth);
+    const decoded = await requireAuth(request, auth);
     if (decoded instanceof NextResponse) {
       return decoded;
     }
