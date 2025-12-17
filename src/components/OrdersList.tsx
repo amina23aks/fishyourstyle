@@ -9,6 +9,32 @@ import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { getDb } from "@/lib/firebaseClient";
 
+function toDateSafe(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === "object" && value && "toDate" in value && typeof (value as { toDate: () => Date }).toDate === "function") {
+    const d = (value as { toDate: () => Date }).toDate();
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (
+    typeof value === "object" &&
+    value &&
+    "seconds" in value &&
+    "nanoseconds" in value &&
+    typeof (value as { seconds: unknown }).seconds === "number" &&
+    typeof (value as { nanoseconds: unknown }).nanoseconds === "number"
+  ) {
+    const { seconds, nanoseconds } = value as { seconds: number; nanoseconds: number };
+    const d = new Date(seconds * 1000 + Math.floor(nanoseconds / 1_000_000));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 export default function OrdersList() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -242,6 +268,7 @@ export default function OrdersList() {
           const firstItem = order.items[0];
           const canCancel = order.status === "pending";
           const canEdit = order.status === "pending";
+          const createdAtDate = toDateSafe(order.createdAt);
           return (
             <article
               key={order.id}
@@ -288,7 +315,7 @@ export default function OrdersList() {
                       </div>
                     </div>
                     <div className="text-right text-sky-100 mt-2 md:mt-0">
-                      <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
+                      <p className="text-sm">{createdAtDate ? createdAtDate.toLocaleString() : "—"}</p>
                       <p className="text-base font-semibold text-white mt-1">
                         {new Intl.NumberFormat("en-US").format(order.total)} DZD
                       </p>

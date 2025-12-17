@@ -15,6 +15,32 @@ import { getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/context/auth";
 import { isAdminUser } from "@/lib/admin";
 
+function toDateSafe(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === "object" && value && "toDate" in value && typeof (value as { toDate: () => Date }).toDate === "function") {
+    const d = (value as { toDate: () => Date }).toDate();
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (
+    typeof value === "object" &&
+    value &&
+    "seconds" in value &&
+    "nanoseconds" in value &&
+    typeof (value as { seconds: unknown }).seconds === "number" &&
+    typeof (value as { nanoseconds: unknown }).nanoseconds === "number"
+  ) {
+    const { seconds, nanoseconds } = value as { seconds: number; nanoseconds: number };
+    const d = new Date(seconds * 1000 + Math.floor(nanoseconds / 1_000_000));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 type EditOrderModalProps = {
   order: Order;
   open: boolean;
@@ -609,6 +635,7 @@ export default function OrderDetailsPage() {
 
   const canCancel = order.status === "pending";
   const canEdit = order.status === "pending";
+  const createdAtDate = toDateSafe(order.createdAt);
 
   if (!authLoading && !user) {
     return null;
@@ -657,17 +684,17 @@ export default function OrderDetailsPage() {
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <div className="mb-3">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${getStatusBadgeClass(
-                          order.status
-                        )}`}
-                      >
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </span>
-                    </div>
+                  <div className="mb-3">
+                    <span
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold ${getStatusBadgeClass(
+                        order.status
+                      )}`}
+                    >
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </span>
+                  </div>
                   <p className="text-sm text-sky-200">
-                    Placed on {new Date(order.createdAt).toLocaleString()}
+                    Placed on {createdAtDate ? createdAtDate.toLocaleString() : "—"}
                   </p>
                 </div>
                 <div className="text-right">
