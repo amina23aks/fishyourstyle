@@ -5,9 +5,33 @@ import {
   type DocumentData,
   type Query,
 } from "firebase-admin/firestore";
+import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { NewOrder, ShippingInfo, Order, OrderStatus } from "@/types/order";
 import { getAdminDb, isAdminConfigured } from "@/lib/firebaseAdmin";
+
+const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
+
+function parseBearerToken(request: NextRequest): string | null {
+  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+  if (!authHeader) return null;
+  const [scheme, value] = authHeader.split(" ");
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !value) return null;
+  return value.trim();
+}
+
+function ensureAdminResources() {
+  const db = getAdminDb();
+  if (!db) return null;
+  const auth = getAuth();
+  return { db, auth };
+}
+
+function isAdminUser(decoded: DecodedIdToken | null): boolean {
+  if (!decoded?.email) return false;
+  const email = decoded.email.toLowerCase();
+  return ADMIN_EMAILS.includes(email as (typeof ADMIN_EMAILS)[number]);
+}
 
 /**
  * Validate NewOrder payload
@@ -109,7 +133,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const orderData: NewOrder = body;
+    const { userId: _omitUserId, ...orderBodyWithoutUser } = body as NewOrder;
+    void _omitUserId;
+    const orderData: NewOrder = orderBodyWithoutUser as NewOrder;
 
     // Ensure status is "pending" for new orders
     const orderToSave: NewOrder = {
@@ -126,18 +152,32 @@ export async function POST(request: NextRequest) {
 
     // Get Firestore instance
     console.log("[api/orders] Getting Firestore instance...");
-    const db = getAdminDb();
-    if (!db) {
+    const adminResources = ensureAdminResources();
+    if (!adminResources) {
       return NextResponse.json(
         { error: "Firebase Admin is not configured. Please check your credentials." },
         { status: 503 },
       );
     }
+    const { db, auth } = adminResources;
     console.log("[api/orders] Firestore instance obtained.");
+
+    // Optional auth: attach userId if token is valid
+    const bearerToken = parseBearerToken(request);
+    let decoded: DecodedIdToken | null = null;
+    if (bearerToken) {
+      try {
+        decoded = await auth.verifyIdToken(bearerToken);
+      } catch (error) {
+        console.warn("[api/orders] Invalid auth token provided, proceeding as guest.", error);
+        decoded = null;
+      }
+    }
 
     // Prepare order data for Firestore
     const orderDataForFirestore = {
       ...orderToSave,
+      userId: decoded?.uid ?? undefined,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
@@ -302,14 +342,30 @@ export async function GET(request: NextRequest) {
 
     console.log("[api/orders] GET request received", { orderId, userId });
 
-    const db = getAdminDb();
-    if (!db) {
+    const adminResources = ensureAdminResources();
+    if (!adminResources) {
       return NextResponse.json(
         { error: "Firebase Admin is not configured. Please check your credentials." },
         { status: 503 },
       );
     }
+    const { db, auth } = adminResources;
     const ordersCollection = db.collection("orders");
+
+    const bearerToken = parseBearerToken(request);
+    const requiresAuth = Boolean(orderId || userId || (!orderId && !userId));
+    if (requiresAuth && !bearerToken) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    let decoded: DecodedIdToken | null = null;
+    if (bearerToken) {
+      try {
+        decoded = await auth.verifyIdToken(bearerToken);
+      } catch {
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      }
+    }
 
     // If orderId is provided, fetch single order
     if (orderId) {
@@ -332,6 +388,12 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      const ownerId = typeof data.userId === "string" ? data.userId : undefined;
+      const authorized = isAdminUser(decoded) || (!!decoded?.uid && ownerId === decoded.uid);
+      if (!authorized) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
       const orderData = firestoreDocToOrder(orderSnapshot.id, data);
       console.log("[api/orders] Order fetched successfully:", orderData.id);
       return NextResponse.json(orderData);
@@ -342,6 +404,11 @@ export async function GET(request: NextRequest) {
     if (userId && userId.trim()) {
       // Fetch orders for specific user sorted by createdAt DESC
       console.log("[api/orders] Fetching orders for user...", { userId });
+      const isAuthorizedUser = isAdminUser(decoded) || (!!decoded?.uid && decoded.uid === userId);
+      if (!isAuthorizedUser) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
       const userOrdersQuery = ordersCollection
         .where("userId", "==", userId)
         .orderBy("createdAt", "desc") as Query<DocumentData>;
@@ -358,6 +425,10 @@ export async function GET(request: NextRequest) {
 
     // Otherwise, fetch all orders sorted by createdAt DESC
     console.log("[api/orders] Fetching all orders...");
+    if (!isAdminUser(decoded)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const ordersQuery = ordersCollection.orderBy("createdAt", "desc") as Query<DocumentData>;
     const ordersSnapshot = await ordersQuery.get();
 
@@ -414,13 +485,27 @@ export async function PATCH(request: NextRequest) {
 
     console.log("[api/orders] PATCH request received", { orderId, action });
 
-    const db = getAdminDb();
-    if (!db) {
+    const adminResources = ensureAdminResources();
+    if (!adminResources) {
       return NextResponse.json(
         { error: "Firebase Admin is not configured. Please check your credentials." },
         { status: 503 },
       );
     }
+    const { db, auth } = adminResources;
+
+    const bearerToken = parseBearerToken(request);
+    if (!bearerToken) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    let decoded: DecodedIdToken;
+    try {
+      decoded = await auth.verifyIdToken(bearerToken);
+    } catch {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
     const ordersCollection = db.collection("orders");
     const orderDoc = ordersCollection.doc(orderId);
     const orderSnapshot = await orderDoc.get();
@@ -438,6 +523,10 @@ export async function PATCH(request: NextRequest) {
         { error: "Order data missing" },
         { status: 500 }
       );
+    }
+    const isOwner = typeof orderData.userId === "string" ? orderData.userId === decoded.uid : false;
+    if (!isOwner && !isAdminUser(decoded)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const currentStatus = orderData.status as OrderStatus;
 
