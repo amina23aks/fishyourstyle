@@ -433,6 +433,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     const orderData = orderSnapshot.data();
+    if (!orderData) {
+      return NextResponse.json(
+        { error: "Order data missing" },
+        { status: 500 }
+      );
+    }
     const currentStatus = orderData.status as OrderStatus;
 
     // Only allow cancellation if status is "pending"
