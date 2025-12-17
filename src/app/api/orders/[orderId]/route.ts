@@ -124,7 +124,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const orderRef = db.collection("orders").doc(orderId);
     const snapshot = await orderRef.get();
 
-    if (!snapshot.exists()) {
+    if (!snapshot.exists) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 

@@ -172,11 +172,14 @@ export async function POST(request: NextRequest) {
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
         const snapshot = await transaction.get(productRef);
-        if (!snapshot.exists()) {
+        if (!snapshot.exists) {
           throw new Error(`Product not found: ${productId}`);
         }
 
         const data = snapshot.data();
+        if (!data) {
+          throw new Error(`Product data missing: ${productId}`);
+        }
         productSnapshots.set(productId, data);
         const rawStock = typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0);
         const availableStock = data.inStock === false ? 0 : rawStock;
@@ -314,7 +317,7 @@ export async function GET(request: NextRequest) {
       const orderDoc = ordersCollection.doc(orderId);
       const orderSnapshot = await orderDoc.get();
 
-      if (!orderSnapshot.exists()) {
+      if (!orderSnapshot.exists) {
         return NextResponse.json(
           { error: "Order not found" },
           { status: 404 }
@@ -414,7 +417,7 @@ export async function PATCH(request: NextRequest) {
     const orderDoc = ordersCollection.doc(orderId);
     const orderSnapshot = await orderDoc.get();
 
-    if (!orderSnapshot.exists()) {
+    if (!orderSnapshot.exists) {
       return NextResponse.json(
         { error: "Order not found" },
         { status: 404 }
