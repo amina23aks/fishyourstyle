@@ -77,6 +77,7 @@ function initAdmin(): AdminResources | null {
   }
 
   const db = getFirestore(app);
+  db.settings({ ignoreUndefinedProperties: true });
   const auth = getAuth(app);
   return { app, db, auth };
 }
