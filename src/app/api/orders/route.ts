@@ -2,15 +2,81 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   FieldValue,
   Timestamp,
+  getFirestore,
   type DocumentData,
   type Query,
 } from "firebase-admin/firestore";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
-import { isFirebaseConfigured } from "@/lib/firebaseConfig";
-import type { NewOrder, ShippingInfo, Order, OrderStatus } from "@/types/order";
-import { getAdminDb, isAdminConfigured } from "@/lib/firebaseAdmin";
+
+import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
+
+function logEnvDetection() {
+  const hasAdminProject = Boolean(process.env.FIREBASE_ADMIN_PROJECT_ID);
+  const hasAdminEmail = Boolean(process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
+  const hasAdminKey = Boolean(process.env.FIREBASE_ADMIN_PRIVATE_KEY);
+  const hasLegacyProject = Boolean(process.env.FIREBASE_PROJECT_ID);
+  const hasLegacyEmail = Boolean(process.env.FIREBASE_CLIENT_EMAIL);
+  const hasLegacyKey = Boolean(process.env.FIREBASE_PRIVATE_KEY);
+
+  console.log("[api/orders] Env detection", {
+    FIREBASE_ADMIN_PROJECT_ID: hasAdminProject,
+    FIREBASE_ADMIN_CLIENT_EMAIL: hasAdminEmail,
+    FIREBASE_ADMIN_PRIVATE_KEY: hasAdminKey,
+    FIREBASE_PROJECT_ID: hasLegacyProject,
+    FIREBASE_CLIENT_EMAIL: hasLegacyEmail,
+    FIREBASE_PRIVATE_KEY: hasLegacyKey,
+  });
+}
+
+function getAdminCredentials() {
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID ?? process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL ?? process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKeyRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY ?? process.env.FIREBASE_PRIVATE_KEY;
+
+  if (!projectId || !clientEmail || !privateKeyRaw) {
+    return null;
+  }
+
+  return {
+    projectId,
+    clientEmail,
+    privateKey: privateKeyRaw.replace(/\\n/g, "\n"),
+  };
+}
+
+let adminInitialized = false;
+
+function ensureAdminServices():
+  | {
+      db: ReturnType<typeof getFirestore>;
+      auth: ReturnType<typeof getAuth>;
+    }
+  | null {
+  if (!adminInitialized) {
+    logEnvDetection();
+  }
+
+  const credentials = getAdminCredentials();
+  if (!credentials) {
+    console.error("[api/orders] Missing Firebase Admin credentials");
+    return null;
+  }
+
+  if (!getApps().length) {
+    initializeApp({ credential: cert(credentials) });
+    console.log("[api/orders] Firebase Admin app initialized");
+  } else if (!adminInitialized) {
+    console.log("[api/orders] Firebase Admin app already initialized");
+  }
+
+  adminInitialized = true;
+  const db = getFirestore();
+  const auth = getAuth();
+  return { db, auth };
+}
 
 function parseBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
@@ -20,17 +86,27 @@ function parseBearerToken(request: NextRequest): string | null {
   return value.trim();
 }
 
-function ensureAdminResources() {
-  const db = getAdminDb();
-  if (!db) return null;
-  const auth = getAuth();
-  return { db, auth };
-}
-
 function isAdminUser(decoded: DecodedIdToken | null): boolean {
   if (!decoded?.email) return false;
   const email = decoded.email.toLowerCase();
   return ADMIN_EMAILS.includes(email as (typeof ADMIN_EMAILS)[number]);
+}
+
+function requireAuth(
+  request: NextRequest,
+  auth: ReturnType<typeof getAuth>,
+): NextResponse<{ error: string }> | DecodedIdToken {
+  const bearerToken = parseBearerToken(request);
+  if (!bearerToken) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+
+  try {
+    return auth.verifyIdToken(bearerToken);
+  } catch (error) {
+    console.error("[api/orders] Token verification failed", error);
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  }
 }
 
 /**
@@ -125,44 +201,25 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate the request body
     if (!validateOrder(body)) {
       return NextResponse.json(
         { error: "Invalid order data. Please check all required fields." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const { userId: _omitUserId, ...orderBodyWithoutUser } = body as NewOrder;
-    void _omitUserId;
-    const orderData: NewOrder = orderBodyWithoutUser as NewOrder;
-
-    // Ensure status is "pending" for new orders
-    const orderToSave: NewOrder = {
-      ...orderData,
-      status: "pending",
-    };
-
-    if (!isFirebaseConfigured() || !isAdminConfigured()) {
-      return NextResponse.json(
-        { error: "Firebase is not configured. Please add your Firebase environment variables." },
-        { status: 503 },
-      );
-    }
-
-    // Get Firestore instance
-    console.log("[api/orders] Getting Firestore instance...");
-    const adminResources = ensureAdminResources();
+    const adminResources = ensureAdminServices();
     if (!adminResources) {
       return NextResponse.json(
-        { error: "Firebase Admin is not configured. Please check your credentials." },
+        { error: "Firebase Admin is not configured. Please add your Firebase environment variables." },
         { status: 503 },
       );
     }
     const { db, auth } = adminResources;
-    console.log("[api/orders] Firestore instance obtained.");
 
-    // Optional auth: attach userId if token is valid
+    const { userId: _ignored, ...orderBody } = body as NewOrder;
+    void _ignored;
+
     const bearerToken = parseBearerToken(request);
     let decoded: DecodedIdToken | null = null;
     if (bearerToken) {
@@ -170,34 +227,28 @@ export async function POST(request: NextRequest) {
         decoded = await auth.verifyIdToken(bearerToken);
       } catch (error) {
         console.warn("[api/orders] Invalid auth token provided, proceeding as guest.", error);
-        decoded = null;
       }
     }
 
-    // Prepare order data for Firestore
+    const orderToSave: NewOrder = {
+      ...(orderBody as NewOrder),
+      userId: decoded?.uid ?? undefined,
+      status: "pending",
+    };
+
     const orderDataForFirestore = {
       ...orderToSave,
-      userId: decoded?.uid ?? undefined,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
-    console.log("[api/orders] Order data prepared for Firestore:", {
-      itemsCount: orderToSave.items.length,
-      customerEmail: orderToSave.customerEmail,
-      shipping: {
-        customerName: orderToSave.shipping.customerName,
-        wilaya: orderToSave.shipping.wilaya,
-        mode: orderToSave.shipping.mode,
-      },
-      total: orderToSave.total,
-      status: orderToSave.status,
+
+    console.log("[api/orders] Order payload prepared", {
+      hasUser: Boolean(orderToSave.userId),
+      items: orderToSave.items.length,
     });
 
-    // Add order to Firestore
-    console.log("[api/orders] Attempting to save order to Firestore...");
     const ordersCollection = db.collection("orders");
     const productsCollection = db.collection("products");
-    console.log("[api/orders] Orders collection reference obtained.");
 
     const aggregatedQuantities = orderToSave.items.reduce<Record<string, number>>((acc, item) => {
       acc[item.id] = (acc[item.id] ?? 0) + item.quantity;
@@ -208,18 +259,17 @@ export async function POST(request: NextRequest) {
     const productSnapshots = new Map<string, DocumentData>();
 
     await db.runTransaction(async (transaction) => {
-      // Validate stock for each product in the cart
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
         const snapshot = await transaction.get(productRef);
         if (!snapshot.exists) {
           throw new Error(`Product not found: ${productId}`);
         }
-
         const data = snapshot.data();
         if (!data) {
           throw new Error(`Product data missing: ${productId}`);
         }
+
         productSnapshots.set(productId, data);
         const rawStock = typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0);
         const availableStock = data.inStock === false ? 0 : rawStock;
@@ -230,7 +280,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Decrement stock now that validation passed
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
         const data = productSnapshots.get(productId);
@@ -249,24 +298,12 @@ export async function POST(request: NextRequest) {
       throw new Error("Order ID missing after transaction commit");
     }
 
-    console.log("[api/orders] Order saved successfully to Firestore with ID:", createdOrderId);
+    console.log("[api/orders] Order created", { orderId: createdOrderId });
 
-    // Return the order ID
-    return NextResponse.json(
-      { orderId: createdOrderId },
-      { status: 201 }
-    );
+    return NextResponse.json({ orderId: createdOrderId }, { status: 201 });
   } catch (error) {
-    console.error("[api/orders] FIREBASE WRITE ERROR:", error);
+    console.error("[api/orders] POST error", error);
 
-    // Log additional error details if available
-    if (error instanceof Error) {
-      console.error("[api/orders] Error name:", error.name);
-      console.error("[api/orders] Error message:", error.message);
-      console.error("[api/orders] Error stack:", error.stack);
-    }
-
-    // Handle Firebase-specific errors
     if (error instanceof Error) {
       const isStockError =
         error.message.toLowerCase().includes("insufficient stock") ||
@@ -278,20 +315,14 @@ export async function POST(request: NextRequest) {
             ? "Some items are no longer available. Please review your cart."
             : `Failed to create order: ${error.message}`,
         },
-        { status: isStockError ? 400 : 500 }
+        { status: isStockError ? 400 : 500 },
       );
     }
 
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-/**
- * Convert Firestore timestamp to ISO string
- */
 function timestampToISO(timestamp: unknown): string {
   if (timestamp instanceof Timestamp) {
     return timestamp.toDate().toISOString();
@@ -302,13 +333,9 @@ function timestampToISO(timestamp: unknown): string {
   if (typeof timestamp === "string") {
     return timestamp;
   }
-  // Fallback to current time if invalid
   return new Date().toISOString();
 }
 
-/**
- * Convert Firestore document to Order type
- */
 function firestoreDocToOrder(docId: string, data: DocumentData): Order {
   return {
     id: docId,
@@ -330,9 +357,6 @@ function firestoreDocToOrder(docId: string, data: DocumentData): Order {
 
 /**
  * GET /api/orders
- * Fetch orders from Firestore
- * Query params:
- *   - orderId: (optional) Fetch a single order by ID
  */
 export async function GET(request: NextRequest) {
   try {
@@ -340,12 +364,10 @@ export async function GET(request: NextRequest) {
     const orderId = searchParams.get("orderId");
     const userId = searchParams.get("userId");
 
-    console.log("[api/orders] GET request received", { orderId, userId });
-
-    const adminResources = ensureAdminResources();
+    const adminResources = ensureAdminServices();
     if (!adminResources) {
       return NextResponse.json(
-        { error: "Firebase Admin is not configured. Please check your credentials." },
+        { error: "Firebase Admin is not configured. Please add your Firebase environment variables." },
         { status: 503 },
       );
     }
@@ -362,30 +384,23 @@ export async function GET(request: NextRequest) {
     if (bearerToken) {
       try {
         decoded = await auth.verifyIdToken(bearerToken);
-      } catch {
+      } catch (error) {
+        console.error("[api/orders] Token verification failed", error);
         return NextResponse.json({ error: "Invalid token" }, { status: 401 });
       }
     }
 
-    // If orderId is provided, fetch single order
     if (orderId) {
-      console.log("[api/orders] Fetching single order:", orderId);
       const orderDoc = ordersCollection.doc(orderId);
       const orderSnapshot = await orderDoc.get();
 
       if (!orderSnapshot.exists) {
-        return NextResponse.json(
-          { error: "Order not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
 
       const data = orderSnapshot.data();
       if (!data) {
-        return NextResponse.json(
-          { error: "Order data missing" },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: "Order data missing" }, { status: 500 });
       }
 
       const ownerId = typeof data.userId === "string" ? data.userId : undefined;
@@ -395,17 +410,14 @@ export async function GET(request: NextRequest) {
       }
 
       const orderData = firestoreDocToOrder(orderSnapshot.id, data);
-      console.log("[api/orders] Order fetched successfully:", orderData.id);
       return NextResponse.json(orderData);
     }
 
     const orders: Order[] = [];
 
     if (userId && userId.trim()) {
-      // Fetch orders for specific user sorted by createdAt DESC
-      console.log("[api/orders] Fetching orders for user...", { userId });
-      const isAuthorizedUser = isAdminUser(decoded) || (!!decoded?.uid && decoded.uid === userId);
-      if (!isAuthorizedUser) {
+      const authorized = isAdminUser(decoded) || (!!decoded?.uid && decoded.uid === userId);
+      if (!authorized) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
@@ -415,16 +427,15 @@ export async function GET(request: NextRequest) {
       const userOrdersSnapshot = await userOrdersQuery.get();
 
       userOrdersSnapshot.forEach((snapshotDoc) => {
-        const orderData = firestoreDocToOrder(snapshotDoc.id, snapshotDoc.data() as DocumentData);
-        orders.push(orderData);
+        const orderData = snapshotDoc.data();
+        if (orderData) {
+          orders.push(firestoreDocToOrder(snapshotDoc.id, orderData as DocumentData));
+        }
       });
 
-      console.log("[api/orders] Fetched", orders.length, "orders for user");
       return NextResponse.json(orders);
     }
 
-    // Otherwise, fetch all orders sorted by createdAt DESC
-    console.log("[api/orders] Fetching all orders...");
     if (!isAdminUser(decoded)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -433,77 +444,53 @@ export async function GET(request: NextRequest) {
     const ordersSnapshot = await ordersQuery.get();
 
     ordersSnapshot.forEach((doc) => {
-      const orderData = firestoreDocToOrder(doc.id, doc.data() as DocumentData);
-      orders.push(orderData);
+      const data = doc.data();
+      if (data) {
+        orders.push(firestoreDocToOrder(doc.id, data as DocumentData));
+      }
     });
 
-    console.log("[api/orders] Fetched", orders.length, "orders");
     return NextResponse.json(orders);
   } catch (error) {
-    console.error("[api/orders] GET ERROR:", error);
-
+    console.error("[api/orders] GET error", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch orders";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 /**
- * PATCH /api/orders
- * Update an order (currently only supports cancel action)
- * Body: { orderId: string, action: "cancel" }
+ * PATCH /api/orders (cancel)
  */
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate request body
     if (!body || typeof body !== "object") {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
 
-    const { orderId, action } = body;
+    const { orderId, action } = body as { orderId?: string; action?: string };
 
     if (!orderId || typeof orderId !== "string") {
-      return NextResponse.json(
-        { error: "orderId is required and must be a string" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "orderId is required and must be a string" }, { status: 400 });
     }
 
     if (action !== "cancel") {
-      return NextResponse.json(
-        { error: 'Only "cancel" action is supported' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Only "cancel" action is supported' }, { status: 400 });
     }
 
-    console.log("[api/orders] PATCH request received", { orderId, action });
-
-    const adminResources = ensureAdminResources();
+    const adminResources = ensureAdminServices();
     if (!adminResources) {
       return NextResponse.json(
-        { error: "Firebase Admin is not configured. Please check your credentials." },
+        { error: "Firebase Admin is not configured. Please add your Firebase environment variables." },
         { status: 503 },
       );
     }
     const { db, auth } = adminResources;
 
-    const bearerToken = parseBearerToken(request);
-    if (!bearerToken) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    let decoded: DecodedIdToken;
-    try {
-      decoded = await auth.verifyIdToken(bearerToken);
-    } catch {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    const decoded = requireAuth(request, auth);
+    if (decoded instanceof NextResponse) {
+      return decoded;
     }
 
     const ordersCollection = db.collection("orders");
@@ -511,59 +498,44 @@ export async function PATCH(request: NextRequest) {
     const orderSnapshot = await orderDoc.get();
 
     if (!orderSnapshot.exists) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     const orderData = orderSnapshot.data();
     if (!orderData) {
-      return NextResponse.json(
-        { error: "Order data missing" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Order data missing" }, { status: 500 });
     }
+
     const isOwner = typeof orderData.userId === "string" ? orderData.userId === decoded.uid : false;
     if (!isOwner && !isAdminUser(decoded)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const currentStatus = orderData.status as OrderStatus;
 
-    // Only allow cancellation if status is "pending"
+    const currentStatus = orderData.status as OrderStatus;
     if (currentStatus !== "pending") {
       return NextResponse.json(
         { error: `Cannot cancel order with status "${currentStatus}". Only pending orders can be cancelled.` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Update order to cancelled
-    console.log("[api/orders] Cancelling order:", orderId);
     await orderDoc.update({
       status: "cancelled",
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Fetch updated order to return
     const updatedSnapshot = await orderDoc.get();
     const updatedData = updatedSnapshot.data();
 
     if (!updatedData) {
-      throw new Error("Updated order data not found");
+      return NextResponse.json({ error: "Updated order data not found" }, { status: 500 });
     }
 
     const updatedOrderData = firestoreDocToOrder(updatedSnapshot.id, updatedData);
-
-    console.log("[api/orders] Order cancelled successfully:", orderId);
     return NextResponse.json(updatedOrderData);
   } catch (error) {
-    console.error("[api/orders] PATCH ERROR:", error);
-
+    console.error("[api/orders] PATCH error", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to update order";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
