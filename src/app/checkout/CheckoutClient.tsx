@@ -192,11 +192,17 @@ export default function CheckoutClient() {
 
       // Send to API
       console.log("[CheckoutClient] Sending POST request to /api/orders...");
+      const token = await user?.getIdToken?.();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(newOrder),
       });
       console.log("[CheckoutClient] Response received:", {
