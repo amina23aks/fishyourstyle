@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  collection,
-  serverTimestamp,
-  getDocs,
-  doc,
-  getDoc,
-  query,
-  orderBy,
-  where,
+  FieldValue,
   Timestamp,
-  updateDoc,
-  runTransaction,
   type DocumentData,
-} from "firebase/firestore";
-import { getServerDb } from "@/lib/firestore";
+  type Query,
+} from "firebase-admin/firestore";
 import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { NewOrder, ShippingInfo, Order, OrderStatus } from "@/types/order";
+import { getAdminDb, isAdminConfigured } from "@/lib/firebaseAdmin";
 
 /**
  * Validate NewOrder payload
@@ -125,7 +117,7 @@ export async function POST(request: NextRequest) {
       status: "pending",
     };
 
-    if (!isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !isAdminConfigured()) {
       return NextResponse.json(
         { error: "Firebase is not configured. Please add your Firebase environment variables." },
         { status: 503 },
@@ -134,14 +126,20 @@ export async function POST(request: NextRequest) {
 
     // Get Firestore instance
     console.log("[api/orders] Getting Firestore instance...");
-    const db = getServerDb();
+    const db = getAdminDb();
+    if (!db) {
+      return NextResponse.json(
+        { error: "Firebase Admin is not configured. Please check your credentials." },
+        { status: 503 },
+      );
+    }
     console.log("[api/orders] Firestore instance obtained.");
 
     // Prepare order data for Firestore
     const orderDataForFirestore = {
       ...orderToSave,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     };
     console.log("[api/orders] Order data prepared for Firestore:", {
       itemsCount: orderToSave.items.length,
@@ -157,8 +155,8 @@ export async function POST(request: NextRequest) {
 
     // Add order to Firestore
     console.log("[api/orders] Attempting to save order to Firestore...");
-    const ordersCollection = collection(db, "orders");
-    const productsCollection = collection(db, "products");
+    const ordersCollection = db.collection("orders");
+    const productsCollection = db.collection("products");
     console.log("[api/orders] Orders collection reference obtained.");
 
     const aggregatedQuantities = orderToSave.items.reduce<Record<string, number>>((acc, item) => {
@@ -169,10 +167,10 @@ export async function POST(request: NextRequest) {
     let createdOrderId: string | null = null;
     const productSnapshots = new Map<string, DocumentData>();
 
-    await runTransaction(db, async (transaction) => {
+    await db.runTransaction(async (transaction) => {
       // Validate stock for each product in the cart
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
-        const productRef = doc(productsCollection, productId);
+        const productRef = productsCollection.doc(productId);
         const snapshot = await transaction.get(productRef);
         if (!snapshot.exists()) {
           throw new Error(`Product not found: ${productId}`);
@@ -191,7 +189,7 @@ export async function POST(request: NextRequest) {
 
       // Decrement stock now that validation passed
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
-        const productRef = doc(productsCollection, productId);
+        const productRef = productsCollection.doc(productId);
         const data = productSnapshots.get(productId);
         if (!data) continue;
         const rawStock = typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0);
@@ -199,7 +197,7 @@ export async function POST(request: NextRequest) {
         transaction.update(productRef, { stock: nextStock, inStock: nextStock > 0 });
       }
 
-      const orderRef = doc(ordersCollection);
+      const orderRef = ordersCollection.doc();
       createdOrderId = orderRef.id;
       transaction.set(orderRef, orderDataForFirestore);
     });
@@ -301,14 +299,20 @@ export async function GET(request: NextRequest) {
 
     console.log("[api/orders] GET request received", { orderId, userId });
 
-    const db = getServerDb();
-    const ordersCollection = collection(db, "orders");
+    const db = getAdminDb();
+    if (!db) {
+      return NextResponse.json(
+        { error: "Firebase Admin is not configured. Please check your credentials." },
+        { status: 503 },
+      );
+    }
+    const ordersCollection = db.collection("orders");
 
     // If orderId is provided, fetch single order
     if (orderId) {
       console.log("[api/orders] Fetching single order:", orderId);
-      const orderDoc = doc(ordersCollection, orderId);
-      const orderSnapshot = await getDoc(orderDoc);
+      const orderDoc = ordersCollection.doc(orderId);
+      const orderSnapshot = await orderDoc.get();
 
       if (!orderSnapshot.exists()) {
         return NextResponse.json(
@@ -327,15 +331,13 @@ export async function GET(request: NextRequest) {
     if (userId && userId.trim()) {
       // Fetch orders for specific user sorted by createdAt DESC
       console.log("[api/orders] Fetching orders for user...", { userId });
-      const userOrdersQuery = query(
-        ordersCollection,
-        where("userId", "==", userId),
-        orderBy("createdAt", "desc"),
-      );
-      const userOrdersSnapshot = await getDocs(userOrdersQuery);
+      const userOrdersQuery = ordersCollection
+        .where("userId", "==", userId)
+        .orderBy("createdAt", "desc") as Query<DocumentData>;
+      const userOrdersSnapshot = await userOrdersQuery.get();
 
       userOrdersSnapshot.forEach((snapshotDoc) => {
-        const orderData = firestoreDocToOrder(snapshotDoc.id, snapshotDoc.data());
+        const orderData = firestoreDocToOrder(snapshotDoc.id, snapshotDoc.data() as DocumentData);
         orders.push(orderData);
       });
 
@@ -345,11 +347,11 @@ export async function GET(request: NextRequest) {
 
     // Otherwise, fetch all orders sorted by createdAt DESC
     console.log("[api/orders] Fetching all orders...");
-    const ordersQuery = query(ordersCollection, orderBy("createdAt", "desc"));
-    const ordersSnapshot = await getDocs(ordersQuery);
+    const ordersQuery = ordersCollection.orderBy("createdAt", "desc") as Query<DocumentData>;
+    const ordersSnapshot = await ordersQuery.get();
 
     ordersSnapshot.forEach((doc) => {
-      const orderData = firestoreDocToOrder(doc.id, doc.data());
+      const orderData = firestoreDocToOrder(doc.id, doc.data() as DocumentData);
       orders.push(orderData);
     });
 
@@ -401,10 +403,16 @@ export async function PATCH(request: NextRequest) {
 
     console.log("[api/orders] PATCH request received", { orderId, action });
 
-    const db = getServerDb();
-    const ordersCollection = collection(db, "orders");
-    const orderDoc = doc(ordersCollection, orderId);
-    const orderSnapshot = await getDoc(orderDoc);
+    const db = getAdminDb();
+    if (!db) {
+      return NextResponse.json(
+        { error: "Firebase Admin is not configured. Please check your credentials." },
+        { status: 503 },
+      );
+    }
+    const ordersCollection = db.collection("orders");
+    const orderDoc = ordersCollection.doc(orderId);
+    const orderSnapshot = await orderDoc.get();
 
     if (!orderSnapshot.exists()) {
       return NextResponse.json(
@@ -426,13 +434,13 @@ export async function PATCH(request: NextRequest) {
 
     // Update order to cancelled
     console.log("[api/orders] Cancelling order:", orderId);
-    await updateDoc(orderDoc, {
+    await orderDoc.update({
       status: "cancelled",
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     // Fetch updated order to return
-    const updatedSnapshot = await getDoc(orderDoc);
+    const updatedSnapshot = await orderDoc.get();
     const updatedData = updatedSnapshot.data();
 
     if (!updatedData) {

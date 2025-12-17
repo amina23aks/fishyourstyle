@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc, serverTimestamp, Timestamp, updateDoc } from "firebase/firestore";
-import { getServerDb } from "@/lib/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { Order, OrderItem, OrderStatus, ShippingInfo } from "@/types/order";
+import { getAdminDb, isAdminConfigured } from "@/lib/firebaseAdmin";
 
 function timestampToISO(timestamp: unknown): string {
   if (timestamp instanceof Timestamp) {
@@ -106,16 +106,23 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    if (!isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !isAdminConfigured()) {
       return NextResponse.json(
         { error: "Firebase is not configured. Please add your Firebase environment variables." },
         { status: 503 },
       );
     }
 
-    const db = getServerDb();
-    const orderRef = doc(db, "orders", orderId);
-    const snapshot = await getDoc(orderRef);
+    const db = getAdminDb();
+    if (!db) {
+      return NextResponse.json(
+        { error: "Firebase Admin is not configured. Please check your credentials." },
+        { status: 503 },
+      );
+    }
+
+    const orderRef = db.collection("orders").doc(orderId);
+    const snapshot = await orderRef.get();
 
     if (!snapshot.exists()) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -134,10 +141,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         );
       }
 
-      await updateDoc(orderRef, {
+      await orderRef.update({
         status: "cancelled",
-        updatedAt: serverTimestamp(),
-        cancelledAt: serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        cancelledAt: FieldValue.serverTimestamp(),
       });
     } else {
       if (order.status !== "pending") {
@@ -175,13 +182,13 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         subtotal,
         shippingCost,
         total,
-        updatedAt: serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
 
-      await updateDoc(orderRef, updateData);
+      await orderRef.update(updateData);
     }
 
-    const updatedSnapshot = await getDoc(orderRef);
+    const updatedSnapshot = await orderRef.get();
     const updatedData = updatedSnapshot.data();
 
     if (!updatedData) {
