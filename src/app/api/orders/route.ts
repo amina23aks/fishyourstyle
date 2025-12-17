@@ -2,81 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   FieldValue,
   Timestamp,
-  getFirestore,
   type DocumentData,
   type Query,
 } from "firebase-admin/firestore";
-import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 
 import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
+import { getAdminResources } from "@/lib/firebaseAdmin";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
-
-function logEnvDetection() {
-  const hasAdminProject = Boolean(process.env.FIREBASE_ADMIN_PROJECT_ID);
-  const hasAdminEmail = Boolean(process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
-  const hasAdminKey = Boolean(process.env.FIREBASE_ADMIN_PRIVATE_KEY);
-  const hasLegacyProject = Boolean(process.env.FIREBASE_PROJECT_ID);
-  const hasLegacyEmail = Boolean(process.env.FIREBASE_CLIENT_EMAIL);
-  const hasLegacyKey = Boolean(process.env.FIREBASE_PRIVATE_KEY);
-
-  console.log("[api/orders] Env detection", {
-    FIREBASE_ADMIN_PROJECT_ID: hasAdminProject,
-    FIREBASE_ADMIN_CLIENT_EMAIL: hasAdminEmail,
-    FIREBASE_ADMIN_PRIVATE_KEY: hasAdminKey,
-    FIREBASE_PROJECT_ID: hasLegacyProject,
-    FIREBASE_CLIENT_EMAIL: hasLegacyEmail,
-    FIREBASE_PRIVATE_KEY: hasLegacyKey,
-  });
-}
-
-function getAdminCredentials() {
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID ?? process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL ?? process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKeyRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY ?? process.env.FIREBASE_PRIVATE_KEY;
-
-  if (!projectId || !clientEmail || !privateKeyRaw) {
-    return null;
-  }
-
-  return {
-    projectId,
-    clientEmail,
-    privateKey: privateKeyRaw.replace(/\\n/g, "\n"),
-  };
-}
-
-let adminInitialized = false;
-
-function ensureAdminServices():
-  | {
-      db: ReturnType<typeof getFirestore>;
-      auth: ReturnType<typeof getAuth>;
-    }
-  | null {
-  if (!adminInitialized) {
-    logEnvDetection();
-  }
-
-  const credentials = getAdminCredentials();
-  if (!credentials) {
-    console.error("[api/orders] Missing Firebase Admin credentials");
-    return null;
-  }
-
-  if (!getApps().length) {
-    initializeApp({ credential: cert(credentials) });
-    console.log("[api/orders] Firebase Admin app initialized");
-  } else if (!adminInitialized) {
-    console.log("[api/orders] Firebase Admin app already initialized");
-  }
-
-  adminInitialized = true;
-  const db = getFirestore();
-  const auth = getAuth();
-  return { db, auth };
-}
 
 function parseBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
@@ -209,7 +143,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const adminResources = ensureAdminServices();
+    const adminResources = getAdminResources();
     if (!adminResources) {
       return NextResponse.json(
         { error: "Firebase Admin is not configured. Please add your Firebase environment variables." },
@@ -365,7 +299,7 @@ export async function GET(request: NextRequest) {
     const orderId = searchParams.get("orderId");
     const userId = searchParams.get("userId");
 
-    const adminResources = ensureAdminServices();
+    const adminResources = getAdminResources();
     if (!adminResources) {
       return NextResponse.json(
         { error: "Firebase Admin is not configured. Please add your Firebase environment variables." },
@@ -480,7 +414,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Only "cancel" action is supported' }, { status: 400 });
     }
 
-    const adminResources = ensureAdminServices();
+    const adminResources = getAdminResources();
     if (!adminResources) {
       return NextResponse.json(
         { error: "Firebase Admin is not configured. Please add your Firebase environment variables." },
