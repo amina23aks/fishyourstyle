@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdmin, setAdminClaim, verifyIdTokenFromRequest } from "@/lib/firebaseAdmin";
+import { setAdminClaim, verifyIdTokenFromRequest } from "@/lib/firebaseAdmin";
 
 export async function POST(request: Request) {
   let decodedToken;
@@ -17,16 +17,16 @@ export async function POST(request: Request) {
   }
 
   const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
-  const isBootstrapper =
+  const isSuperAdmin =
     superAdminEmail && decodedToken.email
       ? decodedToken.email.toLowerCase() === superAdminEmail.toLowerCase()
       : false;
 
-  if (!isAdmin(decodedToken) && !isBootstrapper) {
+  if (!isSuperAdmin) {
     return NextResponse.json(
       {
         error: "forbidden",
-        message: "Admin privileges are required to assign admin claims.",
+        message: "Only the configured SUPER_ADMIN_EMAIL may assign admin claims.",
       },
       { status: 403 },
     );
