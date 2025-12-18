@@ -9,7 +9,7 @@ async function requireAdmin() {
   let token = authHeader?.startsWith("Bearer ") ? authHeader.replace("Bearer ", "").trim() : null;
 
   if (!token) {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     token =
       cookieStore.get("__session")?.value ??
       cookieStore.get("session")?.value ??
