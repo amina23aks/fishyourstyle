@@ -1,11 +1,15 @@
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { getFirebaseAdminAuth } from "../firebaseAdmin";
 
+type HeadersLike = {
+  get(name: string): string | null;
+};
+
 export function isAdminFromDecodedToken(decodedToken: DecodedIdToken | null | undefined): boolean {
   return decodedToken?.admin === true;
 }
 
-export function getBearerTokenFromHeaders(headers: Headers): string | null {
+export function getBearerTokenFromHeaders(headers: HeadersLike): string | null {
   const authorizationHeader = headers.get("authorization") ?? headers.get("Authorization");
   if (!authorizationHeader) return null;
 
@@ -15,7 +19,9 @@ export function getBearerTokenFromHeaders(headers: Headers): string | null {
   return token;
 }
 
-export async function verifyIdTokenFromHeaders(headers: Headers): Promise<DecodedIdToken | null> {
+export async function verifyIdTokenFromHeaders(
+  headers: HeadersLike,
+): Promise<DecodedIdToken | null> {
   const token = getBearerTokenFromHeaders(headers);
   if (!token) return null;
 

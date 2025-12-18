@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { isAdminFromDecodedToken, verifyIdTokenFromHeaders } from "@/lib/auth/serverAuth";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const decodedToken = await verifyIdTokenFromHeaders(headers());
+  const headerList = await headers();
+  const decodedToken = await verifyIdTokenFromHeaders(headerList);
 
   if (!decodedToken || !isAdminFromDecodedToken(decodedToken)) {
     redirect("/");
