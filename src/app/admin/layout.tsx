@@ -36,11 +36,21 @@ export default function AdminLayout({
   }, [isAdmin, loading, router, user]);
 
   if (loading) {
-    return <AdminLoader title="Checking admin access" subtitle="Hang tight while we verify your session." />;
+    return (
+      <AdminLoader
+        title="Checking admin access"
+        subtitle="Hang tight while we verify your session."
+      />
+    );
   }
 
   if (!user || !isAdmin) {
-    return <AdminLoader title="Redirecting" subtitle="You need admin access to view this area." />;
+    return (
+      <AdminLoader
+        title="Redirecting"
+        subtitle="You need admin access to view this area."
+      />
+    );
   }
 
   return (
@@ -48,15 +58,20 @@ export default function AdminLayout({
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
         <aside className="w-full max-w-full rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:w-64 lg:flex-shrink-0">
           <div className="mb-6 space-y-1 border-b border-white/10 pb-4">
-            <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Admin</p>
-            <h2 className="text-xl font-semibold text-white">Control center</h2>
+            <p className="text-xs uppercase tracking-[0.24em] text-sky-200">
+              Admin
+            </p>
+            <h2 className="text-xl font-semibold text-white">
+              Control center
+            </h2>
             <p className="text-sm text-sky-100/80">Manage store operations</p>
           </div>
 
           <nav className="space-y-1">
             {navItems.map((item) => {
               const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+                pathname === item.href ||
+                pathname.startsWith(`${item.href}/`);
 
               return (
                 <Link
@@ -99,7 +114,9 @@ function AdminLoader({
         <span className="h-11 w-11 animate-spin rounded-full border-4 border-white/60 border-t-transparent" />
         <div className="space-y-1">
           <p className="text-lg font-semibold text-white">{title}</p>
-          {subtitle ? <p className="text-sm text-sky-100/80">{subtitle}</p> : null}
+          {subtitle ? (
+            <p className="text-sm text-sky-100/80">{subtitle}</p>
+          ) : null}
         </div>
       </div>
     </div>
