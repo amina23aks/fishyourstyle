@@ -47,3 +47,39 @@ If a preview URL works but the main `*.pages.dev` domain is blank or times out, 
 2. In the Cloudflare Pages dashboard, open the project and confirm the latest Production deployment succeeded.
 3. Verify that the production domain (e.g., `fishyourstyle.pages.dev` or any custom domain) is attached and active in the **Domains** tab.
 4. If the domain still fails to load, rerun the Production deployment from the dashboard to regenerate the site output.
+
+## Firebase admin setup & custom claims
+
+Provide Firebase Admin SDK credentials as environment variables (double-escape newlines in the private key):
+
+```env
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\nabc123...\\n-----END PRIVATE KEY-----\\n"
+SUPER_ADMIN_EMAIL=founder@yourdomain.com
+```
+
+- The `SUPER_ADMIN_EMAIL` account can bootstrap the first admin; afterwards only users with `admin: true` custom claims may grant admin rights.
+- Deploy the Firestore rules in `firestore.rules` to enforce admin-only writes and the read protections described in the file.
+
+### Seeding an admin user from the browser
+
+1. Sign in as the `SUPER_ADMIN_EMAIL` user (or any existing admin) in the browser.
+2. In DevTools, fetch a fresh ID token and call the claim endpoint:
+
+```js
+import { getAuth } from "firebase/auth";
+
+const auth = getAuth();
+const token = await auth.currentUser?.getIdToken(/* forceRefresh */ true);
+await fetch("/api/admin/claim", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ email: "target-user@domain.com" }),
+});
+```
+
+3. Have the target user sign out and back in to receive the updated admin claim.

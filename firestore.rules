@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    match /products/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /categories/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /designThemes/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.userId && resource.data.userId != null);
+      allow create, update, delete: if false;
+    }
+
+    match /contactMessages/{messageId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Preferred structure: /wishlist/{uid}/items/{itemId}
+    match /wishlist/{uid}/items/{itemId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Flat fallback: /wishlist/{itemId} with userId on document
+    match /wishlist/{itemId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+  }
+}

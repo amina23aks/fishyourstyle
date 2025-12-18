@@ -5,25 +5,24 @@
   "scripts": {
     "dev": "next dev",
     "build": "HTTP_PROXY= HTTPS_PROXY= NO_PROXY=* npm_config_registry=https://registry.npmjs.org/ npm_config_proxy= npm_config_http_proxy= npm_config_https_proxy= next build",
-    "build:pages": "HTTP_PROXY= HTTPS_PROXY= NO_PROXY=* npm_config_registry=https://registry.npmjs.org/ npm_config_proxy= npm_config_http_proxy= npm_config_https_proxy= npx @cloudflare/next-on-pages",
     "build:local": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "firebase": "11.0.0",
-    "next": "15.5.2",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "firebase-admin": "^13.6.0",
+    "next": "^15.5.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "1.13.16",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "22.0.0",
-    "@types/react": "18.3.0",
+    "@types/react": "^18.3.11",
     "autoprefixer": "^10.4.22",
     "eslint": "9.0.0",
-    "eslint-config-next": "15.5.2",
+    "eslint-config-next": "^15.5.9",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "typescript": "5.9.3"
