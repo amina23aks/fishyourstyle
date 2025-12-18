@@ -149,9 +149,21 @@ function validateOrder(data: unknown): data is NewOrder {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const rawBody = (await request.json()) as Record<string, unknown>;
 
-    if (!validateOrder(body)) {
+    const {
+      userId: _ignoredUserId,
+      createdAt: _ignoredCreatedAt,
+      updatedAt: _ignoredUpdatedAt,
+      cancelledAt: _ignoredCancelledAt,
+      ...rest
+    } = rawBody;
+    void _ignoredUserId;
+    void _ignoredCreatedAt;
+    void _ignoredUpdatedAt;
+    void _ignoredCancelledAt;
+
+    if (!validateOrder(rest)) {
       return NextResponse.json(
         { error: "Invalid order data. Please check all required fields." },
         { status: 400 },
@@ -167,18 +179,6 @@ export async function POST(request: NextRequest) {
     }
     const { db, auth } = adminResources;
 
-    const {
-      userId: _ignored,
-      createdAt: _ignoreCreated,
-      updatedAt: _ignoreUpdated,
-      cancelledAt: _ignoreCancelled,
-      ...orderBody
-    } = body as NewOrder;
-    void _ignored;
-    void _ignoreCreated;
-    void _ignoreUpdated;
-    void _ignoreCancelled;
-
     const bearerToken = parseBearerToken(request);
     let decoded: DecodedIdToken | null = null;
     if (bearerToken) {
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
     }
 
     const orderToSave: NewOrder = {
-      ...(orderBody as NewOrder),
+      ...(orderData as NewOrder),
       userId: typeof decoded?.uid === "string" && decoded.uid.trim() ? decoded.uid : undefined,
       status: "pending",
     };
