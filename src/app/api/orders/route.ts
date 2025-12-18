@@ -26,21 +26,6 @@ function isAdminUser(decoded: DecodedIdToken | null): boolean {
   return ADMIN_EMAILS.includes(email as (typeof ADMIN_EMAILS)[number]);
 }
 
-function stripUndefined<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => stripUndefined(item)) as unknown as T;
-  }
-
-  if (value && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .map(([k, v]) => [k, stripUndefined(v)]);
-    return Object.fromEntries(entries) as T;
-  }
-
-  return value;
-}
-
 async function requireAuth(
   request: NextRequest,
   auth: ReturnType<typeof getAuth>,
@@ -197,11 +182,15 @@ export async function POST(request: NextRequest) {
       status: "pending",
     };
 
-    const orderDataForFirestore = stripUndefined({
-      ...orderToSave,
+    const cleanedOrder = Object.fromEntries(
+      Object.entries(orderToSave).filter(([, v]) => v !== undefined),
+    ) as NewOrder;
+
+    const orderDataForFirestore = {
+      ...cleanedOrder,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
 
     console.log("[api/orders] Order payload prepared", {
       hasUser: Boolean(orderToSave.userId),
@@ -300,6 +289,23 @@ function timestampToISO(timestamp: unknown): string {
   }
   if (timestamp && typeof timestamp === "object" && "toDate" in timestamp) {
     return (timestamp as Timestamp).toDate().toISOString();
+  }
+  if (
+    typeof timestamp === "object" &&
+    timestamp &&
+    ("_seconds" in timestamp || "seconds" in timestamp) &&
+    ("_nanoseconds" in timestamp || "nanoseconds" in timestamp)
+  ) {
+    const seconds =
+      (timestamp as { _seconds?: number; seconds?: number })._seconds ??
+      (timestamp as { _seconds?: number; seconds?: number }).seconds ??
+      0;
+    const nanos =
+      (timestamp as { _nanoseconds?: number; nanoseconds?: number })._nanoseconds ??
+      (timestamp as { _nanoseconds?: number; nanoseconds?: number }).nanoseconds ??
+      0;
+    const date = new Date(seconds * 1000 + Math.floor(nanos / 1_000_000));
+    return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
   }
   if (typeof timestamp === "string") {
     return timestamp;
