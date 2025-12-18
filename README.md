@@ -47,3 +47,10 @@ If a preview URL works but the main `*.pages.dev` domain is blank or times out, 
 2. In the Cloudflare Pages dashboard, open the project and confirm the latest Production deployment succeeded.
 3. Verify that the production domain (e.g., `fishyourstyle.pages.dev` or any custom domain) is attached and active in the **Domains** tab.
 4. If the domain still fails to load, rerun the Production deployment from the dashboard to regenerate the site output.
+
+## Firebase Admin access and rules
+
+- Server-side Firebase Admin uses `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` (with `\n` preserved) for initialization, plus `SUPER_ADMIN_EMAIL` for bootstrap.
+- Admin-only endpoints/pages expect an ID token in the `Authorization: Bearer <idToken>` header or in one of the cookies `__session`, `session`, or `idToken`.
+- Bootstrap admin claim: send `POST /api/admin/claim` with JSON `{ "uid": "<targetUid>" }`. The caller must already have an `admin` custom claim **or** match `SUPER_ADMIN_EMAIL`.
+- Firestore security rules live in `firestore.rules`; deploy them to the project to enforce public reads for catalog data, admin-only writes, protected order access, and locked-down contact/wishlist behavior.
