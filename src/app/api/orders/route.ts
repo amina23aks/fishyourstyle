@@ -189,8 +189,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const orderData = rest as NewOrder;
+
     const orderToSave: NewOrder = {
-      ...(orderData as NewOrder),
+      ...orderData,
       userId: typeof decoded?.uid === "string" && decoded.uid.trim() ? decoded.uid : undefined,
       status: "pending",
     };
