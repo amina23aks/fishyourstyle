@@ -4,8 +4,36 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { collection, getDocs, limit, orderBy, query, where, type QueryConstraint } from "firebase/firestore";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
+import { getDb } from "@/lib/firebaseClient";
+
+function toDateSafe(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === "object" && value && "toDate" in value && typeof (value as { toDate: () => Date }).toDate === "function") {
+    const d = (value as { toDate: () => Date }).toDate();
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (
+    typeof value === "object" &&
+    value &&
+    "seconds" in value &&
+    "nanoseconds" in value &&
+    typeof (value as { seconds: unknown }).seconds === "number" &&
+    typeof (value as { nanoseconds: unknown }).nanoseconds === "number"
+  ) {
+    const { seconds, nanoseconds } = value as { seconds: number; nanoseconds: number };
+    const d = new Date(seconds * 1000 + Math.floor(nanoseconds / 1_000_000));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
 
 export default function OrdersList() {
   const router = useRouter();
@@ -43,14 +71,38 @@ export default function OrdersList() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/orders?userId=${encodeURIComponent(user.uid)}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to fetch orders");
+      const db = getDb();
+      if (!db) {
+        throw new Error("Unable to connect to orders. Please try again.");
       }
 
-      const data = await response.json();
-      setOrders(Array.isArray(data) ? data : []);
+      const constraints: QueryConstraint[] = [
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc"),
+        limit(20),
+      ];
+
+      const ordersRef = collection(db, "orders");
+      const ordersQuery = query(ordersRef, ...constraints);
+      const snapshot = await getDocs(ordersQuery);
+
+      const fetchedOrders: Order[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        const createdAtValue = (data.createdAt as string | { toDate?: () => Date } | undefined) ?? "";
+
+        return {
+          id: doc.id,
+          ...data,
+          createdAt:
+            typeof createdAtValue === "string"
+              ? createdAtValue
+              : createdAtValue?.toDate
+                ? createdAtValue.toDate().toISOString()
+                : "",
+        } as Order;
+      });
+
+      setOrders(fetchedOrders);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       setError(errorMessage);
@@ -216,6 +268,7 @@ export default function OrdersList() {
           const firstItem = order.items[0];
           const canCancel = order.status === "pending";
           const canEdit = order.status === "pending";
+          const createdAtDate = toDateSafe(order.createdAt);
           return (
             <article
               key={order.id}
@@ -262,7 +315,7 @@ export default function OrdersList() {
                       </div>
                     </div>
                     <div className="text-right text-sky-100 mt-2 md:mt-0">
-                      <p className="text-sm">{new Date(order.createdAt).toLocaleString()}</p>
+                      <p className="text-sm">{createdAtDate ? createdAtDate.toLocaleString() : "—"}</p>
                       <p className="text-base font-semibold text-white mt-1">
                         {new Intl.NumberFormat("en-US").format(order.total)} DZD
                       </p>
