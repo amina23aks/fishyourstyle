@@ -167,8 +167,17 @@ export async function POST(request: NextRequest) {
     }
     const { db, auth } = adminResources;
 
-    const { userId: _ignored, ...orderBody } = body as NewOrder;
+    const {
+      userId: _ignored,
+      createdAt: _ignoreCreated,
+      updatedAt: _ignoreUpdated,
+      cancelledAt: _ignoreCancelled,
+      ...orderBody
+    } = body as NewOrder;
     void _ignored;
+    void _ignoreCreated;
+    void _ignoreUpdated;
+    void _ignoreCancelled;
 
     const bearerToken = parseBearerToken(request);
     let decoded: DecodedIdToken | null = null;
@@ -248,7 +257,17 @@ export async function POST(request: NextRequest) {
       throw new Error("Order ID missing after transaction commit");
     }
 
-    console.log("[api/orders] Order created", { orderId: createdOrderId });
+    if (createdOrderId) {
+      const orderDoc = db.collection("orders").doc(createdOrderId);
+      const snapshot = await orderDoc.get();
+      const createdData = snapshot.data();
+      console.log("[api/orders] Order created", {
+        orderId: createdOrderId,
+        createdAtType: createdData?.createdAt
+          ? createdData.createdAt.constructor?.name ?? typeof createdData.createdAt
+          : "missing",
+      });
+    }
 
     return NextResponse.json({ orderId: createdOrderId }, { status: 201 });
   } catch (error) {
