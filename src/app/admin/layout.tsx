@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { isAdmin, verifyIdToken } from "@/lib/firebaseAdmin";
 
 async function requireAdmin() {
-  const headerList = headers();
+  const headerList = await headers();
   const authHeader = headerList.get("authorization") ?? headerList.get("Authorization");
   let token = authHeader?.startsWith("Bearer ") ? authHeader.replace("Bearer ", "").trim() : null;
 
