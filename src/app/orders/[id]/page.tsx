@@ -320,6 +320,11 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                             const colorLabel =
                               typeof color === "string" ? color : color.labelFr ?? item.colorName ?? "Color";
                             const isSelected = colorId === item.colorCode;
+                            const soldOutColorCodes =
+                              getProductBySlug(item.slug)?.soldOutColorCodes ?? [];
+                            const isSoldOutColor = soldOutColorCodes
+                              .map((entry) => entry.trim().toLowerCase())
+                              .includes(colorId.toLowerCase());
                             return (
                               <Swatch
                                 key={colorId}
@@ -328,42 +333,43 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                                 selected={isSelected}
                                 showLabel={false}
                                 size="xs"
-                                    onSelect={() => {
-                                      if (disabled) return;
-                                      const product = getProductBySlug(item.slug);
-                                      const selectedColor = product?.colors.find((candidate) => {
-                                        if (typeof candidate === "string") return candidate === colorId;
-                                        return candidate.id === colorId;
-                                      });
-                                      const colorName =
-                                        typeof selectedColor === "string"
-                                          ? selectedColor
-                                          : selectedColor?.labelFr ?? item.colorName;
-                                      const colorCode =
-                                        typeof selectedColor === "string"
-                                          ? selectedColor
-                                          : selectedColor?.id ?? item.colorCode;
-                                      const image =
-                                        typeof selectedColor === "string"
-                                          ? item.image
-                                          : selectedColor?.image ?? item.image;
+                                isSoldOut={isSoldOutColor}
+                                onSelect={() => {
+                                  if (disabled) return;
+                                  const product = getProductBySlug(item.slug);
+                                  const selectedColor = product?.colors.find((candidate) => {
+                                    if (typeof candidate === "string") return candidate === colorId;
+                                    return candidate.id === colorId;
+                                  });
+                                  const colorName =
+                                    typeof selectedColor === "string"
+                                      ? selectedColor
+                                      : selectedColor?.labelFr ?? item.colorName;
+                                  const colorCode =
+                                    typeof selectedColor === "string"
+                                      ? selectedColor
+                                      : selectedColor?.id ?? item.colorCode;
+                                  const image =
+                                    typeof selectedColor === "string"
+                                      ? item.image
+                                      : selectedColor?.image ?? item.image;
 
-                                      setItems((current) =>
-                                        current.map((entry, idx) =>
-                                          idx === index
-                                            ? {
-                                                ...entry,
-                                                colorCode,
-                                                colorName,
-                                                image,
-                                              }
-                                            : entry,
-                                        ),
-                                      );
-                                    }}
-                                  />
-                                );
-                              })}
+                                  setItems((current) =>
+                                    current.map((entry, idx) =>
+                                      idx === index
+                                        ? {
+                                            ...entry,
+                                            colorCode,
+                                            colorName,
+                                            image,
+                                          }
+                                        : entry,
+                                    ),
+                                  );
+                                }}
+                              />
+                            );
+                            })}
                               <span className="text-sm font-semibold text-white sr-only">{selectedLabel}</span>
                             </div>
                           );
@@ -373,6 +379,10 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                         Size
                         <div className="flex flex-wrap gap-2">
                           {(getProductBySlug(item.slug)?.sizes ?? [item.size]).map((sizeOption) => {
+                            const soldOutSizes = getProductBySlug(item.slug)?.soldOutSizes ?? [];
+                            const isSoldOut = soldOutSizes.some(
+                              (entry) => entry.toUpperCase() === sizeOption.toUpperCase(),
+                            );
                             const isSelected = sizeOption === item.size;
                             return (
                               <button
@@ -386,13 +396,21 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                                     ),
                                   )
                                 }
-                                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 disabled:opacity-60 ${
+                                className={`relative rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 disabled:opacity-60 ${
                                   isSelected
                                     ? "border-white bg-white/15 text-white"
                                     : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                                }`}
+                                } ${isSoldOut ? "opacity-75" : ""}`}
                               >
-                                {sizeOption}
+                                <span className="relative inline-flex items-center justify-center">
+                                  {sizeOption}
+                                  {isSoldOut ? (
+                                    <>
+                                      <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
+                                      <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
+                                    </>
+                                  ) : null}
+                                </span>
                               </button>
                             );
                           })}

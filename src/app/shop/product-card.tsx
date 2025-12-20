@@ -94,6 +94,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     () => new Set((product.soldOutColorCodes ?? []).map((hex) => normalizeHexValue(hex))),
     [product.soldOutColorCodes],
   );
+  const soldOutSizeSet = useMemo(
+    () => new Set((product.soldOutSizes ?? []).map((size) => size.toUpperCase())),
+    [product.soldOutSizes],
+  );
   const availableColors = useMemo(
     () => colorOptions.filter((color) => !soldOutColorSet.has(normalizeHexValue(color.hex))),
     [colorOptions, soldOutColorSet],
@@ -491,6 +495,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               <div className="flex gap-1 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
                 {product.sizes.map((size) => {
                   const isSelected = selectedSize === size;
+                  const isSoldOut = soldOutSizeSet.has(size.toUpperCase());
                   return (
                     <motion.button
                       key={size}
@@ -501,15 +506,23 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                         handleSelectSize(size);
                       }}
                       aria-pressed={isSelected}
-                      className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      className={`relative whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                         isSelected
                           ? "border-white bg-white/15 text-white"
                           : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                      }`}
+                      } ${isSoldOut ? "opacity-70" : ""}`}
                       whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.97 }}
                     >
-                      {size.toUpperCase()}
+                      <span className="relative inline-flex items-center justify-center">
+                        {size.toUpperCase()}
+                        {isSoldOut ? (
+                          <>
+                            <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
+                            <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
+                          </>
+                        ) : null}
+                      </span>
                     </motion.button>
                   );
                 })}

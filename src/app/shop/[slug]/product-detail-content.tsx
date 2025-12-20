@@ -396,9 +396,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     aria-pressed={isSelected}
                     aria-disabled={isSoldOut}
                     disabled={isSoldOut}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                    className={`relative rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                       isSoldOut
-                        ? "cursor-not-allowed border-dashed border-white/15 bg-white/5 text-white/60 opacity-50"
+                        ? "cursor-not-allowed border-dashed border-white/15 bg-white/5 text-white/70 opacity-70"
                         : isSelected
                           ? "border-white bg-white/15 text-white"
                           : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
@@ -406,7 +406,15 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     whileHover={isSoldOut ? undefined : { y: -1 }}
                     whileTap={isSoldOut ? undefined : { scale: 0.97 }}
                   >
-                    {sizeLabel(size)}
+                    <span className="relative inline-flex items-center justify-center">
+                      {sizeLabel(size)}
+                      {isSoldOut ? (
+                        <>
+                          <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
+                          <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
+                        </>
+                      ) : null}
+                    </span>
                     {isSoldOut ? (
                       <span className="ml-1 text-[10px] uppercase tracking-wide text-rose-100">Sold out</span>
                     ) : null}

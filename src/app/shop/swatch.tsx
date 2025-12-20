@@ -69,13 +69,13 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
         <span className="relative flex items-center justify-center">
           <span
             aria-hidden
-            className={`${dotSizes[size]} rounded-full border border-white/30 shadow-[0_0_0_3px_rgba(255,255,255,0.05)] ${isSoldOut ? "opacity-40" : ""}`}
+            className={`${dotSizes[size]} rounded-full border border-white/30 shadow-[0_0_0_3px_rgba(255,255,255,0.05)] ${isSoldOut ? "opacity-60" : ""}`}
             style={{ backgroundColor: colorHex ?? "#e5e7eb" }}
           />
           {isSoldOut ? (
             <>
-              <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-slate-900/80 mix-blend-multiply" />
-              <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-slate-900/80 mix-blend-multiply" />
+              <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
+              <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
             </>
           ) : null}
         </span>
