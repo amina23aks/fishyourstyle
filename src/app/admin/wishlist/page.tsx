@@ -70,8 +70,8 @@ export default async function WishlistPage() {
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Wishlist</p>
-        <h1 className="text-3xl font-semibold text-white">Wishlist</h1>
-        <p className="max-w-3xl text-sky-100/90">
+        <h1 className="text-3xl font-semibold text-white sm:text-4xl">Wishlist</h1>
+        <p className="max-w-3xl text-sm text-sky-100/90 sm:text-base">
           Review shoppers who saved their interest. Use these signups to nurture demand and keep them in the loop when
           new products arrive.
         </p>
