@@ -19,6 +19,8 @@ export type ProductFormValues = {
   inStock: boolean;
   sizes: ("S" | "M" | "L" | "XL" | "XXL")[];
   colors: { hex: string }[];
+  soldOutSizes: string[];
+  soldOutColorCodes: string[];
   gender?: "unisex" | "men" | "women" | "";
   images: string[];
 };
@@ -80,6 +82,31 @@ const normalizeImages = (images: unknown): string[] => {
   return Array.from(new Set(images.map(String).filter(Boolean)));
 };
 
+const normalizeStringArray = (input: unknown, fallback: string[] = []): string[] => {
+  if (!input) return fallback;
+  if (Array.isArray(input)) {
+    const normalized = input
+      .map((item) => (typeof item === "string" ? item.trim() : String(item).trim()))
+      .filter(Boolean);
+    return Array.from(new Set(normalized));
+  }
+  if (typeof input === "string") {
+    const normalized = input
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    return Array.from(new Set(normalized));
+  }
+  return fallback;
+};
+
+const normalizeHexValue = (value: string): string => value.trim().toLowerCase();
+
+const normalizeHexArray = (input: unknown, fallback: string[] = []): string[] => {
+  const normalized = normalizeStringArray(input, fallback).map((entry) => normalizeHexValue(entry));
+  return Array.from(new Set(normalized));
+};
+
 const defaultValues: ProductFormValues = {
   name: "",
   description: "",
@@ -92,6 +119,8 @@ const defaultValues: ProductFormValues = {
   inStock: true,
   sizes: [],
   colors: [{ hex: "#000000" }],
+  soldOutSizes: [],
+  soldOutColorCodes: [],
   gender: "",
   images: [],
 };
@@ -188,6 +217,10 @@ export function ProductForm({
     ...initialValues,
     colors: initialColors,
     images: initialImages,
+    soldOutSizes: normalizeStringArray(initialValues?.soldOutSizes, defaultValues.soldOutSizes).map((size) =>
+      size.toUpperCase(),
+    ),
+    soldOutColorCodes: normalizeHexArray(initialValues?.soldOutColorCodes, defaultValues.soldOutColorCodes),
   });
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -228,6 +261,10 @@ export function ProductForm({
       ...initialValues,
       colors: normalizeColors(initialValues?.colors, prev.colors),
       images: normalizeImages(initialValues?.images ?? prev.images),
+      soldOutSizes: normalizeStringArray(initialValues?.soldOutSizes, prev.soldOutSizes).map((size) =>
+        size.toUpperCase(),
+      ),
+      soldOutColorCodes: normalizeHexArray(initialValues?.soldOutColorCodes, prev.soldOutColorCodes),
     }));
   }, [initialValues]);
 
@@ -261,8 +298,21 @@ export function ProductForm({
       const normalizedColors = values.colors
         .map((color) => ({ hex: color.hex.trim() }))
         .filter((color) => Boolean(color.hex));
+      const sizeSet = new Set(values.sizes.map((size) => size.trim().toUpperCase()));
+      const normalizedSoldOutSizes = normalizeStringArray(values.soldOutSizes)
+        .map((size) => size.toUpperCase())
+        .filter((size) => sizeSet.has(size));
+      const colorHexSet = new Set(normalizedColors.map((color) => normalizeHexValue(color.hex)));
+      const normalizedSoldOutColorCodes = normalizeHexArray(values.soldOutColorCodes).filter((hex) =>
+        colorHexSet.has(hex),
+      );
 
-      await onSubmit({ ...values, colors: normalizedColors });
+      await onSubmit({
+        ...values,
+        colors: normalizedColors,
+        soldOutSizes: normalizedSoldOutSizes,
+        soldOutColorCodes: normalizedSoldOutColorCodes,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to save product";
       setError(message);
@@ -287,6 +337,31 @@ export function ProductForm({
       const message = err instanceof Error ? err.message : "Image upload failed";
       setError(message);
     }
+  };
+
+  const toggleSoldOutSize = (size: string) => {
+    const normalized = size.toUpperCase();
+    setValues((prev) => {
+      const isSoldOut = prev.soldOutSizes.some((entry) => entry.toUpperCase() === normalized);
+      const filtered = prev.soldOutSizes.filter((entry) => entry.toUpperCase() !== normalized);
+      return {
+        ...prev,
+        soldOutSizes: isSoldOut ? filtered : [...filtered, normalized],
+      };
+    });
+  };
+
+  const toggleSoldOutColor = (hex: string) => {
+    const normalized = normalizeHexValue(hex);
+    if (!normalized) return;
+    setValues((prev) => {
+      const hasEntry = prev.soldOutColorCodes.some((entry) => normalizeHexValue(entry) === normalized);
+      const filtered = prev.soldOutColorCodes.filter((entry) => normalizeHexValue(entry) !== normalized);
+      return {
+        ...prev,
+        soldOutColorCodes: hasEntry ? filtered : [...filtered, normalized],
+      };
+    });
   };
 
   const computedSlug = useMemo(
@@ -708,12 +783,20 @@ export function ProductForm({
                     className="h-4 w-4 rounded border-white/40 bg-white/5 text-emerald-400 focus:ring-2 focus:ring-white/40"
                     checked={checked}
                     onChange={(e) =>
-                      setValues((prev) => ({
-                        ...prev,
-                        sizes: e.target.checked
+                      setValues((prev) => {
+                        const nextSizes = e.target.checked
                           ? [...prev.sizes, size]
-                          : prev.sizes.filter((item) => item !== size),
-                      }))
+                          : prev.sizes.filter((item) => item !== size);
+                        const normalized = size.toUpperCase();
+                        const nextSoldOutSizes = e.target.checked
+                          ? prev.soldOutSizes
+                          : prev.soldOutSizes.filter((entry) => entry.toUpperCase() !== normalized);
+                        return {
+                          ...prev,
+                          sizes: nextSizes,
+                          soldOutSizes: nextSoldOutSizes,
+                        };
+                      })
                     }
                   />
                   {size}
@@ -721,6 +804,31 @@ export function ProductForm({
               );
             })}
           </div>
+          {values.sizes.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-wide text-sky-100/70">Mark sold out</p>
+              <div className="flex flex-wrap gap-2">
+                {values.sizes.map((size) => {
+                  const isSoldOut = values.soldOutSizes.some((entry) => entry.toUpperCase() === size.toUpperCase());
+                  return (
+                    <button
+                      key={`soldout-${size}`}
+                      type="button"
+                      onClick={() => toggleSoldOutSize(size)}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                        isSoldOut
+                          ? "border-rose-300/60 bg-rose-500/15 text-rose-50 opacity-70 ring-1 ring-rose-400/40"
+                          : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                      }`}
+                    >
+                      {size}
+                      {isSoldOut ? <span className="text-[10px] uppercase tracking-wide">Sold out</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="space-y-2 text-sm text-sky-100/90 md:col-span-2">
@@ -744,17 +852,49 @@ export function ProductForm({
               const hexValue = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color.hex)
                 ? color.hex
                 : "#000000";
+              const normalizedHex = normalizeHexValue(color.hex || hexValue);
+              const isSoldOut = values.soldOutColorCodes.some(
+                (entry) => normalizeHexValue(entry) === normalizedHex,
+              );
               return (
-                <div key={`color-${index}`} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+                <div
+                  key={`color-${index}`}
+                  className={`flex items-center gap-2 rounded-2xl border px-3 py-2 transition ${
+                    isSoldOut
+                      ? "border-rose-300/60 bg-rose-500/10 ring-1 ring-rose-300/30 opacity-80"
+                      : "border-white/10 bg-white/5"
+                  }`}
+                >
                   <input
                     type="color"
                     value={hexValue}
                     onChange={(e) => {
                       const nextHex = e.target.value;
-                      setValues((prev) => ({
-                        ...prev,
-                        colors: prev.colors.map((entry, i) => (i === index ? { hex: nextHex } : entry)),
-                      }));
+                      setValues((prev) => {
+                        const previousHex = prev.colors[index]?.hex ?? "";
+                        const nextColors = prev.colors.map((entry, i) =>
+                          i === index ? { hex: nextHex } : entry,
+                        );
+                        const prevNormalized = normalizeHexValue(previousHex || hexValue);
+                        const nextNormalized = normalizeHexValue(nextHex);
+                        const hadSoldOut = prev.soldOutColorCodes.some(
+                          (entry) => normalizeHexValue(entry) === prevNormalized,
+                        );
+                        const nextSoldOutColorCodes = hadSoldOut
+                          ? Array.from(
+                              new Set(
+                                prev.soldOutColorCodes
+                                  .filter((entry) => normalizeHexValue(entry) !== prevNormalized)
+                                  .concat(nextNormalized ? [nextNormalized] : []),
+                              ),
+                            )
+                          : prev.soldOutColorCodes;
+                        return {
+                          ...prev,
+                          colors: nextColors,
+                          soldOutColorCodes: nextSoldOutColorCodes,
+                        };
+                      });
                     }}
                     className="h-9 w-9 cursor-pointer rounded-full border border-white/30 bg-white/10 p-0"
                     aria-label={`Pick color ${index + 1}`}
@@ -764,10 +904,28 @@ export function ProductForm({
                     value={color.hex}
                     onChange={(e) => {
                       const nextHex = e.target.value.trim();
-                      setValues((prev) => ({
-                        ...prev,
-                        colors: prev.colors.map((entry, i) => (i === index ? { hex: nextHex } : entry)),
-                      }));
+                      setValues((prev) => {
+                        const previousHex = prev.colors[index]?.hex ?? "";
+                        const prevNormalized = normalizeHexValue(previousHex || hexValue);
+                        const nextNormalized = normalizeHexValue(nextHex);
+                        const hadSoldOut = prev.soldOutColorCodes.some(
+                          (entry) => normalizeHexValue(entry) === prevNormalized,
+                        );
+                        const nextSoldOutColorCodes = hadSoldOut
+                          ? Array.from(
+                              new Set(
+                                prev.soldOutColorCodes
+                                  .filter((entry) => normalizeHexValue(entry) !== prevNormalized)
+                                  .concat(nextNormalized ? [nextNormalized] : []),
+                              ),
+                            )
+                          : prev.soldOutColorCodes;
+                        return {
+                          ...prev,
+                          colors: prev.colors.map((entry, i) => (i === index ? { hex: nextHex } : entry)),
+                          soldOutColorCodes: nextSoldOutColorCodes,
+                        };
+                      });
                     }}
                     className="w-28 rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs text-white shadow-inner shadow-sky-900/40 focus:border-white/40 focus:outline-none"
                     placeholder="#000000"
@@ -775,14 +933,31 @@ export function ProductForm({
                   <button
                     type="button"
                     onClick={() =>
-                      setValues((prev) => ({
-                        ...prev,
-                        colors: prev.colors.filter((_, i) => i !== index) || [{ hex: "#000000" }],
-                      }))
+                      setValues((prev) => {
+                        const removedHex = prev.colors[index]?.hex ?? "";
+                        return {
+                          ...prev,
+                          colors: prev.colors.filter((_, i) => i !== index) || [{ hex: "#000000" }],
+                          soldOutColorCodes: prev.soldOutColorCodes.filter(
+                            (entry) => normalizeHexValue(entry) !== normalizeHexValue(removedHex),
+                          ),
+                        };
+                      })
                     }
                     className="text-[11px] text-rose-200 hover:text-rose-100"
                   >
                     Remove
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleSoldOutColor(color.hex || hexValue)}
+                    className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
+                      isSoldOut
+                        ? "bg-rose-500/20 text-rose-50"
+                        : "bg-white/10 text-white hover:bg-white/15"
+                    }`}
+                  >
+                    {isSoldOut ? "Sold out" : "Mark sold out"}
                   </button>
                 </div>
               );
@@ -912,4 +1087,3 @@ export function ProductForm({
     </>
   );
 }
-

@@ -38,6 +38,8 @@ export type StorefrontProduct = {
   designTheme: string;
   sizes: string[];
   colors: StorefrontProductColor[];
+  soldOutSizes?: string[];
+  soldOutColorCodes?: string[];
   gender?: "unisex" | "men" | "women";
   stock: number;
   inStock: boolean;
@@ -72,6 +74,20 @@ function normalizeImagesField(images: unknown): StorefrontProductImages {
   const finalGallery = gallery.filter((url) => url !== finalMain);
 
   return { main: finalMain, gallery: finalGallery } satisfies StorefrontProductImages;
+}
+
+function parseStringArray(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((item) => (typeof item === "string" ? item : String(item))).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+  return [];
 }
 
 function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
@@ -112,6 +128,8 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     typeof genderValue === "string" && validGenders.includes(genderValue as StorefrontProduct["gender"])
       ? (genderValue as StorefrontProduct["gender"])
       : undefined;
+  const soldOutSizes = parseStringArray(data.soldOutSizes);
+  const soldOutColorCodes = parseStringArray(data.soldOutColorCodes);
 
   return {
     id,
@@ -126,6 +144,8 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     sizes: Array.isArray(data.sizes) ? (data.sizes as string[]) : [],
     colors: colorsArray,
     gender,
+    soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
+    soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
     inStock:
       typeof data.inStock === "boolean"

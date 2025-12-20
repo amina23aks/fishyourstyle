@@ -30,6 +30,8 @@ export type AdminProduct = {
   designTheme: string;
   sizes: string[];
   colors: { hex: string; image?: string }[];
+  soldOutSizes?: string[];
+  soldOutColorCodes?: string[];
   stock: number;
   inStock: boolean;
   images: { main: string; gallery: string[] };
@@ -175,6 +177,8 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     designTheme: typeof data.designTheme === "string" ? data.designTheme : "simple",
     sizes: parseStringArray(data.sizes),
     colors: parseColorObjects(data.colors),
+    soldOutSizes: parseStringArray(data.soldOutSizes),
+    soldOutColorCodes: parseStringArray(data.soldOutColorCodes),
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
     inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
     images: normalizeImages(data.images),
@@ -186,6 +190,8 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
 
 function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWrite> {
   const normalizedColors = parseColorObjects(input.colors);
+  const soldOutSizes = parseStringArray(input.soldOutSizes);
+  const soldOutColorCodes = parseStringArray(input.soldOutColorCodes);
   const payload: Record<string, unknown> = {
     name: input.name.trim(),
     slug: input.slug || slugifyName(input.name),
@@ -196,6 +202,8 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     designTheme: input.designTheme,
     sizes: input.sizes ?? [],
     colors: normalizedColors,
+    soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
+    soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
     stock: Number(input.stock),
     inStock: Boolean(input.inStock),
     images: input.images ?? { main: "", gallery: [] },
@@ -241,6 +249,14 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   if (patch.designTheme !== undefined) payload.designTheme = patch.designTheme;
   if (patch.sizes !== undefined) payload.sizes = patch.sizes;
   if (patch.colors !== undefined) payload.colors = parseColorObjects(patch.colors);
+  if (patch.soldOutSizes !== undefined) {
+    const parsed = parseStringArray(patch.soldOutSizes);
+    payload.soldOutSizes = parsed.length > 0 ? parsed : null;
+  }
+  if (patch.soldOutColorCodes !== undefined) {
+    const parsed = parseStringArray(patch.soldOutColorCodes);
+    payload.soldOutColorCodes = parsed.length > 0 ? parsed : null;
+  }
   if (patch.stock !== undefined) payload.stock = Number(patch.stock);
   if (patch.inStock !== undefined) payload.inStock = Boolean(patch.inStock);
   if (patch.images !== undefined) payload.images = patch.images;
