@@ -5,19 +5,21 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 export async function sendOrderTelegramNotification(order: Order): Promise<void> {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn("[Telegram] Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID");
+    console.warn("[Telegram] Missing TELEGRAM env at runtime", {
+      hasToken: !!TELEGRAM_BOT_TOKEN,
+      hasChatId: !!TELEGRAM_CHAT_ID,
+    });
     return;
   }
+
+  console.log("[Telegram] Sending message to chat", TELEGRAM_CHAT_ID);
 
   try {
     const orderShortId = order.id.slice(-6);
     const customerEmail = order.customerEmail?.trim() || "guest (no email)";
     const customerLine = `${order.shipping.customerName} – ${order.shipping.wilaya} – ${order.shipping.mode}`;
     const itemsLines = order.items
-      .map(
-        (item) =>
-          `• ${item.quantity}x ${item.name} – ${item.colorName} / ${item.size}`,
-      )
+      .map((item) => `• ${item.quantity}x ${item.name} – ${item.colorName} / ${item.size}`)
       .join("\n");
 
     const messageParts = [
