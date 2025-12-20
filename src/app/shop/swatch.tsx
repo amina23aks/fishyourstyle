@@ -61,7 +61,10 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
         aria-label={accessibleLabel}
         aria-disabled={isDisabled}
         disabled={isDisabled}
-        onClick={isDisabled ? undefined : onSelect}
+        onClick={() => {
+          if (isDisabled) return;
+          onSelect?.();
+        }}
         className={`relative inline-flex items-center gap-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeClasses[size]} ${baseClasses} ${disabledClasses}`.trim()}
         whileHover={isDisabled ? undefined : { transform: "translateY(-1px)" }}
         whileTap={isDisabled ? undefined : { scale: 0.97 }}
