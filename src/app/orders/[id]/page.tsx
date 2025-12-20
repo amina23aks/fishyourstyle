@@ -7,14 +7,12 @@ import Link from "next/link";
 import { doc, getDoc } from "firebase/firestore";
 import PageShell from "@/components/PageShell";
 import { ECONOMIC_SHIPPING, getEconomicShippingByWilaya } from "@/data/shipping";
-import { getProductBySlug } from "@/lib/products";
 import type { Order, OrderItem, ShippingInfo } from "@/types/order";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
 import { getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/context/auth";
 import { isAdminUser } from "@/lib/admin";
-import { Swatch } from "@/app/shop/swatch";
 
 function toDateSafe(value: unknown): Date | null {
   if (!value) return null;
