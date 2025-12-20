@@ -79,6 +79,22 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const isOutOfStock =
     product.inStock === false || (stockCount !== null && stockCount <= 0) || !hasVariantAvailable;
   const availableStock = stockCount ?? undefined;
+  const selectedSizeOption = selectedSize ? sizeOptions.find((size) => size.value === selectedSize) : null;
+  const isSelectionInvalid =
+    isOutOfStock ||
+    !hasVariantAvailable ||
+    (!selectedColor && requiresColorSelection) ||
+    (!selectedSize && requiresSizeSelection) ||
+    Boolean(selectedColor?.soldOut) ||
+    Boolean(selectedSizeOption?.soldOut);
+
+  if (process.env.NODE_ENV !== "production") {
+    // Surface variant state in development to verify sold-out flags per product card.
+    console.log("[ProductCard] product", product.slug, {
+      colors: colorOptions,
+      sizes: sizeOptions,
+    });
+  }
 
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
@@ -172,23 +188,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   };
 
   const handleAddToCart = useCallback(() => {
-    if (isOutOfStock) {
-      setSelectionWarning("Out of stock");
-      return false;
-    }
-
-    if (!hasVariantAvailable) {
-      setSelectionWarning("Selected options are sold out");
-      return false;
-    }
-
-    if (!selectedColor && requiresColorSelection) {
-      setSelectionWarning("Please choose a color and size before adding to cart.");
-      return false;
-    }
-
-    if (!selectedSize && requiresSizeSelection) {
-      setSelectionWarning("Please choose a color and size before adding to cart.");
+    if (isSelectionInvalid) {
+      const fallbackMessage = !hasVariantAvailable
+        ? "Selected options are sold out"
+        : "Please choose a color and size before adding to cart.";
+      const message = isOutOfStock ? "Out of stock" : fallbackMessage;
+      setSelectionWarning(message);
       return false;
     }
 
@@ -233,11 +238,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     availableColors,
     flyToCart,
     availableStock,
-    isOutOfStock,
-    items,
-    requiresColorSelection,
-    requiresSizeSelection,
     hasVariantAvailable,
+    isOutOfStock,
+    isSelectionInvalid,
+    items,
     product.currency,
     product.id,
     product.images.main,
@@ -493,9 +497,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
           <AnimatedAddToCartButton
             onClick={handleAddToCart}
-            disabled={isOutOfStock || !hasVariantAvailable}
+            disabled={isSelectionInvalid}
             className={`w-full justify-center ${
-              isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
+              isSelectionMissing || isSelectionInvalid ? "opacity-60 cursor-not-allowed" : ""
             }`.trim()}
           />
         </div>
