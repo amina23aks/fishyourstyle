@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, getDocs, limit, orderBy, query, where, type QueryConstraint } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { getDb } from "@/lib/firebaseClient";
@@ -76,18 +76,17 @@ export default function OrdersList() {
         throw new Error("Unable to connect to orders. Please try again.");
       }
 
-      const constraints: QueryConstraint[] = [
-        where("userId", "==", user.uid),
-        orderBy("createdAt", "desc"),
-        limit(20),
-      ];
-
       const ordersRef = collection(db, "orders");
-      const ordersQuery = query(ordersRef, ...constraints);
-      const snapshot = await getDocs(ordersQuery);
+      const userOrdersPromise = getDocs(query(ordersRef, where("userId", "==", user.uid)));
+      const emailOrdersPromise = user.email
+        ? getDocs(query(ordersRef, where("customerEmail", "==", user.email)))
+        : Promise.resolve(null);
 
-      const fetchedOrders: Order[] = snapshot.docs.map((doc) => {
-        const data = doc.data();
+      const [userOrdersSnapshot, emailOrdersSnapshot] = await Promise.all([userOrdersPromise, emailOrdersPromise]);
+
+      const merged = new Map<string, Order>();
+      const mapDocToOrder = (doc: { id: string; data: () => unknown }) => {
+        const data = doc.data() as Record<string, unknown>;
         const createdAtValue = (data.createdAt as string | { toDate?: () => Date } | undefined) ?? "";
 
         return {
@@ -100,9 +99,26 @@ export default function OrdersList() {
                 ? createdAtValue.toDate().toISOString()
                 : "",
         } as Order;
+      };
+
+      userOrdersSnapshot.docs.forEach((doc) => {
+        merged.set(doc.id, mapDocToOrder(doc));
       });
 
-      setOrders(fetchedOrders);
+      emailOrdersSnapshot?.docs.forEach((doc) => {
+        merged.set(doc.id, mapDocToOrder(doc));
+      });
+
+      const mergedOrders = Array.from(merged.values()).sort((a, b) => {
+        const aDate = toDateSafe(a.createdAt);
+        const bDate = toDateSafe(b.createdAt);
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;
+        if (!bDate) return -1;
+        return bDate.getTime() - aDate.getTime();
+      });
+
+      setOrders(mergedOrders.slice(0, 20));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       setError(errorMessage);
@@ -195,10 +211,14 @@ export default function OrdersList() {
     return (
       <div className="space-y-6">
         {successBanner}
-        <div className="flex justify-center">
-          <div className="mt-2 w-full max-w-xl rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-sm shadow-sky-900/30 backdrop-blur">
-            <h2 className="mb-2 text-lg font-semibold text-white">Sign in to see your full order history.</h2>
-            <p className="mb-4 text-sm text-sky-100">Guest orders are only visible using your confirmation email or your order ID.</p>
+        <div className="mx-auto max-w-lg rounded-2xl border border-white/20 bg-white/10 px-6 py-10 text-center text-sm shadow-sm shadow-sky-900/30 backdrop-blur sm:text-base">
+          <p className="mb-2 font-medium">
+            سجّل دخول بنفس الإيميل الذي استخدمته في طلباتك لتظهر هنا.
+          </p>
+          <p className="text-white/60">
+            Log in with the same email you used for your orders to see them here.
+          </p>
+          <div className="mt-6 flex justify-center">
             <Link
               href="/account"
               className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
