@@ -453,6 +453,14 @@ export default function CheckoutClient() {
                 <div className="rounded-lg border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-sm text-emerald-50 shadow-inner shadow-emerald-900/30">
                   <p className="font-medium">Order placed successfully!</p>
                   <p className="mt-1">Order ID: {success.orderId}</p>
+                  <div className="mt-4 rounded-xl bg-white/5 p-4 text-sm sm:text-base">
+                    <p className="font-medium text-white">
+                      If you later log in with this same email, you’ll see your orders under the Orders page.
+                    </p>
+                    <p className="mt-1 text-white/60">
+                      إذا سجّلت دخول لاحقًا بنفس هذا الإيميل، تقدري تشوفي طلباتك في صفحة Orders.
+                    </p>
+                  </div>
                   <p className="mt-2 text-xs">Redirecting to orders page...</p>
                 </div>
               )}

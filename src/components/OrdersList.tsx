@@ -195,10 +195,14 @@ export default function OrdersList() {
     return (
       <div className="space-y-6">
         {successBanner}
-        <div className="flex justify-center">
-          <div className="mt-2 w-full max-w-xl rounded-2xl border border-white/20 bg-white/10 p-6 text-center shadow-sm shadow-sky-900/30 backdrop-blur">
-            <h2 className="mb-2 text-lg font-semibold text-white">Sign in to see your full order history.</h2>
-            <p className="mb-4 text-sm text-sky-100">Guest orders are only visible using your confirmation email or your order ID.</p>
+        <div className="mx-auto max-w-lg rounded-2xl border border-white/20 bg-white/10 px-6 py-10 text-center text-sm shadow-sm shadow-sky-900/30 backdrop-blur sm:text-base">
+          <p className="mb-2 font-medium">
+            سجّل دخول بنفس الإيميل الذي استخدمته في طلباتك لتظهر هنا.
+          </p>
+          <p className="text-white/60">
+            Log in with the same email you used for your orders to see them here.
+          </p>
+          <div className="mt-6 flex justify-center">
             <Link
               href="/account"
               className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
