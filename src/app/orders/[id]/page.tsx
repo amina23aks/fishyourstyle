@@ -14,6 +14,7 @@ import { colorCodeToHex } from "@/lib/colorUtils";
 import { getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/context/auth";
 import { isAdminUser } from "@/lib/admin";
+import { Swatch } from "@/app/shop/swatch";
 
 function toDateSafe(value: unknown): Date | null {
   if (!value) return null;
@@ -298,87 +299,69 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                         </p>
                       </div>
                       <div className="flex items-center gap-2 self-start sm:self-auto">
-                        <button
-                          onClick={() => updateItemQuantity(index, -1)}
-                          disabled={disabled || item.quantity <= 1}
-                          className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-                          aria-label="Decrease quantity"
-                        >
-                          -
-                        </button>
+                        <span className="text-sm font-semibold text-white">Qty:</span>
                         <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
-                        <button
-                          onClick={() => updateItemQuantity(index, 1)}
-                          disabled={disabled}
-                          className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-                          aria-label="Increase quantity"
-                        >
-                          +
-                        </button>
                       </div>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="flex flex-col text-xs text-sky-100 gap-1">
                         Color
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="inline-block h-4 w-4 rounded-full border border-white/40"
-                            style={{ backgroundColor: colorCodeToHex(item.colorCode) }}
-                          />
-                          <select
-                            value={item.colorCode}
-                            onChange={(e) => {
-                              const product = getProductBySlug(item.slug);
-                              const selectedColor = product?.colors.find((color) => {
-                                if (typeof color === "string") return color === e.target.value;
-                                return color.id === e.target.value;
-                              });
-                              const colorName =
-                                typeof selectedColor === "string"
-                                  ? selectedColor
-                                  : selectedColor?.labelFr ?? item.colorName;
-                              const colorCode =
-                                typeof selectedColor === "string"
-                                  ? selectedColor
-                                  : selectedColor?.id ?? item.colorCode;
-                              const image =
-                                typeof selectedColor === "string"
-                                  ? item.image
-                                  : selectedColor?.image ?? item.image;
+                        <div className="flex flex-wrap gap-2">
+                          {(getProductBySlug(item.slug)?.colors ?? [
+                            {
+                              id: item.colorCode,
+                              labelFr: item.colorName,
+                              labelAr: item.colorName,
+                              image: item.image,
+                            },
+                          ]).map((color) => {
+                            const colorId = typeof color === "string" ? color : color.id;
+                            const colorLabel = typeof color === "string" ? color : color.labelFr ?? "Color";
+                            const isSelected = colorId === item.colorCode;
+                            return (
+                              <Swatch
+                                key={colorId}
+                                label={colorLabel}
+                                colorHex={colorCodeToHex(colorId)}
+                                selected={isSelected}
+                                showLabel={false}
+                                size="xs"
+                                onSelect={() => {
+                                  if (disabled) return;
+                                  const product = getProductBySlug(item.slug);
+                                  const selectedColor = product?.colors.find((candidate) => {
+                                    if (typeof candidate === "string") return candidate === colorId;
+                                    return candidate.id === colorId;
+                                  });
+                                  const colorName =
+                                    typeof selectedColor === "string"
+                                      ? selectedColor
+                                      : selectedColor?.labelFr ?? item.colorName;
+                                  const colorCode =
+                                    typeof selectedColor === "string"
+                                      ? selectedColor
+                                      : selectedColor?.id ?? item.colorCode;
+                                  const image =
+                                    typeof selectedColor === "string"
+                                      ? item.image
+                                      : selectedColor?.image ?? item.image;
 
-                              setItems((current) =>
-                                current.map((entry, idx) =>
-                                  idx === index
-                                    ? {
-                                        ...entry,
-                                        colorCode,
-                                        colorName,
-                                        image,
-                                      }
-                                    : entry,
-                                ),
-                              );
-                            }}
-                            disabled={disabled}
-                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
-                          >
-                            {(getProductBySlug(item.slug)?.colors ?? [
-                              {
-                                id: item.colorCode,
-                                labelFr: item.colorName,
-                                labelAr: item.colorName,
-                                image: item.image,
-                              },
-                            ]).map((color) => {
-                              const colorId = typeof color === "string" ? color : color.id;
-                              const colorLabel = typeof color === "string" ? color : color.labelFr;
-                              return (
-                                <option key={colorId} value={colorId} className="bg-slate-900">
-                                  {colorLabel}
-                                </option>
-                              );
-                            })}
-                          </select>
+                                  setItems((current) =>
+                                    current.map((entry, idx) =>
+                                      idx === index
+                                        ? {
+                                            ...entry,
+                                            colorCode,
+                                            colorName,
+                                            image,
+                                          }
+                                        : entry,
+                                    ),
+                                  );
+                                }}
+                              />
+                            );
+                          })}
                         </div>
                       </label>
                       <label className="flex flex-col text-xs text-sky-100 gap-1">
