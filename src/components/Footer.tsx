@@ -92,7 +92,7 @@ export default function Footer() {
             </ul>
           </div>
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">Follow me please</h3>
+            <h3 className="text-sm font-semibold text-white">Follow</h3>
             <div className="flex gap-3 text-sky-200">
               <Link
                 href="https://www.instagram.com"
