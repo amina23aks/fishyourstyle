@@ -268,9 +268,12 @@ export async function POST(request: NextRequest) {
     if (savedOrder) {
       console.log(`[Orders API] Order ${savedOrder.id} created successfully`);
       console.log(`[Orders API] Sending Telegram notification for ${savedOrder.id}`);
-      sendOrderTelegramNotification(savedOrder).catch((error) => {
-        console.error("[Telegram] Notification error (non-blocking)", error);
-      });
+      try {
+        await sendOrderTelegramNotification(savedOrder);
+      } catch (error) {
+        console.error("[Telegram] Notification error (non-fatal)", error);
+        // Do NOT throw – order creation must still succeed even if Telegram is down.
+      }
     }
 
     return NextResponse.json({ orderId: createdOrderId }, { status: 201 });
