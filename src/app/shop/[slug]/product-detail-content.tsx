@@ -64,6 +64,9 @@ const swatchHex = (color: NormalizedColor): string => {
   return map[label] ?? color.hex ?? "#e5e7eb";
 };
 
+const normalizeHexValue = (value: string | undefined): string =>
+  (value ?? "").trim().toLowerCase();
+
 const sizeLabel = (size: string) => size.toUpperCase();
 const capitalizeLabel = (value: string | undefined | null): string => {
   if (!value) return "";
@@ -76,13 +79,34 @@ export function ProductDetailContent({ product }: { product: Product }) {
       ? capitalizeLabel(product.designTheme)
       : capitalizeLabel(product.category);
   const colorOptions = normalizeColors(product.colors);
-  const [activeColor, setActiveColor] = useState<NormalizedColor | undefined>(
-    colorOptions.length === 1 ? colorOptions[0] : undefined,
+  const soldOutColorSet = useMemo(
+    () => new Set((product.soldOutColorCodes ?? []).map((hex) => normalizeHexValue(hex))),
+    [product.soldOutColorCodes],
+  );
+  const soldOutSizeSet = useMemo(
+    () => new Set((product.soldOutSizes ?? []).map((size) => size.toUpperCase())),
+    [product.soldOutSizes],
+  );
+  const availableColors = useMemo(
+    () => colorOptions.filter((color) => !soldOutColorSet.has(normalizeHexValue(color.hex))),
+    [colorOptions, soldOutColorSet],
+  );
+  const availableSizes = useMemo(
+    () => product.sizes.filter((size) => !soldOutSizeSet.has(size.toUpperCase())),
+    [product.sizes, soldOutSizeSet],
+  );
+  const [activeColor, setActiveColor] = useState<NormalizedColor | undefined>(() =>
+    availableColors.length === 1 ? availableColors[0] : undefined,
   );
   const [activeImage, setActiveImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState<string | undefined>(
-    product.sizes.length === 1 ? product.sizes[0] : undefined,
+  const [selectedSize, setSelectedSize] = useState<string | undefined>(() =>
+    availableSizes.length === 1 ? availableSizes[0] : undefined,
   );
+  const requiresColorSelection = availableColors.length > 1;
+  const requiresSizeSelection = availableSizes.length > 1;
+  const noColorAvailable = colorOptions.length > 0 && availableColors.length === 0;
+  const noSizeAvailable = product.sizes.length > 0 && availableSizes.length === 0;
+  const hasVariantAvailable = !noColorAvailable && !noSizeAvailable;
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const { addItem, items } = useCart();
   const { flyToCart } = useFlyToCart();
@@ -113,6 +137,26 @@ export function ProductDetailContent({ product }: { product: Product }) {
     }
   }, [activeImage, imageList.length]);
 
+  useEffect(() => {
+    if (activeColor && soldOutColorSet.has(normalizeHexValue(activeColor.hex))) {
+      setActiveColor(availableColors[0]);
+      return;
+    }
+    if (!activeColor && availableColors.length === 1) {
+      setActiveColor(availableColors[0]);
+    }
+  }, [activeColor, availableColors, soldOutColorSet]);
+
+  useEffect(() => {
+    if (selectedSize && soldOutSizeSet.has(selectedSize.toUpperCase())) {
+      setSelectedSize(availableSizes[0]);
+      return;
+    }
+    if (!selectedSize && availableSizes.length === 1) {
+      setSelectedSize(availableSizes[0]);
+    }
+  }, [availableSizes, selectedSize, soldOutSizeSet]);
+
   // Ensure currentImage always defaults to the first image or placeholder
   const currentImage =
     imageList[activeImage] ??
@@ -128,12 +172,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
       return false;
     }
 
-    if (!activeColor && product.colors.length > 1) {
+    if (!hasVariantAvailable) {
+      setSelectionError("Selected options are sold out");
+      return false;
+    }
+
+    if (!activeColor && requiresColorSelection) {
       setSelectionError("Please choose a color and size before adding to cart.");
       return false;
     }
 
-    if (!selectedSize && product.sizes.length > 1) {
+    if (!selectedSize && requiresSizeSelection) {
       setSelectionError("Please choose a color and size before adding to cart.");
       return false;
     }
@@ -174,7 +223,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const infoRows = product.gender && product.gender.trim() !== "" ? [{ label: "Genre", value: product.gender }] : [];
 
   const isSelectionMissing =
-    (!activeColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
+    (!activeColor && requiresColorSelection) || (!selectedSize && requiresSizeSelection);
   const stockMessage = isOutOfStock
     ? "Out of stock"
     : typeof availableStock === "number"
@@ -185,7 +234,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
     : null;
   const displayMessage = isOutOfStock
     ? "Out of stock"
-    : selectionError ?? selectionMessage;
+    : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
@@ -300,19 +349,26 @@ export function ProductDetailContent({ product }: { product: Product }) {
               {colorOptions.map((color, index) => {
                 const hexValue = swatchHex(color);
                 const label = color.label ?? color.hex ?? "Color";
+                const isSoldOut = soldOutColorSet.has(normalizeHexValue(color.hex));
                 return (
                   <Swatch
                     key={color.hex + index}
                     label={label}
                     colorHex={hexValue}
                     selected={color.hex === activeColor?.hex}
-                    onSelect={() => {
-                      setActiveColor(color);
-                      setActiveImage(Math.min(index, Math.max(imageList.length - 1, 0)));
-                      setSelectionError(null);
-                    }}
+                    onSelect={
+                      isSoldOut
+                        ? undefined
+                        : () => {
+                            setActiveColor(color);
+                            setActiveImage(Math.min(index, Math.max(imageList.length - 1, 0)));
+                            setSelectionError(null);
+                          }
+                    }
                     size="sm"
                     showLabel={false}
+                    disabled={isSoldOut}
+                    soldOut={isSoldOut}
                   />
                 );
               })}
@@ -324,20 +380,36 @@ export function ProductDetailContent({ product }: { product: Product }) {
             <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => {
                 const isSelected = selectedSize === size;
+                const isSoldOut = soldOutSizeSet.has(size.toUpperCase());
                 return (
                   <motion.button
                     key={size}
                     type="button"
-                    onClick={() => {
-                      setSelectedSize(size);
-                      setSelectionError(null);
-                    }}
+                    onClick={
+                      isSoldOut
+                        ? undefined
+                        : () => {
+                            setSelectedSize(size);
+                            setSelectionError(null);
+                          }
+                    }
                     aria-pressed={isSelected}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isSelected ? "border-white bg-white/15 text-white" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.97 }}
+                    aria-disabled={isSoldOut}
+                    disabled={isSoldOut}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      isSoldOut
+                        ? "cursor-not-allowed border-dashed border-white/15 bg-white/5 text-white/60 opacity-50"
+                        : isSelected
+                          ? "border-white bg-white/15 text-white"
+                          : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                    }`}
+                    whileHover={isSoldOut ? undefined : { y: -1 }}
+                    whileTap={isSoldOut ? undefined : { scale: 0.97 }}
                   >
                     {sizeLabel(size)}
+                    {isSoldOut ? (
+                      <span className="ml-1 text-[10px] uppercase tracking-wide text-rose-100">Sold out</span>
+                    ) : null}
                   </motion.button>
                 );
               })}
@@ -375,7 +447,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
               {displayMessage ?? "\u00a0"}
             </p>
 
-            {!isOutOfStock && stockMessage && (
+            {!isOutOfStock && hasVariantAvailable && stockMessage && (
               <p className="min-h-[18px] text-xs font-semibold text-white" aria-live="polite">
                 {stockMessage}
               </p>
@@ -384,9 +456,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <AnimatedAddToCartButton
                 onClick={handleAddToCart}
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || !hasVariantAvailable}
                 className={`w-full justify-center sm:w-auto ${
-                  isSelectionMissing || isOutOfStock ? "opacity-60 cursor-not-allowed" : ""
+                  isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
                 }`.trim()}
               />
               <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>

@@ -43,6 +43,8 @@ const defaultForm: ProductFormValues = {
   inStock: true,
   sizes: [],
   colors: [{ hex: "#000000" }],
+  soldOutSizes: [],
+  soldOutColorCodes: [],
   gender: "",
   images: [],
 };
@@ -186,6 +188,8 @@ export default function AdminProductsPage() {
         designTheme,
         sizes: values.sizes,
         colors: values.colors,
+        soldOutSizes: values.soldOutSizes,
+        soldOutColorCodes: values.soldOutColorCodes,
         stock: Number(values.stock || 0),
         images,
         inStock: values.inStock,
@@ -263,6 +267,8 @@ export default function AdminProductsPage() {
         .map((size) => size.toUpperCase())
         .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
       colors: product.colors,
+      soldOutSizes: product.soldOutSizes ?? [],
+      soldOutColorCodes: product.soldOutColorCodes ?? [],
       images: Array.from(new Set([product.images.main, ...(product.images.gallery ?? [])].filter(Boolean))),
       gender: product.gender ?? "",
     });

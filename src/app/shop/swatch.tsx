@@ -10,6 +10,8 @@ export type SwatchProps = {
   onSelect?: () => void;
   size?: "xs" | "sm" | "md" | "lg" | "card";
   showLabel?: boolean;
+  disabled?: boolean;
+  soldOut?: boolean;
 };
 
 const sizeClasses: Record<NonNullable<SwatchProps["size"]>, string> = {
@@ -30,19 +32,28 @@ const dotSizes: Record<NonNullable<SwatchProps["size"]>, string> = {
 
 export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
   (
-    { label, colorHex, selected = false, onSelect, size = "sm", showLabel = true },
+    { label, colorHex, selected = false, onSelect, size = "sm", showLabel = true, disabled = false, soldOut = false },
     ref,
   ) => {
+    const baseClasses = selected
+      ? "border-white/80 bg-white/20 text-white shadow-[0_0_0_4px_rgba(255,255,255,0.08)] ring-2 ring-white/80"
+      : "border-white/20 bg-white/5 text-white/80 hover:border-white/40";
+    const disabledClasses = disabled
+      ? "cursor-not-allowed opacity-60 ring-0 hover:border-white/20"
+      : "";
+
     return (
       <motion.button
         ref={ref}
         type="button"
         aria-pressed={selected}
         aria-label={label}
-        onClick={onSelect}
-        className={`inline-flex items-center gap-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeClasses[size]} ${selected ? "border-white/80 bg-white/20 text-white shadow-[0_0_0_4px_rgba(255,255,255,0.08)] ring-2 ring-white/80" : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"}`}
-        whileHover={{ transform: "translateY(-1px)" }}
-        whileTap={{ scale: 0.97 }}
+        aria-disabled={disabled}
+        disabled={disabled}
+        onClick={disabled ? undefined : onSelect}
+        className={`inline-flex items-center gap-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeClasses[size]} ${baseClasses} ${disabledClasses}`.trim()}
+        whileHover={disabled ? undefined : { transform: "translateY(-1px)" }}
+        whileTap={disabled ? undefined : { scale: 0.97 }}
       >
         <span
           aria-hidden
@@ -54,6 +65,7 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
             {label}
           </span>
         )}
+        {soldOut ? <span className="text-[11px] font-semibold text-rose-100">×</span> : null}
       </motion.button>
     );
   },

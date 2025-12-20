@@ -69,6 +69,10 @@ export type Product = {
   sizes: string[];
   /** Available color variants */
   colors: ProductColor[];
+  /** Sizes that should be treated as sold out (manual flag) */
+  soldOutSizes?: string[];
+  /** Color codes that should be treated as sold out (manual flag) */
+  soldOutColorCodes?: string[];
   /** Product images */
   images: ProductImages;
   /** French product description */
