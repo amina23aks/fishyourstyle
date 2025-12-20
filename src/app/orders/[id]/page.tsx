@@ -94,19 +94,6 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
 
   const disabled = order.status !== "pending";
 
-  const updateItemQuantity = (index: number, delta: number) => {
-    setItems((current) =>
-      current.map((item, idx) =>
-        idx === index
-          ? {
-              ...item,
-              quantity: Math.max(1, item.quantity + delta),
-            }
-          : item
-      )
-    );
-  };
-
   const handleSave = async () => {
     if (disabled) {
       setLocalError("Order can no longer be edited.");
@@ -366,24 +353,32 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                       </label>
                       <label className="flex flex-col text-xs text-sky-100 gap-1">
                         Size
-                        <select
-                          value={item.size}
-                          onChange={(e) =>
-                            setItems((current) =>
-                              current.map((entry, idx) =>
-                                idx === index ? { ...entry, size: e.target.value } : entry,
-                              ),
-                            )
-                          }
-                          disabled={disabled}
-                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
-                        >
-                          {(getProductBySlug(item.slug)?.sizes ?? [item.size]).map((sizeOption) => (
-                            <option key={sizeOption} value={sizeOption} className="bg-slate-900">
-                              {sizeOption}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex flex-wrap gap-2">
+                          {(getProductBySlug(item.slug)?.sizes ?? [item.size]).map((sizeOption) => {
+                            const isSelected = sizeOption === item.size;
+                            return (
+                              <button
+                                key={sizeOption}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() =>
+                                  setItems((current) =>
+                                    current.map((entry, idx) =>
+                                      idx === index ? { ...entry, size: sizeOption } : entry,
+                                    ),
+                                  )
+                                }
+                                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 disabled:opacity-60 ${
+                                  isSelected
+                                    ? "border-white bg-white/15 text-white"
+                                    : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                                }`}
+                              >
+                                {sizeOption}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </label>
                     </div>
                   </div>
