@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, getDocs, limit, orderBy, query, where, type QueryConstraint } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { getDb } from "@/lib/firebaseClient";
@@ -76,18 +76,17 @@ export default function OrdersList() {
         throw new Error("Unable to connect to orders. Please try again.");
       }
 
-      const constraints: QueryConstraint[] = [
-        where("userId", "==", user.uid),
-        orderBy("createdAt", "desc"),
-        limit(20),
-      ];
-
       const ordersRef = collection(db, "orders");
-      const ordersQuery = query(ordersRef, ...constraints);
-      const snapshot = await getDocs(ordersQuery);
+      const userOrdersPromise = getDocs(query(ordersRef, where("userId", "==", user.uid)));
+      const emailOrdersPromise = user.email
+        ? getDocs(query(ordersRef, where("customerEmail", "==", user.email)))
+        : Promise.resolve(null);
 
-      const fetchedOrders: Order[] = snapshot.docs.map((doc) => {
-        const data = doc.data();
+      const [userOrdersSnapshot, emailOrdersSnapshot] = await Promise.all([userOrdersPromise, emailOrdersPromise]);
+
+      const merged = new Map<string, Order>();
+      const mapDocToOrder = (doc: { id: string; data: () => unknown }) => {
+        const data = doc.data() as Record<string, unknown>;
         const createdAtValue = (data.createdAt as string | { toDate?: () => Date } | undefined) ?? "";
 
         return {
@@ -100,9 +99,26 @@ export default function OrdersList() {
                 ? createdAtValue.toDate().toISOString()
                 : "",
         } as Order;
+      };
+
+      userOrdersSnapshot.docs.forEach((doc) => {
+        merged.set(doc.id, mapDocToOrder(doc));
       });
 
-      setOrders(fetchedOrders);
+      emailOrdersSnapshot?.docs.forEach((doc) => {
+        merged.set(doc.id, mapDocToOrder(doc));
+      });
+
+      const mergedOrders = Array.from(merged.values()).sort((a, b) => {
+        const aDate = toDateSafe(a.createdAt);
+        const bDate = toDateSafe(b.createdAt);
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;
+        if (!bDate) return -1;
+        return bDate.getTime() - aDate.getTime();
+      });
+
+      setOrders(mergedOrders.slice(0, 20));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       setError(errorMessage);
