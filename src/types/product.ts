@@ -14,6 +14,8 @@ export type ProductColor =
       hex: string;
       /** Optional image reference for the color */
       image?: string;
+      /** Optional sold-out indicator for this color */
+      soldOut?: boolean;
       /** Optional legacy fields retained for compatibility */
       id?: string;
       labelFr?: string;
@@ -28,7 +30,23 @@ export type ProductColor =
       labelAr?: string;
       /** Image URL for this color variant (optional) */
       image?: string;
+      /** Optional sold-out indicator for this color */
+      soldOut?: boolean;
     };
+
+/** Normalized color option used by the storefront UI. */
+export type ProductColorOption = {
+  hex: string;
+  label?: string;
+  image?: string;
+  soldOut: boolean;
+};
+
+/** Normalized size option used by the storefront UI. */
+export type ProductSizeOption = {
+  value: string;
+  soldOut: boolean;
+};
 
 /**
  * Product image structure with main image and gallery.

@@ -15,6 +15,7 @@ import { getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/context/auth";
 import { isAdminUser } from "@/lib/admin";
 import { Swatch } from "@/app/shop/swatch";
+import { buildProductColorOptions, buildProductSizeOptions, resolveSwatchHex } from "@/lib/product-variants";
 
 function toDateSafe(value: unknown): Date | null {
   if (!value) return null;
@@ -259,167 +260,143 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
             <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
               <h4 className="text-sm font-semibold text-white mb-3">Items</h4>
               <div className="space-y-3">
-                {items.map((item, index) => (
-                  <div
-                    key={item.variantKey || index}
-                    className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          sizes="56px"
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <p className="text-sm font-semibold text-white line-clamp-2 leading-snug">{item.name}</p>
-                        <div className="flex items-center gap-1.5 text-xs text-sky-200 flex-wrap">
-                          <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
-                          <span className="text-white/80">{item.size}</span>
+                {items.map((item, index) => {
+                  const productDefinition = getProductBySlug(item.slug);
+                  const colorOptions = productDefinition
+                    ? buildProductColorOptions(productDefinition)
+                    : [
+                        {
+                          hex: item.colorCode,
+                          label: item.colorName ?? item.colorCode,
+                          image: item.image,
+                          soldOut: false,
+                        },
+                      ];
+                  const sizeOptions = productDefinition
+                    ? buildProductSizeOptions(productDefinition)
+                    : [{ value: item.size, soldOut: false }];
+
+                  return (
+                    <div
+                      key={item.variantKey || index}
+                      className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                            unoptimized
+                          />
                         </div>
-                        <p className="text-xs text-sky-100">
-                          {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
-                        </p>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <p className="text-sm font-semibold text-white line-clamp-2 leading-snug">{item.name}</p>
+                          <div className="flex items-center gap-1.5 text-xs text-sky-200 flex-wrap">
+                            <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
+                            <span className="text-white/80">{item.size}</span>
+                          </div>
+                          <p className="text-xs text-sky-100">
+                            {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 self-start sm:self-auto">
+                          <span className="text-sm font-semibold text-white">Qty:</span>
+                          <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 self-start sm:self-auto">
-                        <span className="text-sm font-semibold text-white">Qty:</span>
-                        <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
-                      </div>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="flex flex-col text-xs text-sky-100 gap-1">
-                        Color
-                        {(() => {
-                          const colorOptions =
-                            getProductBySlug(item.slug)?.colors ?? [
-                              {
-                                id: item.colorCode,
-                                labelFr: item.colorName,
-                                labelAr: item.colorName,
-                                image: item.image,
-                              },
-                            ];
-                          const selectedLabel = (() => {
-                            const match = colorOptions.find((candidate) => {
-                              if (typeof candidate === "string") return candidate === item.colorCode;
-                              return candidate.id === item.colorCode;
-                            });
-                            if (typeof match === "string") return match;
-                            return match?.labelFr ?? match?.labelAr ?? item.colorName ?? "Color";
-                          })();
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="flex flex-col text-xs text-sky-100 gap-1">
+                          Color
+                          {(() => {
+                            const selectedLabel =
+                              colorOptions.find((candidate) => candidate.hex === item.colorCode)?.label ??
+                              item.colorName ??
+                              "Color";
 
-                          return (
-                            <div className="flex flex-wrap items-center gap-2">
-                              {colorOptions.map((color) => {
-                                const colorId = typeof color === "string" ? color : color.id;
-                                if (!colorId) return null;
-                            const colorLabel =
-                              typeof color === "string" ? color : color.labelFr ?? item.colorName ?? "Color";
-                            const isSelected = colorId === item.colorCode;
-                            const soldOutColorCodes =
-                              getProductBySlug(item.slug)?.soldOutColorCodes ?? [];
-                            const isSoldOutColor = soldOutColorCodes
-                              .map((entry) => entry.trim().toLowerCase())
-                              .includes(colorId.toLowerCase());
                             return (
-                              <Swatch
-                                key={colorId}
-                                label={colorLabel}
-                                colorHex={colorCodeToHex(colorId)}
-                                selected={isSelected}
-                                showLabel={false}
-                                size="xs"
-                                isSoldOut={isSoldOutColor}
-                                disabled={disabled || isSoldOutColor}
-                                onSelect={() => {
-                                  if (disabled || isSoldOutColor) return;
-                                  const product = getProductBySlug(item.slug);
-                                  const selectedColor = product?.colors.find((candidate) => {
-                                    if (typeof candidate === "string") return candidate === colorId;
-                                    return candidate.id === colorId;
-                                  });
-                                  const colorName =
-                                    typeof selectedColor === "string"
-                                      ? selectedColor
-                                      : selectedColor?.labelFr ?? item.colorName;
-                                  const colorCode =
-                                    typeof selectedColor === "string"
-                                      ? selectedColor
-                                      : selectedColor?.id ?? item.colorCode;
-                                  const image =
-                                    typeof selectedColor === "string"
-                                      ? item.image
-                                      : selectedColor?.image ?? item.image;
-
-                                  setItems((current) =>
-                                    current.map((entry, idx) =>
-                                      idx === index
-                                        ? {
-                                            ...entry,
-                                            colorCode,
-                                            colorName,
-                                            image,
-                                          }
-                                        : entry,
-                                    ),
+                              <div className="flex flex-wrap items-center gap-2">
+                                {colorOptions.map((color) => {
+                                  const isSelected = color.hex === item.colorCode;
+                                  const isSoldOutColor = color.soldOut;
+                                  return (
+                                    <Swatch
+                                      key={color.hex}
+                                      label={color.label ?? color.hex}
+                                      colorHex={resolveSwatchHex(color)}
+                                      selected={isSelected}
+                                      showLabel={false}
+                                      size="xs"
+                                      isSoldOut={isSoldOutColor}
+                                      disabled={disabled || isSoldOutColor}
+                                      onSelect={() => {
+                                        if (disabled || isSoldOutColor) return;
+                                        setItems((current) =>
+                                          current.map((entry, idx) =>
+                                            idx === index
+                                              ? {
+                                                  ...entry,
+                                                  colorCode: color.hex,
+                                                  colorName: color.label ?? color.hex,
+                                                  image: color.image ?? item.image,
+                                                }
+                                              : entry,
+                                          ),
+                                        );
+                                      }}
+                                    />
                                   );
-                                }}
-                              />
+                                })}
+                                <span className="text-sm font-semibold text-white sr-only">{selectedLabel}</span>
+                              </div>
                             );
+                          })()}
+                        </label>
+                        <label className="flex flex-col text-xs text-sky-100 gap-1">
+                          Size
+                          <div className="flex flex-wrap gap-2">
+                            {sizeOptions.map((sizeOption) => {
+                              const isSoldOut = sizeOption.soldOut;
+                              const isSelected = sizeOption.value === item.size;
+                              return (
+                                <button
+                                  key={sizeOption.value}
+                                  type="button"
+                                  disabled={disabled || isSoldOut}
+                                  onClick={() => {
+                                    if (disabled || isSoldOut) return;
+                                    setItems((current) =>
+                                      current.map((entry, idx) =>
+                                        idx === index ? { ...entry, size: sizeOption.value } : entry,
+                                      ),
+                                    );
+                                  }}
+                                  className={`relative rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 disabled:opacity-60 ${
+                                    isSelected
+                                      ? "border-white bg-white/15 text-white"
+                                      : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                                  } ${isSoldOut ? "opacity-60 cursor-not-allowed" : ""}`}
+                                >
+                                  <span className="relative inline-flex items-center justify-center">
+                                    {sizeOption.value}
+                                    {isSoldOut ? (
+                                      <>
+                                        <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
+                                        <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
+                                      </>
+                                    ) : null}
+                                  </span>
+                                </button>
+                              );
                             })}
-                              <span className="text-sm font-semibold text-white sr-only">{selectedLabel}</span>
-                            </div>
-                          );
-                        })()}
-                      </label>
-                      <label className="flex flex-col text-xs text-sky-100 gap-1">
-                        Size
-                        <div className="flex flex-wrap gap-2">
-                          {(getProductBySlug(item.slug)?.sizes ?? [item.size]).map((sizeOption) => {
-                            const soldOutSizes = getProductBySlug(item.slug)?.soldOutSizes ?? [];
-                            const isSoldOut = soldOutSizes.some(
-                              (entry) => entry.toUpperCase() === sizeOption.toUpperCase(),
-                            );
-                            const isSelected = sizeOption === item.size;
-                            return (
-                              <button
-                                key={sizeOption}
-                                type="button"
-                                disabled={disabled || isSoldOut}
-                                onClick={() =>
-                                  setItems((current) =>
-                                    current.map((entry, idx) =>
-                                      idx === index ? { ...entry, size: sizeOption } : entry,
-                                    ),
-                                  )
-                                }
-                                className={`relative rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 disabled:opacity-60 ${
-                                  isSelected
-                                    ? "border-white bg-white/15 text-white"
-                                    : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                                } ${isSoldOut ? "opacity-75 cursor-not-allowed" : ""}`}
-                              >
-                                <span className="relative inline-flex items-center justify-center">
-                                  {sizeOption}
-                                  {isSoldOut ? (
-                                    <>
-                                      <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
-                                      <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
-                                    </>
-                                  ) : null}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </label>
+                          </div>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
 

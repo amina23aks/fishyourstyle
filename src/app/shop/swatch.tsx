@@ -45,13 +45,15 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
     ref,
   ) => {
     const isDisabled = disabled || isSoldOut;
+    const handleClick = () => {
+      if (isDisabled) return;
+      onSelect?.();
+    };
     const baseClasses = selected
       ? "border-white/80 bg-white/20 text-white shadow-[0_0_0_4px_rgba(255,255,255,0.08)] ring-2 ring-white/80"
       : "border-white/20 bg-white/5 text-white/80 hover:border-white/40";
-    const disabledClasses = isDisabled
-      ? "cursor-not-allowed opacity-60 ring-0 hover:border-white/20 pointer-events-none"
-      : "";
-    const accessibleLabel = isSoldOut ? `${label} (sold out)` : label;
+    const disabledClasses = isDisabled ? "cursor-not-allowed opacity-60 ring-0 hover:border-white/20" : "";
+    const accessibleLabel = isDisabled ? `${label} (sold out)` : label;
 
     return (
       <motion.button
@@ -61,10 +63,7 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
         aria-label={accessibleLabel}
         aria-disabled={isDisabled}
         disabled={isDisabled}
-        onClick={() => {
-          if (isDisabled) return;
-          onSelect?.();
-        }}
+        onClick={handleClick}
         className={`relative inline-flex items-center gap-2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeClasses[size]} ${baseClasses} ${disabledClasses}`.trim()}
         whileHover={isDisabled ? undefined : { transform: "translateY(-1px)" }}
         whileTap={isDisabled ? undefined : { scale: 0.97 }}
@@ -72,14 +71,36 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
         <span className="relative flex items-center justify-center">
           <span
             aria-hidden
-            className={`${dotSizes[size]} rounded-full border border-white/30 shadow-[0_0_0_3px_rgba(255,255,255,0.05)] ${isSoldOut ? "opacity-60" : ""}`}
+            className={`${dotSizes[size]} rounded-full border border-white/30 shadow-[0_0_0_3px_rgba(255,255,255,0.05)] ${isDisabled ? "opacity-60" : ""}`}
             style={{ backgroundColor: colorHex ?? "#e5e7eb" }}
           />
-          {isSoldOut ? (
-            <>
-              <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
-              <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
-            </>
+          {isDisabled ? (
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <svg
+                className="h-3/4 w-3/4"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <line
+                  x1="5"
+                  y1="5"
+                  x2="19"
+                  y2="19"
+                  className="stroke-red-400/80"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <line
+                  x1="19"
+                  y1="5"
+                  x2="5"
+                  y2="19"
+                  className="stroke-red-400/80"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
           ) : null}
         </span>
         {showLabel && (
