@@ -9,6 +9,7 @@ import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 
 import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
 import { getAdminResources } from "@/lib/firebaseAdmin";
+import { sendOrderTelegramNotification } from "@/lib/telegram";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
 
@@ -206,6 +207,7 @@ export async function POST(request: NextRequest) {
     }, {});
 
     let createdOrderId: string | null = null;
+    let savedOrder: Order | null = null;
     const productSnapshots = new Map<string, DocumentData>();
 
     await db.runTransaction(async (transaction) => {
@@ -257,6 +259,17 @@ export async function POST(request: NextRequest) {
         createdAtType: createdData?.createdAt
           ? createdData.createdAt.constructor?.name ?? typeof createdData.createdAt
           : "missing",
+      });
+      if (createdData) {
+        savedOrder = firestoreDocToOrder(orderDoc.id, createdData);
+      }
+    }
+
+    if (savedOrder) {
+      console.log(`[Orders API] Order ${savedOrder.id} created successfully`);
+      console.log(`[Orders API] Sending Telegram notification for ${savedOrder.id}`);
+      sendOrderTelegramNotification(savedOrder).catch((error) => {
+        console.error("[Telegram] Notification error (non-blocking)", error);
       });
     }
 
