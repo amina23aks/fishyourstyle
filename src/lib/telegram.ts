@@ -33,7 +33,7 @@ export async function sendOrderTelegramNotification(order: Order): Promise<void>
     const message = messageParts.join("\n");
 
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -41,6 +41,26 @@ export async function sendOrderTelegramNotification(order: Order): Promise<void>
         text: message,
       }),
     });
+
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      // ignore JSON parse errors
+    }
+
+    if (!res.ok || (body && typeof body === "object" && (body as { ok?: boolean }).ok === false)) {
+      console.error("[Telegram] API error", {
+        status: res.status,
+        statusText: res.statusText,
+        body,
+      });
+    } else {
+      console.log("[Telegram] Message sent successfully", {
+        status: res.status,
+        body,
+      });
+    }
   } catch (error) {
     console.error("[Telegram] Failed to send order notification", error);
   }
