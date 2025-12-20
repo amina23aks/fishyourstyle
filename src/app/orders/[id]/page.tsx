@@ -8,6 +8,7 @@ import { doc, getDoc } from "firebase/firestore";
 import PageShell from "@/components/PageShell";
 import { ECONOMIC_SHIPPING, getEconomicShippingByWilaya } from "@/data/shipping";
 import type { Order, OrderItem, ShippingInfo } from "@/types/order";
+import { getProductBySlug } from "@/lib/products";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
 import { getDb } from "@/lib/firebaseClient";
@@ -289,25 +290,91 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                       </div>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="flex flex-col text-xs text-sky-100 gap-1">
+                      <label className="flex flex-col text-xs text-sky-100 gap-1">
                         Color
-                        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                        <div className="flex items-center gap-2">
                           <span
                             className="inline-block h-4 w-4 rounded-full border border-white/40"
                             style={{ backgroundColor: colorCodeToHex(item.colorCode) }}
                             aria-hidden
                           />
-                          <span className="text-sm font-semibold text-white">
-                            {item.colorName ?? item.colorCode ?? "—"}
-                          </span>
+                          <select
+                            value={item.colorCode}
+                            onChange={(e) => {
+                              const product = getProductBySlug(item.slug);
+                              const selectedColor = product?.colors.find((color) => {
+                                if (typeof color === "string") return color === e.target.value;
+                                return color.id === e.target.value;
+                              });
+                              const colorName =
+                                typeof selectedColor === "string"
+                                  ? selectedColor
+                                  : selectedColor?.labelFr ?? item.colorName;
+                              const colorCode =
+                                typeof selectedColor === "string"
+                                  ? selectedColor
+                                  : selectedColor?.id ?? item.colorCode;
+                              const image =
+                                typeof selectedColor === "string"
+                                  ? item.image
+                                  : selectedColor?.image ?? item.image;
+
+                              setItems((current) =>
+                                current.map((entry, idx) =>
+                                  idx === index
+                                    ? {
+                                        ...entry,
+                                        colorCode,
+                                        colorName,
+                                        image,
+                                      }
+                                    : entry,
+                                ),
+                              );
+                            }}
+                            disabled={disabled}
+                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                          >
+                            {(getProductBySlug(item.slug)?.colors ?? [
+                              {
+                                id: item.colorCode,
+                                labelFr: item.colorName,
+                                labelAr: item.colorName,
+                                image: item.image,
+                              },
+                            ]).map((color) => {
+                              const colorId = typeof color === "string" ? color : color.id;
+                              const colorLabel = typeof color === "string" ? color : color.labelFr ?? "Color";
+                              return (
+                                <option key={colorId} value={colorId} className="bg-slate-900">
+                                  {colorLabel}
+                                </option>
+                              );
+                            })}
+                          </select>
                         </div>
-                      </div>
-                      <div className="flex flex-col text-xs text-sky-100 gap-1">
+                      </label>
+                      <label className="flex flex-col text-xs text-sky-100 gap-1">
                         Size
-                        <div className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-sm font-semibold text-white inline-flex w-fit">
-                          {item.size}
-                        </div>
-                      </div>
+                        <select
+                          value={item.size}
+                          onChange={(e) =>
+                            setItems((current) =>
+                              current.map((entry, idx) =>
+                                idx === index ? { ...entry, size: e.target.value } : entry,
+                              ),
+                            )
+                          }
+                          disabled={disabled}
+                          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
+                        >
+                          {(getProductBySlug(item.slug)?.sizes ?? [item.size]).map((sizeOption) => (
+                            <option key={sizeOption} value={sizeOption} className="bg-slate-900">
+                              {sizeOption}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                     </div>
                   </div>
                 ))}
