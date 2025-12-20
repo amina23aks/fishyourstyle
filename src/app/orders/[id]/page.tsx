@@ -15,6 +15,7 @@ import { getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/context/auth";
 import { isAdminUser } from "@/lib/admin";
 import { Swatch } from "@/app/shop/swatch";
+import { SoldOutMark } from "@/components/SoldOutMark";
 import { buildProductColorOptions, buildProductSizeOptions, resolveSwatchHex } from "@/lib/product-variants";
 
 function toDateSafe(value: unknown): Date | null {
@@ -381,12 +382,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                                 >
                                   <span className="relative inline-flex items-center justify-center">
                                     {sizeOption.value}
-                                    {isSoldOut ? (
-                                      <>
-                                        <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
-                                        <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
-                                      </>
-                                    ) : null}
+                                    {isSoldOut ? <SoldOutMark /> : null}
                                   </span>
                                 </button>
                               );

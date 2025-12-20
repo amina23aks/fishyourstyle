@@ -8,6 +8,7 @@ import { Swatch } from "../swatch";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
+import { SoldOutMark } from "@/components/SoldOutMark";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import {
   buildProductColorOptions,
@@ -346,12 +347,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   >
                     <span className="relative inline-flex items-center justify-center">
                       {sizeLabel(size.value)}
-                      {isSoldOut ? (
-                        <>
-                          <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
-                          <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
-                        </>
-                      ) : null}
+                      {isSoldOut ? <SoldOutMark /> : null}
                     </span>
                     {isSoldOut ? (
                       <span className="ml-1 text-[10px] uppercase tracking-wide text-rose-100">Sold out</span>

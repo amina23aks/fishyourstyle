@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import { motion } from "@/lib/motion";
+import { SoldOutMark } from "@/components/SoldOutMark";
 
 export type SwatchProps = {
   label: string;
@@ -74,34 +75,7 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
             className={`${dotSizes[size]} rounded-full border border-white/30 shadow-[0_0_0_3px_rgba(255,255,255,0.05)] ${isDisabled ? "opacity-60" : ""}`}
             style={{ backgroundColor: colorHex ?? "#e5e7eb" }}
           />
-          {isDisabled ? (
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <svg
-                className="h-3/4 w-3/4"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <line
-                  x1="5"
-                  y1="5"
-                  x2="19"
-                  y2="19"
-                  className="stroke-red-400/80"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-                <line
-                  x1="19"
-                  y1="5"
-                  x2="5"
-                  y2="19"
-                  className="stroke-red-400/80"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>
-          ) : null}
+          {isDisabled ? <SoldOutMark /> : null}
         </span>
         {showLabel && (
           <span className="whitespace-nowrap text-[13px] font-medium leading-none">

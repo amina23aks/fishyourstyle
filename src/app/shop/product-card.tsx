@@ -16,6 +16,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "@/lib/motion";
 
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
+import { SoldOutMark } from "@/components/SoldOutMark";
 import { useCart } from "@/context/cart";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 
@@ -477,12 +478,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                     >
                       <span className="relative inline-flex items-center justify-center">
                         {size.value.toUpperCase()}
-                        {isSoldOut ? (
-                          <>
-                            <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
-                            <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
-                          </>
-                        ) : null}
+                        {isSoldOut ? <SoldOutMark /> : null}
                       </span>
                     </motion.button>
                   );
