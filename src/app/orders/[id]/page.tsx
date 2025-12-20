@@ -15,7 +15,7 @@ import { getDb } from "@/lib/firebaseClient";
 import { useAuth } from "@/context/auth";
 import { isAdminUser } from "@/lib/admin";
 import { Swatch } from "@/app/shop/swatch";
-import { SoldOutMark } from "@/components/SoldOutMark";
+import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { buildProductColorOptions, buildProductSizeOptions, resolveSwatchHex } from "@/lib/product-variants";
 
 function toDateSafe(value: unknown): Date | null {
@@ -362,29 +362,35 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                               const isSoldOut = sizeOption.soldOut;
                               const isSelected = sizeOption.value === item.size;
                               return (
-                                <button
-                                  key={sizeOption.value}
-                                  type="button"
-                                  disabled={disabled || isSoldOut}
-                                  onClick={() => {
-                                    if (disabled || isSoldOut) return;
-                                    setItems((current) =>
-                                      current.map((entry, idx) =>
-                                        idx === index ? { ...entry, size: sizeOption.value } : entry,
-                                      ),
-                                    );
-                                  }}
-                                  className={`relative rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 disabled:opacity-60 ${
-                                    isSelected
-                                      ? "border-white bg-white/15 text-white"
-                                      : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                                  } ${isSoldOut ? "opacity-60 cursor-not-allowed" : ""}`}
-                                >
-                                  <span className="relative inline-flex items-center justify-center">
-                                    {sizeOption.value}
-                                    {isSoldOut ? <SoldOutMark /> : null}
-                                  </span>
-                                </button>
+                                <SoldOutTooltipWrapper key={sizeOption.value} isSoldOut={isSoldOut} className="inline-flex">
+                                  <button
+                                    type="button"
+                                    disabled={disabled || isSoldOut}
+                                    onClick={() => {
+                                      if (disabled || isSoldOut) return;
+                                      setItems((current) =>
+                                        current.map((entry, idx) =>
+                                          idx === index ? { ...entry, size: sizeOption.value } : entry,
+                                        ),
+                                      );
+                                    }}
+                                    className={`relative rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 disabled:opacity-60 ${
+                                      isSelected
+                                        ? "border-white bg-white/15 text-white"
+                                        : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                                    } ${isSoldOut ? "opacity-60 cursor-not-allowed" : ""}`}
+                                  >
+                                    <span className="relative inline-flex items-center justify-center">
+                                      {sizeOption.value}
+                                      {isSoldOut ? (
+                                        <>
+                                          <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
+                                          <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
+                                        </>
+                                      ) : null}
+                                    </span>
+                                  </button>
+                                </SoldOutTooltipWrapper>
                               );
                             })}
                           </div>

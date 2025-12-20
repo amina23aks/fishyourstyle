@@ -16,7 +16,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "@/lib/motion";
 
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
-import { SoldOutMark } from "@/components/SoldOutMark";
+import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { useCart } from "@/context/cart";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 
@@ -456,31 +456,37 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   const isSelected = selectedSize === size.value;
                   const isSoldOut = size.soldOut;
                   return (
-                    <motion.button
-                      key={size.value}
-                      type="button"
-                      disabled={isSoldOut}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        if (isSoldOut) return;
-                        handleSelectSize(size.value);
-                      }}
-                      aria-pressed={isSelected}
-                      aria-disabled={isSoldOut}
-                      className={`relative whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                        isSelected
-                          ? "border-white bg-white/15 text-white"
-                          : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                      } ${isSoldOut ? "opacity-60 cursor-not-allowed" : ""}`}
-                      whileHover={isSoldOut ? undefined : { y: -1 }}
-                      whileTap={isSoldOut ? undefined : { scale: 0.97 }}
-                    >
-                      <span className="relative inline-flex items-center justify-center">
-                        {size.value.toUpperCase()}
-                        {isSoldOut ? <SoldOutMark /> : null}
-                      </span>
-                    </motion.button>
+                    <SoldOutTooltipWrapper key={size.value} isSoldOut={isSoldOut} className="inline-flex">
+                      <motion.button
+                        type="button"
+                        disabled={isSoldOut}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          if (isSoldOut) return;
+                          handleSelectSize(size.value);
+                        }}
+                        aria-pressed={isSelected}
+                        aria-disabled={isSoldOut}
+                        className={`relative whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                          isSelected
+                            ? "border-white bg-white/15 text-white"
+                            : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                        } ${isSoldOut ? "opacity-60 cursor-not-allowed" : ""}`}
+                        whileHover={isSoldOut ? undefined : { y: -1 }}
+                        whileTap={isSoldOut ? undefined : { scale: 0.97 }}
+                      >
+                        <span className="relative inline-flex items-center justify-center">
+                          {size.value.toUpperCase()}
+                          {isSoldOut ? (
+                            <>
+                              <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
+                              <span className="pointer-events-none absolute h-[2px] w-5 rotate-45 bg-red-400/80 mix-blend-multiply" />
+                            </>
+                          ) : null}
+                        </span>
+                      </motion.button>
+                    </SoldOutTooltipWrapper>
                   );
                 })}
               </div>
