@@ -465,13 +465,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                       label={label}
                       colorHex={hexValue}
                       selected={selectedColor?.hex === color.hex}
-                      onSelect={
-                        isSoldOut
-                          ? undefined
-                          : () => {
-                              handleSelectColor(color, index);
-                            }
-                      }
+                      onSelect={() => {
+                        if (isSoldOut) return;
+                        handleSelectColor(color, index);
+                      }}
                       size="card"
                       showLabel={false}
                       disabled={isSoldOut}
@@ -503,6 +500,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
+                        if (isSoldOut) return;
                         handleSelectSize(size);
                       }}
                       aria-pressed={isSelected}
