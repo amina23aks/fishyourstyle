@@ -303,7 +303,7 @@ export default function AdminProductsPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
+      <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <section className="space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
@@ -450,7 +450,7 @@ export default function AdminProductsPage() {
             onReloadDesignThemes={loadDesignThemes}
           />
         </section>
-      </div>
+      </section>
     </div>
   );
 }
