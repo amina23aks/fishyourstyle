@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useAdmin } from "@/lib/admin";
 
@@ -10,6 +10,8 @@ const navItems = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/products", label: "Products" },
+  { href: "/admin/wishlist", label: "Wishlist" },
+  { href: "/admin/contact", label: "Contact" },
   { href: "/admin/settings", label: "Settings" },
 ];
 
@@ -21,6 +23,7 @@ export default function AdminLayout({
   const { user, loading, isAdmin } = useAdmin();
   const router = useRouter();
   const pathname = usePathname();
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -34,6 +37,10 @@ export default function AdminLayout({
       router.replace("/");
     }
   }, [isAdmin, loading, router, user]);
+
+  useEffect(() => {
+    setIsNavOpen(false);
+  }, [pathname]);
 
   if (loading) {
     return (
@@ -54,20 +61,31 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10 sm:px-6 lg:px-10">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-3 py-8 sm:px-5 lg:px-10">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
-        <aside className="w-full max-w-full rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:w-64 lg:flex-shrink-0">
-          <div className="mb-6 space-y-1 border-b border-white/10 pb-4">
-            <p className="text-xs uppercase tracking-[0.24em] text-sky-200">
-              Admin
-            </p>
-            <h2 className="text-xl font-semibold text-white">
-              Control center
-            </h2>
-            <p className="text-sm text-sky-100/80">Manage store operations</p>
+        <aside className="w-full max-w-full rounded-3xl border border-white/10 bg-white/10 p-5 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:w-64 lg:flex-shrink-0">
+          <div className="mb-4 flex items-start justify-between gap-3 border-b border-white/10 pb-4">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.24em] text-sky-200">
+                Admin
+              </p>
+              <h2 className="text-xl font-semibold text-white">
+                Control center
+              </h2>
+              <p className="text-sm text-sky-100/80">Manage store operations</p>
+            </div>
+
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-sky-900/30 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70 lg:hidden"
+              onClick={() => setIsNavOpen((prev) => !prev)}
+            >
+              <span>{isNavOpen ? "Close" : "Menu"}</span>
+              <span className="text-lg leading-none">{isNavOpen ? "×" : "☰"}</span>
+            </button>
           </div>
 
-          <nav className="space-y-1">
+          <nav className={`${isNavOpen ? "block" : "hidden"} space-y-1 lg:block`}>
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||

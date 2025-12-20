@@ -118,8 +118,8 @@ export default function AdminOrdersPage() {
     <div className="relative space-y-5">
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Orders</p>
-        <h1 className="text-2xl font-semibold text-white">Orders</h1>
-        <p className="max-w-2xl text-sm text-sky-100/85">
+        <h1 className="text-3xl font-semibold text-white sm:text-4xl">Orders</h1>
+        <p className="max-w-2xl text-sm text-sky-100/85 sm:text-base">
           Review recent checkouts, monitor statuses, and keep an eye on fulfilment. Quickly adjust order states from the
           list or open full details when needed.
         </p>

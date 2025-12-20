@@ -279,8 +279,8 @@ export default function AdminProductsPage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Products</p>
-        <h1 className="text-3xl font-semibold text-white">Admin products</h1>
-        <p className="max-w-2xl text-sky-100/85">
+        <h1 className="text-3xl font-semibold text-white sm:text-4xl">Admin products</h1>
+        <p className="max-w-2xl text-sm text-sky-100/85 sm:text-base">
           Manage the catalog in real-time: upload imagery to Cloudinary, keep Firestore in sync, and export what you see.
         </p>
       </div>
@@ -322,97 +322,108 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-            <div className="grid grid-cols-6 gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-100/70">
-              <span className="col-span-2">Product</span>
-              <span>Category</span>
-              <span>Price</span>
-              <span>Stock</span>
-              <span>In stock?</span>
-              <span className="text-right">Actions</span>
+            <div className="overflow-x-auto">
+              <div className="min-w-[720px]">
+                <div className="grid grid-cols-6 gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-100/70">
+                  <span className="col-span-2">Product</span>
+                  <span>Category</span>
+                  <span>Price</span>
+                  <span>Stock</span>
+                  <span>In stock?</span>
+                  <span className="text-right">Actions</span>
+                </div>
+                {loading ? (
+                  <ProductTableSkeleton />
+                ) : products.length === 0 ? (
+                  <div className="px-4 py-6 text-sm text-sky-100/80">
+                    No products yet. Add the first item using the form.
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-white/10">
+                    {products.map((product) => {
+                      const mainImage = product.images.main || product.images.gallery[0];
+                      return (
+                        <li
+                          key={product.id}
+                          className="grid grid-cols-6 items-center gap-3 px-4 py-3 text-sm text-sky-50"
+                        >
+                          <div className="col-span-2 flex items-center gap-3">
+                            {mainImage ? (
+                              <Image
+                                src={mainImage}
+                                alt={product.name}
+                                width={48}
+                                height={48}
+                                className="h-12 w-12 rounded-xl object-cover ring-1 ring-white/20"
+                              />
+                            ) : (
+                              <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-white/20 text-[11px] text-sky-100/70">
+                                No image
+                              </span>
+                            )}
+                            <div className="space-y-1">
+                              <p className="font-semibold text-white">{product.name}</p>
+                              <p className="text-[11px] text-sky-100/70">{product.designTheme}</p>
+                            </div>
+                          </div>
+                          <span className="text-xs uppercase text-sky-100/80">{product.category}</span>
+                          <div className="space-y-1 text-sm">
+                            <p className="font-semibold text-white">
+                              {new Intl.NumberFormat("fr-DZ", {
+                                style: "currency",
+                                currency: "DZD",
+                                maximumFractionDigits: 0,
+                              }).format(Math.max(product.finalPrice ?? product.basePrice, 0))}
+                            </p>
+                            {product.discountPercent > 0 ? (
+                              <p className="text-[11px] text-sky-100/70">
+                                Base{" "}
+                                {new Intl.NumberFormat("fr-DZ", {
+                                  style: "currency",
+                                  currency: "DZD",
+                                  maximumFractionDigits: 0,
+                                }).format(product.basePrice)}{" "}
+                                • -{product.discountPercent}%
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <p>{product.stock} pcs</p>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                product.inStock
+                                  ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
+                                  : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
+                              }`}
+                            >
+                              {product.inStock ? "Yes" : "No"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => startEdit(product)}
+                              className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(product.id)}
+                              className="rounded-full bg-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-50 transition hover:bg-rose-500/30"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             </div>
-            {loading ? (
-              <ProductTableSkeleton />
-            ) : products.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-sky-100/80">No products yet. Add the first item using the form.</div>
-            ) : (
-              <ul className="divide-y divide-white/10">
-                {products.map((product) => {
-                  const mainImage = product.images.main || product.images.gallery[0];
-                  return (
-                    <li key={product.id} className="grid grid-cols-6 items-center gap-3 px-4 py-3 text-sm text-sky-50">
-                      <div className="col-span-2 flex items-center gap-3">
-                        {mainImage ? (
-                          <Image
-                            src={mainImage}
-                            alt={product.name}
-                            width={48}
-                            height={48}
-                            className="h-12 w-12 rounded-xl object-cover ring-1 ring-white/20"
-                          />
-                        ) : (
-                          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-white/20 text-[11px] text-sky-100/70">
-                            No image
-                          </span>
-                        )}
-                        <div className="space-y-1">
-                          <p className="font-semibold text-white">{product.name}</p>
-                          <p className="text-[11px] text-sky-100/70">{product.designTheme}</p>
-                        </div>
-                      </div>
-                      <span className="text-xs uppercase text-sky-100/80">{product.category}</span>
-                      <div className="space-y-1 text-sm">
-                        <p className="font-semibold text-white">
-                          {new Intl.NumberFormat("fr-DZ", { style: "currency", currency: "DZD", maximumFractionDigits: 0 }).format(
-                            Math.max(product.finalPrice ?? product.basePrice, 0),
-                          )}
-                        </p>
-                        {product.discountPercent > 0 ? (
-                          <p className="text-[11px] text-sky-100/70">
-                            Base{" "}
-                            {new Intl.NumberFormat("fr-DZ", {
-                              style: "currency",
-                              currency: "DZD",
-                              maximumFractionDigits: 0,
-                            }).format(product.basePrice)}{" "}
-                            • -{product.discountPercent}%
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        <p>{product.stock} pcs</p>
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            product.inStock
-                              ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
-                              : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
-                          }`}
-                        >
-                          {product.inStock ? "Yes" : "No"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(product)}
-                          className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(product.id)}
-                          className="rounded-full bg-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-50 transition hover:bg-rose-500/30"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
           </div>
         </section>
 
