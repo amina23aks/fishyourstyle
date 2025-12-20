@@ -302,8 +302,10 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                               image: item.image,
                             },
                           ]).map((color) => {
-                            const colorId = typeof color === "string" ? color : color.id;
-                            const colorLabel = typeof color === "string" ? color : color.labelFr ?? "Color";
+                            const colorId = typeof color === "string" ? color : color.id ?? item.colorCode;
+                            if (!colorId) return null;
+                            const colorLabel =
+                              typeof color === "string" ? color : color.labelFr ?? item.colorName ?? "Color";
                             const isSelected = colorId === item.colorCode;
                             return (
                               <Swatch
