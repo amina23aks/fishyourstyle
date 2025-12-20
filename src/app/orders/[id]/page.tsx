@@ -334,8 +334,9 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                                 showLabel={false}
                                 size="xs"
                                 isSoldOut={isSoldOutColor}
+                                disabled={disabled || isSoldOutColor}
                                 onSelect={() => {
-                                  if (disabled) return;
+                                  if (disabled || isSoldOutColor) return;
                                   const product = getProductBySlug(item.slug);
                                   const selectedColor = product?.colors.find((candidate) => {
                                     if (typeof candidate === "string") return candidate === colorId;
@@ -388,7 +389,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                               <button
                                 key={sizeOption}
                                 type="button"
-                                disabled={disabled}
+                                disabled={disabled || isSoldOut}
                                 onClick={() =>
                                   setItems((current) =>
                                     current.map((entry, idx) =>
@@ -400,7 +401,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                                   isSelected
                                     ? "border-white bg-white/15 text-white"
                                     : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                                } ${isSoldOut ? "opacity-75" : ""}`}
+                                } ${isSoldOut ? "opacity-75 cursor-not-allowed" : ""}`}
                               >
                                 <span className="relative inline-flex items-center justify-center">
                                   {sizeOption}

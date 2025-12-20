@@ -49,7 +49,7 @@ export const Swatch = forwardRef<HTMLButtonElement, SwatchProps>(
       ? "border-white/80 bg-white/20 text-white shadow-[0_0_0_4px_rgba(255,255,255,0.08)] ring-2 ring-white/80"
       : "border-white/20 bg-white/5 text-white/80 hover:border-white/40";
     const disabledClasses = isDisabled
-      ? "cursor-not-allowed opacity-60 ring-0 hover:border-white/20"
+      ? "cursor-not-allowed opacity-60 ring-0 hover:border-white/20 pointer-events-none"
       : "";
     const accessibleLabel = isSoldOut ? `${label} (sold out)` : label;
 

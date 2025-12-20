@@ -210,6 +210,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   };
 
   const handleSelectSize = (size: string) => {
+    if (soldOutSizeSet.has(size.toUpperCase())) return;
     setSelectedSize(size);
     setSelectionWarning(null);
   };
@@ -500,19 +501,21 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                     <motion.button
                       key={size}
                       type="button"
+                      disabled={isSoldOut}
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
                         handleSelectSize(size);
                       }}
                       aria-pressed={isSelected}
+                      aria-disabled={isSoldOut}
                       className={`relative whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                         isSelected
                           ? "border-white bg-white/15 text-white"
                           : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                      } ${isSoldOut ? "opacity-70" : ""}`}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.97 }}
+                      } ${isSoldOut ? "opacity-70 cursor-not-allowed" : ""}`}
+                      whileHover={isSoldOut ? undefined : { y: -1 }}
+                      whileTap={isSoldOut ? undefined : { scale: 0.97 }}
                     >
                       <span className="relative inline-flex items-center justify-center">
                         {size.toUpperCase()}
