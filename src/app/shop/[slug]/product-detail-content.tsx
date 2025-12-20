@@ -9,63 +9,15 @@ import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
+import {
+  buildProductColorOptions,
+  buildProductSizeOptions,
+  hasAvailableVariants,
+  resolveSwatchHex,
+} from "@/lib/product-variants";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
-
-type NormalizedColor = {
-  hex: string;
-  image?: string;
-  label?: string;
-};
-
-const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
-  colors.reduce<NormalizedColor[]>((acc, color) => {
-    if (typeof color === "string") {
-      acc.push({ hex: color, label: color });
-      return acc;
-    }
-    if ("hex" in color) {
-      const hex = typeof color.hex === "string" ? color.hex : "";
-      const label = typeof color.labelFr === "string" ? color.labelFr : hex;
-      const image = typeof color.image === "string" ? color.image : undefined;
-      if (hex) acc.push({ hex, label, image });
-      return acc;
-    }
-    const id = typeof color.id === "string" ? color.id : "";
-    const label = typeof color.labelFr === "string" ? color.labelFr : id;
-    const image = typeof color.image === "string" ? color.image : undefined;
-    if (id) acc.push({ hex: id, label, image });
-    return acc;
-  }, []);
-
-const swatchHex = (color: NormalizedColor): string => {
-  if (color.hex && /^#([0-9A-F]{3}){1,2}$/i.test(color.hex)) {
-    return color.hex;
-  }
-  const label = color.label?.toLowerCase().replace(/\s+/g, "") ?? "";
-  const map: Record<string, string> = {
-    noir: "#1f2937",
-    black: "#111827",
-    blanc: "#f9fafb",
-    white: "#f9fafb",
-    gris: "#9ca3af",
-    gray: "#9ca3af",
-    rouge: "#dc2626",
-    red: "#ef4444",
-    bleu: "#2563eb",
-    blue: "#2563eb",
-    vert: "#16a34a",
-    green: "#22c55e",
-    beige: "#d6c9a5",
-    beigeclair: "#e5d5b5",
-  };
-
-  return map[label] ?? color.hex ?? "#e5e7eb";
-};
-
-const normalizeHexValue = (value: string | undefined): string =>
-  (value ?? "").trim().toLowerCase();
 
 const sizeLabel = (size: string) => size.toUpperCase();
 const capitalizeLabel = (value: string | undefined | null): string => {
@@ -78,35 +30,26 @@ export function ProductDetailContent({ product }: { product: Product }) {
     product.designTheme && product.designTheme !== "simple"
       ? capitalizeLabel(product.designTheme)
       : capitalizeLabel(product.category);
-  const colorOptions = normalizeColors(product.colors);
-  const soldOutColorSet = useMemo(
-    () => new Set((product.soldOutColorCodes ?? []).map((hex) => normalizeHexValue(hex))),
-    [product.soldOutColorCodes],
-  );
-  const soldOutSizeSet = useMemo(
-    () => new Set((product.soldOutSizes ?? []).map((size) => size.toUpperCase())),
-    [product.soldOutSizes],
-  );
+  const colorOptions = useMemo(() => buildProductColorOptions(product), [product]);
+  const sizeOptions = useMemo(() => buildProductSizeOptions(product), [product]);
   const availableColors = useMemo(
-    () => colorOptions.filter((color) => !soldOutColorSet.has(normalizeHexValue(color.hex))),
-    [colorOptions, soldOutColorSet],
+    () => colorOptions.filter((color) => !color.soldOut),
+    [colorOptions],
   );
   const availableSizes = useMemo(
-    () => product.sizes.filter((size) => !soldOutSizeSet.has(size.toUpperCase())),
-    [product.sizes, soldOutSizeSet],
+    () => sizeOptions.filter((size) => !size.soldOut),
+    [sizeOptions],
   );
-  const [activeColor, setActiveColor] = useState<NormalizedColor | undefined>(() =>
+  const [activeColor, setActiveColor] = useState<typeof colorOptions[number] | undefined>(() =>
     availableColors.length === 1 ? availableColors[0] : undefined,
   );
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | undefined>(() =>
-    availableSizes.length === 1 ? availableSizes[0] : undefined,
+    availableSizes.length === 1 ? availableSizes[0].value : undefined,
   );
   const requiresColorSelection = availableColors.length > 1;
   const requiresSizeSelection = availableSizes.length > 1;
-  const noColorAvailable = colorOptions.length > 0 && availableColors.length === 0;
-  const noSizeAvailable = product.sizes.length > 0 && availableSizes.length === 0;
-  const hasVariantAvailable = !noColorAvailable && !noSizeAvailable;
+  const hasVariantAvailable = hasAvailableVariants(product);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const { addItem, items } = useCart();
   const { flyToCart } = useFlyToCart();
@@ -138,24 +81,24 @@ export function ProductDetailContent({ product }: { product: Product }) {
   }, [activeImage, imageList.length]);
 
   useEffect(() => {
-    if (activeColor && soldOutColorSet.has(normalizeHexValue(activeColor.hex))) {
+    if (activeColor && activeColor.soldOut) {
       setActiveColor(availableColors[0]);
       return;
     }
     if (!activeColor && availableColors.length === 1) {
       setActiveColor(availableColors[0]);
     }
-  }, [activeColor, availableColors, soldOutColorSet]);
+  }, [activeColor, availableColors]);
 
   useEffect(() => {
-    if (selectedSize && soldOutSizeSet.has(selectedSize.toUpperCase())) {
-      setSelectedSize(availableSizes[0]);
+    if (selectedSize && availableSizes.every((size) => size.value !== selectedSize)) {
+      setSelectedSize(availableSizes[0]?.value);
       return;
     }
     if (!selectedSize && availableSizes.length === 1) {
-      setSelectedSize(availableSizes[0]);
+      setSelectedSize(availableSizes[0].value);
     }
-  }, [availableSizes, selectedSize, soldOutSizeSet]);
+  }, [availableSizes, selectedSize]);
 
   // Ensure currentImage always defaults to the first image or placeholder
   const currentImage =
@@ -347,24 +290,21 @@ export function ProductDetailContent({ product }: { product: Product }) {
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
             <div className="flex flex-wrap gap-2">
               {colorOptions.map((color, index) => {
-                const hexValue = swatchHex(color);
+                const hexValue = resolveSwatchHex(color);
                 const label = color.label ?? color.hex ?? "Color";
-                const isSoldOut = soldOutColorSet.has(normalizeHexValue(color.hex));
+                const isSoldOut = color.soldOut;
                 return (
                   <Swatch
                     key={color.hex + index}
                     label={label}
                     colorHex={hexValue}
                     selected={color.hex === activeColor?.hex}
-                    onSelect={
-                      isSoldOut
-                        ? undefined
-                        : () => {
-                            setActiveColor(color);
-                            setActiveImage(Math.min(index, Math.max(imageList.length - 1, 0)));
-                            setSelectionError(null);
-                          }
-                    }
+                    onSelect={() => {
+                      if (isSoldOut) return;
+                      setActiveColor(color);
+                      setActiveImage(Math.min(index, Math.max(imageList.length - 1, 0)));
+                      setSelectionError(null);
+                    }}
                     size="sm"
                     showLabel={false}
                     disabled={isSoldOut}
@@ -378,27 +318,25 @@ export function ProductDetailContent({ product }: { product: Product }) {
           <div className="space-y-2">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
             <div className="flex flex-wrap gap-2">
-              {product.sizes.map((size) => {
-                const isSelected = selectedSize === size;
-                const isSoldOut = soldOutSizeSet.has(size.toUpperCase());
+              {sizeOptions.map((size) => {
+                const isSelected = selectedSize === size.value;
+                const isSoldOut = size.soldOut;
+                const handleSelectSize = () => {
+                  if (isSoldOut) return;
+                  setSelectedSize(size.value);
+                  setSelectionError(null);
+                };
                 return (
                   <motion.button
-                    key={size}
+                    key={size.value}
                     type="button"
-                    onClick={
-                      isSoldOut
-                        ? undefined
-                        : () => {
-                            setSelectedSize(size);
-                            setSelectionError(null);
-                          }
-                    }
+                    onClick={handleSelectSize}
                     aria-pressed={isSelected}
                     aria-disabled={isSoldOut}
                     disabled={isSoldOut}
                     className={`relative rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                       isSoldOut
-                        ? "cursor-not-allowed border-dashed border-white/15 bg-white/5 text-white/70 opacity-70"
+                        ? "cursor-not-allowed border-dashed border-white/15 bg-white/5 text-white/70 opacity-60"
                         : isSelected
                           ? "border-white bg-white/15 text-white"
                           : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
@@ -407,7 +345,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     whileTap={isSoldOut ? undefined : { scale: 0.97 }}
                   >
                     <span className="relative inline-flex items-center justify-center">
-                      {sizeLabel(size)}
+                      {sizeLabel(size.value)}
                       {isSoldOut ? (
                         <>
                           <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />

@@ -21,64 +21,17 @@ import { useFlyToCart } from "@/lib/useFlyToCart";
 
 import { Product } from "@/types/product";
 import { Swatch } from "./swatch";
+import {
+  buildProductColorOptions,
+  buildProductSizeOptions,
+  hasAvailableVariants,
+  resolveSwatchHex,
+} from "@/lib/product-variants";
 
 type ProductWithInventory = Product & { stock?: number; inStock?: boolean };
 
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
-
-const colorSwatchMap: Record<string, string> = {
-  noir: "#1f2937",
-  black: "#111827",
-  blanc: "#f9fafb",
-  white: "#f9fafb",
-  gris: "#9ca3af",
-  gray: "#9ca3af",
-  rouge: "#dc2626",
-  red: "#ef4444",
-  bleu: "#2563eb",
-  blue: "#2563eb",
-  vert: "#16a34a",
-  green: "#22c55e",
-  beige: "#d6c9a5",
-  beigeclair: "#e5d5b5",
-};
-
-const normalizeHexValue = (value: string | undefined): string => (value ?? "").trim().toLowerCase();
-
-type NormalizedColor = {
-  hex: string;
-  image?: string;
-  label?: string;
-};
-
-const getSwatchColor = (color: NormalizedColor): string => {
-  if (color.hex && /^#([0-9A-F]{3}){1,2}$/i.test(color.hex)) {
-    return color.hex;
-  }
-  const label = color.label?.toLowerCase().replace(/\s+/g, "") ?? "";
-  return colorSwatchMap[label] ?? color.hex ?? "#e5e7eb";
-};
-
-const normalizeColors = (colors: Product["colors"]): NormalizedColor[] =>
-  colors.reduce<NormalizedColor[]>((acc, color) => {
-    if (typeof color === "string") {
-      acc.push({ hex: color, label: color });
-      return acc;
-    }
-    if ("hex" in color) {
-      const hex = typeof color.hex === "string" ? color.hex : "";
-      const label = typeof color.labelFr === "string" ? color.labelFr : hex;
-      const image = typeof color.image === "string" ? color.image : undefined;
-      if (hex) acc.push({ hex, label, image });
-      return acc;
-    }
-    const id = typeof color.id === "string" ? color.id : "";
-    const label = typeof color.labelFr === "string" ? color.labelFr : id;
-    const image = typeof color.image === "string" ? color.image : undefined;
-    if (id) acc.push({ hex: id, label, image });
-    return acc;
-  }, []);
 
 const skeletonShimmer =
   "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.4s_ease_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent";
@@ -89,19 +42,10 @@ export type ProductCardProps = {
 };
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
-  const colorOptions = useMemo(() => normalizeColors(product.colors), [product.colors]);
-  const soldOutColorSet = useMemo(
-    () => new Set((product.soldOutColorCodes ?? []).map((hex) => normalizeHexValue(hex))),
-    [product.soldOutColorCodes],
-  );
-  const soldOutSizeSet = useMemo(
-    () => new Set((product.soldOutSizes ?? []).map((size) => size.toUpperCase())),
-    [product.soldOutSizes],
-  );
-  const availableColors = useMemo(
-    () => colorOptions.filter((color) => !soldOutColorSet.has(normalizeHexValue(color.hex))),
-    [colorOptions, soldOutColorSet],
-  );
+  const colorOptions = useMemo(() => buildProductColorOptions(product), [product]);
+  const sizeOptions = useMemo(() => buildProductSizeOptions(product), [product]);
+  const availableColors = useMemo(() => colorOptions.filter((color) => !color.soldOut), [colorOptions]);
+  const availableSizes = useMemo(() => sizeOptions.filter((size) => !size.soldOut), [sizeOptions]);
   const colorOptionKey = useMemo(
     () => colorOptions.map((color) => `${color.hex}-${color.image ?? ""}`).join("|"),
     [colorOptions],
@@ -110,12 +54,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     () => (availableColors.length === 1 ? availableColors[0] : null),
     [availableColors],
   );
-  const sizeKey = useMemo(() => product.sizes.join("|"), [product.sizes]);
+  const sizeKey = useMemo(() => sizeOptions.map((size) => size.value).join("|"), [sizeOptions]);
   const initialSize = useMemo(
-    () => (product.sizes.length === 1 ? product.sizes[0] : null),
-    [product.sizes],
+    () => (sizeOptions.length === 1 && !sizeOptions[0].soldOut ? sizeOptions[0].value : null),
+    [sizeOptions],
   );
-  const [selectedColor, setSelectedColor] = useState<NormalizedColor | null>(initialColor);
+  const [selectedColor, setSelectedColor] = useState<typeof colorOptions[number] | null>(initialColor);
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
   const images = useMemo(() => {
     const base = [product.images.main, ...(product.images.gallery ?? [])].filter(Boolean);
@@ -129,17 +73,17 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const touchStartX = useRef<number | null>(null);
   const { flyToCart } = useFlyToCart();
   const stockCount = typeof product.stock === "number" ? product.stock : null;
-  const isOutOfStock =
-    product.inStock === false || (stockCount !== null && stockCount <= 0);
-  const availableStock = stockCount ?? undefined;
   const requiresColorSelection = availableColors.length > 1;
-  const noColorAvailable = colorOptions.length > 0 && availableColors.length === 0;
-  const hasVariantAvailable = !noColorAvailable;
+  const requiresSizeSelection = availableSizes.length > 1;
+  const hasVariantAvailable = hasAvailableVariants(product);
+  const isOutOfStock =
+    product.inStock === false || (stockCount !== null && stockCount <= 0) || !hasVariantAvailable;
+  const availableStock = stockCount ?? undefined;
 
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
   const isSelectionMissing =
-    (!selectedColor && requiresColorSelection) || (!selectedSize && product.sizes.length > 1);
+    (!selectedColor && requiresColorSelection) || (!selectedSize && requiresSizeSelection);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -149,12 +93,24 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   }, [colorOptionKey, initialColor, initialSize, product.slug, sizeKey]);
 
   useEffect(() => {
-    if (selectedColor && soldOutColorSet.has(normalizeHexValue(selectedColor.hex))) {
+    if (selectedColor && selectedColor.soldOut) {
       setSelectedColor(availableColors[0] ?? null);
-    } else if (!selectedColor && availableColors.length === 1) {
+      return;
+    }
+    if (!selectedColor && availableColors.length === 1) {
       setSelectedColor(availableColors[0]);
     }
-  }, [availableColors, selectedColor, soldOutColorSet]);
+  }, [availableColors, selectedColor]);
+
+  useEffect(() => {
+    if (selectedSize && sizeOptions.some((size) => size.value === selectedSize && size.soldOut)) {
+      setSelectedSize(availableSizes[0]?.value ?? null);
+      return;
+    }
+    if (!selectedSize && availableSizes.length === 1) {
+      setSelectedSize(availableSizes[0].value);
+    }
+  }, [availableSizes, selectedSize, sizeOptions]);
 
   const handleNav = useCallback(
     (
@@ -202,15 +158,15 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     touchStartX.current = null;
   };
 
-  const handleSelectColor = (color: NormalizedColor, index: number) => {
-    if (soldOutColorSet.has(normalizeHexValue(color.hex))) return;
+  const handleSelectColor = (color: typeof colorOptions[number], index: number) => {
+    if (color.soldOut) return;
     setSelectedColor(color);
     setActiveIndex(Math.min(index, Math.max(images.length - 1, 0)));
     setSelectionWarning(null);
   };
 
   const handleSelectSize = (size: string) => {
-    if (soldOutSizeSet.has(size.toUpperCase())) return;
+    if (sizeOptions.some((option) => option.value === size && option.soldOut)) return;
     setSelectedSize(size);
     setSelectionWarning(null);
   };
@@ -231,7 +187,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       return false;
     }
 
-    if (!selectedSize && product.sizes.length > 1) {
+    if (!selectedSize && requiresSizeSelection) {
       setSelectionWarning("Please choose a color and size before adding to cart.");
       return false;
     }
@@ -241,7 +197,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       setSelectionWarning("Selected options are sold out");
       return false;
     }
-    const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
+    const sizeChoice = selectedSize ?? availableSizes[0]?.value ?? sizeOptions[0]?.value ?? "Taille unique";
     const colorName = color?.label ?? color?.hex ?? "Standard";
     const colorCode = color?.hex ?? "default";
 
@@ -280,6 +236,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     isOutOfStock,
     items,
     requiresColorSelection,
+    requiresSizeSelection,
     hasVariantAvailable,
     product.currency,
     product.id,
@@ -287,7 +244,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     product.nameFr,
     product.priceDzd,
     product.slug,
-    product.sizes,
+    sizeOptions,
+    availableSizes,
     selectedColor,
     selectedSize,
   ]);
@@ -456,9 +414,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               </div>
               <div className="flex flex-wrap gap-1">
                 {colorOptions.slice(0, 3).map((color, index) => {
-                  const hexValue = getSwatchColor(color);
+                  const hexValue = resolveSwatchHex(color);
                   const label = color.label ?? color.hex ?? "Color";
-                  const isSoldOut = soldOutColorSet.has(normalizeHexValue(color.hex));
+                  const isSoldOut = color.soldOut;
                   return (
                     <Swatch
                       key={color.hex + index}
@@ -480,28 +438,28 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             </div>
           )}
 
-          {product.sizes.length > 0 && (
+          {sizeOptions.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-neutral-300">
                 <span>Size</span>
-                {!selectedSize && product.sizes.length > 1 && (
+                {!selectedSize && requiresSizeSelection && (
                   <span className="text-rose-200">Pick a size</span>
                 )}
               </div>
               <div className="flex gap-1 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
-                {product.sizes.map((size) => {
-                  const isSelected = selectedSize === size;
-                  const isSoldOut = soldOutSizeSet.has(size.toUpperCase());
+                {sizeOptions.map((size) => {
+                  const isSelected = selectedSize === size.value;
+                  const isSoldOut = size.soldOut;
                   return (
                     <motion.button
-                      key={size}
+                      key={size.value}
                       type="button"
                       disabled={isSoldOut}
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
                         if (isSoldOut) return;
-                        handleSelectSize(size);
+                        handleSelectSize(size.value);
                       }}
                       aria-pressed={isSelected}
                       aria-disabled={isSoldOut}
@@ -509,12 +467,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                         isSelected
                           ? "border-white bg-white/15 text-white"
                           : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                      } ${isSoldOut ? "opacity-70 cursor-not-allowed" : ""}`}
+                      } ${isSoldOut ? "opacity-60 cursor-not-allowed" : ""}`}
                       whileHover={isSoldOut ? undefined : { y: -1 }}
                       whileTap={isSoldOut ? undefined : { scale: 0.97 }}
                     >
                       <span className="relative inline-flex items-center justify-center">
-                        {size.toUpperCase()}
+                        {size.value.toUpperCase()}
                         {isSoldOut ? (
                           <>
                             <span className="pointer-events-none absolute h-[2px] w-5 -rotate-45 bg-red-400/80 mix-blend-multiply" />
@@ -535,9 +493,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
           <AnimatedAddToCartButton
             onClick={handleAddToCart}
-            disabled={isOutOfStock}
+            disabled={isOutOfStock || !hasVariantAvailable}
             className={`w-full justify-center ${
-              isSelectionMissing || isOutOfStock ? "opacity-60 cursor-not-allowed" : ""
+              isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
             }`.trim()}
           />
         </div>
