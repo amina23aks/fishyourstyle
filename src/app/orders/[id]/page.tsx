@@ -291,124 +291,25 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                       </div>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="flex flex-col text-xs text-sky-100 gap-1">
+                      <div className="flex flex-col text-xs text-sky-100 gap-1">
                         Color
-                        {(() => {
-                          const productColors =
-                            getProductBySlug(item.slug)?.colors ??
-                            [
-                              {
-                                id: item.colorCode,
-                                labelFr: item.colorName,
-                                labelAr: item.colorName,
-                                image: item.image,
-                              },
-                            ];
-                          const currentColorLabel = (() => {
-                            const selectedColor = productColors.find((candidate) => {
-                              if (typeof candidate === "string") return candidate === item.colorCode;
-                              return candidate.id === item.colorCode;
-                            });
-                            if (typeof selectedColor === "string") return selectedColor;
-                            return (
-                              selectedColor?.labelFr ??
-                              selectedColor?.labelAr ??
-                              selectedColor?.id ??
-                              item.colorName ??
-                              "Color"
-                            );
-                          })();
-
-                          return (
-                            <>
-                              <div className="flex flex-wrap gap-2">
-                                {productColors.map((color) => {
-                                  const colorId = typeof color === "string" ? color : color.id ?? item.colorCode;
-                                  if (!colorId) return null;
-                                  const colorLabel =
-                                    typeof color === "string" ? color : color.labelFr ?? item.colorName ?? "Color";
-                                  const isSelected = colorId === item.colorCode;
-                                  return (
-                                    <Swatch
-                                      key={colorId}
-                                      label={colorLabel}
-                                      colorHex={colorCodeToHex(colorId)}
-                                      selected={isSelected}
-                                      showLabel={false}
-                                      size="xs"
-                                      onSelect={() => {
-                                        if (disabled) return;
-                                        const product = getProductBySlug(item.slug);
-                                        const selectedColor = product?.colors.find((candidate) => {
-                                          if (typeof candidate === "string") return candidate === colorId;
-                                          return candidate.id === colorId;
-                                        });
-                                        const colorName =
-                                          typeof selectedColor === "string"
-                                            ? selectedColor
-                                            : selectedColor?.labelFr ?? item.colorName;
-                                        const colorCode =
-                                          typeof selectedColor === "string"
-                                            ? selectedColor
-                                            : selectedColor?.id ?? item.colorCode;
-                                        const image =
-                                          typeof selectedColor === "string"
-                                            ? item.image
-                                            : selectedColor?.image ?? item.image;
-
-                                        setItems((current) =>
-                                          current.map((entry, idx) =>
-                                            idx === index
-                                              ? {
-                                                  ...entry,
-                                                  colorCode,
-                                                  colorName,
-                                                  image,
-                                                }
-                                              : entry,
-                                          ),
-                                        );
-                                      }}
-                                    />
-                                  );
-                                })}
-                              </div>
-                              <p className="text-[11px] text-sky-200">
-                                Selected color: <span className="font-semibold text-white">{currentColorLabel}</span>
-                              </p>
-                            </>
-                          );
-                        })()}
-                      </label>
-                      <label className="flex flex-col text-xs text-sky-100 gap-1">
-                        Size
-                        <div className="flex flex-wrap gap-2">
-                          {(getProductBySlug(item.slug)?.sizes ?? [item.size]).map((sizeOption) => {
-                            const isSelected = sizeOption === item.size;
-                            return (
-                              <button
-                                key={sizeOption}
-                                type="button"
-                                disabled={disabled}
-                                onClick={() =>
-                                  setItems((current) =>
-                                    current.map((entry, idx) =>
-                                      idx === index ? { ...entry, size: sizeOption } : entry,
-                                    ),
-                                  )
-                                }
-                                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60 disabled:opacity-60 ${
-                                  isSelected
-                                    ? "border-white bg-white/15 text-white"
-                                    : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                                }`}
-                              >
-                                {sizeOption}
-                              </button>
-                            );
-                          })}
+                        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                          <span
+                            className="inline-block h-4 w-4 rounded-full border border-white/40"
+                            style={{ backgroundColor: colorCodeToHex(item.colorCode) }}
+                            aria-hidden
+                          />
+                          <span className="text-sm font-semibold text-white">
+                            {item.colorName ?? item.colorCode ?? "—"}
+                          </span>
                         </div>
-                      </label>
+                      </div>
+                      <div className="flex flex-col text-xs text-sky-100 gap-1">
+                        Size
+                        <div className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-sm font-semibold text-white inline-flex w-fit">
+                          {item.size}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
