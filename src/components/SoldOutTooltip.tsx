@@ -14,7 +14,7 @@ export function SoldOutTooltip({ show, message = "Out of stock", className = "" 
       role="tooltip"
       aria-hidden={!show}
     >
-      <div className="rounded-md bg-[rgba(255,0,0,0.12)] px-2.5 py-1 text-xs font-semibold text-rose-100 shadow-sm ring-1 ring-red-400/20 backdrop-blur-[1px]">
+      <div className="whitespace-nowrap rounded-md bg-[rgba(255,0,0,0.12)] px-2.5 py-1 text-xs font-semibold leading-none text-rose-100 shadow-sm ring-1 ring-red-400/20 backdrop-blur-[1px]">
         {message}
       </div>
       <div className="h-2 w-2 -mt-[2px] rotate-45 bg-[rgba(255,0,0,0.12)] ring-1 ring-red-400/20" />
