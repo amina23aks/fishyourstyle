@@ -274,7 +274,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   }, [
     addItem,
     currentImage,
-    colorOptions,
     availableColors,
     flyToCart,
     availableStock,
@@ -282,7 +281,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     items,
     requiresColorSelection,
     hasVariantAvailable,
-    product.colors,
     product.currency,
     product.id,
     product.images.main,
