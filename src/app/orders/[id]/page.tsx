@@ -276,10 +276,10 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                         />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
-                        <p className="text-sm font-semibold text-white truncate">{item.name}</p>
-                        <div className="flex items-center gap-1.5 text-xs text-sky-200">
+                        <p className="text-sm font-semibold text-white line-clamp-2 leading-snug">{item.name}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-sky-200 flex-wrap">
                           <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
-                          <span>{item.size}</span>
+                          <span className="text-white/80">{item.size}</span>
                         </div>
                         <p className="text-xs text-sky-100">
                           {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
@@ -317,17 +317,17 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                               {colorOptions.map((color) => {
                                 const colorId = typeof color === "string" ? color : color.id;
                                 if (!colorId) return null;
-                                const colorLabel =
-                                  typeof color === "string" ? color : color.labelFr ?? item.colorName ?? "Color";
-                                const isSelected = colorId === item.colorCode;
-                                return (
-                                  <Swatch
-                                    key={colorId}
-                                    label={colorLabel}
-                                    colorHex={colorCodeToHex(colorId)}
-                                    selected={isSelected}
-                                    showLabel={false}
-                                    size="xs"
+                            const colorLabel =
+                              typeof color === "string" ? color : color.labelFr ?? item.colorName ?? "Color";
+                            const isSelected = colorId === item.colorCode;
+                            return (
+                              <Swatch
+                                key={colorId}
+                                label={colorLabel}
+                                colorHex={colorCodeToHex(colorId)}
+                                selected={isSelected}
+                                showLabel={false}
+                                size="xs"
                                     onSelect={() => {
                                       if (disabled) return;
                                       const product = getProductBySlug(item.slug);
@@ -364,7 +364,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                                   />
                                 );
                               })}
-                              <span className="text-sm font-semibold text-white">{selectedLabel}</span>
+                              <span className="text-sm font-semibold text-white sr-only">{selectedLabel}</span>
                             </div>
                           );
                         })()}
