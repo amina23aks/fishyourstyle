@@ -107,7 +107,7 @@ export default function HomeClient({ products, categories, designThemes }: Props
           No products in this category yet.
         </div>
       ) : (
-        <div className="mt-10 grid grid-cols-1 gap-8 md:gap-10 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr">
+        <div className="mt-10 grid grid-cols-2 gap-8 md:gap-10 auto-rows-fr">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -116,4 +116,3 @@ export default function HomeClient({ products, categories, designThemes }: Props
     </>
   );
 }
-

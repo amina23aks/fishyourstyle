@@ -87,6 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const auth = getAuthInstanceOrThrow();
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: "select_account",
+    });
     try {
       await signInWithPopup(auth, provider);
       setError(null);
