@@ -368,7 +368,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     size="sm"
                     showLabel={false}
                     disabled={isSoldOut}
-                    soldOut={isSoldOut}
+                    isSoldOut={isSoldOut}
                   />
                 );
               })}

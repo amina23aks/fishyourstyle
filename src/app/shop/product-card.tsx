@@ -44,6 +44,8 @@ const colorSwatchMap: Record<string, string> = {
   beigeclair: "#e5d5b5",
 };
 
+const normalizeHexValue = (value: string | undefined): string => (value ?? "").trim().toLowerCase();
+
 type NormalizedColor = {
   hex: string;
   image?: string;
@@ -88,13 +90,21 @@ export type ProductCardProps = {
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const colorOptions = useMemo(() => normalizeColors(product.colors), [product.colors]);
+  const soldOutColorSet = useMemo(
+    () => new Set((product.soldOutColorCodes ?? []).map((hex) => normalizeHexValue(hex))),
+    [product.soldOutColorCodes],
+  );
+  const availableColors = useMemo(
+    () => colorOptions.filter((color) => !soldOutColorSet.has(normalizeHexValue(color.hex))),
+    [colorOptions, soldOutColorSet],
+  );
   const colorOptionKey = useMemo(
     () => colorOptions.map((color) => `${color.hex}-${color.image ?? ""}`).join("|"),
     [colorOptions],
   );
   const initialColor = useMemo(
-    () => (colorOptions.length === 1 ? colorOptions[0] : null),
-    [colorOptions],
+    () => (availableColors.length === 1 ? availableColors[0] : null),
+    [availableColors],
   );
   const sizeKey = useMemo(() => product.sizes.join("|"), [product.sizes]);
   const initialSize = useMemo(
@@ -118,11 +128,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const isOutOfStock =
     product.inStock === false || (stockCount !== null && stockCount <= 0);
   const availableStock = stockCount ?? undefined;
+  const requiresColorSelection = availableColors.length > 1;
+  const noColorAvailable = colorOptions.length > 0 && availableColors.length === 0;
+  const hasVariantAvailable = !noColorAvailable;
 
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
   const isSelectionMissing =
-    (!selectedColor && colorOptions.length > 1) || (!selectedSize && product.sizes.length > 1);
+    (!selectedColor && requiresColorSelection) || (!selectedSize && product.sizes.length > 1);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -130,6 +143,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     setSelectedSize(initialSize);
     setSelectionWarning(null);
   }, [colorOptionKey, initialColor, initialSize, product.slug, sizeKey]);
+
+  useEffect(() => {
+    if (selectedColor && soldOutColorSet.has(normalizeHexValue(selectedColor.hex))) {
+      setSelectedColor(availableColors[0] ?? null);
+    } else if (!selectedColor && availableColors.length === 1) {
+      setSelectedColor(availableColors[0]);
+    }
+  }, [availableColors, selectedColor, soldOutColorSet]);
 
   const handleNav = useCallback(
     (
@@ -178,6 +199,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   };
 
   const handleSelectColor = (color: NormalizedColor, index: number) => {
+    if (soldOutColorSet.has(normalizeHexValue(color.hex))) return;
     setSelectedColor(color);
     setActiveIndex(Math.min(index, Math.max(images.length - 1, 0)));
     setSelectionWarning(null);
@@ -194,7 +216,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       return false;
     }
 
-    if (!selectedColor && product.colors.length > 1) {
+    if (!hasVariantAvailable) {
+      setSelectionWarning("Selected options are sold out");
+      return false;
+    }
+
+    if (!selectedColor && requiresColorSelection) {
       setSelectionWarning("Please choose a color and size before adding to cart.");
       return false;
     }
@@ -204,7 +231,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       return false;
     }
 
-    const color = selectedColor ?? colorOptions[0];
+    const color = selectedColor ?? availableColors[0];
+    if (!color) {
+      setSelectionWarning("Selected options are sold out");
+      return false;
+    }
     const sizeChoice = selectedSize ?? product.sizes[0] ?? "Taille unique";
     const colorName = color?.label ?? color?.hex ?? "Standard";
     const colorCode = color?.hex ?? "default";
@@ -239,10 +270,13 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     addItem,
     currentImage,
     colorOptions,
+    availableColors,
     flyToCart,
     availableStock,
     isOutOfStock,
     items,
+    requiresColorSelection,
+    hasVariantAvailable,
     product.colors,
     product.currency,
     product.id,
@@ -421,15 +455,24 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 {colorOptions.slice(0, 3).map((color, index) => {
                   const hexValue = getSwatchColor(color);
                   const label = color.label ?? color.hex ?? "Color";
+                  const isSoldOut = soldOutColorSet.has(normalizeHexValue(color.hex));
                   return (
                     <Swatch
                       key={color.hex + index}
                       label={label}
                       colorHex={hexValue}
                       selected={selectedColor?.hex === color.hex}
-                      onSelect={() => handleSelectColor(color, index)}
+                      onSelect={
+                        isSoldOut
+                          ? undefined
+                          : () => {
+                              handleSelectColor(color, index);
+                            }
+                      }
                       size="card"
                       showLabel={false}
+                      disabled={isSoldOut}
+                      isSoldOut={isSoldOut}
                     />
                   );
                 })}
