@@ -7,6 +7,8 @@ import { OrderStatusSelect } from "../components/OrderStatusSelect";
 import { StatusBadge } from "../components/StatusBadge";
 import { fetchOrderById, updateOrderStatus } from "@/lib/admin-orders";
 import type { Order, OrderStatus } from "@/types/order";
+import { ColorDot } from "@/components/ColorDot";
+import { colorCodeToHex } from "@/lib/colorUtils";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("fr-DZ", {
@@ -226,13 +228,18 @@ export default function AdminOrderDetailPage({ params }: Props) {
 
           <section className="space-y-3 rounded-3xl border border-white/10 bg-white/10 p-5 shadow-inner shadow-sky-900/40">
             <h3 className="text-lg font-semibold text-white">Items</h3>
-            <div className="divide-y divide-white/5">
+                <div className="divide-y divide-white/5">
               {order.items.map((item) => (
                 <div key={item.variantKey} className="flex flex-col gap-2 py-3 text-sm text-sky-100/85">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-white">{item.name}</p>
-                      <p className="text-xs text-sky-100/70">{item.colorName} · {item.size}</p>
+                      <div className="flex items-center gap-1.5 text-xs text-sky-100/70">
+                        <ColorDot hex={colorCodeToHex(item.colorCode)} size="sm" />
+                        <span>{item.colorName}</span>
+                        <span aria-hidden>·</span>
+                        <span>{item.size}</span>
+                      </div>
                     </div>
                     <p className="font-semibold text-white">{formatCurrency(item.price)}</p>
                   </div>
