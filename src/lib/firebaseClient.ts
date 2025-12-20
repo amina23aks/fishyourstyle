@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
-import { getAuth, type Auth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 
 let app: FirebaseApp | null = null;
 
@@ -41,4 +41,12 @@ export function getAuthInstance(): Auth | null {
   const firebaseApp = getFirebaseApp();
   if (!firebaseApp) return null;
   return getAuth(firebaseApp);
+}
+
+export function getGoogleAuthProvider(): GoogleAuthProvider {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({
+    prompt: "select_account",
+  });
+  return provider;
 }
