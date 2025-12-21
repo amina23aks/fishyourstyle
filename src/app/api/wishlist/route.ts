@@ -241,12 +241,18 @@ export async function POST(request: NextRequest) {
         isSameWishlistItem(item, { productId, variantKey: computedVariantKey, colorName, size }),
       );
 
-      if (alreadyExists) {
-        transaction.update(wishlistRef, { updatedAt: FieldValue.serverTimestamp() });
-        return;
-      }
+      const nextItems = alreadyExists
+        ? existingItems.filter(
+            (item) =>
+              !isSameWishlistItem(item, {
+                productId,
+                variantKey: computedVariantKey,
+                colorName,
+                size,
+              }),
+          )
+        : [...existingItems, baseItem];
 
-      const nextItems = [...existingItems, baseItem];
       transaction.update(wishlistRef, {
         items: nextItems,
         updatedAt: FieldValue.serverTimestamp(),

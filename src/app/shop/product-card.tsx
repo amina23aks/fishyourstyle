@@ -69,6 +69,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   }, [product.images.gallery, product.images.main]);
   const { addItem, items } = useCart();
   const { isInWishlist, toggleWishlist, isLoading: wishlistLoading } = useWishlist();
+  const [wishlistBusy, setWishlistBusy] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
@@ -269,6 +270,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     async (event: MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
+      if (wishlistBusy) return;
 
       const colorName = selectedColor?.label ?? selectedColor?.hex;
       const colorCode = selectedColor?.hex;
@@ -280,18 +282,23 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             ? `${product.id}-${colorCode ?? ""}-${sizeValue ?? ""}`.toLowerCase()
             : undefined;
 
-      await toggleWishlist({
-        productId: product.id,
-        slug: product.slug,
-        name: product.nameFr,
-        image: currentImage ?? product.images.main,
-        price: wishlistPrice,
-        currency: product.currency,
-        colorName,
-        colorCode,
-        size: sizeValue,
-        variantKey,
-      });
+      try {
+        setWishlistBusy(true);
+        await toggleWishlist({
+          productId: product.id,
+          slug: product.slug,
+          name: product.nameFr,
+          image: currentImage ?? product.images.main,
+          price: wishlistPrice,
+          currency: product.currency,
+          colorName,
+          colorCode,
+          size: sizeValue,
+          variantKey,
+        });
+      } finally {
+        setWishlistBusy(false);
+      }
     },
     [
       currentImage,
@@ -304,6 +311,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       selectedSize,
       toggleWishlist,
       wishlistPrice,
+      wishlistBusy,
     ],
   );
 
@@ -348,46 +356,96 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         transition={{ duration: 0.2, easing: "ease" }}
         className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
       >
-        <Link
-          href={`/shop/${product.slug}`}
-          className="group relative flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-          aria-label={`Voir les détails du produit ${product.nameFr}`}
-          onKeyDown={handleKeyNavigation}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-        >
-          <div className="relative aspect-[3/4] w-full min-h-[270px] overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
-            {currentImage ? (
-              <AnimatePresence>
-                <motion.div
-                  key={currentImage}
-                  initial={{ opacity: 0.4, scale: 1.02 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.35, easing: "ease" }}
-                  className="absolute inset-0"
-                >
-                  <Image
-                    src={currentImage}
-                    alt={product.nameFr}
-                    ref={imageRef}
-                    fill
-                    priority={false}
-                    sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                    className="h-full w-full object-cover"
-                  />
-                </motion.div>
-                {isHovering && images.length > 1 && (
+        <div className="group relative flex flex-1 flex-col">
+          <div className="absolute left-2.5 right-2.5 top-2.5 z-10 flex items-start justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-white">
+            {(() => {
+              const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
+              return (
+                <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] shadow-sm shadow-black/10 ${
+                  isOutOfStock
+                    ? "bg-red-500/90 text-white"
+                    : "bg-white/90 text-emerald-700"
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${
+                    isOutOfStock ? "bg-white" : "bg-emerald-500"
+                  }`} />
+                  {isOutOfStock ? "Out of stock" : "In stock"}
+                </span>
+              );
+            })()}
+
+            <motion.button
+              type="button"
+              onClick={handleToggleWishlist}
+              aria-pressed={isWishlisted}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              disabled={wishlistLoading || wishlistBusy}
+              whileTap={{ scale: 0.9 }}
+              animate={{ scale: isWishlisted ? 1.05 : 1, boxShadow: isWishlisted ? "0 0 18px rgba(255,107,129,0.55)" : undefined }}
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-white shadow-md shadow-black/30 transition ${
+                isWishlisted
+                  ? "border-rose-200/80 bg-[#ff6b81] text-white"
+                  : "border-white/20 bg-black/60 hover:border-white/40 hover:bg-black/70"
+              } ${wishlistLoading || wishlistBusy ? "opacity-70" : ""}`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill={isWishlisted ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeWidth="1.8"
+                className="h-5 w-5 drop-shadow-sm"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
+                />
+              </svg>
+            </motion.button>
+          </div>
+
+          <Link
+            href={`/shop/${product.slug}`}
+            className="relative flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            aria-label={`Voir les détails du produit ${product.nameFr}`}
+            onKeyDown={handleKeyNavigation}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+          >
+            <div className="relative aspect-[3/4] w-full min-h-[270px] overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
+              {currentImage ? (
+                <AnimatePresence>
                   <motion.div
-                    key={`${currentImage}-hover`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    key={currentImage}
+                    initial={{ opacity: 0.4, scale: 1.02 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, easing: "ease" }}
+                    transition={{ duration: 0.35, easing: "ease" }}
                     className="absolute inset-0"
                   >
+                    <Image
+                      src={currentImage}
+                      alt={product.nameFr}
+                      ref={imageRef}
+                      fill
+                      priority={false}
+                      sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                      className="h-full w-full object-cover"
+                    />
+                  </motion.div>
+                  {isHovering && images.length > 1 && (
+                    <motion.div
+                      key={`${currentImage}-hover`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4, easing: "ease" }}
+                      className="absolute inset-0"
+                    >
                       <Image
                         src={nextImage}
                         alt={product.nameFr}
@@ -396,63 +454,16 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                         priority={false}
                         sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
                         className="h-full w-full object-cover"
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            ) : (
-              <span className="flex h-full items-center justify-center text-slate-300 bg-white/10 w-full text-sm font-medium">No image</span>
-            )}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              ) : (
+                <span className="flex h-full items-center justify-center text-slate-300 bg-white/10 w-full text-sm font-medium">No image</span>
+              )}
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-
-              <div className="absolute left-2.5 right-2.5 top-2.5 flex items-start justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-white">
-                {(() => {
-                  const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
-                  return (
-                    <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] shadow-sm shadow-black/10 ${
-                      isOutOfStock
-                        ? "bg-red-500/90 text-white"
-                        : "bg-white/90 text-emerald-700"
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${
-                        isOutOfStock ? "bg-white" : "bg-emerald-500"
-                      }`} />
-                      {isOutOfStock ? "Out of stock" : "In stock"}
-                    </span>
-                  );
-                })()}
-
-                <motion.button
-                  type="button"
-                  onClick={handleToggleWishlist}
-                  aria-pressed={isWishlisted}
-                  aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                  disabled={wishlistLoading}
-                  whileTap={{ scale: 0.94 }}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-white shadow-md shadow-black/30 transition ${
-                    isWishlisted
-                      ? "border-rose-200/80 bg-rose-500/80"
-                      : "border-white/20 bg-black/50 hover:border-white/40 hover:bg-black/70"
-                  } ${wishlistLoading ? "opacity-70" : ""}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill={isWishlisted ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    className="h-5 w-5 drop-shadow-sm"
-                    aria-hidden
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
-                    />
-                  </svg>
-                </motion.button>
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+            </div>
 
             {images.length > 1 && (
               <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1.5">
@@ -478,28 +489,28 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 </motion.button>
               </div>
             )}
-          </div>
 
-          <div className="flex flex-1 flex-col gap-1 px-3 pb-1 pt-1">
-            <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2 sm:text-base">{product.nameFr}</h2>
+            <div className="flex flex-1 flex-col gap-1 px-3 pb-1 pt-1">
+              <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2 sm:text-base">{product.nameFr}</h2>
 
-            <div className="flex items-center justify-between gap-3">
-              {product.discountPercent && product.discountPercent > 0 ? (
-                <div className="flex items-center gap-2">
-                  <p className="text-base font-bold text-emerald-200 tabular-nums sm:text-lg">
-                    {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0))}
-                  </p>
-                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-100">
-                    -{product.discountPercent}%
-                  </span>
-                  <p className="text-xs font-semibold text-white/60 line-through">{formatPrice(product.priceDzd)}</p>
-                </div>
-              ) : (
-                <p className="text-base font-bold text-white tabular-nums sm:text-lg">{formatPrice(product.priceDzd)}</p>
-              )}
+              <div className="flex items-center justify-between gap-3">
+                {product.discountPercent && product.discountPercent > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-bold text-emerald-200 tabular-nums sm:text-lg">
+                      {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0))}
+                    </p>
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-100">
+                      -{product.discountPercent}%
+                    </span>
+                    <p className="text-xs font-semibold text-white/60 line-through">{formatPrice(product.priceDzd)}</p>
+                  </div>
+                ) : (
+                  <p className="text-base font-bold text-white tabular-nums sm:text-lg">{formatPrice(product.priceDzd)}</p>
+                )}
+              </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
         <div className="space-y-1 px-3 pb-2">
           {colorOptions.length > 0 && (

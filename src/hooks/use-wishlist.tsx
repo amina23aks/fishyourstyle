@@ -181,7 +181,8 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         setItems((previous) =>
           previous.filter((item) => !matchesWishlistItem(item, { productId: payload.productId, variantKey })),
         );
-        pushToast({ message: "Unable to save to wishlist.", type: "error" });
+        const message = err instanceof Error ? err.message : "Unable to save to wishlist.";
+        pushToast({ message, type: "error" });
       }
     },
     [pushToast, user],

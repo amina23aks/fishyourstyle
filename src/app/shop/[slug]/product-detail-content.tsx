@@ -465,11 +465,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   onClick={handleToggleWishlist}
                   aria-pressed={isWishlisted}
                   disabled={isWishlistUpdating}
-                  whileTap={{ scale: 0.97 }}
-                  className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition shadow-inner shadow-black/30 ${
+                  whileTap={{ scale: 0.9 }}
+                  animate={{ scale: isWishlisted ? 1.05 : 1, boxShadow: isWishlisted ? "0 0 18px rgba(255,107,129,0.45)" : undefined }}
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-full border text-white shadow-inner shadow-black/30 ${
                     isWishlisted
-                      ? "border-rose-200/80 bg-rose-500/80 text-white"
-                      : "border-white/15 bg-white/10 text-white hover:border-white/30 hover:bg-white/15"
+                      ? "border-rose-200/80 bg-[#ff6b81]"
+                      : "border-white/15 bg-white/10 hover:border-white/30 hover:bg-white/15"
                   } ${isWishlistUpdating ? "opacity-70" : ""}`}
                 >
                   <svg
@@ -487,7 +488,6 @@ export function ProductDetailContent({ product }: { product: Product }) {
                       d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
                     />
                   </svg>
-                  <span className="text-sm">{isWishlisted ? "Saved" : "Wishlist"}</span>
                 </motion.button>
                 <p className="text-[11px] text-neutral-400 text-center sm:text-left">Livraison rapide & échanges simples.</p>
               </div>
