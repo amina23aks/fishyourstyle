@@ -8,19 +8,20 @@ import { motion } from "@/lib/motion";
 import PageShell from "@/components/PageShell";
 import { useAuth } from "@/context/auth";
 import { useCart } from "@/context/cart";
-import { useWishlist } from "@/hooks/use-wishlist";
+import { useFavorites } from "@/hooks/use-favorites";
 import { buildProductColorOptions, buildProductSizeOptions, normalizeHexValue } from "@/lib/product-variants";
 import type { Product } from "@/types/product";
-import type { WishlistItem } from "@/types/wishlist";
+import type { FavoriteItem } from "@/types/favorites";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
-type WishlistClientProps = {
+type FavoritesClientProps = {
   products: Product[];
 };
 
 const formatPrice = (value: number, currency: string) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
 
-const fallbackVariant = (product: Product | undefined, item: WishlistItem) => {
+const fallbackVariant = (product: Product | undefined, item: FavoriteItem) => {
   const colorCode = item.colorCode ?? item.colorName ?? "default";
   const colorName = item.colorName ?? item.colorCode ?? "Standard";
   const size = item.size ?? product?.sizes?.[0] ?? "Taille unique";
@@ -28,7 +29,7 @@ const fallbackVariant = (product: Product | undefined, item: WishlistItem) => {
   return { colorCode, colorName, size, variantKey };
 };
 
-function WishlistCard({
+function FavoriteCard({
   item,
   product,
   onAddToCart,
@@ -36,10 +37,10 @@ function WishlistCard({
   isSaved,
   isAvailable,
 }: {
-  item: WishlistItem;
+  item: FavoriteItem;
   product?: Product;
-  onAddToCart: (item: WishlistItem, product?: Product) => void;
-  onToggle: (item: WishlistItem) => void;
+  onAddToCart: (item: FavoriteItem, product?: Product) => void;
+  onToggle: (item: FavoriteItem) => void;
   isSaved: boolean;
   isAvailable: boolean;
 }) {
@@ -61,33 +62,7 @@ function WishlistCard({
           >
             {isAvailable ? "Available" : "Check availability"}
           </span>
-          <motion.button
-            type="button"
-            onClick={() => onToggle(item)}
-            aria-pressed={isSaved}
-            whileTap={{ scale: 0.94 }}
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-white shadow-inner shadow-black/30 transition ${
-              isSaved
-                ? "border-rose-200/80 bg-rose-500/80"
-                : "border-white/20 bg-black/50 hover:border-white/40 hover:bg-black/70"
-            }`}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill={isSaved ? "currentColor" : "none"}
-              stroke="currentColor"
-              strokeWidth="1.8"
-              className="h-5 w-5"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
-              />
-            </svg>
-          </motion.button>
+          <FavoriteButton active={isSaved} onClick={() => onToggle(item)} size="sm" />
         </div>
       </div>
 
@@ -130,10 +105,10 @@ function WishlistCard({
   );
 }
 
-export function WishlistClient({ products }: WishlistClientProps) {
+export function FavoritesClient({ products }: FavoritesClientProps) {
   const { user, loading: authLoading } = useAuth();
   const { addItem } = useCart();
-  const { items, isLoading, toggleWishlist, isInWishlist } = useWishlist();
+  const { favorites, isLoading, toggleFavorite, isFavorite } = useFavorites();
 
   const productLookup = useMemo(() => {
     const map = new Map<string, Product>();
@@ -145,7 +120,7 @@ export function WishlistClient({ products }: WishlistClientProps) {
   }, [products]);
 
   const checkAvailability = useCallback(
-    (item: WishlistItem) => {
+    (item: FavoriteItem) => {
       const product = productLookup.get(item.productId) ?? productLookup.get(item.slug);
       if (!product) return true;
       if (product.inStock === false || (typeof product.stock === "number" && product.stock <= 0)) {
@@ -168,7 +143,7 @@ export function WishlistClient({ products }: WishlistClientProps) {
   );
 
   const handleAddToCart = useCallback(
-    (item: WishlistItem, productOverride?: Product) => {
+    (item: FavoriteItem, productOverride?: Product) => {
       const product = productOverride ?? productLookup.get(item.productId) ?? productLookup.get(item.slug);
       if (!product) return;
       const variant = fallbackVariant(product, item);
@@ -184,14 +159,16 @@ export function WishlistClient({ products }: WishlistClientProps) {
         size: variant.size,
         quantity: 1,
         maxQuantity: typeof product.stock === "number" && product.stock > 0 ? product.stock : 1,
+        variantKey: variant.variantKey,
       });
     },
     [addItem, productLookup],
   );
 
-  const handleToggleWishlist = useCallback(
-    async (item: WishlistItem) => {
-      await toggleWishlist({
+  const handleToggleFavorites = useCallback(
+    async (item: FavoriteItem) => {
+      const fallback = fallbackVariant(productLookup.get(item.productId), item);
+      await toggleFavorite({
         productId: item.productId,
         slug: item.slug,
         name: item.name,
@@ -201,27 +178,27 @@ export function WishlistClient({ products }: WishlistClientProps) {
         colorName: item.colorName,
         colorCode: item.colorCode,
         size: item.size,
-        variantKey: item.variantKey,
+        variantKey: item.variantKey ?? fallback.variantKey,
       });
     },
-    [toggleWishlist],
+    [productLookup, toggleFavorite],
   );
 
   const isAuthenticated = Boolean(user);
-  const showEmpty = !isLoading && items.length === 0;
+  const showEmpty = !isLoading && favorites.length === 0;
 
   return (
     <PageShell>
       <section className="space-y-4 py-8">
         <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-white">Wishlist</h1>
+          <h1 className="text-3xl font-semibold text-white">Favorites</h1>
           <p className="text-sky-100/80">View and manage the products you’ve saved.</p>
         </header>
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-black/30 backdrop-blur">
           {!isAuthenticated && !authLoading ? (
             <div className="space-y-3 text-center text-white">
-              <p className="text-lg font-semibold">Please log in to see your wishlist.</p>
+              <p className="text-lg font-semibold">Please log in to see your favorites.</p>
               <Link
                 href="/account"
                 className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-inner shadow-black/30 transition hover:border-white/40 hover:bg-white/15"
@@ -240,7 +217,7 @@ export function WishlistClient({ products }: WishlistClientProps) {
             </div>
           ) : showEmpty ? (
             <div className="space-y-3 rounded-2xl border border-dashed border-white/20 bg-white/5 p-6 text-center text-white shadow-inner shadow-black/30">
-              <p className="text-lg font-semibold">Your wishlist is empty.</p>
+              <p className="text-lg font-semibold">Your favorites list is empty.</p>
               <p className="text-sm text-sky-100/80">
                 Start exploring the shop and tap the heart on products you like.
               </p>
@@ -253,19 +230,21 @@ export function WishlistClient({ products }: WishlistClientProps) {
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => {
+              {favorites.map((item) => {
                 const product = productLookup.get(item.productId) ?? productLookup.get(item.slug);
-                const isSaved = isInWishlist(item.productId, item.variantKey, item.colorName, item.size);
+                const fallback = fallbackVariant(product, item);
+                const variantKey = item.variantKey ?? fallback.variantKey;
+                const isSaved = isFavorite(item.productId, variantKey);
                 const isAvailable = checkAvailability(item);
                 return (
-                  <WishlistCard
-                    key={`${item.productId}-${item.variantKey ?? item.slug}`}
+                  <FavoriteCard
+                    key={`${item.productId}-${variantKey}`}
                     item={item}
                     product={product}
                     isSaved={isSaved}
                     isAvailable={isAvailable}
                     onAddToCart={handleAddToCart}
-                    onToggle={handleToggleWishlist}
+                    onToggle={handleToggleFavorites}
                   />
                 );
               })}

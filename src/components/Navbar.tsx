@@ -190,15 +190,15 @@ export function Navbar() {
         {/* Mobile icon ordering tweak: cart → account → menu (aligned together) */}
         <div className="ml-auto flex items-center gap-2 md:gap-3">
           <Link
-            href="/wishlist"
+            href="/favorites"
             className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border ${
-              pathname.startsWith("/wishlist")
+              pathname.startsWith("/favorites")
                 ? "border-rose-300/60 bg-rose-500/20 text-rose-100"
                 : "border-white/25 bg-white/10 text-white"
             } shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60`}
             aria-label="Wishlist"
           >
-            <HeartIcon filled={pathname.startsWith("/wishlist")} />
+            <HeartIcon filled={pathname.startsWith("/favorites")} />
           </Link>
           <motion.button
             type="button"
@@ -269,12 +269,12 @@ export function Navbar() {
                           My orders
                         </Link>
                         <Link
-                          href="/wishlist"
+                          href="/favorites"
                           className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
                           role="menuitem"
                           onClick={() => setIsAccountMenuOpen(false)}
                         >
-                          My wishlist
+                          My favorites
                         </Link>
                         <button
                           type="button"

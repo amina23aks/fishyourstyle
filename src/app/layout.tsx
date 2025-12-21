@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import OceanBackdrop from "@/components/OceanBackdrop";
 import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
-import { WishlistProvider } from "@/hooks/use-wishlist";
+import { FavoritesProvider } from "@/hooks/use-favorites";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default function RootLayout({
       </head>
       <body className="ocean-page relative min-h-screen overflow-x-hidden antialiased font-sans">
         <AuthProvider>
-          <WishlistProvider>
+          <FavoritesProvider>
             <CartProvider>
               <OceanBackdrop />
               <Navbar />
@@ -44,7 +44,7 @@ export default function RootLayout({
               </main>
               <Footer />
             </CartProvider>
-          </WishlistProvider>
+          </FavoritesProvider>
         </AuthProvider>
       </body>
     </html>

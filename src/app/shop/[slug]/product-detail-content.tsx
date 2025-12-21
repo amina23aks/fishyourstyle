@@ -7,10 +7,11 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { Swatch } from "../swatch";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
-import { useWishlist } from "@/hooks/use-wishlist";
+import { useFavorites } from "@/hooks/use-favorites";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import {
   buildProductColorOptions,
   buildProductSizeOptions,
@@ -54,14 +55,14 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const hasVariantAvailable = hasAvailableVariants(product);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const { addItem, items } = useCart();
-  const { isInWishlist, toggleWishlist } = useWishlist();
+  const { isFavorite, toggleFavorite, loadingIds } = useFavorites();
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const stockCount = typeof product.stock === "number" ? product.stock : null;
   const isOutOfStock =
     product.inStock === false || (stockCount !== null && stockCount <= 0);
   const availableStock = stockCount ?? undefined;
-  const [isWishlistUpdating, setIsWishlistUpdating] = useState(false);
+  const [isFavoritesUpdating, setIsFavoritesUpdating] = useState(false);
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -174,16 +175,16 @@ export function ProductDetailContent({ product }: { product: Product }) {
     return true;
   };
 
-  const activeVariantKey = product.id.toLowerCase();
+  const favoriteVariantKey = `${product.id}-${activeColor?.hex ?? "color"}-${selectedSize ?? "size"}`.toLowerCase();
 
-  const handleToggleWishlist = async () => {
+  const handleToggleFavorite = async () => {
     const colorName = activeColor?.label ?? activeColor?.hex;
     const colorCode = activeColor?.hex;
-    const variantKey = product.id.toLowerCase();
+    const variantKey = favoriteVariantKey;
 
     try {
-      setIsWishlistUpdating(true);
-      await toggleWishlist({
+      setIsFavoritesUpdating(true);
+      await toggleFavorite({
         productId: product.id,
         slug: product.slug,
         name: product.nameFr,
@@ -192,11 +193,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
         currency: product.currency,
         colorName,
         colorCode,
-        size: undefined,
+        size: selectedSize ?? "size",
         variantKey,
       });
     } finally {
-      setIsWishlistUpdating(false);
+      setIsFavoritesUpdating(false);
     }
   };
 
@@ -216,7 +217,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const displayMessage = isOutOfStock
     ? "Out of stock"
     : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
-  const isWishlisted = isInWishlist(product.id, activeVariantKey, activeColor?.label ?? activeColor?.hex);
+  const isWishlisted = isFavorite(product.id, favoriteVariantKey);
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
@@ -448,38 +449,13 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 }`.trim()}
               />
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                <motion.button
-                  type="button"
-                  onClick={handleToggleWishlist}
-                  aria-pressed={isWishlisted}
-                  disabled={isWishlistUpdating}
-                  whileTap={{ scale: 0.9 }}
-                  animate={{
-                    scale: isWishlisted ? 1.05 : 1,
-                    boxShadow: isWishlisted ? "0 6px 20px rgba(255,99,132,0.45)" : "0 6px 16px rgba(0,0,0,0.35)",
-                  }}
-                  className={`inline-flex h-11 w-11 items-center justify-center rounded-full border text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
-                    isWishlisted
-                      ? "border-rose-200 bg-[#ef4444]"
-                      : "border-white/50 bg-white text-slate-900 hover:border-white hover:shadow-[0_8px_18px_rgba(255,255,255,0.25)]"
-                  } ${isWishlistUpdating ? "opacity-70" : ""}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill={isWishlisted ? "currentColor" : "none"}
-                    stroke={isWishlisted ? "currentColor" : "currentColor"}
-                    strokeWidth="1.9"
-                    className="h-5 w-5"
-                    aria-hidden
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
-                    />
-                  </svg>
-                </motion.button>
+                <FavoriteButton
+                  active={isWishlisted}
+                  loading={isFavoritesUpdating || loadingIds.has(favoriteVariantKey)}
+                  onClick={handleToggleFavorite}
+                  size="md"
+                  ariaLabel={isWishlisted ? "Remove from favorites" : "Add to favorites"}
+                />
                 <p className="text-[11px] text-neutral-400 text-center sm:text-left">Livraison rapide & échanges simples.</p>
               </div>
             </div>

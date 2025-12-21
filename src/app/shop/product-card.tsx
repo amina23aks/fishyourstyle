@@ -18,8 +18,9 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { useCart } from "@/context/cart";
-import { useWishlist } from "@/hooks/use-wishlist";
+import { useFavorites } from "@/hooks/use-favorites";
 import { useFlyToCart } from "@/lib/useFlyToCart";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 import { Product } from "@/types/product";
 import { Swatch } from "./swatch";
@@ -68,8 +69,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     return base.length > 0 ? base : [product.images.main];
   }, [product.images.gallery, product.images.main]);
   const { addItem, items } = useCart();
-  const { isInWishlist, toggleWishlist, isLoading: wishlistLoading } = useWishlist();
-  const [wishlistBusy, setWishlistBusy] = useState(false);
+  const { isFavorite, toggleFavorite, loadingIds } = useFavorites();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
@@ -266,50 +266,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     selectedSize,
   ]);
 
-  const handleToggleWishlist = useCallback(
-    async (event: MouseEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (wishlistBusy) return;
-
-      const colorName = selectedColor?.label ?? selectedColor?.hex;
-      const colorCode = selectedColor?.hex;
-      const variantKey = product.id.toLowerCase();
-
-      try {
-        setWishlistBusy(true);
-        await toggleWishlist({
-          productId: product.id,
-          slug: product.slug,
-          name: product.nameFr,
-          image: currentImage ?? product.images.main,
-          price: wishlistPrice,
-          currency: product.currency,
-          colorName,
-          colorCode,
-          size: undefined,
-          variantKey,
-        });
-      } finally {
-        setWishlistBusy(false);
-      }
-    },
-    [
-      currentImage,
-      product.currency,
-      product.id,
-      product.images.main,
-      product.nameFr,
-      product.slug,
-      selectedColor,
-      toggleWishlist,
-      wishlistPrice,
-      wishlistBusy,
-    ],
-  );
-
-  const activeVariantKey = product.id.toLowerCase();
-  const isWishlisted = isInWishlist(product.id, activeVariantKey, selectedColor?.label ?? selectedColor?.hex);
+  const variantColor = selectedColor?.hex ?? selectedColor?.label ?? "default";
+  const variantSize =
+    selectedSize ??
+    availableSizes[0]?.value ??
+    sizeOptions[0]?.value ??
+    "default";
+  const variantKey = `${product.id}-${variantColor}-${variantSize}`.toLowerCase();
+  const isWishlisted = isFavorite(product.id, variantKey);
 
   if (loading) {
     return (
@@ -359,39 +323,29 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               );
             })()}
 
-            <motion.button
-              type="button"
-              onClick={handleToggleWishlist}
-              aria-pressed={isWishlisted}
-              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-              disabled={wishlistLoading || wishlistBusy}
-              whileTap={{ scale: 0.9 }}
-              animate={{
-                scale: isWishlisted ? 1.05 : 1,
-                boxShadow: isWishlisted ? "0 6px 20px rgba(255,99,132,0.45)" : "0 6px 16px rgba(0,0,0,0.25)",
+            <FavoriteButton
+              active={isWishlisted}
+              loading={loadingIds.has(variantKey)}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void toggleFavorite({
+                  productId: product.id,
+                  slug: product.slug,
+                  name: product.nameFr,
+                  image: currentImage ?? product.images.main,
+                  price: wishlistPrice,
+                  currency: product.currency,
+                  colorName: selectedColor?.label ?? selectedColor?.hex ?? "Color",
+                  colorCode: selectedColor?.hex ?? "default",
+                  size: variantSize,
+                  variantKey,
+                });
               }}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-full border text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
-                isWishlisted
-                  ? "border-rose-200/80 bg-rose-500/30 text-white"
-                  : "border-white/60 bg-black/30 text-white hover:border-white hover:bg-black/40"
-              } ${wishlistLoading || wishlistBusy ? "opacity-70" : ""}`}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill={isWishlisted ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth="1.9"
-                className="h-5 w-5 drop-shadow-sm"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
-                />
-              </svg>
-            </motion.button>
+              size="sm"
+              className="shadow-black/40"
+              ariaLabel={isWishlisted ? "Remove from favorites" : "Add to favorites"}
+            />
           </div>
 
           <Link
