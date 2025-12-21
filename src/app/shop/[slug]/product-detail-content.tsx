@@ -174,19 +174,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
     return true;
   };
 
-  const activeVariantKey =
-    activeColor || selectedSize
-      ? `${product.id}-${activeColor?.hex ?? ""}-${selectedSize ?? ""}`.toLowerCase()
-      : product.id.toLowerCase();
+  const activeVariantKey = product.id.toLowerCase();
 
   const handleToggleWishlist = async () => {
     const colorName = activeColor?.label ?? activeColor?.hex;
     const colorCode = activeColor?.hex;
-    const sizeValue = selectedSize ?? undefined;
-    const variantKey =
-      colorCode || sizeValue
-        ? `${product.id}-${colorCode ?? ""}-${sizeValue ?? ""}`.toLowerCase()
-        : undefined;
+    const variantKey = product.id.toLowerCase();
 
     try {
       setIsWishlistUpdating(true);
@@ -199,7 +192,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
         currency: product.currency,
         colorName,
         colorCode,
-        size: sizeValue,
+        size: undefined,
         variantKey,
       });
     } finally {
@@ -223,12 +216,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const displayMessage = isOutOfStock
     ? "Out of stock"
     : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
-  const isWishlisted = isInWishlist(
-    product.id,
-    activeVariantKey,
-    activeColor?.label ?? activeColor?.hex,
-    selectedSize ?? undefined,
-  );
+  const isWishlisted = isInWishlist(product.id, activeVariantKey, activeColor?.label ?? activeColor?.hex);
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">

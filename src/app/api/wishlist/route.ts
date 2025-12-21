@@ -61,19 +61,9 @@ function timestampToISO(timestamp: unknown): string {
   return new Date().toISOString();
 }
 
-function normalizeVariantKey(
-  productId: string,
-  variantKey?: string,
-  colorName?: string,
-  size?: string,
-): string {
+function normalizeVariantKey(productId: string, variantKey?: string): string {
   const trimmedKey = typeof variantKey === "string" ? variantKey.trim() : "";
   if (trimmedKey) return trimmedKey.toLowerCase();
-  const color = (colorName ?? "").trim().toLowerCase();
-  const normalizedSize = (size ?? "").trim().toLowerCase();
-  if (color || normalizedSize) {
-    return `${productId}-${color}-${normalizedSize}`.toLowerCase();
-  }
   return productId.toLowerCase();
 }
 
@@ -115,18 +105,8 @@ function isSameWishlistItem(
   existing: WishlistItem | DocumentData,
   ident: { productId: string; variantKey?: string; colorName?: string; size?: string },
 ): boolean {
-  const existingKey = normalizeVariantKey(
-    typeof existing.productId === "string" ? existing.productId : "",
-    typeof existing.variantKey === "string" ? existing.variantKey : undefined,
-    typeof existing.colorName === "string" ? existing.colorName : undefined,
-    typeof existing.size === "string" ? existing.size : undefined,
-  );
-  const targetKey = normalizeVariantKey(
-    ident.productId,
-    ident.variantKey,
-    ident.colorName,
-    ident.size,
-  );
+  const existingKey = normalizeVariantKey(typeof existing.productId === "string" ? existing.productId : "");
+  const targetKey = normalizeVariantKey(ident.productId);
 
   return existingKey === targetKey;
 }
@@ -140,6 +120,10 @@ type WishlistFirestoreDocument = Omit<WishlistDocument, "createdAt" | "updatedAt
   updatedAt: FirestoreTimestampValue;
   items: WishlistFirestoreItem[];
 };
+
+function clean<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -204,12 +188,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid wishlist payload." }, { status: 400 });
     }
 
-    const computedVariantKey = normalizeVariantKey(productId, variantKeyRaw, colorName, size);
+    const computedVariantKey = normalizeVariantKey(productId, variantKeyRaw);
     const wishlistRef = db.collection("wishlist").doc(authResult.uid);
 
     await db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(wishlistRef);
-      const baseItem: WishlistFirestoreItem = {
+      const baseItem: WishlistFirestoreItem = clean({
         productId,
         slug,
         name,
@@ -221,16 +205,16 @@ export async function POST(request: NextRequest) {
         size,
         variantKey: computedVariantKey,
         addedAt: FieldValue.serverTimestamp(),
-      };
+      });
 
       if (!snapshot.exists) {
-        const newDoc: WishlistFirestoreDocument = {
+        const newDoc: WishlistFirestoreDocument = clean({
           userId: authResult.uid ?? null,
           email: authResult.email ?? "",
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
           items: [baseItem],
-        };
+        });
         transaction.set(wishlistRef, newDoc);
         return;
       }
@@ -246,19 +230,18 @@ export async function POST(request: NextRequest) {
             (item) =>
               !isSameWishlistItem(item, {
                 productId,
-                variantKey: computedVariantKey,
-                colorName,
-                size,
               }),
           )
         : [...existingItems, baseItem];
 
-      transaction.update(wishlistRef, {
-        items: nextItems,
+      const cleanedItems = nextItems.map((item) => clean(item as WishlistFirestoreItem));
+
+      transaction.update(wishlistRef, clean({
+        items: cleanedItems,
         updatedAt: FieldValue.serverTimestamp(),
         email: data?.email ?? authResult.email ?? "",
         userId: data?.userId ?? authResult.uid ?? null,
-      });
+      }));
     });
 
     const updatedSnapshot = await wishlistRef.get();
@@ -300,7 +283,7 @@ export async function DELETE(request: NextRequest) {
     const colorName = typeof body.colorName === "string" ? body.colorName.trim() : undefined;
     const size = typeof body.size === "string" ? body.size.trim() : undefined;
     const variantKeyRaw = typeof body.variantKey === "string" ? body.variantKey.trim() : undefined;
-    const computedVariantKey = normalizeVariantKey(productId, variantKeyRaw, colorName, size);
+    const computedVariantKey = normalizeVariantKey(productId, variantKeyRaw);
 
     if (!productId) {
       return NextResponse.json({ error: "productId is required to remove wishlist items." }, { status: 400 });

@@ -48,25 +48,15 @@ type WishlistContextValue = {
 
 const WishlistContext = createContext<WishlistContextValue | undefined>(undefined);
 
-const normalizeVariantKey = (
-  productId: string,
-  variantKey?: string,
-  colorName?: string,
-  size?: string,
-) => {
+const normalizeVariantKey = (productId: string, variantKey?: string) => {
   const trimmed = (variantKey ?? "").trim();
   if (trimmed) return trimmed.toLowerCase();
-  const color = (colorName ?? "").trim().toLowerCase();
-  const normalizedSize = (size ?? "").trim().toLowerCase();
-  if (color || normalizedSize) {
-    return `${productId}-${color}-${normalizedSize}`.toLowerCase();
-  }
   return productId.toLowerCase();
 };
 
 const matchesWishlistItem = (item: WishlistItem, ident: WishlistIdentifier): boolean => {
-  const currentKey = normalizeVariantKey(item.productId, item.variantKey, item.colorName, item.size);
-  const targetKey = normalizeVariantKey(ident.productId, ident.variantKey, ident.colorName, ident.size);
+  const currentKey = normalizeVariantKey(item.productId, item.variantKey);
+  const targetKey = normalizeVariantKey(ident.productId, ident.variantKey);
   return currentKey === targetKey;
 };
 
@@ -142,7 +132,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const variantKey = normalizeVariantKey(payload.productId, payload.variantKey, payload.colorName, payload.size);
+      const variantKey = normalizeVariantKey(payload.productId, payload.variantKey);
       const optimisticItem: WishlistItem = {
         ...payload,
         variantKey,
@@ -194,7 +184,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const variantKey = normalizeVariantKey(ident.productId, ident.variantKey, ident.colorName, ident.size);
+      const variantKey = normalizeVariantKey(ident.productId, ident.variantKey);
       const previousItems = items;
 
       setItems((current) => current.filter((item) => !matchesWishlistItem(item, { ...ident, variantKey })));
@@ -230,7 +220,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   const toggleWishlist = useCallback(
     async (payload: WishlistAddPayload) => {
-      const variantKey = normalizeVariantKey(payload.productId, payload.variantKey, payload.colorName, payload.size);
+      const variantKey = normalizeVariantKey(payload.productId, payload.variantKey);
       if (isInWishlist(payload.productId, variantKey, payload.colorName, payload.size)) {
         await removeFromWishlist({
           productId: payload.productId,

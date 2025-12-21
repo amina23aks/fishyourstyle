@@ -274,13 +274,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
       const colorName = selectedColor?.label ?? selectedColor?.hex;
       const colorCode = selectedColor?.hex;
-      const sizeValue = selectedSize ?? undefined;
-      const variantKey =
-        colorCode && sizeValue
-          ? `${product.id}-${colorCode}-${sizeValue}`.toLowerCase()
-          : colorCode || sizeValue
-            ? `${product.id}-${colorCode ?? ""}-${sizeValue ?? ""}`.toLowerCase()
-            : undefined;
+      const variantKey = product.id.toLowerCase();
 
       try {
         setWishlistBusy(true);
@@ -293,7 +287,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           currency: product.currency,
           colorName,
           colorCode,
-          size: sizeValue,
+          size: undefined,
           variantKey,
         });
       } finally {
@@ -308,23 +302,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       product.nameFr,
       product.slug,
       selectedColor,
-      selectedSize,
       toggleWishlist,
       wishlistPrice,
       wishlistBusy,
     ],
   );
 
-  const activeVariantKey =
-    selectedColor || selectedSize
-      ? `${product.id}-${selectedColor?.hex ?? ""}-${selectedSize ?? ""}`.toLowerCase()
-      : product.id.toLowerCase();
-  const isWishlisted = isInWishlist(
-    product.id,
-    activeVariantKey,
-    selectedColor?.label ?? selectedColor?.hex,
-    selectedSize ?? undefined,
-  );
+  const activeVariantKey = product.id.toLowerCase();
+  const isWishlisted = isInWishlist(product.id, activeVariantKey, selectedColor?.label ?? selectedColor?.hex);
 
   if (loading) {
     return (
@@ -383,19 +368,19 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               whileTap={{ scale: 0.9 }}
               animate={{
                 scale: isWishlisted ? 1.05 : 1,
-                boxShadow: isWishlisted ? "0 6px 20px rgba(255,99,132,0.45)" : "0 6px 16px rgba(0,0,0,0.35)",
+                boxShadow: isWishlisted ? "0 6px 20px rgba(255,99,132,0.45)" : "0 6px 16px rgba(0,0,0,0.25)",
               }}
               className={`inline-flex h-10 w-10 items-center justify-center rounded-full border text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
                 isWishlisted
-                  ? "border-rose-200 bg-[#ef4444] text-white"
-                  : "border-white/50 bg-white text-slate-900 hover:border-white hover:shadow-[0_8px_18px_rgba(255,255,255,0.25)]"
+                  ? "border-rose-200/80 bg-rose-500/30 text-white"
+                  : "border-white/60 bg-black/30 text-white hover:border-white hover:bg-black/40"
               } ${wishlistLoading || wishlistBusy ? "opacity-70" : ""}`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill={isWishlisted ? "currentColor" : "none"}
-                stroke={isWishlisted ? "currentColor" : "currentColor"}
+                stroke="currentColor"
                 strokeWidth="1.9"
                 className="h-5 w-5 drop-shadow-sm"
                 aria-hidden
