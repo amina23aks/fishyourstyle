@@ -523,7 +523,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           </p>
 
           <AnimatedAddToCartButton
-            onClick={handleAddToCart}
+            onClick={() => handleAddToCart()}
             disabled={isSelectionInvalid}
             className={`w-full justify-center ${
               isSelectionMissing || isSelectionInvalid ? "opacity-60 cursor-not-allowed" : ""

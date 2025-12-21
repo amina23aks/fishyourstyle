@@ -53,8 +53,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const docSnap = await db.collection("favorites").doc(decoded.uid).get();
+    const ref = db.collection("favorites").doc(decoded.uid);
+    const docSnap = await ref.get();
     if (!docSnap.exists) {
+      await ref.set({
+        uid: decoded.uid,
+        email: decoded.email ?? null,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        items: [],
+      });
       return NextResponse.json({ items: [] });
     }
     const data = docSnap.data() as FavoriteDocument;
@@ -94,8 +102,6 @@ export async function POST(request: NextRequest) {
     // ensure token still valid (avoid TS error about auth on null)
     await auth.getUser(decoded.uid);
     const favoritesRef = db.collection("favorites").doc(decoded.uid);
-    const nowIso = Timestamp.now().toDate().toISOString();
-
     await db.runTransaction(async (tx) => {
       const docSnap = await tx.get(favoritesRef);
       const docTime = FieldValue.serverTimestamp();
@@ -109,7 +115,7 @@ export async function POST(request: NextRequest) {
         price,
         currency,
         inStock,
-        addedAt: nowIso,
+        addedAt: Timestamp.now(),
       };
 
       if (!docSnap.exists) {
@@ -131,7 +137,7 @@ export async function POST(request: NextRequest) {
       const exists = currentItems.some((item) => item.productId === productId || item.id === productId);
 
       const nextItems = exists
-        ? currentItems.filter((item) => item.productId !== productId)
+        ? currentItems.filter((item) => (item.productId ?? item.id) !== productId)
         : [...currentItems, newItem];
 
       tx.update(favoritesRef, {

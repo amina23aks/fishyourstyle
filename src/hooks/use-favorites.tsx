@@ -9,8 +9,10 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
+import { signInAnonymously } from "firebase/auth";
 import { useAuth } from "@/context/auth";
 import type { FavoriteItem } from "@/types/favorites";
+import { getAuthInstance } from "@/lib/firebaseClient";
 
 type FavoritesContextValue = {
   items: FavoriteItem[];
@@ -105,9 +107,18 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   const toggleFavorite = useCallback(
     async (product: FavoriteItem) => {
       if (isUpdating) return;
-      if (!user) {
-        pushToast("Please sign in to save favorites.", "info");
-        return;
+      let currentUser = user;
+      if (!currentUser) {
+        try {
+          const auth = getAuthInstance();
+          if (!auth) throw new Error("Auth unavailable");
+          const credential = await signInAnonymously(auth);
+          currentUser = credential.user;
+        } catch (error) {
+          console.error("[Favorites] Anonymous sign-in failed", error);
+          pushToast("Please sign in to save favorites.", "info");
+          return;
+        }
       }
 
       const normalized: FavoriteItem = {
@@ -127,7 +138,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
       setIsUpdating(true);
 
       try {
-        const token = await user.getIdToken();
+        const token = await currentUser.getIdToken();
         const response = await fetch("/api/favorites", {
           method: "POST",
           headers: {
