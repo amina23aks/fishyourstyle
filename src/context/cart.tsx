@@ -37,6 +37,7 @@ export type AddItemPayload = {
   size: string;
   quantity?: number;
   maxQuantity?: number;
+  variantKey?: string;
 };
 
 export type CartTotals = {

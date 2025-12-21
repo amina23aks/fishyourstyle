@@ -25,3 +25,9 @@ export type FavoriteDocument = {
   updatedAt: string;
   items: FavoriteItem[];
 };
+
+export type FavoriteDocumentFirestore = Omit<FavoriteDocument, "items" | "createdAt" | "updatedAt"> & {
+  items: FavoriteItemFirestore[];
+  createdAt: Timestamp | FirebaseFirestore.FieldValue | string;
+  updatedAt: Timestamp | FirebaseFirestore.FieldValue | string;
+};

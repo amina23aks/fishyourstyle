@@ -45,6 +45,16 @@ function normalizeVariantKey(productId: string, variantKey?: string) {
   return key || productId.toLowerCase();
 }
 
+function toFavoriteItem(payload: FavoritePayload, addedAt: string): FavoriteItem {
+  return {
+    ...payload,
+    colorName: payload.colorName ?? undefined,
+    colorCode: payload.colorCode ?? undefined,
+    size: payload.size ?? undefined,
+    addedAt,
+  };
+}
+
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
@@ -110,7 +120,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
       const optimisticExists = isFavorite(payload.productId, variantKey);
       const optimisticFavorites = optimisticExists
         ? favorites.filter((item) => normalizeVariantKey(item.productId, item.variantKey) !== variantKey)
-        : [...favorites, { ...payload, variantKey, addedAt: new Date().toISOString() }];
+        : [...favorites, toFavoriteItem({ ...payload, variantKey }, new Date().toISOString())];
 
       setFavorites(optimisticFavorites);
       setLoadingIds((prev) => new Set(prev).add(variantKey));

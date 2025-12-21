@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, Timestamp, type DocumentData } from "firebase-admin/firestore";
 
 import { getAdminResources } from "@/lib/firebaseAdmin";
-import type { FavoriteDocument, FavoriteItem, FavoriteItemFirestore } from "@/types/favorites";
+import type { FavoriteDocumentFirestore, FavoriteItem, FavoriteItemFirestore } from "@/types/favorites";
+
+type AdminResources = NonNullable<ReturnType<typeof getAdminResources>>;
 
 function parseBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
@@ -12,7 +14,7 @@ function parseBearerToken(request: NextRequest): string | null {
   return value.trim();
 }
 
-async function requireAuth(request: NextRequest, auth: ReturnType<typeof getAdminResources>["auth"]) {
+async function requireAuth(request: NextRequest, auth: AdminResources["auth"]) {
   const bearerToken = parseBearerToken(request);
   if (!bearerToken) {
     return { error: NextResponse.json({ error: "Authentication required." }, { status: 401 }) };
@@ -101,7 +103,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ items: [] });
     }
 
-    const data = doc.data() as FavoriteDocument & { items?: FavoriteItemFirestore[] } | undefined;
+    const data = doc.data() as FavoriteDocumentFirestore | undefined;
     const items = Array.isArray(data?.items) ? data.items.map((item) => normalizeItem(item)) : [];
 
     return NextResponse.json({ items });
@@ -181,7 +183,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!snapshot.exists) {
-        const newDoc: FavoriteDocument & { items: FavoriteItemFirestore[] } = {
+        const newDoc: FavoriteDocumentFirestore = {
           userId: ownerId,
           email: ownerEmail,
           createdAt: FieldValue.serverTimestamp() as unknown as string,
@@ -193,7 +195,7 @@ export async function POST(request: NextRequest) {
         return;
       }
 
-      const data = snapshot.data() as { items?: FavoriteItemFirestore[]; userId?: string | null; email?: string | null };
+      const data = snapshot.data() as FavoriteDocumentFirestore | undefined;
       const existingItems = Array.isArray(data?.items) ? data.items : [];
       const alreadyExists = existingItems.some(
         (item) => item.productId === productId && (item.variantKey ?? "").toLowerCase() === variantKey,
