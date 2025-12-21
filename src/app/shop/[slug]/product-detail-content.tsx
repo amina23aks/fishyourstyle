@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { Swatch } from "../swatch";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
+import { useWishlist } from "@/hooks/use-wishlist";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
@@ -53,12 +54,14 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const hasVariantAvailable = hasAvailableVariants(product);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const { addItem, items } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const stockCount = typeof product.stock === "number" ? product.stock : null;
   const isOutOfStock =
     product.inStock === false || (stockCount !== null && stockCount <= 0);
   const availableStock = stockCount ?? undefined;
+  const [isWishlistUpdating, setIsWishlistUpdating] = useState(false);
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -108,6 +111,14 @@ export function ProductDetailContent({ product }: { product: Product }) {
     allImages[0] ??
     product.images.main ??
     "/placeholder.png";
+
+  const wishlistPrice = useMemo(
+    () =>
+      product.discountPercent && product.discountPercent > 0
+        ? Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0)
+        : product.priceDzd,
+    [product.discountPercent, product.priceDzd],
+  );
   
   const handleAddToCart = () => {
     // Prevent any action if the item is out of stock.
@@ -163,6 +174,39 @@ export function ProductDetailContent({ product }: { product: Product }) {
     return true;
   };
 
+  const activeVariantKey =
+    activeColor || selectedSize
+      ? `${product.id}-${activeColor?.hex ?? ""}-${selectedSize ?? ""}`.toLowerCase()
+      : product.id.toLowerCase();
+
+  const handleToggleWishlist = async () => {
+    const colorName = activeColor?.label ?? activeColor?.hex;
+    const colorCode = activeColor?.hex;
+    const sizeValue = selectedSize ?? undefined;
+    const variantKey =
+      colorCode || sizeValue
+        ? `${product.id}-${colorCode ?? ""}-${sizeValue ?? ""}`.toLowerCase()
+        : undefined;
+
+    try {
+      setIsWishlistUpdating(true);
+      await toggleWishlist({
+        productId: product.id,
+        slug: product.slug,
+        name: product.nameFr,
+        image: currentImage,
+        price: wishlistPrice,
+        currency: product.currency,
+        colorName,
+        colorCode,
+        size: sizeValue,
+        variantKey,
+      });
+    } finally {
+      setIsWishlistUpdating(false);
+    }
+  };
+
   // Only show gender if it's explicitly set (not empty string)
   const infoRows = product.gender && product.gender.trim() !== "" ? [{ label: "Genre", value: product.gender }] : [];
 
@@ -179,6 +223,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const displayMessage = isOutOfStock
     ? "Out of stock"
     : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
+  const isWishlisted = isInWishlist(
+    product.id,
+    activeVariantKey,
+    activeColor?.label ?? activeColor?.hex,
+    selectedSize ?? undefined,
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
@@ -409,7 +459,38 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
                 }`.trim()}
               />
-              <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                <motion.button
+                  type="button"
+                  onClick={handleToggleWishlist}
+                  aria-pressed={isWishlisted}
+                  disabled={isWishlistUpdating}
+                  whileTap={{ scale: 0.97 }}
+                  className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition shadow-inner shadow-black/30 ${
+                    isWishlisted
+                      ? "border-rose-200/80 bg-rose-500/80 text-white"
+                      : "border-white/15 bg-white/10 text-white hover:border-white/30 hover:bg-white/15"
+                  } ${isWishlistUpdating ? "opacity-70" : ""}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill={isWishlisted ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    className="h-4 w-4"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
+                    />
+                  </svg>
+                  <span className="text-sm">{isWishlisted ? "Saved" : "Wishlist"}</span>
+                </motion.button>
+                <p className="text-[11px] text-neutral-400 text-center sm:text-left">Livraison rapide & échanges simples.</p>
+              </div>
             </div>
           </div>
         </div>

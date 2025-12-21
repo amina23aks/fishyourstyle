@@ -18,6 +18,7 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { useCart } from "@/context/cart";
+import { useWishlist } from "@/hooks/use-wishlist";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 
 import { Product } from "@/types/product";
@@ -67,6 +68,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     return base.length > 0 ? base : [product.images.main];
   }, [product.images.gallery, product.images.main]);
   const { addItem, items } = useCart();
+  const { isInWishlist, toggleWishlist, isLoading: wishlistLoading } = useWishlist();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
@@ -128,6 +130,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       setSelectedSize(availableSizes[0].value);
     }
   }, [availableSizes, selectedSize, sizeOptions]);
+
+  const wishlistPrice = useMemo(
+    () =>
+      product.discountPercent && product.discountPercent > 0
+        ? Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0)
+        : product.priceDzd,
+    [product.discountPercent, product.priceDzd],
+  );
 
   const handleNav = useCallback(
     (
@@ -255,6 +265,59 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     selectedSize,
   ]);
 
+  const handleToggleWishlist = useCallback(
+    async (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const colorName = selectedColor?.label ?? selectedColor?.hex;
+      const colorCode = selectedColor?.hex;
+      const sizeValue = selectedSize ?? undefined;
+      const variantKey =
+        colorCode && sizeValue
+          ? `${product.id}-${colorCode}-${sizeValue}`.toLowerCase()
+          : colorCode || sizeValue
+            ? `${product.id}-${colorCode ?? ""}-${sizeValue ?? ""}`.toLowerCase()
+            : undefined;
+
+      await toggleWishlist({
+        productId: product.id,
+        slug: product.slug,
+        name: product.nameFr,
+        image: currentImage ?? product.images.main,
+        price: wishlistPrice,
+        currency: product.currency,
+        colorName,
+        colorCode,
+        size: sizeValue,
+        variantKey,
+      });
+    },
+    [
+      currentImage,
+      product.currency,
+      product.id,
+      product.images.main,
+      product.nameFr,
+      product.slug,
+      selectedColor,
+      selectedSize,
+      toggleWishlist,
+      wishlistPrice,
+    ],
+  );
+
+  const activeVariantKey =
+    selectedColor || selectedSize
+      ? `${product.id}-${selectedColor?.hex ?? ""}-${selectedSize ?? ""}`.toLowerCase()
+      : product.id.toLowerCase();
+  const isWishlisted = isInWishlist(
+    product.id,
+    activeVariantKey,
+    selectedColor?.label ?? selectedColor?.hex,
+    selectedSize ?? undefined,
+  );
+
   if (loading) {
     return (
       <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
@@ -343,7 +406,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-              <div className="absolute left-2.5 right-2.5 top-2.5 flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+              <div className="absolute left-2.5 right-2.5 top-2.5 flex items-start justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-white">
                 {(() => {
                   const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
                   return (
@@ -359,6 +422,36 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                     </span>
                   );
                 })()}
+
+                <motion.button
+                  type="button"
+                  onClick={handleToggleWishlist}
+                  aria-pressed={isWishlisted}
+                  aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                  disabled={wishlistLoading}
+                  whileTap={{ scale: 0.94 }}
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-white shadow-md shadow-black/30 transition ${
+                    isWishlisted
+                      ? "border-rose-200/80 bg-rose-500/80"
+                      : "border-white/20 bg-black/50 hover:border-white/40 hover:bg-black/70"
+                  } ${wishlistLoading ? "opacity-70" : ""}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill={isWishlisted ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    className="h-5 w-5 drop-shadow-sm"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
+                    />
+                  </svg>
+                </motion.button>
               </div>
 
             {images.length > 1 && (

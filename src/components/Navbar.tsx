@@ -14,6 +14,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/contact", label: "Contact" },
+  { href: "/wishlist", label: "Wishlist" },
   { href: "/orders", label: "Orders" },
 ];
 
@@ -236,6 +237,14 @@ export function Navbar() {
                           onClick={() => setIsAccountMenuOpen(false)}
                         >
                           My orders
+                        </Link>
+                        <Link
+                          href="/wishlist"
+                          className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                          role="menuitem"
+                          onClick={() => setIsAccountMenuOpen(false)}
+                        >
+                          My wishlist
                         </Link>
                         <button
                           type="button"
