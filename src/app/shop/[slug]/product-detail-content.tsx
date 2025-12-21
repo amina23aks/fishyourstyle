@@ -17,6 +17,7 @@ import {
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
+import { useFavorites } from "@/hooks/use-favorites";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -32,6 +33,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
     product.designTheme && product.designTheme !== "simple"
       ? capitalizeLabel(product.designTheme)
       : capitalizeLabel(product.category);
+  const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
   const colorOptions = useMemo(() => buildProductColorOptions(product), [product]);
   const sizeOptions = useMemo(() => buildProductSizeOptions(product), [product]);
   const availableColors = useMemo(
@@ -412,15 +414,24 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   }`.trim()}
                 />
                 <FavoriteButton
-                  productId={product.id}
-                  slug={product.slug}
-                  name={product.nameFr}
-                  price={product.priceDzd}
-                  currency={product.currency}
-                  image={currentImage}
-                  inStock={!isOutOfStock}
-                  size="lg"
-                  addedAt={new Date().toISOString()}
+                  isFavorite={isFavorite(product.id)}
+                  disabled={isUpdating}
+                  size="md"
+                  onToggle={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void toggleFavorite({
+                      id: product.id,
+                      productId: product.id,
+                      slug: product.slug,
+                      name: product.nameFr,
+                      image: currentImage,
+                      price: product.priceDzd,
+                      currency: product.currency,
+                      inStock: !isOutOfStock,
+                      addedAt: new Date().toISOString(),
+                    });
+                  }}
                 />
               </div>
               <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>

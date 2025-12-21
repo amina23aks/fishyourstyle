@@ -13,7 +13,14 @@ const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
 
 function formatAddedDate(item: FavoriteItem) {
-  const date = new Date(item.addedAt || Date.now());
+  const raw = item.addedAt;
+  const millis =
+    typeof raw === "string"
+      ? Date.parse(raw)
+      : typeof (raw as { seconds?: number }).seconds === "number"
+        ? ((raw as { seconds: number; nanoseconds?: number }).seconds ?? 0) * 1000
+        : Date.now();
+  const date = new Date(Number.isNaN(millis) ? Date.now() : millis);
   return date.toLocaleDateString(undefined, {
     day: "2-digit",
     month: "2-digit",
@@ -28,8 +35,8 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     addItem({
-      id: item.productId,
-      slug: item.slug || item.productId,
+      id: item.productId ?? item.id,
+      slug: item.slug || item.productId || item.id,
       name: item.name,
       price: item.price,
       currency: item.currency,
@@ -67,17 +74,6 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
             <span className={`h-1.5 w-1.5 rounded-full ${isOutOfStock ? "bg-white" : "bg-emerald-700"}`} />
             {isOutOfStock ? "Out of stock" : "In stock"}
           </span>
-          <FavoriteButton
-            productId={item.productId}
-            slug={item.slug}
-            name={item.name}
-            price={item.price}
-            currency={item.currency}
-            image={item.image}
-            inStock={item.inStock}
-            addedAt={item.addedAt}
-            size="sm"
-          />
         </div>
       </div>
 
@@ -136,7 +132,7 @@ function FavoritesEmpty({ signedOut }: { signedOut?: boolean }) {
 
 export default function FavoritesPage() {
   const { user, loading: authLoading } = useAuth();
-  const { items, isLoading } = useFavorites();
+  const { items, isLoading, isUpdating, toggleFavorite, isFavorite } = useFavorites();
 
   const loadingState = authLoading || isLoading;
   const showEmpty = !loadingState && (!user || items.length === 0);
@@ -175,9 +171,28 @@ export default function FavoritesPage() {
       ) : showEmpty ? (
         <FavoritesEmpty signedOut={!user} />
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {items.map((item) => (
-            <FavoriteCard key={item.productId} item={item} />
+            <div key={item.id} className="relative">
+              <FavoriteCard item={item} />
+              <div className="absolute right-3 top-3">
+                <FavoriteButton
+                  isFavorite={isFavorite(item.productId ?? item.id)}
+                  disabled={isUpdating}
+                  size="sm"
+                  onToggle={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void toggleFavorite({
+                      ...item,
+                      id: item.id,
+                      productId: item.productId ?? item.id,
+                      addedAt: item.addedAt,
+                    });
+                  }}
+                />
+              </div>
+            </div>
           ))}
         </div>
       )}

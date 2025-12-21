@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 import { getAdminResources } from "@/lib/firebaseAdmin";
-import type { FavoriteItem, UserFavoritesDoc } from "@/types/favorites";
+import type { FavoriteDocument, FavoriteItem } from "@/types/favorites";
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -34,8 +34,8 @@ async function authenticate(request: NextRequest) {
 
 function sortItems(items: FavoriteItem[]): FavoriteItem[] {
   return [...items].sort((a, b) => {
-    const aTime = new Date(a.addedAt).getTime() || 0;
-    const bTime = new Date(b.addedAt).getTime() || 0;
+    const aTime = new Date((a as { addedAt: unknown }).addedAt as string).getTime() || 0;
+    const bTime = new Date((b as { addedAt: unknown }).addedAt as string).getTime() || 0;
     return bTime - aTime;
   });
 }
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     if (!docSnap.exists) {
       return NextResponse.json({ items: [] });
     }
-    const data = docSnap.data() as UserFavoritesDoc;
+    const data = docSnap.data() as FavoriteDocument;
     return NextResponse.json({ items: sortItems(data.items ?? []) });
   } catch (error) {
     console.error("[favorites][GET] Failed to load favorites", error);
@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
       const docTime = FieldValue.serverTimestamp();
 
       const newItem: FavoriteItem = {
+        id: productId,
         productId,
         slug,
         name,
@@ -112,18 +113,22 @@ export async function POST(request: NextRequest) {
       };
 
       if (!docSnap.exists) {
-        tx.set(favoritesRef, {
-          email: decoded.email ?? "",
-          createdAt: docTime,
-          updatedAt: docTime,
-          items: [newItem],
-        });
+        tx.set(
+          favoritesRef,
+          {
+            uid: decoded.uid ?? null,
+            email: decoded.email ?? null,
+            createdAt: docTime,
+            updatedAt: docTime,
+            items: [newItem],
+          } satisfies Omit<FavoriteDocument, "id">,
+        );
         return;
       }
 
-      const data = docSnap.data() as UserFavoritesDoc;
+      const data = docSnap.data() as FavoriteDocument;
       const currentItems = data.items ?? [];
-      const exists = currentItems.some((item) => item.productId === productId);
+      const exists = currentItems.some((item) => item.productId === productId || item.id === productId);
 
       const nextItems = exists
         ? currentItems.filter((item) => item.productId !== productId)
@@ -136,7 +141,7 @@ export async function POST(request: NextRequest) {
     });
 
     const updatedSnap = await favoritesRef.get();
-    const updatedData = updatedSnap.data() as UserFavoritesDoc | undefined;
+    const updatedData = updatedSnap.data() as FavoriteDocument | undefined;
     return NextResponse.json({ items: sortItems(updatedData?.items ?? []) });
   } catch (error) {
     console.error("[favorites][POST] Failed to update favorites", error);

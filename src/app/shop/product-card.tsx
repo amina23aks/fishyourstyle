@@ -28,6 +28,7 @@ import {
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
+import { useFavorites } from "@/hooks/use-favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
 
 type ProductWithInventory = Product & { stock?: number; inStock?: boolean };
@@ -44,6 +45,7 @@ export type ProductCardProps = {
 };
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
+  const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
   const colorOptions = useMemo(() => buildProductColorOptions(product), [product]);
   const sizeOptions = useMemo(() => buildProductSizeOptions(product), [product]);
   const availableColors = useMemo(() => colorOptions.filter((color) => !color.soldOut), [colorOptions]);
@@ -363,15 +365,24 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   })()}
                 </div>
                 <FavoriteButton
-                  productId={product.id}
-                  slug={product.slug}
-                  name={product.nameFr}
-                  price={product.priceDzd}
-                  currency={product.currency}
-                  image={currentImage ?? product.images.main ?? ""}
-                  inStock={!isOutOfStock}
+                  isFavorite={isFavorite(product.id)}
+                  disabled={isUpdating}
                   size="sm"
-                  addedAt={new Date().toISOString()}
+                  onToggle={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void toggleFavorite({
+                      id: product.id,
+                      productId: product.id,
+                      slug: product.slug,
+                      name: product.nameFr,
+                      image: currentImage ?? product.images.main ?? "",
+                      price: product.priceDzd,
+                      currency: product.currency,
+                      inStock: !isOutOfStock,
+                      addedAt: new Date().toISOString(),
+                    });
+                  }}
                 />
               </div>
 

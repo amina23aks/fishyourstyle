@@ -9,7 +9,7 @@ type FavoritesRow = {
   email: string;
   userId: string;
   count: number;
-  updatedAt: string;
+  updatedAt: string | Timestamp | undefined;
   items: FavoriteItem[];
 };
 
@@ -26,9 +26,17 @@ export const metadata: Metadata = {
   description: "Monitor user favorites and popular products.",
 };
 
-function formatDateTime(value: string) {
-  if (!value) return "—";
-  const date = new Date(value);
+function normalizeDate(value: string | Timestamp | undefined): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  const date = value.toDate();
+  return date.toISOString();
+}
+
+function formatDateTime(value: string | Timestamp | undefined) {
+  const iso = normalizeDate(value);
+  if (!iso) return "—";
+  const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-GB", {
     day: "2-digit",
@@ -39,17 +47,25 @@ function formatDateTime(value: string) {
   });
 }
 
+function formatItemDate(value: FavoriteItem["addedAt"]) {
+  if (typeof value === "string") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+  }
+  if (value && typeof (value as { seconds?: number }).seconds === "number") {
+    const seconds = (value as { seconds: number; nanoseconds?: number }).seconds;
+    return new Date(seconds * 1000).toLocaleString();
+  }
+  return "—";
+}
+
 async function fetchFavorites(): Promise<{ rows: FavoritesRow[]; topProducts: ProductStat[] }> {
   const db = getAdminDb();
   if (!db) {
     throw new Error("Firebase Admin is not configured.");
   }
 
-  const snapshot = await db
-    .collection("favorites")
-    .orderBy("updatedAt", "desc")
-    .limit(300)
-    .get();
+  const snapshot = await db.collection("favorites").orderBy("updatedAt", "desc").get();
 
   const rows: FavoritesRow[] = snapshot.docs.map((doc) => {
     const data = doc.data() as {
@@ -62,7 +78,7 @@ async function fetchFavorites(): Promise<{ rows: FavoritesRow[]; topProducts: Pr
       email: data.email ?? "Guest",
       userId: doc.id,
       count: data.items?.length ?? 0,
-      updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : "",
+      updatedAt: normalizeDate(data.updatedAt),
       items: data.items ?? [],
     };
   });
@@ -70,18 +86,21 @@ async function fetchFavorites(): Promise<{ rows: FavoritesRow[]; topProducts: Pr
   const productMap = new Map<string, ProductStat>();
   rows.forEach((row) => {
     row.items.forEach((item) => {
-      const existing = productMap.get(item.productId);
+      const key = item.productId ?? item.id;
+      const existing = key ? productMap.get(key) : undefined;
       if (existing) {
         existing.count += 1;
         return;
       }
-      productMap.set(item.productId, {
-        productId: item.productId,
-        name: item.name,
-        image: item.image,
-        slug: item.slug,
-        count: 1,
-      });
+      if (key) {
+        productMap.set(key, {
+          productId: key,
+          name: item.name,
+          image: item.image,
+          slug: item.slug,
+          count: 1,
+        });
+      }
     });
   });
 
@@ -201,7 +220,7 @@ export default async function AdminFavoritesPage() {
                                     <p className="text-xs text-sky-100/80">
                                       {item.price.toLocaleString("fr-DZ")} {item.currency} • {item.inStock ? "In stock" : "Out of stock"}
                                     </p>
-                                    <p className="text-[11px] text-sky-100/70">Added: {new Date(item.addedAt).toLocaleString()}</p>
+                                    <p className="text-[11px] text-sky-100/70">Added: {formatItemDate(item.addedAt)}</p>
                                   </div>
                                 </div>
                               ))

@@ -98,7 +98,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   }, [user]);
 
   const isFavorite = useCallback(
-    (productId: string) => items.some((item) => item.productId === productId),
+    (productId: string) => items.some((item) => (item.productId ?? item.id) === productId),
     [items],
   );
 
@@ -110,11 +110,19 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
         return;
       }
 
+      const normalized: FavoriteItem = {
+        ...product,
+        id: product.id,
+        productId: product.productId ?? product.id,
+        addedAt: typeof product.addedAt === "string" ? product.addedAt : new Date().toISOString(),
+      };
+
       const previousItems = items;
-      const wasFavorite = isFavorite(product.productId);
+      const targetId = normalized.productId ?? normalized.id;
+      const wasFavorite = items.some((item) => (item.productId ?? item.id) === targetId);
       const optimisticItems = wasFavorite
-        ? items.filter((item) => item.productId !== product.productId)
-        : [{ ...product }, ...items];
+        ? items.filter((item) => (item.productId ?? item.id) !== targetId)
+        : [normalized, ...items];
       setItems(optimisticItems);
       setIsUpdating(true);
 
@@ -126,7 +134,15 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(product),
+          body: JSON.stringify({
+            productId: normalized.productId ?? normalized.id,
+            slug: normalized.slug,
+            name: normalized.name,
+            image: normalized.image,
+            price: normalized.price,
+            currency: normalized.currency,
+            inStock: normalized.inStock,
+          }),
         });
 
         if (!response.ok) {
@@ -144,7 +160,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
         setIsUpdating(false);
       }
     },
-    [isFavorite, isUpdating, items, pushToast, user],
+    [isUpdating, items, pushToast, user],
   );
 
   const value = useMemo<FavoritesContextValue>(

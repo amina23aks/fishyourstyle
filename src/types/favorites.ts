@@ -1,17 +1,28 @@
+export type FirestoreTimestampValue =
+  | FirebaseFirestore.Timestamp
+  | FirebaseFirestore.FieldValue
+  | {
+      seconds: number;
+      nanoseconds: number;
+    };
+
 export type FavoriteItem = {
-  productId: string; // Firestore product doc id
-  slug: string; // product slug
+  id: string; // product id
+  slug: string;
   name: string;
-  image: string; // main image URL
+  image: string;
   price: number;
   currency: string;
-  inStock: boolean; // from product doc
-  addedAt: string; // ISO timestamp
+  inStock: boolean;
+  addedAt: FirestoreTimestampValue | string;
+  productId?: string; // backward compatibility
 };
 
-export type UserFavoritesDoc = {
+export type FavoriteDocument = {
+  id: string;
+  uid: string | null;
   email: string | null;
   items: FavoriteItem[];
-  createdAt: FirebaseFirestore.Timestamp;
-  updatedAt: FirebaseFirestore.Timestamp;
+  createdAt: FirestoreTimestampValue;
+  updatedAt: FirestoreTimestampValue;
 };
