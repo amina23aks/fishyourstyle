@@ -7,9 +7,11 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { Swatch } from "../swatch";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
+import { useFavorites } from "@/hooks/use-favorites";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import {
   buildProductColorOptions,
   buildProductSizeOptions,
@@ -53,12 +55,14 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const hasVariantAvailable = hasAvailableVariants(product);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const { addItem, items } = useCart();
+  const { isFavorite, toggleFavorite, loadingIds } = useFavorites();
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const stockCount = typeof product.stock === "number" ? product.stock : null;
   const isOutOfStock =
     product.inStock === false || (stockCount !== null && stockCount <= 0);
   const availableStock = stockCount ?? undefined;
+  const [isFavoritesUpdating, setIsFavoritesUpdating] = useState(false);
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -108,6 +112,14 @@ export function ProductDetailContent({ product }: { product: Product }) {
     allImages[0] ??
     product.images.main ??
     "/placeholder.png";
+
+  const wishlistPrice = useMemo(
+    () =>
+      product.discountPercent && product.discountPercent > 0
+        ? Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0)
+        : product.priceDzd,
+    [product.discountPercent, product.priceDzd],
+  );
   
   const handleAddToCart = () => {
     // Prevent any action if the item is out of stock.
@@ -163,6 +175,32 @@ export function ProductDetailContent({ product }: { product: Product }) {
     return true;
   };
 
+  const favoriteVariantKey = `${product.id}-${activeColor?.hex ?? "color"}-${selectedSize ?? "size"}`.toLowerCase();
+
+  const handleToggleFavorite = async () => {
+    const colorName = activeColor?.label ?? activeColor?.hex;
+    const colorCode = activeColor?.hex;
+    const variantKey = favoriteVariantKey;
+
+    try {
+      setIsFavoritesUpdating(true);
+      await toggleFavorite({
+        productId: product.id,
+        slug: product.slug,
+        name: product.nameFr,
+        image: currentImage,
+        price: wishlistPrice,
+        currency: product.currency,
+        colorName,
+        colorCode,
+        size: selectedSize ?? "size",
+        variantKey,
+      });
+    } finally {
+      setIsFavoritesUpdating(false);
+    }
+  };
+
   // Only show gender if it's explicitly set (not empty string)
   const infoRows = product.gender && product.gender.trim() !== "" ? [{ label: "Genre", value: product.gender }] : [];
 
@@ -179,6 +217,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const displayMessage = isOutOfStock
     ? "Out of stock"
     : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
+  const isWishlisted = isFavorite(product.id, favoriteVariantKey);
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
@@ -409,7 +448,16 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
                 }`.trim()}
               />
-              <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                <FavoriteButton
+                  active={isWishlisted}
+                  loading={isFavoritesUpdating || loadingIds.has(favoriteVariantKey)}
+                  onClick={handleToggleFavorite}
+                  size="md"
+                  ariaLabel={isWishlisted ? "Remove from favorites" : "Add to favorites"}
+                />
+                <p className="text-[11px] text-neutral-400 text-center sm:text-left">Livraison rapide & échanges simples.</p>
+              </div>
             </div>
           </div>
         </div>

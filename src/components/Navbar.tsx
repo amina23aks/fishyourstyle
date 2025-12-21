@@ -54,6 +54,26 @@ function AccountIcon() {
   );
 }
 
+function HeartIcon({ filled }: { filled?: boolean }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className={iconStyles}
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 21s-6.5-3.94-9-8.14C1 9.5 2.5 5 6.5 5A5.5 5.5 0 0 1 12 8.5 5.5 5.5 0 0 1 17.5 5C21.5 5 23 9.5 21 12.86 18.5 17.06 12 21 12 21Z"
+      />
+    </svg>
+  );
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const { user, loading: authLoading, signOut } = useAuth();
@@ -169,6 +189,17 @@ export function Navbar() {
 
         {/* Mobile icon ordering tweak: cart → account → menu (aligned together) */}
         <div className="ml-auto flex items-center gap-2 md:gap-3">
+          <Link
+            href="/favorites"
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border ${
+              pathname.startsWith("/favorites")
+                ? "border-rose-300/60 bg-rose-500/20 text-rose-100"
+                : "border-white/25 bg-white/10 text-white"
+            } shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60`}
+            aria-label="Wishlist"
+          >
+            <HeartIcon filled={pathname.startsWith("/favorites")} />
+          </Link>
           <motion.button
             type="button"
             onClick={toggleDrawer}
@@ -236,6 +267,14 @@ export function Navbar() {
                           onClick={() => setIsAccountMenuOpen(false)}
                         >
                           My orders
+                        </Link>
+                        <Link
+                          href="/favorites"
+                          className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                          role="menuitem"
+                          onClick={() => setIsAccountMenuOpen(false)}
+                        >
+                          My favorites
                         </Link>
                         <button
                           type="button"
