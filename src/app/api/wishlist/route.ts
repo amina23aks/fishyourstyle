@@ -190,6 +190,7 @@ export async function POST(request: NextRequest) {
 
     const computedVariantKey = normalizeVariantKey(productId, variantKeyRaw);
     const wishlistRef = db.collection("wishlist").doc(authResult.uid);
+    const nowTimestamp = Timestamp.now();
 
     await db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(wishlistRef);
@@ -204,7 +205,7 @@ export async function POST(request: NextRequest) {
         colorCode,
         size,
         variantKey: computedVariantKey,
-        addedAt: FieldValue.serverTimestamp(),
+        addedAt: nowTimestamp,
       });
 
       if (!snapshot.exists) {
