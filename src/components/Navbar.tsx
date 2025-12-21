@@ -14,7 +14,6 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/contact", label: "Contact" },
-  { href: "/wishlist", label: "Wishlist" },
   { href: "/orders", label: "Orders" },
 ];
 
@@ -193,13 +192,13 @@ export function Navbar() {
           <Link
             href="/wishlist"
             className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border ${
-              pathname === "/wishlist"
+              pathname.startsWith("/wishlist")
                 ? "border-rose-300/60 bg-rose-500/20 text-rose-100"
                 : "border-white/25 bg-white/10 text-white"
             } shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60`}
             aria-label="Wishlist"
           >
-            <HeartIcon filled={pathname === "/wishlist"} />
+            <HeartIcon filled={pathname.startsWith("/wishlist")} />
           </Link>
           <motion.button
             type="button"

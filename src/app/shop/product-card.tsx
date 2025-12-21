@@ -381,19 +381,22 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
               disabled={wishlistLoading || wishlistBusy}
               whileTap={{ scale: 0.9 }}
-              animate={{ scale: isWishlisted ? 1.05 : 1, boxShadow: isWishlisted ? "0 0 18px rgba(255,107,129,0.55)" : undefined }}
-              className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-white shadow-md shadow-black/30 transition ${
+              animate={{
+                scale: isWishlisted ? 1.05 : 1,
+                boxShadow: isWishlisted ? "0 6px 20px rgba(255,99,132,0.45)" : "0 6px 16px rgba(0,0,0,0.35)",
+              }}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-full border text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
                 isWishlisted
-                  ? "border-rose-200/80 bg-[#ff6b81] text-white"
-                  : "border-white/20 bg-black/60 hover:border-white/40 hover:bg-black/70"
+                  ? "border-rose-200 bg-[#ef4444] text-white"
+                  : "border-white/50 bg-white text-slate-900 hover:border-white hover:shadow-[0_8px_18px_rgba(255,255,255,0.25)]"
               } ${wishlistLoading || wishlistBusy ? "opacity-70" : ""}`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill={isWishlisted ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth="1.8"
+                stroke={isWishlisted ? "currentColor" : "currentColor"}
+                strokeWidth="1.9"
                 className="h-5 w-5 drop-shadow-sm"
                 aria-hidden
               >

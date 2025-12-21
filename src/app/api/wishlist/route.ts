@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
     const updatedData = updatedSnapshot.data() as WishlistFirestoreDocument | undefined;
     const items = serializeWishlistItems(updatedData?.items ?? []);
 
-    console.log("[api/wishlist] Added wishlist item", {
+    console.log("[api/wishlist] Updated wishlist", {
       userId: authResult.uid,
       productId,
       variantKey: computedVariantKey,

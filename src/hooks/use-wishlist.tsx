@@ -174,7 +174,6 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
         const data = (await response.json()) as { items?: WishlistItem[] };
         setItems(data.items ?? []);
-        pushToast({ message: "Added to wishlist.", type: "success" });
       } catch (err) {
         console.error("[useWishlist] Failed to add wishlist item", err);
         setError(err instanceof Error ? err.message : "Failed to update wishlist.");
