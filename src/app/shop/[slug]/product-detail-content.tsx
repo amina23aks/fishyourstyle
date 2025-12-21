@@ -411,7 +411,18 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
                   }`.trim()}
                 />
-                <FavoriteButton productId={product.id} size="lg" />
+                <FavoriteButton
+                  productId={product.id}
+                  size="lg"
+                  productData={{
+                    slug: product.slug,
+                    name: product.nameFr,
+                    price: product.priceDzd,
+                    currency: product.currency,
+                    image: currentImage,
+                    inStock: !isOutOfStock,
+                  }}
+                />
               </div>
               <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>
             </div>

@@ -11,7 +11,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { Timestamp } from "firebase/firestore";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { useAuth } from "@/context/auth";
 import type { FavoriteItem } from "@/types/favorites";
@@ -21,7 +21,7 @@ type FavoritesContextValue = {
   isLoading: boolean;
   isUpdating: boolean;
   isFavorite: (productId: string) => boolean;
-  toggleFavorite: (productId: string) => Promise<void>;
+  toggleFavorite: (input: { productId: string; productData?: Omit<FavoriteItem, "productId" | "addedAt"> }) => Promise<void>;
 };
 
 type Toast = {
@@ -31,6 +31,41 @@ type Toast = {
 };
 
 const FavoritesContext = createContext<FavoritesContextValue | undefined>(undefined);
+
+const STORAGE_KEY = "favoritesGuest";
+
+function readGuestFavorites(): FavoriteItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Partial<FavoriteItem> & { addedAt?: number | { seconds: number; nanoseconds?: number } }>;
+    return parsed
+      .filter((item): item is FavoriteItem => Boolean(item?.productId))
+      .map((item) =>
+        normalizeItem({
+          ...item,
+          addedAt: item.addedAt,
+        } as FavoriteItem),
+      );
+  } catch (error) {
+    console.error("[Favorites] Failed to parse guest favorites", error);
+    return [];
+  }
+}
+
+function writeGuestFavorites(items: FavoriteItem[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const serialized = items.map((item) => ({
+      ...item,
+      addedAt: item.addedAt?.toMillis?.() ?? Date.now(),
+    }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
+  } catch (error) {
+    console.error("[Favorites] Failed to persist guest favorites", error);
+  }
+}
 
 function normalizeItem(raw: FavoriteItem | (FavoriteItem & { addedAt?: { seconds: number; nanoseconds: number } | number | null })): FavoriteItem {
   const addedAt = (() => {
@@ -77,7 +112,6 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const lastKnownItems = useRef<FavoriteItem[]>([]);
   const pathname = usePathname();
-  const router = useRouter();
 
   const pushToast = useCallback((message: string, type: Toast["type"] = "info") => {
     const id = Date.now();
@@ -91,9 +125,10 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
     let isActive = true;
 
     const load = async () => {
+      const guestFavorites = readGuestFavorites();
       if (!user) {
-        lastKnownItems.current = [];
-        setItems([]);
+        lastKnownItems.current = guestFavorites;
+        setItems(guestFavorites);
         setIsLoading(false);
         return;
       }
@@ -109,14 +144,41 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
         }
         const data = await response.json();
         const serverItems = (data?.items ?? []).map(normalizeItem);
+        const merged = mergeFavorites(serverItems, guestFavorites);
+
+        // Push missing guest items to Firestore
+        const missing = guestFavorites.filter(
+          (guestItem) =>
+            !serverItems.some((serverItem: FavoriteItem) => serverItem.productId === guestItem.productId),
+        );
+        for (const entry of missing) {
+          await fetch("/api/favorites", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ productId: entry.productId }),
+          }).catch((error) => {
+            console.error("[FavoritesProvider] Failed to merge guest favorite", entry.productId, error);
+          });
+        }
+
+        const finalResponse = await fetch("/api/favorites", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const latestData = await finalResponse.json().catch(() => ({ items: merged }));
+        const finalItems = (latestData?.items ?? merged).map(normalizeItem);
+
         if (!isActive) return;
-        lastKnownItems.current = serverItems;
-        setItems(serverItems);
+        writeGuestFavorites([]);
+        lastKnownItems.current = finalItems;
+        setItems(finalItems);
       } catch (error) {
         console.error("[FavoritesProvider] Failed to fetch favorites", error);
         if (!isActive) return;
-        lastKnownItems.current = [];
-        setItems([]);
+        lastKnownItems.current = guestFavorites;
+        setItems(guestFavorites);
       } finally {
         if (isActive) {
           setIsLoading(false);
@@ -132,8 +194,9 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!user) {
-      setItems([]);
-      lastKnownItems.current = [];
+      const guestFavorites = readGuestFavorites();
+      setItems(guestFavorites);
+      lastKnownItems.current = guestFavorites;
     }
   }, [user, pathname]);
 
@@ -143,30 +206,50 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   );
 
   const toggleFavorite = useCallback(
-    async (productId: string) => {
+    async ({
+      productId,
+      productData,
+    }: {
+      productId: string;
+      productData?: Omit<FavoriteItem, "productId" | "addedAt">;
+    }) => {
+      const existing = items.find((item) => item.productId === productId);
+      const baseData =
+        existing ??
+        (productData
+          ? normalizeItem({
+              ...productData,
+              productId,
+              addedAt: Timestamp.fromMillis(Date.now()),
+            } as FavoriteItem)
+          : null);
+
       if (!user) {
-        pushToast("Please sign in to use favorites.", "info");
-        router.push("/account");
+        if (!baseData) {
+          pushToast("Unable to update favorites. Please try again.", "error");
+          return;
+        }
+        const wasFavorite = Boolean(existing);
+        const nextItems = wasFavorite
+          ? items.filter((item) => item.productId !== productId)
+          : [...items, baseData];
+        setItems(nextItems);
+        lastKnownItems.current = nextItems;
+        writeGuestFavorites(nextItems);
+        pushToast(wasFavorite ? "Removed from favorites." : "Added to favorites.", "success");
+        return;
+      }
+
+      if (!baseData) {
+        pushToast("Unable to update favorites. Please try again.", "error");
         return;
       }
 
       setIsUpdating(true);
-      const wasFavorite = isFavorite(productId);
+      const wasFavorite = Boolean(existing);
       const optimisticItems = wasFavorite
         ? items.filter((item) => item.productId !== productId)
-        : [
-            ...items,
-            normalizeItem({
-              productId,
-              slug: "",
-              name: "Saving...",
-              image: "",
-              price: 0,
-              currency: "DZD",
-              inStock: true,
-              addedAt: Timestamp.fromMillis(Date.now()),
-            }),
-          ];
+        : [...items, baseData];
 
       setItems(optimisticItems);
 
@@ -189,6 +272,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
         const serverItems = (data?.items ?? []).map(normalizeItem);
         setItems(serverItems);
         lastKnownItems.current = serverItems;
+        writeGuestFavorites([]);
         pushToast(wasFavorite ? "Removed from favorites." : "Added to favorites.", "success");
       } catch (error) {
         console.error("[FavoritesProvider] Toggle failed", error);
@@ -198,7 +282,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
         setIsUpdating(false);
       }
     },
-    [isFavorite, items, pushToast, router, user],
+    [items, pushToast, user],
   );
 
   const value = useMemo<FavoritesContextValue>(
@@ -218,6 +302,17 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
       <FavoritesToasts toasts={toasts} />
     </FavoritesContext.Provider>
   );
+}
+
+function mergeFavorites(primary: FavoriteItem[], secondary: FavoriteItem[]): FavoriteItem[] {
+  const map = new Map<string, FavoriteItem>();
+  primary.forEach((item) => map.set(item.productId, normalizeItem(item)));
+  secondary.forEach((item) => {
+    if (!map.has(item.productId)) {
+      map.set(item.productId, normalizeItem(item));
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => (b.addedAt.toMillis?.() ?? 0) - (a.addedAt.toMillis?.() ?? 0));
 }
 
 export function useFavorites(): FavoritesContextValue {

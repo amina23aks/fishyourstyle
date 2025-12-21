@@ -68,7 +68,18 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
             <span className={`h-1.5 w-1.5 rounded-full ${isOutOfStock ? "bg-white" : "bg-emerald-700"}`} />
             {isOutOfStock ? "Out of stock" : "In stock"}
           </span>
-          <FavoriteButton productId={item.productId} size="sm" />
+          <FavoriteButton
+            productId={item.productId}
+            size="sm"
+            productData={{
+              slug: item.slug,
+              name: item.name,
+              price: item.price,
+              currency: item.currency,
+              image: item.image,
+              inStock: item.inStock,
+            }}
+          />
         </div>
       </div>
 
@@ -140,6 +151,11 @@ export default function FavoritesPage() {
         <p className="text-sm text-white/70">
           Save items you love and add them to your cart when you&apos;re ready.
         </p>
+        {!user && (
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-black/30">
+            Sign in to sync favorites across devices. We still keep your guest favorites here.
+          </div>
+        )}
       </div>
 
       {loadingState ? (

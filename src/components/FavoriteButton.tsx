@@ -9,6 +9,14 @@ type FavoriteButtonProps = {
   productId: string;
   className?: string;
   size?: "sm" | "md" | "lg";
+  productData?: {
+    slug: string;
+    name: string;
+    price: number;
+    currency: "DZD";
+    image: string;
+    inStock: boolean;
+  };
 };
 
 const sizeClasses: Record<NonNullable<FavoriteButtonProps["size"]>, string> = {
@@ -29,7 +37,7 @@ function HeartIcon({ filled }: { filled: boolean }) {
   );
 }
 
-function FavoriteButtonComponent({ productId, className, size = "md" }: FavoriteButtonProps) {
+function FavoriteButtonComponent({ productId, className, size = "md", productData }: FavoriteButtonProps) {
   const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
   const active = isFavorite(productId);
 
@@ -58,7 +66,7 @@ function FavoriteButtonComponent({ productId, className, size = "md" }: Favorite
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        void toggleFavorite(productId);
+        void toggleFavorite({ productId, productData });
       }}
       disabled={isUpdating}
     >

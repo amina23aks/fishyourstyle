@@ -362,7 +362,18 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                     );
                   })()}
                 </div>
-                <FavoriteButton productId={product.id} size="sm" />
+                <FavoriteButton
+                  productId={product.id}
+                  size="sm"
+                  productData={{
+                    slug: product.slug,
+                    name: product.nameFr,
+                    price: product.priceDzd,
+                    currency: product.currency,
+                    image: currentImage ?? product.images.main ?? "",
+                    inStock: !isOutOfStock,
+                  }}
+                />
               </div>
 
             {images.length > 1 && (
