@@ -133,10 +133,12 @@ function isSameWishlistItem(
 
 type FirestoreTimestampValue = Timestamp | FieldValue | string;
 
-type WishlistFirestoreDocument = WishlistDocument & {
+type WishlistFirestoreItem = Omit<WishlistItem, "addedAt"> & { addedAt: FirestoreTimestampValue };
+
+type WishlistFirestoreDocument = Omit<WishlistDocument, "createdAt" | "updatedAt" | "items"> & {
   createdAt: FirestoreTimestampValue;
   updatedAt: FirestoreTimestampValue;
-  items: (WishlistItem & { addedAt: FirestoreTimestampValue })[];
+  items: WishlistFirestoreItem[];
 };
 
 export async function GET(request: NextRequest) {
@@ -207,7 +209,7 @@ export async function POST(request: NextRequest) {
 
     await db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(wishlistRef);
-      const baseItem = {
+      const baseItem: WishlistFirestoreItem = {
         productId,
         slug,
         name,
@@ -225,8 +227,8 @@ export async function POST(request: NextRequest) {
         const newDoc: WishlistFirestoreDocument = {
           userId: authResult.uid ?? null,
           email: authResult.email ?? "",
-          createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
-          updatedAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
           items: [baseItem],
         };
         transaction.set(wishlistRef, newDoc);
