@@ -13,8 +13,7 @@ const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
 
 function formatAddedDate(item: FavoriteItem) {
-  const millis = item.addedAt?.toMillis?.() ?? Date.now();
-  const date = new Date(millis);
+  const date = new Date(item.addedAt || Date.now());
   return date.toLocaleDateString(undefined, {
     day: "2-digit",
     month: "2-digit",
@@ -70,15 +69,14 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
           </span>
           <FavoriteButton
             productId={item.productId}
+            slug={item.slug}
+            name={item.name}
+            price={item.price}
+            currency={item.currency}
+            image={item.image}
+            inStock={item.inStock}
+            addedAt={item.addedAt}
             size="sm"
-            productData={{
-              slug: item.slug,
-              name: item.name,
-              price: item.price,
-              currency: item.currency,
-              image: item.image,
-              inStock: item.inStock,
-            }}
           />
         </div>
       </div>
@@ -147,13 +145,13 @@ export default function FavoritesPage() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-6 space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Favorites</p>
-        <h1 className="text-3xl font-semibold text-white sm:text-4xl">Your favorites</h1>
+        <h1 className="text-3xl font-semibold text-white sm:text-4xl">Favorites</h1>
         <p className="text-sm text-white/70">
-          Save items you love and add them to your cart when you&apos;re ready.
+          View and manage the products you&apos;ve saved.
         </p>
         {!user && (
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-black/30">
-            Sign in to sync favorites across devices. We still keep your guest favorites here.
+            Sign in to save favorites to your account.
           </div>
         )}
       </div>

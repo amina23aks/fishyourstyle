@@ -413,15 +413,14 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 />
                 <FavoriteButton
                   productId={product.id}
+                  slug={product.slug}
+                  name={product.nameFr}
+                  price={product.priceDzd}
+                  currency={product.currency}
+                  image={currentImage}
+                  inStock={!isOutOfStock}
                   size="lg"
-                  productData={{
-                    slug: product.slug,
-                    name: product.nameFr,
-                    price: product.priceDzd,
-                    currency: product.currency,
-                    image: currentImage,
-                    inStock: !isOutOfStock,
-                  }}
+                  addedAt={new Date().toISOString()}
                 />
               </div>
               <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>

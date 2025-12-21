@@ -7,6 +7,7 @@ import type { FavoriteItem } from "@/types/favorites";
 type FavoritesRow = {
   id: string;
   email: string;
+  userId: string;
   count: number;
   updatedAt: string;
   items: FavoriteItem[];
@@ -59,6 +60,7 @@ async function fetchFavorites(): Promise<{ rows: FavoritesRow[]; topProducts: Pr
     return {
       id: doc.id,
       email: data.email ?? "Guest",
+      userId: doc.id,
       count: data.items?.length ?? 0,
       updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : "",
       items: data.items ?? [],
@@ -149,6 +151,7 @@ export default async function AdminFavoritesPage() {
                 <thead className="bg-slate-950/60 backdrop-blur">
                   <tr>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">User</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">UID</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Favorites</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Updated</th>
                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Details</th>
@@ -158,6 +161,7 @@ export default async function AdminFavoritesPage() {
                   {rows.map((row) => (
                     <tr key={row.id} className="transition hover:bg-white/5">
                       <td className="px-6 py-4 text-white">{row.email || "Guest"}</td>
+                      <td className="px-6 py-4 text-white/80 text-xs">{row.userId}</td>
                       <td className="px-6 py-4 text-white">{row.count}</td>
                       <td className="px-6 py-4 text-sky-100/80">{formatDateTime(row.updatedAt)}</td>
                       <td className="px-6 py-4">
@@ -167,6 +171,10 @@ export default async function AdminFavoritesPage() {
                             <span className="text-sky-200 transition group-open:rotate-90">›</span>
                           </summary>
                           <div className="mt-3 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+                            <div className="rounded-xl border border-white/10 bg-slate-900/60 p-3 text-xs text-sky-100/80">
+                              <p><span className="font-semibold text-white">UID:</span> {row.userId}</p>
+                              <p><span className="font-semibold text-white">Updated:</span> {formatDateTime(row.updatedAt)}</p>
+                            </div>
                             {row.items.length === 0 ? (
                               <p className="text-xs text-sky-100/80">No items saved.</p>
                             ) : (
@@ -193,6 +201,7 @@ export default async function AdminFavoritesPage() {
                                     <p className="text-xs text-sky-100/80">
                                       {item.price.toLocaleString("fr-DZ")} {item.currency} • {item.inStock ? "In stock" : "Out of stock"}
                                     </p>
+                                    <p className="text-[11px] text-sky-100/70">Added: {new Date(item.addedAt).toLocaleString()}</p>
                                   </div>
                                 </div>
                               ))

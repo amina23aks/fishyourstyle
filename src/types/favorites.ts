@@ -1,19 +1,17 @@
-import type { Timestamp } from "firebase/firestore";
-
 export type FavoriteItem = {
   productId: string; // Firestore product doc id
   slug: string; // product slug
   name: string;
   image: string; // main image URL
   price: number;
-  currency: "DZD";
+  currency: string;
   inStock: boolean; // from product doc
-  addedAt: Timestamp;
+  addedAt: string; // ISO timestamp
 };
 
 export type UserFavoritesDoc = {
   email: string | null;
   items: FavoriteItem[];
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: FirebaseFirestore.Timestamp;
+  updatedAt: FirebaseFirestore.Timestamp;
 };

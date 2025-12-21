@@ -7,16 +7,15 @@ import { useFavorites } from "@/hooks/use-favorites";
 
 type FavoriteButtonProps = {
   productId: string;
+  slug: string;
+  name: string;
+  image: string;
+  price: number;
+  currency: string;
+  inStock: boolean;
+  addedAt?: string;
   className?: string;
   size?: "sm" | "md" | "lg";
-  productData?: {
-    slug: string;
-    name: string;
-    price: number;
-    currency: "DZD";
-    image: string;
-    inStock: boolean;
-  };
 };
 
 const sizeClasses: Record<NonNullable<FavoriteButtonProps["size"]>, string> = {
@@ -37,7 +36,18 @@ function HeartIcon({ filled }: { filled: boolean }) {
   );
 }
 
-function FavoriteButtonComponent({ productId, className, size = "md", productData }: FavoriteButtonProps) {
+function FavoriteButtonComponent({
+  productId,
+  slug,
+  name,
+  image,
+  price,
+  currency,
+  inStock,
+  addedAt,
+  className,
+  size = "md",
+}: FavoriteButtonProps) {
   const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
   const active = isFavorite(productId);
 
@@ -66,7 +76,16 @@ function FavoriteButtonComponent({ productId, className, size = "md", productDat
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        void toggleFavorite({ productId, productData });
+        void toggleFavorite({
+          productId,
+          slug,
+          name,
+          image,
+          price,
+          currency,
+          inStock,
+          addedAt: addedAt ?? new Date().toISOString(),
+        });
       }}
       disabled={isUpdating}
     >
