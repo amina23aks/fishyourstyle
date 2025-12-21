@@ -8,6 +8,7 @@ import { Swatch } from "../swatch";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import {
@@ -402,13 +403,16 @@ export function ProductDetailContent({ product }: { product: Product }) {
             )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <AnimatedAddToCartButton
-                onClick={handleAddToCart}
-                disabled={isOutOfStock || !hasVariantAvailable}
-                className={`w-full justify-center sm:w-auto ${
-                  isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
-                }`.trim()}
-              />
+              <div className="flex items-center gap-3">
+                <AnimatedAddToCartButton
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock || !hasVariantAvailable}
+                  className={`w-full justify-center sm:w-auto ${
+                    isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
+                  }`.trim()}
+                />
+                <FavoriteButton productId={product.id} size="lg" />
+              </div>
               <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>
             </div>
           </div>

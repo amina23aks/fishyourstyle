@@ -28,6 +28,7 @@ import {
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 type ProductWithInventory = Product & { stock?: number; inStock?: boolean };
 
@@ -343,22 +344,25 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-              <div className="absolute left-2.5 right-2.5 top-2.5 flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-white">
-                {(() => {
-                  const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
-                  return (
-                    <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] shadow-sm shadow-black/10 ${
-                      isOutOfStock
-                        ? "bg-red-500/90 text-white"
-                        : "bg-white/90 text-emerald-700"
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${
-                        isOutOfStock ? "bg-white" : "bg-emerald-500"
-                      }`} />
-                      {isOutOfStock ? "Out of stock" : "In stock"}
-                    </span>
-                  );
-                })()}
+              <div className="absolute left-2.5 right-2.5 top-2.5 flex items-start justify-between text-[10px] font-semibold uppercase tracking-wide text-white">
+                <div className="flex flex-col gap-1">
+                  {(() => {
+                    const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
+                    return (
+                      <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] shadow-sm shadow-black/10 ${
+                        isOutOfStock
+                          ? "bg-red-500/90 text-white"
+                          : "bg-white/90 text-emerald-700"
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          isOutOfStock ? "bg-white" : "bg-emerald-500"
+                        }`} />
+                        {isOutOfStock ? "Out of stock" : "In stock"}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <FavoriteButton productId={product.id} size="sm" />
               </div>
 
             {images.length > 1 && (
