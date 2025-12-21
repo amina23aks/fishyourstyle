@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth";
 import { useCart } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
+import { useFavorites } from "@/hooks/use-favorites";
 
 import CartDrawer from "./cart/cart-drawer";
 
@@ -54,10 +55,28 @@ function AccountIcon() {
   );
 }
 
+function HeartIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className={iconStyles}
+      aria-hidden
+    >
+      <path d="M12 20s-6-3.4-8.7-7.1C1 9.2 2.7 4.2 6.9 3.6 8.8 3.4 10 4.4 12 6c2-1.6 3.2-2.6 5.1-2.4 4.2.5 5.9 5.6 3.6 9.3C18 16.6 12 20 12 20z" />
+    </svg>
+  );
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const { user, loading: authLoading, signOut } = useAuth();
   const { totalQuantity, lastAddedAt } = useCart();
+  const { items: favoriteItems } = useFavorites();
+  const isFavoritesActive = pathname?.startsWith("/favorites");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isBumping, setIsBumping] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -169,6 +188,23 @@ export function Navbar() {
 
         {/* Mobile icon ordering tweak: cart → account → menu (aligned together) */}
         <div className="ml-auto flex items-center gap-2 md:gap-3">
+          <Link
+            href="/favorites"
+            className={`relative inline-flex h-10 w-10 items-center justify-center rounded-xl border text-white shadow-sm shadow-white/20 backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+              isFavoritesActive
+                ? "border-rose-200/70 bg-rose-400/30"
+                : "border-white/25 bg-white/10 hover:-translate-y-0.5 hover:bg-white/15"
+            }`}
+            aria-label="Favorites"
+          >
+            <HeartIcon />
+            {favoriteItems.length > 0 && (
+              <span className="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-rose-400 px-2 py-0.5 text-center text-[10px] font-semibold text-slate-900 shadow-md shadow-black/25">
+                {favoriteItems.length}
+              </span>
+            )}
+            <span className="sr-only">Favorites</span>
+          </Link>
           <motion.button
             type="button"
             onClick={toggleDrawer}

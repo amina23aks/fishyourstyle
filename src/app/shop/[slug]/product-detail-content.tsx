@@ -8,6 +8,7 @@ import { Swatch } from "../swatch";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import {
@@ -16,6 +17,7 @@ import {
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
+import { useFavorites } from "@/hooks/use-favorites";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -31,6 +33,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
     product.designTheme && product.designTheme !== "simple"
       ? capitalizeLabel(product.designTheme)
       : capitalizeLabel(product.category);
+  const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
   const colorOptions = useMemo(() => buildProductColorOptions(product), [product]);
   const sizeOptions = useMemo(() => buildProductSizeOptions(product), [product]);
   const availableColors = useMemo(
@@ -402,13 +405,35 @@ export function ProductDetailContent({ product }: { product: Product }) {
             )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <AnimatedAddToCartButton
-                onClick={handleAddToCart}
-                disabled={isOutOfStock || !hasVariantAvailable}
-                className={`w-full justify-center sm:w-auto ${
-                  isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
-                }`.trim()}
-              />
+              <div className="flex items-center gap-3">
+                <AnimatedAddToCartButton
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock || !hasVariantAvailable}
+                  className={`w-full justify-center sm:w-auto ${
+                    isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
+                  }`.trim()}
+                />
+                <FavoriteButton
+                  isFavorite={isFavorite(product.id)}
+                  disabled={isUpdating}
+                  size="md"
+                  onToggle={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void toggleFavorite({
+                      id: product.id,
+                      productId: product.id,
+                      slug: product.slug,
+                      name: product.nameFr,
+                      image: currentImage,
+                      price: product.priceDzd,
+                      currency: product.currency,
+                      inStock: !isOutOfStock,
+                      addedAt: new Date().toISOString(),
+                    });
+                  }}
+                />
+              </div>
               <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>
             </div>
           </div>
