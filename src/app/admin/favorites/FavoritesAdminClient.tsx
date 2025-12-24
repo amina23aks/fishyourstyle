@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import type { FavoritesRow, ProductStat } from "./page";
-import type { FavoriteItem } from "@/types/favorites";
 
 type FavoritesAdminClientProps = {
   rows: FavoritesRow[];
@@ -14,8 +13,7 @@ type FavoritesAdminClientProps = {
 
 function formatDateTime(value: FavoritesRow["updatedAt"]) {
   if (!value) return "—";
-  const iso = typeof value === "string" ? value : value.toDate().toISOString();
-  const date = new Date(iso);
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-GB", {
     day: "2-digit",
@@ -26,16 +24,10 @@ function formatDateTime(value: FavoritesRow["updatedAt"]) {
   });
 }
 
-function formatItemDate(value: FavoriteItem["addedAt"]) {
-  if (typeof value === "string") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
-  }
-  if (value && typeof (value as { seconds?: number }).seconds === "number") {
-    const seconds = (value as { seconds: number; nanoseconds?: number }).seconds;
-    return new Date(seconds * 1000).toLocaleString();
-  }
-  return "—";
+function formatItemDate(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
 }
 
 export default function FavoritesAdminClient({ rows, topProducts, error }: FavoritesAdminClientProps) {

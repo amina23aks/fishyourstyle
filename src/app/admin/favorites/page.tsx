@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import type { Timestamp } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import type { FavoriteItem } from "@/types/favorites";
 import FavoritesAdminClient from "./FavoritesAdminClient";
@@ -10,11 +9,28 @@ export const metadata: Metadata = {
   description: "Monitor user favorites and popular products.",
 };
 
-function normalizeDate(value: string | Timestamp | undefined): string {
-  if (!value) return "";
+type TimestampLike =
+  | { toDate: () => Date }
+  | { _seconds: number; _nanoseconds?: number }
+  | { seconds: number; nanoseconds?: number };
+
+type AdminFavoriteItem = Omit<FavoriteItem, "addedAt"> & {
+  addedAt: string | null;
+};
+
+function normalizeDate(value: string | TimestampLike | null | undefined): string | null {
+  if (!value) return null;
   if (typeof value === "string") return value;
-  const date = value.toDate();
-  return date.toISOString();
+  if ("toDate" in value && typeof value.toDate === "function") {
+    return value.toDate().toISOString();
+  }
+  if ("_seconds" in value && typeof value._seconds === "number") {
+    return new Date(value._seconds * 1000).toISOString();
+  }
+  if ("seconds" in value && typeof value.seconds === "number") {
+    return new Date(value.seconds * 1000).toISOString();
+  }
+  return null;
 }
 
 export type FavoritesRow = {
@@ -22,8 +38,8 @@ export type FavoritesRow = {
   email: string;
   userId: string;
   count: number;
-  updatedAt: string | Timestamp | undefined;
-  items: FavoriteItem[];
+  updatedAt: string | null;
+  items: AdminFavoriteItem[];
 };
 
 export type ProductStat = {
@@ -46,7 +62,7 @@ async function fetchFavorites(): Promise<{ rows: FavoritesRow[]; topProducts: Pr
     const data = doc.data() as {
       email?: string | null;
       items?: FavoriteItem[];
-      updatedAt?: Timestamp;
+      updatedAt?: TimestampLike;
     };
     return {
       id: doc.id,
@@ -54,7 +70,11 @@ async function fetchFavorites(): Promise<{ rows: FavoritesRow[]; topProducts: Pr
       userId: doc.id,
       count: data.items?.length ?? 0,
       updatedAt: normalizeDate(data.updatedAt),
-      items: data.items ?? [],
+      items:
+        data.items?.map((item) => ({
+          ...item,
+          addedAt: normalizeDate(item.addedAt as TimestampLike | string | null | undefined),
+        })) ?? [],
     };
   });
 
