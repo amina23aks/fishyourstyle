@@ -9,10 +9,9 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { signInAnonymously } from "firebase/auth";
+import { Timestamp } from "firebase/firestore";
 import { useAuth } from "@/context/auth";
 import type { FavoriteItem } from "@/types/favorites";
-import { getAuthInstance } from "@/lib/firebaseClient";
 
 type FavoritesContextValue = {
   items: FavoriteItem[];
@@ -29,6 +28,44 @@ type Toast = {
 };
 
 const FavoritesContext = createContext<FavoritesContextValue | undefined>(undefined);
+const GUEST_STORAGE_KEY = "fys-favorites-guest";
+
+type GuestFavoriteItem = Omit<FavoriteItem, "addedAt"> & { addedAt: string };
+
+function readGuestFavorites(): GuestFavoriteItem[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(GUEST_STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as GuestFavoriteItem[];
+  } catch {
+    return [];
+  }
+}
+
+function writeGuestFavorites(items: GuestFavoriteItem[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(items));
+}
+
+function sortGuestFavorites(items: GuestFavoriteItem[]) {
+  return [...items].sort((a, b) => {
+    const aTime = Date.parse(a.addedAt);
+    const bTime = Date.parse(b.addedAt);
+    return (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime);
+  });
+}
+
+function normalizeAddedAt(value: FavoriteItem["addedAt"]) {
+  if (value instanceof Timestamp) return value;
+  if (typeof value === "string") return Timestamp.fromDate(new Date(value));
+  if (value && typeof (value as { seconds?: number }).seconds === "number") {
+    const seconds = (value as { seconds: number; nanoseconds?: number }).seconds;
+    const nanoseconds = (value as { nanoseconds?: number }).nanoseconds ?? 0;
+    return new Timestamp(seconds, nanoseconds);
+  }
+  return Timestamp.now();
+}
 
 function FavoritesToasts({ toasts }: { toasts: Toast[] }) {
   if (toasts.length === 0) return null;
@@ -66,9 +103,15 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let isActive = true;
     const load = async () => {
+      const guestFavorites = readGuestFavorites();
       if (!user) {
         if (isActive) {
-          setItems([]);
+          setItems(
+            guestFavorites.map((item) => ({
+              ...item,
+              addedAt: normalizeAddedAt(item.addedAt),
+            })),
+          );
           setIsLoading(false);
         }
         return;
@@ -83,9 +126,42 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
           throw new Error("Failed to load favorites");
         }
         const data = await response.json();
-        if (isActive) {
-          setItems((data?.items ?? []) as FavoriteItem[]);
+        const serverItems = (data?.items ?? []) as FavoriteItem[];
+        const serverIds = new Set(serverItems.map((item) => item.productId ?? item.id));
+        const toMerge = guestFavorites.filter((item) => !serverIds.has(item.productId ?? item.id));
+
+        for (const item of toMerge) {
+          await fetch("/api/favorites", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              productId: item.productId ?? item.id,
+              slug: item.slug,
+              name: item.name,
+              image: item.image,
+              price: item.price,
+              currency: item.currency,
+              inStock: item.inStock,
+            }),
+          });
         }
+
+        if (toMerge.length > 0) {
+          const updated = await fetch("/api/favorites", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const updatedData = await updated.json();
+          if (isActive) {
+            setItems((updatedData?.items ?? []) as FavoriteItem[]);
+          }
+        } else if (isActive) {
+          setItems(serverItems);
+        }
+
+        writeGuestFavorites([]);
       } catch (error) {
         console.error("[Favorites] Failed to fetch favorites", error);
         if (isActive) setItems([]);
@@ -107,18 +183,32 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   const toggleFavorite = useCallback(
     async (product: FavoriteItem) => {
       if (isUpdating) return;
-      let currentUser = user;
-      if (!currentUser) {
-        try {
-          const auth = getAuthInstance();
-          if (!auth) throw new Error("Auth unavailable");
-          const credential = await signInAnonymously(auth);
-          currentUser = credential.user;
-        } catch (error) {
-          console.error("[Favorites] Anonymous sign-in failed", error);
-          pushToast("Please sign in to save favorites.", "info");
-          return;
-        }
+      if (!user) {
+        const guestFavorites = readGuestFavorites();
+        const productId = product.productId ?? product.id;
+        const exists = guestFavorites.some((item) => (item.productId ?? item.id) === productId);
+        const nowIso = new Date().toISOString();
+        const nextFavorites = sortGuestFavorites(
+          exists
+            ? guestFavorites.filter((item) => (item.productId ?? item.id) !== productId)
+            : [
+                ...guestFavorites,
+                {
+                  ...product,
+                  productId,
+                  addedAt: nowIso,
+                },
+              ],
+        );
+        writeGuestFavorites(nextFavorites);
+        setItems(
+          nextFavorites.map((item) => ({
+            ...item,
+            addedAt: normalizeAddedAt(item.addedAt),
+          })),
+        );
+        pushToast("Saved to favorites. Create an account to keep your favorites across devices.", "info");
+        return;
       }
 
       const normalized: FavoriteItem = {
@@ -138,7 +228,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
       setIsUpdating(true);
 
       try {
-        const token = await currentUser.getIdToken();
+        const token = await user.getIdToken();
         const response = await fetch("/api/favorites", {
           method: "POST",
           headers: {

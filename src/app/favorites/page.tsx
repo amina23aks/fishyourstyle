@@ -146,8 +146,16 @@ export default function FavoritesPage() {
           View and manage the products you&apos;ve saved.
         </p>
         {!user && (
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-black/30">
-            Sign in to save favorites to your account.
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xs font-semibold text-white shadow-sm shadow-black/30">
+            <span>
+              You’re not signed in. These favorites are only saved on this device.
+            </span>
+            <Link
+              href="/account"
+              className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-900 shadow"
+            >
+              Sign in
+            </Link>
           </div>
         )}
       </div>

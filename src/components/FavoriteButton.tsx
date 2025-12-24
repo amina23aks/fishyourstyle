@@ -18,7 +18,14 @@ const sizes: Record<NonNullable<FavoriteButtonProps["size"]>, string> = {
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return filled ? (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="white"
+      strokeWidth="1.2"
+      className="h-5 w-5"
+    >
       <path d="M12 21s-6.6-3.8-9.6-8C-1.1 7.4 2 2 6.8 3.1 8.9 3.6 10 5.3 12 5.3s3.1-1.7 5.2-2.2C21 2 24.1 7.4 21.6 13c-3 4.2-9.6 8-9.6 8z" />
     </svg>
   ) : (
@@ -39,7 +46,7 @@ function FavoriteButtonComponent({
     "relative inline-flex items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur";
   const sizeClass = sizes[size];
   const stateClass = isFavorite
-    ? "bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/40"
+    ? "bg-gradient-to-br from-rose-500 to-pink-400 border-rose-400 text-white shadow-lg shadow-rose-500/40"
     : "bg-slate-900/10 border-white/80 text-white hover:bg-slate-900/30";
 
   return (
@@ -48,7 +55,8 @@ function FavoriteButtonComponent({
       aria-pressed={isFavorite}
       disabled={disabled}
       className={[base, sizeClass, stateClass, className].filter(Boolean).join(" ")}
-      whileTap={{ scale: 0.9 }}
+      whileTap={{ scale: 0.92 }}
+      whileHover={disabled ? undefined : { scale: 1.05 }}
       animate={isFavorite ? { transform: "scale(1.05)" } : { transform: "scale(1)" }}
       transition={{ duration: 0.2 }}
       onClick={(event) => {
@@ -57,7 +65,9 @@ function FavoriteButtonComponent({
         onToggle(event);
       }}
     >
-      <HeartIcon filled={isFavorite} />
+      <span className={isFavorite ? "text-red-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.45)]" : "text-white"}>
+        <HeartIcon filled={isFavorite} />
+      </span>
     </motion.button>
   );
 }
