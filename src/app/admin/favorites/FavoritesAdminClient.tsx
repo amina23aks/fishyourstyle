@@ -49,16 +49,6 @@ export function FavoritesAdminClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen]);
 
-  useEffect(() => {
-    if (!isModalOpen) return;
-    const { body } = document;
-    const previousOverflow = body.style.overflow;
-    body.style.overflow = "hidden";
-    return () => {
-      body.style.overflow = previousOverflow;
-    };
-  }, [isModalOpen]);
-
   const handleOpenModal = (rowId: string) => {
     setSelectedId(rowId);
     setIsModalOpen(true);
@@ -104,7 +94,6 @@ export function FavoritesAdminClient({
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">UID</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Favorites</th>
                   <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Updated</th>
-                  <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -118,19 +107,6 @@ export function FavoritesAdminClient({
                     <td className="px-6 py-4 text-white/80 text-xs">{row.userId}</td>
                     <td className="px-6 py-4 text-white">{row.count}</td>
                     <td className="px-6 py-4 text-sky-100/80">{formatDateTime(row.updatedAt)}</td>
-                    <td className="px-6 py-4">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleOpenModal(row.id);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-sky-100 transition hover:border-white/30 hover:bg-white/10"
-                      >
-                        View items
-                        <span className="text-sky-200">›</span>
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
