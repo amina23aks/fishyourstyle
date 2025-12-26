@@ -26,7 +26,32 @@ type Toast = {
   type: "success" | "error" | "info";
 };
 
+const LOCAL_FAVORITES_KEY = "fishyourstyle:favorites";
+
 const FavoritesContext = createContext<FavoritesContextValue | undefined>(undefined);
+
+function readLocalFavorites(): FavoriteItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_FAVORITES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as FavoriteItem[]) : [];
+  } catch (error) {
+    console.warn("[Favorites] Failed to read local favorites", error);
+    return [];
+  }
+}
+
+function writeLocalFavorites(items: FavoriteItem[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(LOCAL_FAVORITES_KEY, JSON.stringify(items));
+}
+
+function clearLocalFavorites() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(LOCAL_FAVORITES_KEY);
+}
 
 function FavoritesToasts({ toasts }: { toasts: Toast[] }) {
   if (toasts.length === 0) return null;
@@ -52,6 +77,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [mergedUid, setMergedUid] = useState<string | null>(null);
 
   const pushToast = useCallback((message: string, type: Toast["type"] = "info") => {
     const id = Date.now();
@@ -64,16 +90,45 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let isActive = true;
     const load = async () => {
+      let localItems: FavoriteItem[] = [];
+      if (authLoading) return;
       if (!user) {
         if (isActive) {
-          setItems([]);
+          localItems = readLocalFavorites();
+          setItems(localItems);
+          setMergedUid(null);
           setIsLoading(false);
         }
         return;
       }
+
       setIsLoading(true);
       try {
         const token = await user.getIdToken();
+        localItems = readLocalFavorites();
+        const shouldMerge = localItems.length > 0 && mergedUid !== user.uid;
+
+        if (shouldMerge) {
+          const response = await fetch("/api/favorites", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ items: localItems }),
+          });
+          if (!response.ok) {
+            throw new Error("Failed to merge favorites");
+          }
+          const data = await response.json();
+          if (isActive) {
+            setItems((data?.items ?? []) as FavoriteItem[]);
+            setMergedUid(user.uid);
+            clearLocalFavorites();
+          }
+          return;
+        }
+
         const response = await fetch("/api/favorites", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -83,10 +138,13 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
         const data = await response.json();
         if (isActive) {
           setItems((data?.items ?? []) as FavoriteItem[]);
+          setMergedUid(user.uid);
         }
       } catch (error) {
         console.error("[Favorites] Failed to fetch favorites", error);
-        if (isActive) setItems([]);
+        if (isActive) {
+          setItems(localItems.length > 0 ? localItems : []);
+        }
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -95,7 +153,7 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
     return () => {
       isActive = false;
     };
-  }, [user]);
+  }, [authLoading, mergedUid, user]);
 
   const isFavorite = useCallback(
     (productId: string) => items.some((item) => (item.productId ?? item.id) === productId),
@@ -105,10 +163,6 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
   const toggleFavorite = useCallback(
     async (product: FavoriteItem) => {
       if (isUpdating) return;
-      if (!user) {
-        pushToast("Please sign in to save favorites.", "info");
-        return;
-      }
 
       const normalized: FavoriteItem = {
         ...product,
@@ -124,6 +178,13 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
         ? items.filter((item) => (item.productId ?? item.id) !== targetId)
         : [normalized, ...items];
       setItems(optimisticItems);
+
+      if (!user) {
+        writeLocalFavorites(optimisticItems);
+        pushToast(wasFavorite ? "Removed from favorites." : "Added to favorites.", "success");
+        return;
+      }
+
       setIsUpdating(true);
 
       try {

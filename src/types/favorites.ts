@@ -18,6 +18,10 @@ export type FavoriteItem = {
   productId?: string; // backward compatibility
 };
 
+export type FavoriteItemClient = Omit<FavoriteItem, "addedAt"> & {
+  addedAt: string | null;
+};
+
 export type FavoriteDocument = {
   id: string;
   uid: string | null;
@@ -25,4 +29,21 @@ export type FavoriteDocument = {
   items: FavoriteItem[];
   createdAt: FirestoreTimestampValue;
   updatedAt: FirestoreTimestampValue;
+};
+
+export type FavoritesAdminRow = {
+  id: string;
+  email: string;
+  userId: string;
+  count: number;
+  updatedAt: string | null;
+  items: FavoriteItemClient[];
+};
+
+export type FavoriteProductStat = {
+  productId: string;
+  name: string;
+  image: string;
+  slug: string;
+  count: number;
 };
