@@ -288,6 +288,28 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         transition={{ duration: 0.2, easing: "ease" }}
         className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
       >
+        <div className="absolute right-2.5 top-2.5 z-10">
+          <FavoriteButton
+            isFavorite={isFavorite(product.id)}
+            disabled={isUpdating}
+            size="sm"
+            onToggle={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void toggleFavorite({
+                id: product.id,
+                productId: product.id,
+                slug: product.slug,
+                name: product.nameFr,
+                image: currentImage ?? product.images.main ?? "",
+                price: product.priceDzd,
+                currency: product.currency,
+                inStock: !isOutOfStock,
+                addedAt: new Date().toISOString(),
+              });
+            }}
+          />
+        </div>
         <Link
           href={`/shop/${product.slug}`}
           className="group relative flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
@@ -364,26 +386,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                     );
                   })()}
                 </div>
-                <FavoriteButton
-                  isFavorite={isFavorite(product.id)}
-                  disabled={isUpdating}
-                  size="sm"
-                  onToggle={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    void toggleFavorite({
-                      id: product.id,
-                      productId: product.id,
-                      slug: product.slug,
-                      name: product.nameFr,
-                      image: currentImage ?? product.images.main ?? "",
-                      price: product.priceDzd,
-                      currency: product.currency,
-                      inStock: !isOutOfStock,
-                      addedAt: new Date().toISOString(),
-                    });
-                  }}
-                />
               </div>
 
             {images.length > 1 && (

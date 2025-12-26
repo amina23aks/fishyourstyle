@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { motion } from "@/lib/motion";
+import { AnimatePresence, motion } from "@/lib/motion";
 
 type FavoriteButtonProps = {
   isFavorite: boolean;
@@ -39,8 +39,8 @@ function FavoriteButtonComponent({
     "relative inline-flex items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur";
   const sizeClass = sizes[size];
   const stateClass = isFavorite
-    ? "bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/40"
-    : "bg-slate-900/10 border-white/80 text-white hover:bg-slate-900/30";
+    ? "bg-red-500 border-red-400 text-white shadow-[0_0_18px_rgba(239,68,68,0.55)]"
+    : "bg-transparent border-white/70 text-white hover:bg-white/10";
 
   return (
     <motion.button
@@ -48,7 +48,8 @@ function FavoriteButtonComponent({
       aria-pressed={isFavorite}
       disabled={disabled}
       className={[base, sizeClass, stateClass, className].filter(Boolean).join(" ")}
-      whileTap={{ scale: 0.9 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.92 }}
       animate={isFavorite ? { transform: "scale(1.05)" } : { transform: "scale(1)" }}
       transition={{ duration: 0.2 }}
       onClick={(event) => {
@@ -57,6 +58,18 @@ function FavoriteButtonComponent({
         onToggle(event);
       }}
     >
+      <AnimatePresence>
+        {isFavorite && (
+          <motion.span
+            key="favorite-glow"
+            className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-red-400/60"
+            initial={{ opacity: 0.8, scale: 1 }}
+            animate={{ opacity: 0, scale: 1.6 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+        )}
+      </AnimatePresence>
       <HeartIcon filled={isFavorite} />
     </motion.button>
   );
