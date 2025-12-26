@@ -49,6 +49,16 @@ export function FavoritesAdminClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen]);
 
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, [isModalOpen]);
+
   const handleOpenModal = (rowId: string) => {
     setSelectedId(rowId);
     setIsModalOpen(true);

@@ -10,6 +10,8 @@ import type {
 } from "@/types/favorites";
 import { FavoritesAdminClient } from "./FavoritesAdminClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Favorites | Admin | Fish Your Style",
   description: "Monitor user favorites and popular products.",
@@ -46,7 +48,8 @@ async function fetchFavorites(): Promise<{
 
   const snapshot = await db.collection("favorites").orderBy("updatedAt", "desc").get();
 
-  const rows: FavoritesAdminRow[] = snapshot.docs.map((doc) => {
+  const rows: FavoritesAdminRow[] = snapshot.docs
+    .map((doc) => {
     const data = doc.data() as {
       email?: string | null;
       items?: FavoriteItem[];
@@ -70,12 +73,16 @@ async function fetchFavorites(): Promise<{
       updatedAt: normalizeDate(data.updatedAt),
       items,
     };
-  });
+    })
+    .filter((row) => row.items.length > 0);
 
   const productMap = new Map<string, FavoriteProductStat>();
   rows.forEach((row) => {
+    const uniqueProductIds = new Set<string>();
     row.items.forEach((item) => {
       const key = item.productId ?? item.id;
+      if (!key || uniqueProductIds.has(key)) return;
+      uniqueProductIds.add(key);
       const existing = key ? productMap.get(key) : undefined;
       if (existing) {
         existing.count += 1;
