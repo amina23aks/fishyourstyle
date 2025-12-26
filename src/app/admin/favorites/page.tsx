@@ -52,10 +52,16 @@ async function fetchFavorites(): Promise<{
       items?: FavoriteItem[];
       updatedAt?: Timestamp;
     };
-    const items: FavoriteItemClient[] = (data.items ?? []).map((item) => ({
-      ...item,
-      addedAt: normalizeItemDate(item.addedAt),
-    }));
+    const items: FavoriteItemClient[] = (data.items ?? [])
+      .map((item) => ({
+        ...item,
+        addedAt: normalizeItemDate(item.addedAt),
+      }))
+      .sort((a, b) => {
+        const aTime = a.addedAt ? Date.parse(a.addedAt) : 0;
+        const bTime = b.addedAt ? Date.parse(b.addedAt) : 0;
+        return bTime - aTime;
+      });
     return {
       id: doc.id,
       email: data.email ?? "Guest",
@@ -87,7 +93,7 @@ async function fetchFavorites(): Promise<{
     });
   });
 
-  const topProducts = Array.from(productMap.values()).sort((a, b) => b.count - a.count).slice(0, 12);
+  const topProducts = Array.from(productMap.values()).sort((a, b) => b.count - a.count);
 
   return { rows, topProducts };
 }

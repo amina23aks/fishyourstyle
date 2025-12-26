@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { FavoriteProductStat, FavoritesAdminRow } from "@/types/favorites";
 
@@ -30,12 +30,33 @@ export function FavoritesAdminClient({
   rows: FavoritesAdminRow[];
   topProducts: FavoriteProductStat[];
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(rows[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const selectedRow = useMemo(
-    () => rows.find((row) => row.id === selectedId) ?? rows[0] ?? null,
+    () => rows.find((row) => row.id === selectedId) ?? null,
     [rows, selectedId],
   );
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen]);
+
+  const handleOpenModal = (rowId: string) => {
+    setSelectedId(rowId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -54,7 +75,7 @@ export function FavoritesAdminClient({
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="space-y-6">
         <div className="rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur">
           <div className="flex flex-col gap-2 border-b border-white/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -80,10 +101,8 @@ export function FavoritesAdminClient({
                 {rows.map((row) => (
                   <tr
                     key={row.id}
-                    className={`cursor-pointer transition hover:bg-white/5 ${
-                      row.id === selectedId ? "bg-white/5" : ""
-                    }`}
-                    onClick={() => setSelectedId(row.id)}
+                    className="cursor-pointer transition hover:bg-white/5"
+                    onClick={() => handleOpenModal(row.id)}
                   >
                     <td className="px-6 py-4 text-white">{row.email || "Guest"}</td>
                     <td className="px-6 py-4 text-white/80 text-xs">{row.userId}</td>
@@ -92,7 +111,10 @@ export function FavoritesAdminClient({
                     <td className="px-6 py-4">
                       <button
                         type="button"
-                        onClick={() => setSelectedId(row.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenModal(row.id);
+                        }}
                         className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-sky-100 transition hover:border-white/30 hover:bg-white/10"
                       >
                         View items
@@ -104,75 +126,6 @@ export function FavoritesAdminClient({
               </tbody>
             </table>
           </div>
-        </div>
-
-        <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-slate-950/60 p-5 text-sky-50 shadow-2xl shadow-sky-900/40">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Favorite details</p>
-              <p className="text-sm text-sky-100/80">Saved items per shopper</p>
-            </div>
-            {selectedRow && (
-              <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-sky-100/80">
-                {selectedRow.count} {selectedRow.count === 1 ? "item" : "items"}
-              </span>
-            )}
-          </div>
-
-          {!selectedRow ? (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-sky-100/80">
-              Select a user to view their favorites.
-            </div>
-          ) : (
-            <div className="mt-4 flex flex-1 flex-col gap-4 overflow-hidden">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-sky-100/80">
-                <p>
-                  <span className="font-semibold text-white">Email:</span> {selectedRow.email || "Guest"}
-                </p>
-                <p>
-                  <span className="font-semibold text-white">UID:</span> {selectedRow.userId}
-                </p>
-                <p>
-                  <span className="font-semibold text-white">Updated:</span> {formatDateTime(selectedRow.updatedAt)}
-                </p>
-              </div>
-
-              <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-                {selectedRow.items.length === 0 ? (
-                  <p className="text-xs text-sky-100/80">No items saved.</p>
-                ) : (
-                  selectedRow.items.map((item) => (
-                    <div
-                      key={item.productId ?? item.id}
-                      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-3"
-                    >
-                      {item.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-12 w-12 rounded-xl object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-[10px] text-white/70">
-                          No image
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-white">{item.name}</p>
-                        <p className="text-xs text-sky-100/80">
-                          {item.price.toLocaleString("fr-DZ")} {item.currency} •{" "}
-                          {item.inStock ? "In stock" : "Out of stock"}
-                        </p>
-                        <p className="text-[11px] text-sky-100/70">Added: {formatItemDate(item.addedAt)}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -228,6 +181,71 @@ export function FavoritesAdminClient({
           )}
         </div>
       </div>
+
+      {isModalOpen && selectedRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={handleCloseModal}
+            aria-label="Close favorite details"
+          />
+          <div className="relative z-10 w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/95 p-6 text-sky-50 shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Favorite details</p>
+                <p className="mt-2 text-lg font-semibold text-white">{selectedRow.email || "Guest"}</p>
+                <p className="mt-1 text-xs text-sky-100/80">UID: {selectedRow.userId}</p>
+                <p className="mt-1 text-xs text-sky-100/70">
+                  Updated: {formatDateTime(selectedRow.updatedAt)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="inline-flex items-center justify-center rounded-full border border-white/20 px-4 py-1 text-xs font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+              {selectedRow.items.length === 0 ? (
+                <p className="text-sm text-sky-100/80">No items saved.</p>
+              ) : (
+                selectedRow.items.map((item) => (
+                  <div
+                    key={item.productId ?? item.id}
+                    className="flex items-center gap-4 rounded-2xl border border-white/10 bg-slate-900/70 p-3"
+                  >
+                    {item.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="h-14 w-14 rounded-xl object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 text-[10px] text-white/70">
+                        No image
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-white">{item.name}</p>
+                      <p className="text-xs text-sky-100/80">
+                        {item.price.toLocaleString("fr-DZ")} {item.currency} •{" "}
+                        {item.inStock ? "In stock" : "Out of stock"}
+                      </p>
+                      <p className="text-[11px] text-sky-100/70">Added: {formatItemDate(item.addedAt)}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
