@@ -3,6 +3,7 @@ import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/layout/Footer";
 import OceanBackdrop from "@/components/OceanBackdrop";
+import CookiesBanner from "@/components/CookiesBanner";
 import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
 import { FavoritesProvider } from "@/hooks/use-favorites";
@@ -43,6 +44,7 @@ export default function RootLayout({
                 <main className="flex-1">{children}</main>
                 <Footer />
               </div>
+              <CookiesBanner />
             </CartProvider>
           </FavoritesProvider>
         </AuthProvider>
