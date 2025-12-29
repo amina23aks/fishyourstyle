@@ -7,6 +7,7 @@ const CONSENT_KEY = "cookie-consent";
 
 export default function CookiesBanner() {
   const [isVisible, setIsVisible] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
     const storedConsent = window.localStorage.getItem(CONSENT_KEY);
@@ -17,40 +18,74 @@ export default function CookiesBanner() {
 
   const handleAccept = () => {
     window.localStorage.setItem(CONSENT_KEY, "accepted");
-    setIsVisible(false);
+    setIsLeaving(true);
+    window.setTimeout(() => {
+      setIsVisible(false);
+      setIsLeaving(false);
+    }, 220);
   };
 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-x-4 bottom-4 z-50 mx-auto w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-slate-800 shadow-lg shadow-slate-900/10 backdrop-blur">
-      <div className="flex items-center gap-4 text-left">
-        <div className="flex flex-1 flex-col gap-3">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-slate-900">We use cookies</p>
-            <p className="text-sm text-slate-600">
-              They help us remember your preferences and improve your experience.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleAccept}
-            className="w-fit rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-          >
-            Got it
-          </button>
-        </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50">
+    <div
+      className={`cookie-banner fixed bottom-4 left-4 z-50 w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-slate-800 shadow-lg shadow-slate-900/10 backdrop-blur ${
+        isLeaving ? "cookie-banner-exit" : "cookie-banner-enter"
+      }`}
+    >
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-50">
           <Image
             src="/cookie.png"
             alt=""
-            width={32}
-            height={32}
-            className="h-8 w-8"
+            width={56}
+            height={56}
+            className="h-14 w-14"
             priority
           />
         </div>
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-slate-900">We use cookies</p>
+          <p className="text-sm text-slate-600">
+            They help us remember your preferences and improve your experience.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleAccept}
+          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+        >
+          Got it
+        </button>
       </div>
+      <style jsx>{`
+        .cookie-banner-enter {
+          animation: cookie-banner-in 200ms ease-out;
+        }
+        .cookie-banner-exit {
+          animation: cookie-banner-out 200ms ease-in forwards;
+        }
+        @keyframes cookie-banner-in {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes cookie-banner-out {
+          from {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+        }
+      `}</style>
     </div>
   );
 }
