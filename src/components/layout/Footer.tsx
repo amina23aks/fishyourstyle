@@ -128,16 +128,6 @@ export default function Footer() {
                   My account
                 </Link>
               </li>
-              <li>
-                <Link href="/login" className="hover:text-white">
-                  Login
-                </Link>
-              </li>
-              <li>
-                <Link href="/signup" className="hover:text-white">
-                  Sign up
-                </Link>
-              </li>
             </ul>
           </div>
           <div className="space-y-3">

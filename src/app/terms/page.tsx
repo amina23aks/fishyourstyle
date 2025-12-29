@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions | Fish Your Style",
-  description: "Read the terms for shopping with Fish Your Style.",
+  description: "Review the terms for shopping with Fish Your Style.",
 };
 
 export default function TermsPage() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = 2025;
 
   return (
     <section className="mx-auto w-full max-w-3xl px-4 py-16 text-slate-100">
@@ -20,60 +20,62 @@ export default function TermsPage() {
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-white">About Fish Your Style</h2>
             <p>
-              Fish Your Style is a small streetwear brand inspired by the sea.
-              Our goal is to deliver comfortable, ocean-ready fashion made with
-              care for our community.
+              Fish Your Style is a streetwear brand inspired by the sea. We aim
+              to deliver comfortable, stylish clothing made with care for our
+              community.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-white">Orders &amp; confirmation</h2>
+            <h2 className="text-base font-semibold text-white">Orders &amp; Confirmation</h2>
             <p>
-              When you place an order, you will receive a confirmation message
-              with the details. We may contact you if we need to verify
-              information or clarify delivery preferences.
+              After placing an order, you will receive a confirmation
+              notification. A member of our team will personally call you to
+              confirm your order before processing and shipping. If we are
+              unable to reach you, your order may be delayed or cancelled.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-white">Prices &amp; payment</h2>
+            <h2 className="text-base font-semibold text-white">Prices &amp; Payment</h2>
             <p>
-              Prices are shown in the local currency. At the moment, we accept
-              cash on delivery. Please make sure payment is available when your
-              order arrives.
+              Prices are shown in local currency. We currently accept cash on
+              delivery. Please ensure payment is available at the time of
+              delivery.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-white">Shipping &amp; delivery</h2>
+            <h2 className="text-base font-semibold text-white">Shipping &amp; Delivery</h2>
             <p>
-              Delivery timelines depend on your location. We will do our best to
-              ship quickly and keep you updated if any delays occur.
+              Delivery time depends on your location. We always work to deliver
+              as quickly as possible and will inform you if any delays occur.
+              Orders are shipped after phone confirmation.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-white">Returns &amp; exchanges</h2>
+            <h2 className="text-base font-semibold text-white">Returns &amp; Exchanges</h2>
             <p>
-              If something is not right with your order, reach out within 7 days
-              of delivery. We will review your request and offer an exchange or
-              refund when reasonable.
+              If something is not right with your order, please contact us
+              within 7 days of receiving your item. We will review your request
+              and provide an exchange or refund when appropriate.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-white">Changes to the terms</h2>
+            <h2 className="text-base font-semibold text-white">Changes to Terms</h2>
             <p>
-              We may update these terms from time to time. The latest version
-              will always be posted here with a new update date.
+              We may update these terms occasionally. Any new version will be
+              posted here with an updated date.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-white">Contact</h2>
             <p>
-              Questions? Contact us at{" "}
-              <span className="font-semibold text-white">support@fishyourstyle.com</span>.
+              For questions or assistance, please visit the Contact page on our
+              website.
             </p>
           </section>
         </div>
