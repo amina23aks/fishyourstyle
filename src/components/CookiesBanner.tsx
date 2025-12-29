@@ -29,7 +29,7 @@ export default function CookiesBanner() {
 
   return (
     <div
-      className={`cookie-banner fixed bottom-4 left-4 z-50 w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-slate-800 shadow-lg shadow-slate-900/10 backdrop-blur ${
+      className={`cookie-banner fixed bottom-4 right-4 z-50 w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-slate-800 shadow-lg shadow-slate-900/10 backdrop-blur ${
         isLeaving ? "cookie-banner-exit" : "cookie-banner-enter"
       }`}
     >
