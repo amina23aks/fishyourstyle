@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { trackAddToCart } from "@/lib/analytics";
 
 export type CartItem = {
   id: string;
@@ -107,6 +108,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     const variantKey = ensureVariantKey(payload);
     const quantityToAdd = payload.quantity ?? 1;
+    let addedQuantity = 0;
 
     setItems((previous) => {
       const existingIndex = previous.findIndex(
@@ -114,23 +116,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
 
       if (existingIndex !== -1) {
-        return previous.map((item, index) =>
-          index === existingIndex
-            ? {
-                ...item,
-                quantity: Math.min(
-                  item.quantity + quantityToAdd,
-                  item.maxQuantity ?? item.quantity + quantityToAdd,
-                ),
-              }
-            : item,
-        );
+        return previous.map((item, index) => {
+          if (index !== existingIndex) {
+            return item;
+          }
+          const nextQuantity = Math.min(
+            item.quantity + quantityToAdd,
+            item.maxQuantity ?? item.quantity + quantityToAdd,
+          );
+          addedQuantity = Math.max(nextQuantity - item.quantity, 0);
+          return {
+            ...item,
+            quantity: nextQuantity,
+          };
+        });
       }
 
       const initialQuantity = Math.min(
         quantityToAdd,
         payload.maxQuantity ?? quantityToAdd,
       );
+      addedQuantity = initialQuantity;
 
       return [
         ...previous,
@@ -142,6 +148,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ];
     });
 
+    if (addedQuantity > 0) {
+      trackAddToCart({
+        item_id: payload.id,
+        item_name: payload.name,
+        price: payload.price,
+        currency: "DZD",
+        quantity: addedQuantity,
+      });
+    }
     setLastAddedAt(Date.now());
   }, []);
 
