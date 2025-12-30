@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/layout/Footer";
 import OceanBackdrop from "@/components/OceanBackdrop";
 import CookiesBanner from "@/components/CookiesBanner";
+import AnalyticsProvider from "@/components/AnalyticsProvider";
 import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
 import { FavoritesProvider } from "@/hooks/use-favorites";
@@ -35,19 +37,23 @@ export default function RootLayout({
         />
       </head>
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">
-        <AuthProvider>
-          <FavoritesProvider>
-            <CartProvider>
-              <OceanBackdrop />
-              <div className="relative z-10 flex min-h-screen flex-col">
-                <Navbar />
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </div>
-              <CookiesBanner />
-            </CartProvider>
-          </FavoritesProvider>
-        </AuthProvider>
+        <Suspense fallback={null}>
+          <AnalyticsProvider>
+            <AuthProvider>
+              <FavoritesProvider>
+                <CartProvider>
+                  <OceanBackdrop />
+                  <div className="relative z-10 flex min-h-screen flex-col">
+                    <Navbar />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                  <CookiesBanner />
+                </CartProvider>
+              </FavoritesProvider>
+            </AuthProvider>
+          </AnalyticsProvider>
+        </Suspense>
       </body>
     </html>
   );

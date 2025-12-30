@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-const CONSENT_KEY = "cookie-consent";
+const CONSENT_KEY = "fishyourstyle_cookie_consent_v1";
+const CONSENT_EVENT = "fishyourstyle:cookie-consent-accepted";
 
 export default function CookiesBanner() {
   const [isVisible, setIsVisible] = useState(false);
@@ -18,6 +19,7 @@ export default function CookiesBanner() {
 
   const handleAccept = () => {
     window.localStorage.setItem(CONSENT_KEY, "accepted");
+    window.dispatchEvent(new Event(CONSENT_EVENT));
     setIsLeaving(true);
     window.setTimeout(() => {
       setIsVisible(false);
@@ -37,7 +39,7 @@ export default function CookiesBanner() {
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
           <Image
             src="/cookie.png"
-            alt=""
+            alt="Cookie mascot"
             width={60}
             height={60}
             className="h-12 w-12"
@@ -49,6 +51,12 @@ export default function CookiesBanner() {
           <p className="text-xs text-slate-600">
             They help us remember your preferences and improve your experience.
           </p>
+          <a
+            href="/privacy-policy"
+            className="text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+          >
+            Learn more
+          </a>
         </div>
         <button
           type="button"
