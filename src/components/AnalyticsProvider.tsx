@@ -6,6 +6,7 @@ import {
   useSearchParams,
   type ReadonlyURLSearchParams,
 } from "next/navigation";
+import { trackPageView } from "@/lib/analytics";
 
 const CONSENT_KEY = "fishyourstyle_cookie_consent_v1";
 const CONSENT_EVENT = "fishyourstyle:cookie-consent-accepted";
@@ -85,7 +86,7 @@ export default function AnalyticsProvider({ children }: AnalyticsProviderProps) 
 
   useEffect(() => {
     if (!measurementId || !isReady || !pagePath) return;
-    window.gtag?.("config", measurementId, { page_path: pagePath });
+    trackPageView(pagePath);
   }, [measurementId, isReady, pagePath]);
 
   return children;

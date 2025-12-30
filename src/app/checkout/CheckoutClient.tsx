@@ -15,6 +15,7 @@ import {
 } from "@/data/shipping";
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
+import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 
 type CheckoutFormState = {
   fullName: string;
@@ -133,6 +134,21 @@ export default function CheckoutClient() {
     console.log("[CheckoutClient] All validations passed. Building order payload...");
     setIsSubmitting(true);
 
+    const analyticsItems = items.map((item) => ({
+      item_id: item.id,
+      item_name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    }));
+    const analyticsTotal =
+      shippingPrice == null ? totals.subtotal : totals.subtotal + shippingPrice;
+
+    trackBeginCheckout({
+      value: analyticsTotal,
+      currency: "DZD",
+      items: analyticsItems,
+    });
+
     try {
       // Map cart items to order items
       console.log("[CheckoutClient] Mapping cart items to order items...");
@@ -228,6 +244,16 @@ export default function CheckoutClient() {
       console.log("[CheckoutClient] Order created successfully:", data);
       const orderId = data.orderId;
       console.log("[CheckoutClient] Order ID:", orderId);
+
+      if (orderId) {
+        trackPurchase({
+          transaction_id: orderId,
+          value: analyticsTotal,
+          currency: "DZD",
+          shipping: shippingPrice ?? undefined,
+          items: analyticsItems,
+        });
+      }
 
       // Clear cart on success
       console.log("[CheckoutClient] Clearing cart...");
