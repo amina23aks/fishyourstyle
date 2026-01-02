@@ -7,10 +7,8 @@ import {
   useSearchParams,
   type ReadonlyURLSearchParams,
 } from "next/navigation";
-import { trackPageView } from "@/lib/analytics";
-
-const CONSENT_KEY = "fishyourstyle_cookie_consent_v1";
-const CONSENT_EVENT = "fishyourstyle:cookie-consent-accepted";
+import { isDebugMode, trackPageView } from "@/lib/analytics";
+import { hasAnalyticsConsent, onConsentGranted } from "@/lib/consent";
 
 declare global {
   interface Window {
@@ -23,6 +21,11 @@ type AnalyticsProviderProps = {
   children: React.ReactNode;
 };
 
+/**
+ * README: Append ?debug_mode=true to any URL to enable GA4 DebugView
+ * (all events/config include debug_mode=true). Analytics events are sent
+ * only after cookie consent is accepted (fishyourstyle_cookie_consent_v1).
+ */
 function getPagePath(pathname: string, searchParams: ReadonlyURLSearchParams) {
   const search = searchParams.toString();
   return search ? `${pathname}?${search}` : pathname;
@@ -34,6 +37,7 @@ export default function AnalyticsProvider({ children }: AnalyticsProviderProps) 
   const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
   const [isGtagReady, setIsGtagReady] = useState(false);
   const [hasConsent, setHasConsent] = useState(false);
+  const debugMode = isDebugMode();
 
   const pagePath = useMemo(() => {
     if (!pathname || !searchParams) return "";
@@ -41,20 +45,10 @@ export default function AnalyticsProvider({ children }: AnalyticsProviderProps) 
   }, [pathname, searchParams]);
 
   useEffect(() => {
-    const consent = window.localStorage.getItem(CONSENT_KEY);
-    if (consent === "accepted") {
-      setHasConsent(true);
-    }
-
-    const handleConsent = () => {
-      window.localStorage.setItem(CONSENT_KEY, "accepted");
-      setHasConsent(true);
-    };
-
-    window.addEventListener(CONSENT_EVENT, handleConsent);
-    return () => {
-      window.removeEventListener(CONSENT_EVENT, handleConsent);
-    };
+    setHasConsent(hasAnalyticsConsent());
+    return onConsentGranted(() => {
+      setHasConsent(hasAnalyticsConsent());
+    });
   }, []);
 
   useEffect(() => {
@@ -84,7 +78,7 @@ export default function AnalyticsProvider({ children }: AnalyticsProviderProps) 
           window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);}
           window.gtag('consent','default',{ad_storage:'denied', analytics_storage:'denied'});
           window.gtag('js', new Date());
-          window.gtag('config', '${measurementId}', { send_page_view: false });
+          window.gtag('config', '${measurementId}', { send_page_view: false, debug_mode: ${debugMode ? "true" : "false"} });
         `}
       </Script>
       {children}
