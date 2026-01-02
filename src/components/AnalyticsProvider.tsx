@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Script from "next/script";
 import {
   usePathname,
   useSearchParams,
@@ -31,7 +32,8 @@ export default function AnalyticsProvider({ children }: AnalyticsProviderProps) 
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  const [isReady, setIsReady] = useState(false);
+  const [isGtagReady, setIsGtagReady] = useState(false);
+  const [hasConsent, setHasConsent] = useState(false);
 
   const pagePath = useMemo(() => {
     if (!pathname || !searchParams) return "";
@@ -39,55 +41,53 @@ export default function AnalyticsProvider({ children }: AnalyticsProviderProps) 
   }, [pathname, searchParams]);
 
   useEffect(() => {
-    if (!measurementId) return;
-
-    const initializeGtag = () => {
-      if (window.gtag) {
-        setIsReady(true);
-        return;
-      }
-
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = (...args: unknown[]) => {
-        window.dataLayer?.push(args);
-      };
-
-      window.gtag("js", new Date());
-      window.gtag("config", measurementId, { send_page_view: false });
-
-      const scriptId = `ga-gtag-${measurementId}`;
-      if (document.getElementById(scriptId)) {
-        setIsReady(true);
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.id = scriptId;
-      script.async = true;
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-      script.onload = () => setIsReady(true);
-      document.head.appendChild(script);
-    };
-
     const consent = window.localStorage.getItem(CONSENT_KEY);
     if (consent === "accepted") {
-      initializeGtag();
+      setHasConsent(true);
     }
 
     const handleConsent = () => {
-      initializeGtag();
+      window.localStorage.setItem(CONSENT_KEY, "accepted");
+      setHasConsent(true);
     };
 
     window.addEventListener(CONSENT_EVENT, handleConsent);
     return () => {
       window.removeEventListener(CONSENT_EVENT, handleConsent);
     };
-  }, [measurementId]);
+  }, []);
 
   useEffect(() => {
-    if (!measurementId || !isReady || !pagePath) return;
-    trackPageView(pagePath);
-  }, [measurementId, isReady, pagePath]);
+    if (!hasConsent || !isGtagReady) return;
+    window.gtag?.("consent", "update", {
+      ad_storage: "granted",
+      analytics_storage: "granted",
+    });
+  }, [hasConsent, isGtagReady]);
 
-  return children;
+  useEffect(() => {
+    if (!measurementId || !isGtagReady || !hasConsent || !pagePath) return;
+    trackPageView(pagePath);
+  }, [measurementId, isGtagReady, hasConsent, pagePath]);
+
+  return (
+    <>
+      <Script
+        id="ga-gtag"
+        src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
+        strategy="afterInteractive"
+        onLoad={() => setIsGtagReady(true)}
+      />
+      <Script id="ga-gtag-init" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);}
+          window.gtag('consent','default',{ad_storage:'denied', analytics_storage:'denied'});
+          window.gtag('js', new Date());
+          window.gtag('config', '${measurementId}', { send_page_view: false });
+        `}
+      </Script>
+      {children}
+    </>
+  );
 }
