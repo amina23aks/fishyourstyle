@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "@/lib/motion";
@@ -7,12 +8,31 @@ import PageShell from "@/components/PageShell";
 import { useCart } from "@/context/cart";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
+import { trackViewCart } from "@/lib/analytics";
 
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
 
 export default function CartPage() {
   const { items, totals, removeItem, updateQty } = useCart();
+  const viewCartTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    if (viewCartTrackedRef.current) return;
+
+    viewCartTrackedRef.current = true;
+    const currency = items[0]?.currency ?? "DZD";
+    const analyticsItems = items.map((item) => ({
+      item_id: item.id,
+      item_name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    }));
+    const value = items.reduce((total, item) => total + item.price * item.quantity, 0);
+
+    trackViewCart({ currency, value, items: analyticsItems });
+  }, [items]);
 
   const handleDecrease = (item: typeof items[0]) => {
     if (item.quantity <= 1) {

@@ -11,6 +11,7 @@ import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
+import { trackViewItem } from "@/lib/analytics";
 import {
   buildProductColorOptions,
   buildProductSizeOptions,
@@ -58,6 +59,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const { addItem, items } = useCart();
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const viewItemTrackedRef = useRef<string | null>(null);
   const stockCount = typeof product.stock === "number" ? product.stock : null;
   const isOutOfStock =
     product.inStock === false || (stockCount !== null && stockCount <= 0);
@@ -103,6 +105,25 @@ export function ProductDetailContent({ product }: { product: Product }) {
       setSelectedSize(availableSizes[0].value);
     }
   }, [availableSizes, selectedSize]);
+
+  useEffect(() => {
+    if (!product.id) return;
+    if (viewItemTrackedRef.current === product.id) return;
+
+    viewItemTrackedRef.current = product.id;
+    trackViewItem({
+      currency: product.currency ?? "DZD",
+      value: product.priceDzd,
+      items: [
+        {
+          item_id: product.id,
+          item_name: product.nameFr,
+          price: product.priceDzd,
+          quantity: 1,
+        },
+      ],
+    });
+  }, [product.currency, product.id, product.nameFr, product.priceDzd]);
 
   // Ensure currentImage always defaults to the first image or placeholder
   const currentImage =
