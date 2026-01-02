@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { useCart, type CartItem } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
+import { trackViewCart } from "@/lib/analytics";
 import {
   ECONOMIC_SHIPPING,
   getEconomicShippingByWilaya,
@@ -45,6 +46,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ orderId: string } | null>(null);
+  const viewCartTrackedRef = useRef(false);
 
   const hasItems = items.length > 0;
 
@@ -206,6 +208,27 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      viewCartTrackedRef.current = false;
+      return;
+    }
+    if (items.length === 0) return;
+    if (viewCartTrackedRef.current) return;
+
+    viewCartTrackedRef.current = true;
+    const currency = items[0]?.currency ?? "DZD";
+    const analyticsItems = items.map((item) => ({
+      item_id: item.id,
+      item_name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    }));
+    const value = items.reduce((total, item) => total + item.price * item.quantity, 0);
+
+    trackViewCart({ currency, value, items: analyticsItems });
+  }, [items, open]);
 
   const summaryLines = useMemo(
     () => [
