@@ -207,6 +207,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         const orderData = orderSnapshot.data() ?? {};
         const previousStatus = typeof orderData.status === "string" ? orderData.status : "pending";
 
+        const summaryRef = db.doc("adminStats/summary");
+        const summarySnapshot = await transaction.get(summaryRef);
+        const summaryData = summarySnapshot.data() ?? {};
+
         const pendingDelta =
           isPendingStatus(previousStatus) && !isPendingStatus(nextStatus)
             ? -1
@@ -226,9 +230,6 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         transaction.update(orderRef, orderUpdate);
 
         if (pendingDelta !== 0) {
-          const summaryRef = db.doc("adminStats/summary");
-          const summarySnapshot = await transaction.get(summaryRef);
-          const summaryData = summarySnapshot.data() ?? {};
           const currentPending = Number(summaryData.pendingOrders ?? 0);
           const nextPending = Math.max(0, currentPending + pendingDelta);
 
