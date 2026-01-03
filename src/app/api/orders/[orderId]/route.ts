@@ -164,7 +164,16 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const wantsStatusUpdate = typeof payload?.status === "string";
 
     if (wantsStatusUpdate) {
-      if (!ALLOWED_STATUSES.includes(payload.status!)) {
+      if (!payload) {
+        return NextResponse.json({ error: "Missing request body" }, { status: 400 });
+      }
+
+      const nextStatus = payload?.status;
+      if (typeof nextStatus !== "string") {
+        return NextResponse.json({ error: "Missing order status" }, { status: 400 });
+      }
+
+      if (!ALLOWED_STATUSES.includes(nextStatus)) {
         return NextResponse.json({ error: "Invalid order status" }, { status: 400 });
       }
 
@@ -184,8 +193,6 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       if (!isAdminUser(decoded)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-
-      const nextStatus = payload.status!;
 
       if (nextStatus === order.status) {
         return NextResponse.json(order);
