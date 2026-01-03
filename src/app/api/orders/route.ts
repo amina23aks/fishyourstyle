@@ -12,6 +12,23 @@ import { getAdminResources } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
+const ADMIN_STATS_DOC = "adminStats/summary";
+
+function formatDateKey(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatISOWeekKey(date: Date): string {
+  const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  const weekNumber = Math.ceil(((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${utcDate.getUTCFullYear()}-${String(weekNumber).padStart(2, "0")}`;
+}
 
 function parseBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
@@ -192,6 +209,10 @@ export async function POST(request: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
+    const now = new Date();
+    const todayKey = formatDateKey(now);
+    const weekKey = formatISOWeekKey(now);
+    const orderTotal = typeof orderToSave.total === "number" ? orderToSave.total : 0;
 
     console.log("[api/orders] Order payload prepared", {
       hasUser: Boolean(orderToSave.userId),
@@ -211,6 +232,22 @@ export async function POST(request: NextRequest) {
     const productSnapshots = new Map<string, DocumentData>();
 
     await db.runTransaction(async (transaction) => {
+      const summaryRef = db.doc(ADMIN_STATS_DOC);
+      const summarySnapshot = await transaction.get(summaryRef);
+      const summaryData = summarySnapshot.data() ?? {};
+      const previousTodayKey =
+        typeof summaryData.todayKey === "string" ? summaryData.todayKey : null;
+      const previousWeekKey =
+        typeof summaryData.weekKey === "string" ? summaryData.weekKey : null;
+      const baseOrdersToday =
+        previousTodayKey === todayKey ? Number(summaryData.ordersToday ?? 0) : 0;
+      const baseRevenueToday =
+        previousTodayKey === todayKey ? Number(summaryData.revenueToday ?? 0) : 0;
+      const baseOrdersWeek =
+        previousWeekKey === weekKey ? Number(summaryData.ordersThisWeek ?? 0) : 0;
+      const baseRevenueWeek =
+        previousWeekKey === weekKey ? Number(summaryData.revenueThisWeek ?? 0) : 0;
+
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
         const snapshot = await transaction.get(productRef);
@@ -244,6 +281,23 @@ export async function POST(request: NextRequest) {
       const orderRef = ordersCollection.doc();
       createdOrderId = orderRef.id;
       transaction.set(orderRef, orderDataForFirestore);
+
+      transaction.set(
+        summaryRef,
+        {
+          totalOrders: Number(summaryData.totalOrders ?? 0) + 1,
+          totalRevenue: Number(summaryData.totalRevenue ?? 0) + orderTotal,
+          pendingOrders: Number(summaryData.pendingOrders ?? 0) + 1,
+          ordersToday: baseOrdersToday + 1,
+          revenueToday: baseRevenueToday + orderTotal,
+          ordersThisWeek: baseOrdersWeek + 1,
+          revenueThisWeek: baseRevenueWeek + orderTotal,
+          updatedAt: FieldValue.serverTimestamp(),
+          todayKey,
+          weekKey,
+        },
+        { merge: true }
+      );
     });
 
     if (!createdOrderId) {

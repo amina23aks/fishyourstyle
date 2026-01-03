@@ -6,13 +6,11 @@ import {
   limit,
   orderBy,
   query,
-  serverTimestamp,
-  updateDoc,
   type DocumentData,
   type Timestamp,
 } from "firebase/firestore";
 
-import { getDb } from "./firebaseClient";
+import { getAuthInstance, getDb } from "./firebaseClient";
 import type { Order, OrderStatus } from "@/types/order";
 
 function timestampToISO(timestamp: unknown): string {
@@ -74,16 +72,26 @@ export async function fetchRecentOrders(limitCount = 25): Promise<Order[]> {
 }
 
 export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus): Promise<void> {
-  const db = getDb();
-  if (!db) {
-    throw new Error("Firebase is not configured. Please check environment variables.");
+  const auth = getAuthInstance();
+  const token = await auth?.currentUser?.getIdToken();
+  if (!token) {
+    throw new Error("Admin authentication is required to update order status.");
   }
 
-  const orderRef = doc(db, "orders", orderId);
-  await updateDoc(orderRef, {
-    status: nextStatus,
-    updatedAt: serverTimestamp(),
+  const response = await fetch(`/api/orders/${orderId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status: nextStatus }),
   });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.error || "Failed to update order status";
+    throw new Error(message);
+  }
 }
 
 export async function fetchOrderById(orderId: string): Promise<Order | null> {
