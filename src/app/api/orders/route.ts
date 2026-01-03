@@ -247,6 +247,9 @@ export async function POST(request: NextRequest) {
         previousWeekKey === weekKey ? Number(summaryData.ordersThisWeek ?? 0) : 0;
       const baseRevenueWeek =
         previousWeekKey === weekKey ? Number(summaryData.revenueThisWeek ?? 0) : 0;
+      const dailyRef = db.collection("adminStatsDaily").doc(todayKey);
+      const dailySnapshot = await transaction.get(dailyRef);
+      const dailyData = dailySnapshot.data() ?? {};
 
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
@@ -295,6 +298,16 @@ export async function POST(request: NextRequest) {
           updatedAt: FieldValue.serverTimestamp(),
           todayKey,
           weekKey,
+        },
+        { merge: true }
+      );
+
+      transaction.set(
+        dailyRef,
+        {
+          orders: Number(dailyData.orders ?? 0) + 1,
+          revenue: Number(dailyData.revenue ?? 0) + orderTotal,
+          updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );

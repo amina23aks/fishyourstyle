@@ -21,14 +21,6 @@ export default function AdminPage() {
 
       <AdminOverviewStats />
 
-      <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6 text-sky-100/90">
-        <h2 className="text-xl font-semibold text-white">What to expect next</h2>
-        <p className="mt-2 max-w-3xl">
-          The admin dashboard will highlight store health at a glance with recent orders, revenue snapshots,
-          fulfillment alerts, and quick links to manage products. We will also explore traffic insights to see
-          how new customers find our sea-inspired streetwear.
-        </p>
-      </div>
     </div>
   );
 }

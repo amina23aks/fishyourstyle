@@ -38,5 +38,9 @@ service cloud.firestore {
     match /adminStats/{id} {
       allow read, write: if isAdmin();
     }
+
+    match /adminStatsDaily/{id} {
+      allow read, write: if isAdmin();
+    }
   }
 }
