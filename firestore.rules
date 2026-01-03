@@ -36,8 +36,7 @@ service cloud.firestore {
     }
 
     match /adminStats/{id} {
-      allow read: if isAdmin();
-      allow create, update, delete: if false;
+      allow read, write: if isAdmin();
     }
   }
 }
