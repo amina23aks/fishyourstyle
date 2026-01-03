@@ -24,6 +24,37 @@ type DailyStat = {
   revenue: number;
 };
 
+type TrendPoint = {
+  dateKey: string;
+  label: string;
+  orders: number;
+  revenue: number;
+};
+
+function formatDateKeyUTC(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildLastSevenDaysUTC(): TrendPoint[] {
+  const today = new Date();
+  const days: TrendPoint[] = [];
+  for (let i = 6; i >= 0; i -= 1) {
+    const date = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    date.setUTCDate(date.getUTCDate() - i);
+    const dateKey = formatDateKeyUTC(date);
+    days.push({
+      dateKey,
+      label: dateKey.slice(5),
+      orders: 0,
+      revenue: 0,
+    });
+  }
+  return days;
+}
+
 function toDateSafe(value: unknown): Date | null {
   if (!value) return null;
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
@@ -176,11 +207,17 @@ export function AdminOverviewStats() {
   );
 
   const trendSeries = useMemo(() => {
-    return dailyStats.map((stat) => ({
-      label: stat.dateKey.slice(5),
-      value: trendMetric === "orders" ? stat.orders : stat.revenue,
-    }));
-  }, [dailyStats, trendMetric]);
+    const lastSeven = buildLastSevenDaysUTC();
+    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
+    return lastSeven.map((point) => {
+      const match = dailyMap.get(point.dateKey);
+      return {
+        ...point,
+        orders: match?.orders ?? 0,
+        revenue: match?.revenue ?? 0,
+      };
+    });
+  }, [dailyStats]);
 
   return (
     <div className="space-y-4">
@@ -262,55 +299,95 @@ function TrendChart({
   data,
   metric,
 }: {
-  data: { label: string; value: number }[];
+  data: TrendPoint[];
   metric: "orders" | "revenue";
 }) {
-  const values = data.map((item) => item.value);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const values = data.map((item) => (metric === "orders" ? item.orders : item.revenue));
   const maxValue = Math.max(1, ...values);
-  const minValue = Math.min(0, ...values);
-  const range = maxValue - minValue || 1;
-
+  const range = maxValue || 1;
   const points = data.map((item, index) => {
-    const x = data.length === 1 ? 0 : (index / (data.length - 1)) * 100;
-    const y = 100 - ((item.value - minValue) / range) * 100;
-    return { x, y, value: item.value, label: item.label };
+    const x = (index / (data.length - 1)) * 100;
+    const value = metric === "orders" ? item.orders : item.revenue;
+    const y = 100 - (value / range) * 100;
+    return { x, y, value, label: item.label, dateKey: item.dateKey };
   });
 
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x},${point.y}`).join(" ");
   const accent = metric === "orders" ? "stroke-emerald-300" : "stroke-sky-300";
+  const isEmpty = values.every((value) => value === 0);
 
   return (
     <div className="mt-4">
-      <div className="relative h-44 w-full">
-        <svg viewBox="0 0 100 100" className="h-full w-full">
-          <defs>
-            <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="rgba(125, 211, 252, 0.35)" />
-              <stop offset="100%" stopColor="rgba(125, 211, 252, 0)" />
-            </linearGradient>
-          </defs>
-          <path
-            d={`${path} L 100,100 L 0,100 Z`}
-            fill="url(#trendFill)"
-            className="opacity-40"
-          />
-          <path d={path} fill="none" strokeWidth="2" className={accent} />
-          {points.map((point) => (
-            <circle
-              key={point.label}
-              cx={point.x}
-              cy={point.y}
-              r="1.6"
-              className="fill-white"
-            />
-          ))}
-        </svg>
-        <div className="absolute inset-x-0 bottom-0 flex justify-between text-[11px] text-sky-100/70">
-          {data.map((item) => (
-            <span key={item.label}>{item.label}</span>
-          ))}
+      {isEmpty ? (
+        <div className="rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
+          <p className="text-base font-semibold text-white">No data yet for the last 7 days</p>
+          <p className="mt-2 text-xs text-sky-100/70">Create a test order to populate trends.</p>
         </div>
-      </div>
+      ) : (
+        <div className="relative h-44 w-full">
+          <svg viewBox="0 0 100 100" className="h-full w-full">
+            {[20, 40, 60, 80].map((line) => (
+              <line
+                key={line}
+                x1="0"
+                x2="100"
+                y1={line}
+                y2={line}
+                stroke="rgba(255, 255, 255, 0.08)"
+                strokeWidth="0.6"
+              />
+            ))}
+            <path d={path} fill="none" strokeWidth="2.2" className={accent} />
+            {points.map((point, index) => (
+              <g key={point.dateKey}>
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={hoverIndex === index ? 2.6 : 1.8}
+                  className={hoverIndex === index ? "fill-white" : "fill-sky-100"}
+                />
+              </g>
+            ))}
+          </svg>
+          <div className="absolute inset-x-0 bottom-0 flex justify-between text-[11px] text-sky-100/70">
+            {data.map((item) => (
+              <span key={item.dateKey}>{item.label}</span>
+            ))}
+          </div>
+          <div className="absolute inset-0">
+            {points.map((point, index) => (
+              <button
+                key={point.dateKey}
+                type="button"
+                aria-label={`View ${point.dateKey}`}
+                onMouseEnter={() => setHoverIndex(index)}
+                onMouseLeave={() => setHoverIndex(null)}
+                className="absolute top-0 h-full -translate-x-1/2"
+                style={{ left: `${point.x}%`, width: "14%" }}
+              />
+            ))}
+          </div>
+          {hoverIndex !== null ? (
+            <div
+              className="absolute -translate-x-1/2 rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-sky-100 shadow-xl"
+              style={{
+                left: `${points[hoverIndex].x}%`,
+                top: `${Math.max(points[hoverIndex].y - 18, 6)}%`,
+              }}
+            >
+              <div className="text-[10px] uppercase tracking-[0.18em] text-sky-200">
+                {points[hoverIndex].dateKey}
+              </div>
+              <div className="mt-1 text-sm font-semibold text-white">
+                {metric === "orders"
+                  ? formatCount(points[hoverIndex].value)
+                  : formatCurrency(points[hoverIndex].value)}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
       <div className="mt-3 flex items-center justify-between text-sm text-sky-100/80">
         <span>
           {metric === "orders" ? "Total orders" : "Total revenue"}:{" "}
