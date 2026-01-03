@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 
-const overviewCards = [
-  { title: "Total orders", note: "Coming soon", description: "Track order volume and fulfillment status." },
-  { title: "Revenue", note: "Coming soon", description: "Monitor sales performance and growth." },
-  { title: "Visitors", note: "Coming soon", description: "See how shoppers discover the store." },
-];
+import { AdminOverviewStats } from "./components/AdminOverviewStats";
 
 export const metadata: Metadata = {
   title: "Admin | Fish Your Style",
@@ -23,32 +19,8 @@ export default function AdminPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {overviewCards.map((card) => (
-          <div
-            key={card.title}
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm uppercase tracking-[0.18em] text-sky-200">{card.note}</p>
-                <h2 className="text-xl font-semibold text-white">{card.title}</h2>
-              </div>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-sky-100/90">Soon</span>
-            </div>
-            <p className="mt-3 text-sm text-sky-100/80">{card.description}</p>
-          </div>
-        ))}
-      </div>
+      <AdminOverviewStats />
 
-      <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6 text-sky-100/90">
-        <h2 className="text-xl font-semibold text-white">What to expect next</h2>
-        <p className="mt-2 max-w-3xl">
-          The admin dashboard will highlight store health at a glance with recent orders, revenue snapshots,
-          fulfillment alerts, and quick links to manage products. We will also explore traffic insights to see
-          how new customers find our sea-inspired streetwear.
-        </p>
-      </div>
     </div>
   );
 }

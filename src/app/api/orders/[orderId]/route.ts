@@ -1,8 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { Order, OrderItem, OrderStatus, ShippingInfo } from "@/types/order";
-import { getAdminDb, isAdminConfigured } from "@/lib/firebaseAdmin";
+import { getAdminResources, isAdminConfigured } from "@/lib/firebaseAdmin";
+
+const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
+
+function parseBearerToken(request: NextRequest): string | null {
+  const authHeader =
+    request.headers.get("authorization") ?? request.headers.get("Authorization");
+  if (!authHeader) return null;
+  const [scheme, value] = authHeader.split(" ");
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !value) return null;
+  return value.trim();
+}
+
+function isAdminUser(decoded: DecodedIdToken | null): boolean {
+  if (!decoded?.email) return false;
+  return ADMIN_EMAILS.includes(decoded.email.toLowerCase() as (typeof ADMIN_EMAILS)[number]);
+}
+
+function isPendingStatus(status: string | null | undefined): boolean {
+  return (status ?? "").toLowerCase() === "pending";
+}
+
+const ALLOWED_STATUSES: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
 
 function timestampToISO(timestamp: unknown): string {
   if (timestamp instanceof Timestamp) {
@@ -113,13 +142,14 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       );
     }
 
-    const db = getAdminDb();
-    if (!db) {
+    const adminResources = getAdminResources();
+    if (!adminResources) {
       return NextResponse.json(
         { error: "Firebase Admin is not configured. Please check your credentials." },
         { status: 503 },
       );
     }
+    const { db, auth } = adminResources;
 
     const orderRef = db.collection("orders").doc(orderId);
     const snapshot = await orderRef.get();
@@ -130,6 +160,107 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
     const data = snapshot.data();
     const order = firestoreDataToOrder(snapshot.id, data as Record<string, unknown>);
+
+    const wantsStatusUpdate = typeof payload?.status === "string";
+
+    if (wantsStatusUpdate) {
+      if (!payload) {
+        return NextResponse.json({ error: "Missing request body" }, { status: 400 });
+      }
+
+      const nextStatus = payload?.status;
+      if (typeof nextStatus !== "string") {
+        return NextResponse.json({ error: "Missing order status" }, { status: 400 });
+      }
+
+      if (!ALLOWED_STATUSES.includes(nextStatus)) {
+        return NextResponse.json({ error: "Invalid order status" }, { status: 400 });
+      }
+
+      const bearerToken = parseBearerToken(request);
+      if (!bearerToken) {
+        return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      }
+
+      let decoded: DecodedIdToken | null = null;
+      try {
+        decoded = await auth.verifyIdToken(bearerToken);
+      } catch (error) {
+        console.error("[api/orders/[orderId]] Token verification failed", error);
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      }
+
+      if (!isAdminUser(decoded)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      if (nextStatus === order.status) {
+        return NextResponse.json(order);
+      }
+
+      await db.runTransaction(async (transaction) => {
+        const orderSnapshot = await transaction.get(orderRef);
+        if (!orderSnapshot.exists) {
+          throw new Error("Order not found");
+        }
+
+        const orderData = orderSnapshot.data() ?? {};
+        const previousStatus = typeof orderData.status === "string" ? orderData.status : "pending";
+
+        const summaryRef = db.doc("adminStats/summary");
+        const summarySnapshot = await transaction.get(summaryRef);
+        const summaryData = summarySnapshot.data() ?? {};
+
+        const pendingDelta =
+          isPendingStatus(previousStatus) && !isPendingStatus(nextStatus)
+            ? -1
+            : !isPendingStatus(previousStatus) && isPendingStatus(nextStatus)
+              ? 1
+              : 0;
+
+        const orderUpdate: Record<string, unknown> = {
+          status: nextStatus,
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (nextStatus === "cancelled") {
+          orderUpdate.cancelledAt = FieldValue.serverTimestamp();
+        }
+
+        transaction.update(orderRef, orderUpdate);
+
+        if (pendingDelta !== 0) {
+          const currentPending = Number(summaryData.pendingOrders ?? 0);
+          const nextPending = Math.max(0, currentPending + pendingDelta);
+
+          transaction.set(
+            summaryRef,
+            {
+              pendingOrders: nextPending,
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
+      });
+
+      const updatedSnapshot = await orderRef.get();
+      const updatedData = updatedSnapshot.data();
+
+      if (!updatedData) {
+        return NextResponse.json(
+          { error: "Failed to read updated order" },
+          { status: 500 }
+        );
+      }
+
+      const updatedOrder = firestoreDataToOrder(
+        updatedSnapshot.id,
+        updatedData as Record<string, unknown>
+      );
+
+      return NextResponse.json(updatedOrder);
+    }
 
     const isCancelAction = !hasBody || payload?.status === "cancelled";
 
