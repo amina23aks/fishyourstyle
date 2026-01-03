@@ -304,8 +304,9 @@ function TrendChart({
 }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const values = data.map((item) => (metric === "orders" ? item.orders : item.revenue));
-  const maxValue = Math.max(1, ...values);
-  const range = maxValue || 1;
+  const maxValue = Math.max(0, ...values);
+  const paddedMax = maxValue === 0 ? 1 : maxValue * 1.15;
+  const range = paddedMax || 1;
   const points = data.map((item, index) => {
     const x = (index / (data.length - 1)) * 100;
     const value = metric === "orders" ? item.orders : item.revenue;
@@ -315,7 +316,9 @@ function TrendChart({
 
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x},${point.y}`).join(" ");
   const accent = metric === "orders" ? "stroke-emerald-300" : "stroke-sky-300";
-  const isEmpty = values.every((value) => value === 0);
+  const isEmpty = maxValue === 0;
+  const formatMetricValue = (value: number) =>
+    metric === "orders" ? formatCount(value) : `${formatCount(value)} DA`;
 
   return (
     <div className="mt-4">
@@ -325,7 +328,7 @@ function TrendChart({
           <p className="mt-2 text-xs text-sky-100/70">Create a test order to populate trends.</p>
         </div>
       ) : (
-        <div className="relative h-44 w-full">
+        <div className="relative h-48 w-full">
           <svg viewBox="0 0 100 100" className="h-full w-full">
             {[20, 40, 60, 80].map((line) => (
               <line
@@ -380,9 +383,7 @@ function TrendChart({
                 {points[hoverIndex].dateKey}
               </div>
               <div className="mt-1 text-sm font-semibold text-white">
-                {metric === "orders"
-                  ? formatCount(points[hoverIndex].value)
-                  : formatCurrency(points[hoverIndex].value)}
+                {formatMetricValue(points[hoverIndex].value)}
               </div>
             </div>
           ) : null}
@@ -392,9 +393,7 @@ function TrendChart({
         <span>
           {metric === "orders" ? "Total orders" : "Total revenue"}:{" "}
           <span className="font-semibold text-white">
-            {metric === "orders"
-              ? formatCount(values.reduce((sum, val) => sum + val, 0))
-              : formatCurrency(values.reduce((sum, val) => sum + val, 0))}
+            {formatMetricValue(values.reduce((sum, val) => sum + val, 0))}
           </span>
         </span>
         <span className="text-xs text-sky-100/60">Last 7 days</span>
