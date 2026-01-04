@@ -5,6 +5,7 @@ import { collection, doc, documentId, getDoc, getDocs, limit, orderBy, query } f
 import type { Timestamp } from "firebase/firestore";
 
 import { getDb } from "@/lib/firebaseClient";
+import { getTodayKey } from "@/lib/dateKeys";
 
 const SUMMARY_DOC_PATH = ["adminStats", "summary"] as const;
 const DAILY_COLLECTION = "adminStatsDaily";
@@ -31,20 +32,14 @@ type TrendPoint = {
   revenue: number;
 };
 
-function formatDateKeyUTC(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function buildLastSevenDaysUTC(): TrendPoint[] {
-  const today = new Date();
+function buildLastSevenDays(todayKey: string): TrendPoint[] {
+  const [year, month, day] = todayKey.split("-").map(Number);
+  const anchor = new Date(Date.UTC(year, month - 1, day));
   const days: TrendPoint[] = [];
   for (let i = 6; i >= 0; i -= 1) {
-    const date = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    date.setUTCDate(date.getUTCDate() - i);
-    const dateKey = formatDateKeyUTC(date);
+    const date = new Date(anchor);
+    date.setUTCDate(anchor.getUTCDate() - i);
+    const dateKey = date.toISOString().slice(0, 10);
     days.push({
       dateKey,
       label: dateKey.slice(5),
@@ -207,7 +202,8 @@ export function AdminOverviewStats() {
   );
 
   const trendSeries = useMemo(() => {
-    const lastSeven = buildLastSevenDaysUTC();
+    const todayKey = getTodayKey();
+    const lastSeven = buildLastSevenDays(todayKey);
     const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
     return lastSeven.map((point) => {
       const match = dailyMap.get(point.dateKey);

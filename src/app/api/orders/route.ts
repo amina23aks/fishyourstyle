@@ -10,25 +10,10 @@ import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
 import { getAdminResources } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
+import { getTodayKey, getWeekKey } from "@/lib/dateKeys";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
 const ADMIN_STATS_DOC = "adminStats/summary";
-
-function formatDateKey(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function formatISOWeekKey(date: Date): string {
-  const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const day = utcDate.getUTCDay() || 7;
-  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-  const weekNumber = Math.ceil(((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${utcDate.getUTCFullYear()}-${String(weekNumber).padStart(2, "0")}`;
-}
 
 function parseBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
@@ -209,9 +194,8 @@ export async function POST(request: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
-    const now = new Date();
-    const todayKey = formatDateKey(now);
-    const weekKey = formatISOWeekKey(now);
+    const todayKey = getTodayKey();
+    const weekKey = getWeekKey();
     const orderTotal = typeof orderToSave.total === "number" ? orderToSave.total : 0;
 
     console.log("[api/orders] Order payload prepared", {
