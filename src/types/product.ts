@@ -107,6 +107,8 @@ export type Product = {
   discountPercent?: number;
   /** Current available stock */
   stock?: number;
+  /** Optional per-product stock quantity */
+  stockQuantity?: number;
   /** Whether the product is available for purchase */
   inStock?: boolean;
 };

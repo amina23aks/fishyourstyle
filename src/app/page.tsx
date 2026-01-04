@@ -40,9 +40,15 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     designTheme: sp.designTheme || "simple",
     tags: sp.tags ?? [],
     discountPercent: sp.discountPercent ?? 0,
-    stock: sp.stock ?? 0,
-    inStock: sp.inStock ?? false,
-  } as Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean };
+    stockQuantity: sp.stockQuantity,
+    inStock: sp.inStock ?? true,
+  } as Product & {
+    designTheme?: string;
+    tags?: string[];
+    discountPercent?: number;
+    stockQuantity?: number;
+    inStock?: boolean;
+  };
 }
 
 const reasons = [

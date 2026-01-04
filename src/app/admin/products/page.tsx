@@ -39,7 +39,7 @@ const defaultForm: ProductFormValues = {
   category: "", // Will be set from categories list
   designTheme: "simple",
   designThemeCustom: "",
-  stock: "",
+  stockQuantity: "",
   inStock: true,
   sizes: [],
   colors: [{ hex: "#000000" }],
@@ -190,7 +190,7 @@ export default function AdminProductsPage() {
         colors: values.colors,
         soldOutSizes: values.soldOutSizes,
         soldOutColorCodes: values.soldOutColorCodes,
-        stock: Number(values.stock || 0),
+        stockQuantity: Number(values.stockQuantity || 0),
         images,
         inStock: values.inStock,
       };
@@ -261,8 +261,8 @@ export default function AdminProductsPage() {
       category: product.category,
       designTheme: product.designTheme || "simple",
       designThemeCustom: "",
-      stock: product.stock?.toString() ?? "",
-      inStock: product.inStock,
+      stockQuantity: (product.stockQuantity ?? product.stock ?? 0).toString(),
+      inStock: product.inStock ?? true,
       sizes: (product.sizes || [])
         .map((size) => size.toUpperCase())
         .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
@@ -317,10 +317,10 @@ export default function AdminProductsPage() {
         </div>
       ) : null}
 
-      <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+      <div className="mt-6 flex flex-col gap-6">
         <section
           id="products-list"
-          className="space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40"
+          className="order-2 space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40 lg:order-3"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
@@ -405,7 +405,7 @@ export default function AdminProductsPage() {
                             ) : null}
                           </div>
                           <div className="space-y-1 text-sm">
-                            <p>{product.stock} pcs</p>
+                            <p>{product.stockQuantity ?? product.stock ?? 0} pcs</p>
                           </div>
                           <div className="space-y-1 text-sm">
                             <span
@@ -446,7 +446,7 @@ export default function AdminProductsPage() {
 
         <section
           id="product-form"
-          className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40"
+          className="order-3 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40 lg:order-2"
         >
           <ProductForm
             key={formKey}
@@ -470,7 +470,7 @@ export default function AdminProductsPage() {
             onReloadDesignThemes={loadDesignThemes}
           />
         </section>
-      </section>
+      </div>
     </div>
   );
 }

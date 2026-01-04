@@ -41,7 +41,7 @@ export type StorefrontProduct = {
   soldOutSizes?: string[];
   soldOutColorCodes?: string[];
   gender?: "unisex" | "men" | "women";
-  stock: number;
+  stockQuantity?: number;
   inStock: boolean;
   images: StorefrontProductImages;
   tags?: string[];
@@ -146,11 +146,8 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     gender,
     soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
     soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
-    stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
-    inStock:
-      typeof data.inStock === "boolean"
-        ? data.inStock
-        : (typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0)) > 0,
+    stockQuantity: typeof data.stockQuantity === "number" ? data.stockQuantity : undefined,
+    inStock: typeof data.inStock === "boolean" ? data.inStock : true,
     images: imagesValue,
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
     status: data.status === "inactive" ? "inactive" : "active",

@@ -7,7 +7,13 @@ import { ProductCard } from "./product-card";
 import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
 
 type ShopClientProps = {
-  products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];
+  products: (Product & {
+    designTheme?: string;
+    tags?: string[];
+    discountPercent?: number;
+    stockQuantity?: number;
+    inStock?: boolean;
+  })[];
   errorMessage?: string | null;
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
@@ -169,4 +175,3 @@ export default function ShopClient({ products, errorMessage, categories, designT
     </>
   );
 }
-

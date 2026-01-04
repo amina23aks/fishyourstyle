@@ -15,7 +15,7 @@ export type ProductFormValues = {
   category: AdminProductCategory;
   designTheme: string;
   designThemeCustom: string;
-  stock: string;
+  stockQuantity: string;
   inStock: boolean;
   sizes: ("S" | "M" | "L" | "XL" | "XXL")[];
   colors: { hex: string }[];
@@ -115,7 +115,7 @@ const defaultValues: ProductFormValues = {
   category: "hoodies",
   designTheme: "simple",
   designThemeCustom: "",
-  stock: "",
+  stockQuantity: "",
   inStock: true,
   sizes: [],
   colors: [{ hex: "#000000" }],
@@ -750,8 +750,8 @@ export function ProductForm({
             type="number"
             min="0"
             inputMode="numeric"
-            value={values.stock}
-            onChange={(e) => setValues((prev) => ({ ...prev, stock: e.target.value }))}
+            value={values.stockQuantity}
+            onChange={(e) => setValues((prev) => ({ ...prev, stockQuantity: e.target.value }))}
             className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
             placeholder="25"
           />

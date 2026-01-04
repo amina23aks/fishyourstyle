@@ -32,7 +32,8 @@ export type AdminProduct = {
   colors: { hex: string; image?: string }[];
   soldOutSizes?: string[];
   soldOutColorCodes?: string[];
-  stock: number;
+  stock?: number;
+  stockQuantity?: number;
   inStock: boolean;
   images: { main: string; gallery: string[] };
   gender?: "unisex" | "men" | "women";
@@ -179,8 +180,14 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     colors: parseColorObjects(data.colors),
     soldOutSizes: parseStringArray(data.soldOutSizes),
     soldOutColorCodes: parseStringArray(data.soldOutColorCodes),
+    stockQuantity:
+      typeof data.stockQuantity === "number"
+        ? data.stockQuantity
+        : typeof data.stock === "number"
+          ? data.stock
+          : Number(data.stock ?? 0),
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
-    inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
+    inStock: typeof data.inStock === "boolean" ? data.inStock : true,
     images: normalizeImages(data.images),
     gender: typeof data.gender === "string" ? (data.gender as AdminProduct["gender"]) : undefined,
     createdAt: (data.createdAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
@@ -204,8 +211,9 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     colors: normalizedColors,
     soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
     soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
-    stock: Number(input.stock),
-    inStock: Boolean(input.inStock),
+    stockQuantity: Number(input.stockQuantity ?? input.stock ?? 0),
+    stock: Number(input.stock ?? input.stockQuantity ?? 0),
+    inStock: typeof input.inStock === "boolean" ? input.inStock : true,
     images: input.images ?? { main: "", gallery: [] },
     gender: input.gender ?? null,
     createdAt: serverTimestamp(),
@@ -257,7 +265,14 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
     const parsed = parseStringArray(patch.soldOutColorCodes);
     payload.soldOutColorCodes = parsed.length > 0 ? parsed : null;
   }
-  if (patch.stock !== undefined) payload.stock = Number(patch.stock);
+  if (patch.stockQuantity !== undefined || patch.stock !== undefined) {
+    const quantity =
+      patch.stockQuantity !== undefined
+        ? Number(patch.stockQuantity)
+        : Number(patch.stock ?? 0);
+    payload.stockQuantity = quantity;
+    payload.stock = quantity;
+  }
   if (patch.inStock !== undefined) payload.inStock = Boolean(patch.inStock);
   if (patch.images !== undefined) payload.images = patch.images;
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;

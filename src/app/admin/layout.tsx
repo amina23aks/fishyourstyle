@@ -25,6 +25,10 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const blurFixClass =
+    pathname === "/admin" || pathname === "/admin/products"
+      ? "admin-glass-stability"
+      : "";
 
   useEffect(() => {
     if (loading) return;
@@ -64,7 +68,9 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-3 py-8 sm:px-5 lg:px-10">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
-        <aside className="w-full max-w-full rounded-3xl border border-white/10 bg-white/10 p-5 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:w-64 lg:flex-shrink-0">
+        <aside
+          className={`w-full max-w-full rounded-3xl border border-white/10 bg-white/10 p-5 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:w-64 lg:flex-shrink-0 ${blurFixClass}`}
+        >
           <div className="mb-4 flex items-start justify-between gap-3 border-b border-white/10 pb-4">
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-[0.24em] text-sky-200">
@@ -111,7 +117,9 @@ export default function AdminLayout({
         </aside>
 
         <main className="flex-1 min-w-0">
-          <div className="rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:p-8">
+          <div
+            className={`rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:p-8 ${blurFixClass}`}
+          >
             {children}
           </div>
         </main>

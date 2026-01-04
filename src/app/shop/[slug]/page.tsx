@@ -67,8 +67,8 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     designTheme: sp.designTheme ?? "simple",
     tags: sp.tags ?? [],
     discountPercent: sp.discountPercent ?? 0,
-    stock: sp.stock,
-    inStock: sp.inStock,
+    stockQuantity: sp.stockQuantity,
+    inStock: sp.inStock ?? true,
     soldOutSizes: sp.soldOutSizes,
     soldOutColorCodes: sp.soldOutColorCodes,
   };
