@@ -3,12 +3,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, doc, documentId, getDoc, getDocs, limit, orderBy, query } from "firebase/firestore";
 import type { Timestamp } from "firebase/firestore";
+import {
+  Area,
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { getDb } from "@/lib/firebaseClient";
-import { getTodayKey } from "@/lib/dateKeys";
+import { dateKeyInTZ } from "@/lib/dateKeys";
 
 const SUMMARY_DOC_PATH = ["adminStats", "summary"] as const;
 const DAILY_COLLECTION = "adminStatsDaily";
+const TIME_ZONE = "Africa/Algiers";
 
 type AdminSummary = {
   totalOrders: number;
@@ -23,6 +36,8 @@ type DailyStat = {
   dateKey: string;
   orders: number;
   revenue: number;
+  topCategories: Record<string, number>;
+  topProducts: Record<string, { name: string; qty: number; revenue: number }>;
 };
 
 type TrendPoint = {
@@ -32,22 +47,25 @@ type TrendPoint = {
   revenue: number;
 };
 
-function buildLastSevenDays(todayKey: string): TrendPoint[] {
+function buildDateRange(days: number, timeZone: string): TrendPoint[] {
+  const todayKey = dateKeyInTZ(new Date(), timeZone);
   const [year, month, day] = todayKey.split("-").map(Number);
   const anchor = new Date(Date.UTC(year, month - 1, day));
-  const days: TrendPoint[] = [];
-  for (let i = 6; i >= 0; i -= 1) {
+  const points: TrendPoint[] = [];
+
+  for (let i = days - 1; i >= 0; i -= 1) {
     const date = new Date(anchor);
     date.setUTCDate(anchor.getUTCDate() - i);
-    const dateKey = date.toISOString().slice(0, 10);
-    days.push({
+    const dateKey = dateKeyInTZ(date, timeZone);
+    points.push({
       dateKey,
       label: dateKey.slice(5),
       orders: 0,
       revenue: 0,
     });
   }
-  return days;
+
+  return points;
 }
 
 function toDateSafe(value: unknown): Date | null {
@@ -91,6 +109,7 @@ export function AdminOverviewStats() {
   const [dailyLoading, setDailyLoading] = useState(true);
   const [dailyError, setDailyError] = useState<string | null>(null);
   const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
+  const [rangeDays, setRangeDays] = useState<7 | 30>(7);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -113,12 +132,14 @@ export function AdminOverviewStats() {
         const dailyQuery = query(
           collection(db, DAILY_COLLECTION),
           orderBy(documentId(), "desc"),
-          limit(7)
+          limit(rangeDays)
         );
+
         const [summarySnapshot, dailySnapshot] = await Promise.all([
           getDoc(summaryRef),
           getDocs(dailyQuery),
         ]);
+
         const data = summarySnapshot.data() ?? {};
         setSummary({
           totalOrders: Number(data.totalOrders ?? 0),
@@ -128,6 +149,7 @@ export function AdminOverviewStats() {
           ordersThisWeek: Number(data.ordersThisWeek ?? 0),
           updatedAt: data.updatedAt ?? null,
         });
+
         const daily = dailySnapshot.docs
           .map((docSnap) => {
             const dailyData = docSnap.data() ?? {};
@@ -135,6 +157,14 @@ export function AdminOverviewStats() {
               dateKey: docSnap.id,
               orders: Number(dailyData.orders ?? 0),
               revenue: Number(dailyData.revenue ?? 0),
+              topCategories:
+                typeof dailyData.topCategories === "object" && dailyData.topCategories
+                  ? (dailyData.topCategories as Record<string, number>)
+                  : {},
+              topProducts:
+                typeof dailyData.topProducts === "object" && dailyData.topProducts
+                  ? (dailyData.topProducts as Record<string, { name: string; qty: number; revenue: number }>)
+                  : {},
             };
           })
           .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
@@ -150,7 +180,7 @@ export function AdminOverviewStats() {
     };
 
     loadSummary();
-  }, []);
+  }, [rangeDays]);
 
   const lastUpdatedLabel = useMemo(() => {
     const date = toDateSafe(summary.updatedAt);
@@ -170,26 +200,60 @@ export function AdminOverviewStats() {
         title: "Total orders",
         value: formatCount(summary.totalOrders),
         description: "All orders placed to date.",
+        accent: "from-sky-500/20 via-sky-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-sky-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M4 7h16l-1.5 9a2 2 0 0 1-2 1.6H7.5a2 2 0 0 1-2-1.6L4 7Z" />
+            <path strokeWidth="1.5" d="M9 11h6" />
+          </svg>
+        ),
       },
       {
         title: "Total revenue",
         value: formatCurrency(summary.totalRevenue),
         description: "Total gross sales across all orders.",
+        accent: "from-emerald-500/20 via-emerald-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M4 12h16M7 8h10M9 16h6" />
+          </svg>
+        ),
       },
       {
         title: "Orders today",
         value: formatCount(summary.ordersToday),
         description: "Orders placed since midnight.",
+        accent: "from-indigo-500/20 via-indigo-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-indigo-200" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="7" strokeWidth="1.5" />
+            <path strokeWidth="1.5" d="M12 8v4l3 2" />
+          </svg>
+        ),
       },
       {
         title: "Orders this week",
         value: formatCount(summary.ordersThisWeek),
         description: "Orders placed during the current week.",
+        accent: "from-fuchsia-500/20 via-fuchsia-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-fuchsia-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M5 5h14v14H5z" />
+            <path strokeWidth="1.5" d="M8 3v4M16 3v4" />
+          </svg>
+        ),
       },
       {
         title: "Pending orders",
         value: formatCount(summary.pendingOrders),
         description: "Orders still awaiting fulfilment.",
+        accent: "from-amber-500/20 via-amber-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-amber-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M12 6v6l4 2" />
+            <circle cx="12" cy="12" r="7" strokeWidth="1.5" />
+          </svg>
+        ),
       },
     ],
     [
@@ -202,10 +266,9 @@ export function AdminOverviewStats() {
   );
 
   const trendSeries = useMemo(() => {
-    const todayKey = getTodayKey();
-    const lastSeven = buildLastSevenDays(todayKey);
+    const range = buildDateRange(rangeDays, TIME_ZONE);
     const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
-    return lastSeven.map((point) => {
+    return range.map((point) => {
       const match = dailyMap.get(point.dateKey);
       return {
         ...point,
@@ -213,12 +276,49 @@ export function AdminOverviewStats() {
         revenue: match?.revenue ?? 0,
       };
     });
-  }, [dailyStats]);
+  }, [dailyStats, rangeDays]);
+
+  const lastSevenKeys = useMemo(() => new Set(buildDateRange(7, TIME_ZONE).map((point) => point.dateKey)), []);
+
+  const topCategoryData = useMemo(() => {
+    const totals: Record<string, number> = {};
+    dailyStats.forEach((stat) => {
+      if (!lastSevenKeys.has(stat.dateKey)) return;
+      Object.entries(stat.topCategories).forEach(([category, revenue]) => {
+        totals[category] = (totals[category] ?? 0) + revenue;
+      });
+    });
+    return Object.entries(totals)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [dailyStats, lastSevenKeys]);
+
+  const topProducts = useMemo(() => {
+    const totals: Record<string, { name: string; qty: number; revenue: number }> = {};
+    dailyStats.forEach((stat) => {
+      if (!lastSevenKeys.has(stat.dateKey)) return;
+      Object.entries(stat.topProducts).forEach(([productId, product]) => {
+        const existing = totals[productId] ?? { name: product.name, qty: 0, revenue: 0 };
+        totals[productId] = {
+          name: existing.name || product.name,
+          qty: existing.qty + product.qty,
+          revenue: existing.revenue + product.revenue,
+        };
+      });
+    });
+    return Object.entries(totals)
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  }, [dailyStats, lastSevenKeys]);
+
+  const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-sky-100/80">
-        <span>Snapshot of orders and revenue for your store.</span>
+        <span>Snapshot of orders, revenue, and performance trends.</span>
         <span className="text-xs text-sky-100/70">Last updated: {lastUpdatedLabel}</span>
       </div>
 
@@ -238,161 +338,210 @@ export function AdminOverviewStats() {
         {cards.map((card) => (
           <div
             key={card.title}
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30"
+            className={`rounded-2xl border border-white/10 bg-gradient-to-br ${card.accent} p-5 shadow-inner shadow-sky-900/30`}
           >
-            <div className="space-y-2">
+            <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-[0.18em] text-sky-200">{card.title}</p>
-              <p className="text-2xl font-semibold text-white">{card.value}</p>
+              <span className="rounded-full bg-white/10 p-2">{card.icon}</span>
             </div>
+            <p className="mt-3 text-2xl font-semibold text-white">{card.value}</p>
             <p className="mt-3 text-sm text-sky-100/80">{card.description}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Trends (Last 7 days)</p>
-            <h3 className="text-lg font-semibold text-white">Weekly snapshot</h3>
-          </div>
-          <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
-            {(["orders", "revenue"] as const).map((metric) => (
-              <button
-                key={metric}
-                type="button"
-                onClick={() => setTrendMetric(metric)}
-                className={`rounded-full px-3 py-1 transition ${
-                  trendMetric === metric
-                    ? "bg-white/20 text-white"
-                    : "text-sky-100/70 hover:text-white"
-                }`}
-              >
-                {metric === "orders" ? "Orders" : "Revenue"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {dailyError ? (
-          <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-            {dailyError}
-          </div>
-        ) : null}
-
-        {dailyLoading ? (
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-sky-100/80">
-            Loading trend data…
-          </div>
-        ) : (
-          <TrendChart data={trendSeries} metric={trendMetric} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TrendChart({
-  data,
-  metric,
-}: {
-  data: TrendPoint[];
-  metric: "orders" | "revenue";
-}) {
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const values = data.map((item) => (metric === "orders" ? item.orders : item.revenue));
-  const maxValue = Math.max(0, ...values);
-  const paddedMax = maxValue === 0 ? 1 : maxValue * 1.15;
-  const range = paddedMax || 1;
-  const points = data.map((item, index) => {
-    const x = (index / (data.length - 1)) * 100;
-    const value = metric === "orders" ? item.orders : item.revenue;
-    const y = 100 - (value / range) * 100;
-    return { x, y, value, label: item.label, dateKey: item.dateKey };
-  });
-
-  const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x},${point.y}`).join(" ");
-  const accent = metric === "orders" ? "stroke-emerald-300" : "stroke-sky-300";
-  const isEmpty = maxValue === 0;
-  const formatMetricValue = (value: number) =>
-    metric === "orders" ? formatCount(value) : `${formatCount(value)} DA`;
-
-  return (
-    <div className="mt-4">
-      {isEmpty ? (
-        <div className="rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
-          <p className="text-base font-semibold text-white">No data yet for the last 7 days</p>
-          <p className="mt-2 text-xs text-sky-100/70">Create a test order to populate trends.</p>
-        </div>
-      ) : (
-        <div className="relative h-48 w-full">
-          <svg viewBox="0 0 100 100" className="h-full w-full">
-            {[20, 40, 60, 80].map((line) => (
-              <line
-                key={line}
-                x1="0"
-                x2="100"
-                y1={line}
-                y2={line}
-                stroke="rgba(255, 255, 255, 0.08)"
-                strokeWidth="0.6"
-              />
-            ))}
-            <path d={path} fill="none" strokeWidth="2.2" className={accent} />
-            {points.map((point, index) => (
-              <g key={point.dateKey}>
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={hoverIndex === index ? 2.6 : 1.8}
-                  className={hoverIndex === index ? "fill-white" : "fill-sky-100"}
-                />
-              </g>
-            ))}
-          </svg>
-          <div className="absolute inset-x-0 bottom-0 flex justify-between text-[11px] text-sky-100/70">
-            {data.map((item) => (
-              <span key={item.dateKey}>{item.label}</span>
-            ))}
-          </div>
-          <div className="absolute inset-0">
-            {points.map((point, index) => (
-              <button
-                key={point.dateKey}
-                type="button"
-                aria-label={`View ${point.dateKey}`}
-                onMouseEnter={() => setHoverIndex(index)}
-                onMouseLeave={() => setHoverIndex(null)}
-                className="absolute top-0 h-full -translate-x-1/2"
-                style={{ left: `${point.x}%`, width: "14%" }}
-              />
-            ))}
-          </div>
-          {hoverIndex !== null ? (
-            <div
-              className="absolute -translate-x-1/2 rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-sky-100 shadow-xl"
-              style={{
-                left: `${points[hoverIndex].x}%`,
-                top: `${Math.max(points[hoverIndex].y - 18, 6)}%`,
-              }}
-            >
-              <div className="text-[10px] uppercase tracking-[0.18em] text-sky-200">
-                {points[hoverIndex].dateKey}
+      <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Sales Analytics</p>
+              <h3 className="text-lg font-semibold text-white">Orders & revenue overview</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
+                {(["orders", "revenue"] as const).map((metric) => (
+                  <button
+                    key={metric}
+                    type="button"
+                    onClick={() => setTrendMetric(metric)}
+                    className={`rounded-full px-3 py-1 transition ${
+                      trendMetric === metric
+                        ? "bg-white/20 text-white"
+                        : "text-sky-100/70 hover:text-white"
+                    }`}
+                  >
+                    {metric === "orders" ? "Orders" : "Revenue"}
+                  </button>
+                ))}
               </div>
-              <div className="mt-1 text-sm font-semibold text-white">
-                {formatMetricValue(points[hoverIndex].value)}
+              <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
+                {([7, 30] as const).map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    onClick={() => setRangeDays(days)}
+                    className={`rounded-full px-3 py-1 transition ${
+                      rangeDays === days ? "bg-white/20 text-white" : "text-sky-100/70 hover:text-white"
+                    }`}
+                  >
+                    {days} days
+                  </button>
+                ))}
               </div>
             </div>
+          </div>
+
+          {dailyError ? (
+            <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+              {dailyError}
+            </div>
           ) : null}
+
+          {dailyLoading ? (
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-10 text-sm text-sky-100/80">
+              Loading analytics…
+            </div>
+          ) : isChartEmpty ? (
+            <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-10 text-center text-sm text-sky-100/80">
+              <p className="text-base font-semibold text-white">No data yet for the last {rangeDays} days</p>
+              <p className="mt-2 text-xs text-sky-100/70">Create a test order to populate analytics.</p>
+            </div>
+          ) : (
+            <div className="mt-6 h-[280px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={trendSeries}>
+                  <CartesianGrid stroke="rgba(148, 163, 184, 0.12)" strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fill: "rgba(226, 232, 240, 0.7)", fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    width={40}
+                    tick={{ fill: "rgba(226, 232, 240, 0.7)", fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.2)]}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const ordersValue = payload.find((entry) => entry.dataKey === "orders")?.value ?? 0;
+                      const revenueValue = payload.find((entry) => entry.dataKey === "revenue")?.value ?? 0;
+                      return (
+                        <div className="rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-sky-100 shadow-xl">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-sky-200">{label}</p>
+                          <p className="mt-1 text-sm font-semibold text-white">
+                            {formatCount(Number(ordersValue))} orders
+                          </p>
+                          <p className="text-sm text-sky-100/80">{formatCurrency(Number(revenueValue))}</p>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="orders" fill="rgba(14, 165, 233, 0.6)" radius={[6, 6, 0, 0]} />
+                  <Area
+                    dataKey="revenue"
+                    stroke="rgba(52, 211, 153, 0.8)"
+                    fill="rgba(52, 211, 153, 0.15)"
+                    strokeWidth={2}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-center justify-between text-sm text-sky-100/80">
+            <span className="text-xs uppercase tracking-[0.18em] text-sky-200">Last {rangeDays} days</span>
+            <span>
+              {trendMetric === "orders"
+                ? `${formatCount(trendSeries.reduce((sum, item) => sum + item.orders, 0))} orders`
+                : formatCurrency(trendSeries.reduce((sum, item) => sum + item.revenue, 0))}
+            </span>
+          </div>
         </div>
-      )}
-      <div className="mt-3 flex items-center justify-between text-sm text-sky-100/80">
-        <span>
-          {metric === "orders" ? "Total orders" : "Total revenue"}:{" "}
-          <span className="font-semibold text-white">
-            {formatMetricValue(values.reduce((sum, val) => sum + val, 0))}
-          </span>
-        </span>
-        <span className="text-xs text-sky-100/60">Last 7 days</span>
+
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Categories</p>
+                <h3 className="text-lg font-semibold text-white">Last 7 days</h3>
+              </div>
+              <span className="text-xs text-sky-100/60">Revenue share</span>
+            </div>
+            {topCategoryData.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
+                No category data yet.
+              </div>
+            ) : (
+              <div className="mt-4 h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={topCategoryData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      fill="rgba(59, 130, 246, 0.6)"
+                    />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const entry = payload[0];
+                        return (
+                          <div className="rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-sky-100 shadow-xl">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-sky-200">{entry.name}</p>
+                            <p className="mt-1 text-sm font-semibold text-white">
+                              {formatCurrency(Number(entry.value))}
+                            </p>
+                          </div>
+                        );
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Products</p>
+                <h3 className="text-lg font-semibold text-white">Last 7 days</h3>
+              </div>
+              <span className="text-xs text-sky-100/60">Top 5</span>
+            </div>
+            {topProducts.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
+                No product data yet.
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3 text-sm text-sky-100/85">
+                {topProducts.map((product, index) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-xs text-sky-100/60">#{index + 1}</p>
+                      <p className="font-semibold text-white">{product.name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-sky-100/60">{formatCount(product.qty)} items</p>
+                      <p className="font-semibold text-white">{formatCurrency(product.revenue)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

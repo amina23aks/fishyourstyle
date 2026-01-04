@@ -10,7 +10,7 @@ import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
 import { getAdminResources } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
-import { getTodayKey, getWeekKey } from "@/lib/dateKeys";
+import { dateKeyInTZ, weekKeyInTZ } from "@/lib/dateKeys";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
 const ADMIN_STATS_DOC = "adminStats/summary";
@@ -194,8 +194,8 @@ export async function POST(request: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
-    const todayKey = getTodayKey();
-    const weekKey = getWeekKey();
+    const todayKey = dateKeyInTZ(new Date(), "Africa/Algiers");
+    const weekKey = weekKeyInTZ(new Date(), "Africa/Algiers");
     const orderTotal = typeof orderToSave.total === "number" ? orderToSave.total : 0;
 
     console.log("[api/orders] Order payload prepared", {
@@ -265,6 +265,37 @@ export async function POST(request: NextRequest) {
         transaction.update(productRef, { stock: nextStock, inStock: nextStock > 0 });
       }
 
+      const existingCategoryTotals =
+        typeof dailyData.topCategories === "object" && dailyData.topCategories
+          ? (dailyData.topCategories as Record<string, number>)
+          : {};
+      const existingProductTotals =
+        typeof dailyData.topProducts === "object" && dailyData.topProducts
+          ? (dailyData.topProducts as Record<string, { name: string; qty: number; revenue: number }>)
+          : {};
+      const nextCategoryTotals = { ...existingCategoryTotals };
+      const nextProductTotals = { ...existingProductTotals };
+
+      for (const item of orderToSave.items) {
+        const productData = productSnapshots.get(item.id);
+        const category =
+          typeof productData?.category === "string" && productData.category.trim()
+            ? productData.category
+            : "uncategorized";
+        const revenue = item.price * item.quantity;
+        nextCategoryTotals[category] = (nextCategoryTotals[category] ?? 0) + revenue;
+        const existingProduct = nextProductTotals[item.id] ?? {
+          name: item.name,
+          qty: 0,
+          revenue: 0,
+        };
+        nextProductTotals[item.id] = {
+          name: existingProduct.name || item.name,
+          qty: existingProduct.qty + item.quantity,
+          revenue: existingProduct.revenue + revenue,
+        };
+      }
+
       const orderRef = ordersCollection.doc();
       createdOrderId = orderRef.id;
       transaction.set(orderRef, orderDataForFirestore);
@@ -291,6 +322,8 @@ export async function POST(request: NextRequest) {
         {
           orders: Number(dailyData.orders ?? 0) + 1,
           revenue: Number(dailyData.revenue ?? 0) + orderTotal,
+          topCategories: nextCategoryTotals,
+          topProducts: nextProductTotals,
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
