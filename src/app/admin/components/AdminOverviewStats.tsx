@@ -456,6 +456,9 @@ export function AdminOverviewStats() {
     () => previousTrendSeries.reduce((sum, item) => sum + item.revenue, 0),
     [previousTrendSeries]
   );
+  const deliveryRate = statusCounts.total > 0 ? (statusCounts.delivered / statusCounts.total) * 100 : null;
+  const cancelRate = statusCounts.total > 0 ? (statusCounts.cancelled / statusCounts.total) * 100 : null;
+  const pendingRate = statusCounts.total > 0 ? (statusCounts.pending / statusCounts.total) * 100 : null;
 
   const cards = useMemo(
     () => [
@@ -586,9 +589,6 @@ export function AdminOverviewStats() {
   }, [dailyStats, rangeKeys]);
 
   const topProductMaxRevenue = topProducts.reduce((max, product) => Math.max(max, product.revenue), 0);
-  const deliveryRate = statusCounts.total > 0 ? (statusCounts.delivered / statusCounts.total) * 100 : null;
-  const cancelRate = statusCounts.total > 0 ? (statusCounts.cancelled / statusCounts.total) * 100 : null;
-  const pendingRate = statusCounts.total > 0 ? (statusCounts.pending / statusCounts.total) * 100 : null;
 
   const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
   const donutData = useMemo(
