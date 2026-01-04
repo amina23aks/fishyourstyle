@@ -61,29 +61,31 @@ function escapeCsvValue(value: string | number | null | undefined) {
 }
 
 function buildOrdersCsv(orders: Order[]) {
+  const s = (value: unknown) => (value === null || value === undefined ? "" : String(value));
+  const n = (value: unknown) => String(typeof value === "number" ? value : Number(value ?? 0));
   const rows = [CSV_HEADERS];
   orders.forEach((order) => {
     const items = order.items.length > 0 ? order.items : [null];
     const discountValue = Math.max(0, order.subtotal + order.shippingCost - order.total);
     items.forEach((item) => {
       rows.push([
-        order.id,
-        order.createdAt,
-        order.status,
-        order.shipping?.customerName ?? "",
-        order.customerEmail ?? "",
-        order.shipping?.phone ?? "",
-        order.shipping?.address ?? "",
-        item?.name ?? "",
-        item?.slug ?? "",
-        item?.quantity ?? 0,
-        item?.price ?? 0,
-        item ? item.price * item.quantity : 0,
-        order.subtotal,
-        order.shippingCost,
-        discountValue,
-        order.total,
-        order.paymentMethod ?? "",
+        s(order.id),
+        s(order.createdAt),
+        s(order.status),
+        s(order.shipping?.customerName),
+        s(order.customerEmail),
+        s(order.shipping?.phone),
+        s(order.shipping?.address),
+        s(item?.name),
+        s(item?.slug),
+        n(item?.quantity ?? 0),
+        n(item?.price ?? 0),
+        n(item ? item.price * item.quantity : 0),
+        n(order.subtotal),
+        n(order.shippingCost),
+        n(discountValue),
+        n(order.total),
+        s(order.paymentMethod),
       ]);
     });
   });
