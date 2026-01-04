@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, documentId, getDoc, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { collection, doc, documentId, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import type { Timestamp } from "firebase/firestore";
 import {
   Area,
@@ -44,11 +44,6 @@ const AUTO_PALETTE = [
 ];
 
 type AdminSummary = {
-  totalOrders: number;
-  totalRevenue: number;
-  pendingOrders: number;
-  ordersToday: number;
-  ordersThisWeek: number;
   updatedAt?: Timestamp | Date | string | null;
 };
 
@@ -65,6 +60,14 @@ type TrendPoint = {
   label: string;
   orders: number;
   revenue: number;
+};
+
+type RangeKey = "today" | "7d" | "30d" | "month";
+
+type RangeMeta = {
+  days: number;
+  startKey: string;
+  points: TrendPoint[];
 };
 
 function buildDateRange(days: number, timeZone: string): TrendPoint[] {
@@ -86,6 +89,37 @@ function buildDateRange(days: number, timeZone: string): TrendPoint[] {
   }
 
   return points;
+}
+
+function getTimeZoneOffset(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const parts = formatter.formatToParts(date);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const utcTime = Date.UTC(
+    Number(lookup.year),
+    Number(lookup.month) - 1,
+    Number(lookup.day),
+    Number(lookup.hour),
+    Number(lookup.minute),
+    Number(lookup.second)
+  );
+  return utcTime - date.getTime();
+}
+
+function startOfDayInTZ(dateKey: string, timeZone: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  const offset = getTimeZoneOffset(utcDate, timeZone);
+  return new Date(utcDate.getTime() - offset);
 }
 
 function toDateSafe(value: unknown): Date | null {
@@ -135,11 +169,6 @@ function getCategoryColor(categoryName: string) {
 
 export function AdminOverviewStats() {
   const [summary, setSummary] = useState<AdminSummary>({
-    totalOrders: 0,
-    totalRevenue: 0,
-    pendingOrders: 0,
-    ordersToday: 0,
-    ordersThisWeek: 0,
     updatedAt: null,
   });
   const [loading, setLoading] = useState(true);
@@ -147,8 +176,50 @@ export function AdminOverviewStats() {
   const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
   const [dailyLoading, setDailyLoading] = useState(true);
   const [dailyError, setDailyError] = useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusCounts, setStatusCounts] = useState({ pending: 0, delivered: 0 });
   const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
-  const [rangeDays, setRangeDays] = useState<7 | 30>(7);
+  const [rangeKey, setRangeKey] = useState<RangeKey>("7d");
+
+  const rangeMeta = useMemo<RangeMeta>(() => {
+    const todayKey = dateKeyInTZ(new Date(), TIME_ZONE);
+    const [year, month, day] = todayKey.split("-").map(Number);
+    let days = 7;
+
+    if (rangeKey === "today") {
+      days = 1;
+    } else if (rangeKey === "30d") {
+      days = 30;
+    } else if (rangeKey === "month") {
+      days = Math.max(day, 1);
+    }
+
+    const points = buildDateRange(days, TIME_ZONE);
+    const startKey = rangeKey === "month" ? `${year}-${String(month).padStart(2, "0")}-01` : points[0]?.dateKey;
+    return {
+      days,
+      startKey: startKey ?? todayKey,
+      points,
+    };
+  }, [rangeKey]);
+
+  const rangeLabel = useMemo(() => {
+    if (rangeKey === "today") return "Today";
+    if (rangeKey === "month") return "This month";
+    return `Last ${rangeMeta.days} days`;
+  }, [rangeKey, rangeMeta.days]);
+
+  const rangeLabelShort = useMemo(() => {
+    if (rangeKey === "today") return "Today";
+    if (rangeKey === "month") return "This month";
+    return `${rangeMeta.days}d`;
+  }, [rangeKey, rangeMeta.days]);
+
+  const rangeDescription = useMemo(() => {
+    if (rangeKey === "today") return "today";
+    if (rangeKey === "month") return "this month";
+    return `in the last ${rangeMeta.days} days`;
+  }, [rangeKey, rangeMeta.days]);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -156,6 +227,7 @@ export function AdminOverviewStats() {
       setError(null);
       setDailyLoading(true);
       setDailyError(null);
+      setStatusLoading(true);
 
       const db = getDb();
       if (!db) {
@@ -163,29 +235,33 @@ export function AdminOverviewStats() {
         setLoading(false);
         setDailyError("Firebase is not configured. Please check environment variables.");
         setDailyLoading(false);
+        setStatusLoading(false);
         return;
       }
 
       try {
         const summaryRef = doc(db, ...SUMMARY_DOC_PATH);
+        const rangeStart = startOfDayInTZ(rangeMeta.startKey, TIME_ZONE);
+        const rangeEnd = new Date();
         const dailyQuery = query(
           collection(db, DAILY_COLLECTION),
           orderBy(documentId(), "desc"),
-          limit(rangeDays)
+          limit(rangeMeta.days)
+        );
+        const ordersQuery = query(
+          collection(db, "orders"),
+          where("createdAt", ">=", rangeStart),
+          where("createdAt", "<=", rangeEnd)
         );
 
-        const [summarySnapshot, dailySnapshot] = await Promise.all([
+        const [summarySnapshot, dailySnapshot, ordersSnapshot] = await Promise.all([
           getDoc(summaryRef),
           getDocs(dailyQuery),
+          getDocs(ordersQuery),
         ]);
 
         const data = summarySnapshot.data() ?? {};
         setSummary({
-          totalOrders: Number(data.totalOrders ?? 0),
-          totalRevenue: Number(data.totalRevenue ?? 0),
-          pendingOrders: Number(data.pendingOrders ?? 0),
-          ordersToday: Number(data.ordersToday ?? 0),
-          ordersThisWeek: Number(data.ordersThisWeek ?? 0),
           updatedAt: data.updatedAt ?? null,
         });
 
@@ -208,6 +284,15 @@ export function AdminOverviewStats() {
           })
           .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
         setDailyStats(daily);
+
+        const nextStatusCounts = { pending: 0, delivered: 0 };
+        ordersSnapshot.docs.forEach((docSnap) => {
+          const orderData = docSnap.data() ?? {};
+          const status = typeof orderData.status === "string" ? orderData.status : "pending";
+          if (status === "pending") nextStatusCounts.pending += 1;
+          if (status === "delivered") nextStatusCounts.delivered += 1;
+        });
+        setStatusCounts(nextStatusCounts);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load admin stats";
         setError(message);
@@ -215,11 +300,12 @@ export function AdminOverviewStats() {
       } finally {
         setLoading(false);
         setDailyLoading(false);
+        setStatusLoading(false);
       }
     };
 
     loadSummary();
-  }, [rangeDays]);
+  }, [rangeMeta.days, rangeMeta.startKey]);
 
   const lastUpdatedLabel = useMemo(() => {
     const date = toDateSafe(summary.updatedAt);
@@ -233,12 +319,24 @@ export function AdminOverviewStats() {
     });
   }, [summary.updatedAt]);
 
+  const trendSeries = useMemo(() => {
+    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
+    return rangeMeta.points.map((point) => {
+      const match = dailyMap.get(point.dateKey);
+      return {
+        ...point,
+        orders: match?.orders ?? 0,
+        revenue: match?.revenue ?? 0,
+      };
+    });
+  }, [dailyStats, rangeMeta.points]);
+
   const cards = useMemo(
     () => [
       {
-        title: "Total orders",
-        value: formatCount(summary.totalOrders),
-        description: "All orders placed to date.",
+        title: "Orders",
+        value: formatCount(trendSeries.reduce((sum, item) => sum + item.orders, 0)),
+        description: `Orders placed ${rangeDescription}.`,
         accent: "from-sky-500/20 via-sky-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-sky-200" fill="none" stroke="currentColor">
@@ -248,9 +346,9 @@ export function AdminOverviewStats() {
         ),
       },
       {
-        title: "Total revenue",
-        value: formatCurrency(summary.totalRevenue),
-        description: "Total gross sales across all orders.",
+        title: "Revenue",
+        value: formatCurrency(trendSeries.reduce((sum, item) => sum + item.revenue, 0)),
+        description: `Gross sales ${rangeDescription}.`,
         accent: "from-emerald-500/20 via-emerald-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
@@ -259,33 +357,9 @@ export function AdminOverviewStats() {
         ),
       },
       {
-        title: "Orders today",
-        value: formatCount(summary.ordersToday),
-        description: "Orders placed since midnight.",
-        accent: "from-indigo-500/20 via-indigo-500/5 to-transparent",
-        icon: (
-          <svg viewBox="0 0 24 24" className="h-5 w-5 text-indigo-200" fill="none" stroke="currentColor">
-            <circle cx="12" cy="12" r="7" strokeWidth="1.5" />
-            <path strokeWidth="1.5" d="M12 8v4l3 2" />
-          </svg>
-        ),
-      },
-      {
-        title: "Orders this week",
-        value: formatCount(summary.ordersThisWeek),
-        description: "Orders placed during the current week.",
-        accent: "from-fuchsia-500/20 via-fuchsia-500/5 to-transparent",
-        icon: (
-          <svg viewBox="0 0 24 24" className="h-5 w-5 text-fuchsia-200" fill="none" stroke="currentColor">
-            <path strokeWidth="1.5" d="M5 5h14v14H5z" />
-            <path strokeWidth="1.5" d="M8 3v4M16 3v4" />
-          </svg>
-        ),
-      },
-      {
         title: "Pending orders",
-        value: formatCount(summary.pendingOrders),
-        description: "Orders still awaiting fulfilment.",
+        value: statusLoading ? "—" : formatCount(statusCounts.pending),
+        description: `Pending orders created ${rangeDescription}.`,
         accent: "from-amber-500/20 via-amber-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-amber-200" fill="none" stroke="currentColor">
@@ -294,35 +368,30 @@ export function AdminOverviewStats() {
           </svg>
         ),
       },
+      {
+        title: "Delivered orders",
+        value: statusLoading ? "—" : formatCount(statusCounts.delivered),
+        description: `Delivered orders created ${rangeDescription}.`,
+        accent: "from-emerald-400/20 via-emerald-400/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M5 12l4 4L19 7" />
+          </svg>
+        ),
+      },
     ],
-    [
-      summary.ordersThisWeek,
-      summary.ordersToday,
-      summary.pendingOrders,
-      summary.totalOrders,
-      summary.totalRevenue,
-    ]
+    [rangeDescription, statusCounts.delivered, statusCounts.pending, statusLoading, trendSeries]
   );
 
-  const trendSeries = useMemo(() => {
-    const range = buildDateRange(rangeDays, TIME_ZONE);
-    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
-    return range.map((point) => {
-      const match = dailyMap.get(point.dateKey);
-      return {
-        ...point,
-        orders: match?.orders ?? 0,
-        revenue: match?.revenue ?? 0,
-      };
-    });
-  }, [dailyStats, rangeDays]);
-
-  const lastSevenKeys = useMemo(() => new Set(buildDateRange(7, TIME_ZONE).map((point) => point.dateKey)), []);
+  const rangeKeys = useMemo(
+    () => new Set(rangeMeta.points.map((point) => point.dateKey)),
+    [rangeMeta.points]
+  );
 
   const topCategoryData = useMemo(() => {
     const totals: Record<string, number> = {};
     dailyStats.forEach((stat) => {
-      if (!lastSevenKeys.has(stat.dateKey)) return;
+      if (!rangeKeys.has(stat.dateKey)) return;
       Object.entries(stat.topCategories).forEach(([category, revenue]) => {
         totals[category] = (totals[category] ?? 0) + revenue;
       });
@@ -331,12 +400,12 @@ export function AdminOverviewStats() {
       .map(([name, revenue]) => ({ name, revenue }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
-  }, [dailyStats, lastSevenKeys]);
+  }, [dailyStats, rangeKeys]);
 
   const topProducts = useMemo(() => {
     const totals: Record<string, { name: string; qty: number; revenue: number }> = {};
     dailyStats.forEach((stat) => {
-      if (!lastSevenKeys.has(stat.dateKey)) return;
+      if (!rangeKeys.has(stat.dateKey)) return;
       Object.entries(stat.topProducts).forEach(([productId, product]) => {
         const existing = totals[productId] ?? { name: product.name, qty: 0, revenue: 0 };
         totals[productId] = {
@@ -350,7 +419,7 @@ export function AdminOverviewStats() {
       .map(([id, data]) => ({ id, ...data }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
-  }, [dailyStats, lastSevenKeys]);
+  }, [dailyStats, rangeKeys]);
 
   const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
   const donutData = useMemo(
@@ -369,9 +438,33 @@ export function AdminOverviewStats() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-sky-100/80">
-        <span>Snapshot of orders, revenue, and performance trends.</span>
-        <span className="text-xs text-sky-100/70">Last updated: {lastUpdatedLabel}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100/80">
+        <div className="space-y-1">
+          <span>Snapshot of orders, revenue, and performance trends.</span>
+          <p className="text-xs text-sky-100/70">Last updated: {lastUpdatedLabel}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-[0.18em] text-sky-200">Date range</span>
+          <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
+            {[
+              { key: "today", label: "Today" },
+              { key: "7d", label: "7 days" },
+              { key: "30d", label: "30 days" },
+              { key: "month", label: "This month" },
+            ].map((range) => (
+              <button
+                key={range.key}
+                type="button"
+                onClick={() => setRangeKey(range.key as RangeKey)}
+                className={`rounded-full px-3 py-1 transition ${
+                  rangeKey === range.key ? "bg-white/20 text-white" : "text-sky-100/70 hover:text-white"
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {error ? (
@@ -426,20 +519,6 @@ export function AdminOverviewStats() {
                   </button>
                 ))}
               </div>
-              <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
-                {([7, 30] as const).map((days) => (
-                  <button
-                    key={days}
-                    type="button"
-                    onClick={() => setRangeDays(days)}
-                    className={`rounded-full px-3 py-1 transition ${
-                      rangeDays === days ? "bg-white/20 text-white" : "text-sky-100/70 hover:text-white"
-                    }`}
-                  >
-                    {days} days
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -455,7 +534,7 @@ export function AdminOverviewStats() {
             </div>
           ) : isChartEmpty ? (
             <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-10 text-center text-sm text-sky-100/80">
-              <p className="text-base font-semibold text-white">No data yet for the last {rangeDays} days</p>
+              <p className="text-base font-semibold text-white">No data yet for {rangeLabel}</p>
               <p className="mt-2 text-xs text-sky-100/70">Create a test order to populate analytics.</p>
             </div>
           ) : (
@@ -506,7 +585,7 @@ export function AdminOverviewStats() {
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between text-sm text-sky-100/80">
-            <span className="text-xs uppercase tracking-[0.18em] text-sky-200">Last {rangeDays} days</span>
+            <span className="text-xs uppercase tracking-[0.18em] text-sky-200">{rangeLabel}</span>
             <span>
               {trendMetric === "orders"
                 ? `${formatCount(trendSeries.reduce((sum, item) => sum + item.orders, 0))} orders`
@@ -520,7 +599,7 @@ export function AdminOverviewStats() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs tracking-[0.2em] text-white/60">TOP CATEGORIES</div>
-                <div className="text-lg font-semibold text-white">Last 7 days</div>
+                <div className="text-lg font-semibold text-white">{rangeLabel}</div>
               </div>
               <div className="text-xs text-white/60">Revenue share</div>
             </div>
@@ -564,7 +643,7 @@ export function AdminOverviewStats() {
                           dominantBaseline="middle"
                           className="fill-white/60 text-xs"
                         >
-                          Total (7d)
+                          Total ({rangeLabelShort})
                         </text>
                         <Tooltip
                           formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
@@ -606,7 +685,7 @@ export function AdminOverviewStats() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Products</p>
-                <h3 className="text-lg font-semibold text-white">Last 7 days</h3>
+                <h3 className="text-lg font-semibold text-white">{rangeLabel}</h3>
               </div>
               <span className="text-xs text-sky-100/60">Top 5</span>
             </div>
