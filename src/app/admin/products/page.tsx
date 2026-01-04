@@ -471,7 +471,7 @@ export default function AdminProductsPage() {
                                   : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
                               }`}
                             >
-                              {isLimited ? (stockCount > 0 ? "Yes" : "No") : "Yes"}
+                              {isLimited ? (safeStockCount > 0 ? "Yes" : "No") : "Yes"}
                             </span>
                           </div>
                           <div className="flex items-center justify-end gap-2">
