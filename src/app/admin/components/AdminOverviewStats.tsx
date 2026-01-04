@@ -517,59 +517,79 @@ export function AdminOverviewStats() {
 
         <div className="space-y-5">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Top Categories</p>
-                <h3 className="text-lg font-semibold text-white">Last 7 days</h3>
+                <div className="text-xs tracking-[0.2em] text-white/60">TOP CATEGORIES</div>
+                <div className="text-lg font-semibold text-white">Last 7 days</div>
               </div>
-              <span className="text-xs text-sky-100/60">Revenue share</span>
+              <div className="text-xs text-white/60">Revenue share</div>
             </div>
             {donutData.length === 0 ? (
               <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
                 No category data yet.
               </div>
             ) : (
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:items-center">
-                <div className="h-[220px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={donutData}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={70}
-                        outerRadius={95}
-                        paddingAngle={2}
-                        stroke="rgba(255,255,255,0.12)"
-                        strokeWidth={1}
-                      >
-                        {donutData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
-                          const numeric = Number(value || 0);
-                          const pct = donutTotal > 0 ? Math.round((numeric / donutTotal) * 100) : 0;
-                          return [`${formatCount(numeric)} DA (${pct}%)`, props?.payload?.name ?? "Category"];
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+              <>
+                <div className="mt-5 flex items-center justify-center">
+                  <div className="h-[200px] w-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={donutData}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={70}
+                          outerRadius={95}
+                          paddingAngle={2}
+                          stroke="rgba(255,255,255,0.12)"
+                          strokeWidth={1}
+                        >
+                          {donutData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <text
+                          x="50%"
+                          y="48%"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          className="fill-white text-sm font-semibold"
+                        >
+                          {formatCount(donutTotal)} DA
+                        </text>
+                        <text
+                          x="50%"
+                          y="60%"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          className="fill-white/60 text-xs"
+                        >
+                          Total (7d)
+                        </text>
+                        <Tooltip
+                          formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
+                            const numeric = Number(value || 0);
+                            const pct = donutTotal > 0 ? Math.round((numeric / donutTotal) * 100) : 0;
+                            return [`${formatCount(numeric)} DA (${pct}%)`, props?.payload?.name ?? "Category"];
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="mt-4 space-y-2">
                   {donutData
                     .slice()
                     .sort((a, b) => (b.value || 0) - (a.value || 0))
-                    .slice(0, 6)
+                    .slice(0, 5)
                     .map((item) => {
                       const pct = donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0;
                       return (
                         <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
                             <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
-                            <span className="text-sm text-white/90">{item.name}</span>
+                            <span className="truncate text-sm text-white/90">{item.name}</span>
                           </div>
                           <div className="text-sm text-white/80 tabular-nums">
                             {pct}% • {formatCount(item.value || 0)} DA
@@ -578,7 +598,7 @@ export function AdminOverviewStats() {
                       );
                     })}
                 </div>
-              </div>
+              </>
             )}
           </div>
 
