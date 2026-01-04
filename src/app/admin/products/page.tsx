@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
@@ -39,8 +39,8 @@ const defaultForm: ProductFormValues = {
   category: "", // Will be set from categories list
   designTheme: "simple",
   designThemeCustom: "",
-  stock: "",
-  inStock: true,
+  stockMode: "unlimited",
+  stockQty: "",
   sizes: [],
   colors: [{ hex: "#000000" }],
   soldOutSizes: [],
@@ -64,6 +64,29 @@ function buildImagesFromList(images: string[]): { main: string; gallery: string[
   return { main: main ?? "", gallery };
 }
 
+function deriveStockState(product: AdminProduct) {
+  const legacyQty =
+    typeof product.stock === "number"
+      ? product.stock
+      : typeof product.stockQty === "number"
+        ? product.stockQty
+        : 0;
+  const mode =
+    product.stockMode ??
+    (product.inStock === false
+      ? "limited"
+      : typeof product.stockQty === "number" || typeof product.stock === "number"
+        ? "limited"
+        : "unlimited");
+  if (mode === "limited") {
+    return {
+      stockMode: "limited" as const,
+      stockQty: Math.max(Number(product.stockQty ?? legacyQty ?? 0), 0),
+    };
+  }
+  return { stockMode: "unlimited" as const, stockQty: null };
+}
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +97,9 @@ export default function AdminProductsPage() {
   const [formInitial, setFormInitial] = useState<ProductFormValues>(defaultForm);
   const [formKey, setFormKey] = useState(() => Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>([]);
   const [designThemes, setDesignThemes] = useState<SelectableOption[]>([]);
 
@@ -143,6 +169,18 @@ export default function AdminProductsPage() {
     loadCollectionsAndDesigns();
   }, [loadCollectionsAndDesigns]);
 
+  useEffect(() => {
+    if (!pendingDelete) return;
+    cancelButtonRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPendingDelete(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [pendingDelete]);
+
   const handleUploadImage = useCallback(
     async (file: File) => {
       if (!cloudinaryConfigured) {
@@ -178,6 +216,9 @@ export default function AdminProductsPage() {
       setError(null);
       const designTheme = values.designTheme || "simple";
       const images = buildImagesFromList(values.images);
+      const normalizedStockMode = values.stockMode === "limited" ? "limited" : "unlimited";
+      const parsedStockQty =
+        normalizedStockMode === "limited" ? Math.max(Number(values.stockQty || 0), 0) : undefined;
       const payload: AdminProductInput = {
         name: values.name.trim(),
         slug: slugify(values.name),
@@ -190,9 +231,10 @@ export default function AdminProductsPage() {
         colors: values.colors,
         soldOutSizes: values.soldOutSizes,
         soldOutColorCodes: values.soldOutColorCodes,
-        stock: Number(values.stock || 0),
         images,
-        inStock: values.inStock,
+        stockMode: normalizedStockMode,
+        stockQty: parsedStockQty,
+        inStock: normalizedStockMode === "limited" ? (parsedStockQty ?? 0) > 0 : true,
       };
       
       // Only include description if it's explicitly set (not empty string)
@@ -229,30 +271,34 @@ export default function AdminProductsPage() {
     [editingId, loadProducts, resetForm, showToast],
   );
 
-  const handleDelete = useCallback(
-    async (productId: string) => {
-      const confirmed = window.confirm("Delete this product? This cannot be undone.");
-      if (!confirmed) return;
+  const handleDelete = useCallback((product: AdminProduct) => {
+    setPendingDelete(product);
+  }, []);
 
-      try {
-        await deleteAdminProduct(productId);
-        showToast({ type: "success", message: "Product deleted" });
-        setProducts((prev) => prev.filter((product) => product.id !== productId));
-        if (editingId === productId) {
-          resetForm();
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to delete product";
-        setError(message);
-        showToast({ type: "error", message });
+  const confirmDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteAdminProduct(pendingDelete.id);
+      showToast({ type: "success", message: "Product deleted" });
+      setProducts((prev) => prev.filter((product) => product.id !== pendingDelete.id));
+      if (editingId === pendingDelete.id) {
+        resetForm();
       }
-    },
-    [editingId, resetForm, showToast],
-  );
+      setPendingDelete(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete product";
+      setError(message);
+      showToast({ type: "error", message });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [editingId, pendingDelete, resetForm, showToast]);
 
   const startEdit = useCallback((product: AdminProduct) => {
     setEditingId(product.id);
     
+    const derivedStock = deriveStockState(product);
     setFormInitial({
       name: product.name,
       description: product.description ?? "",
@@ -261,8 +307,8 @@ export default function AdminProductsPage() {
       category: product.category,
       designTheme: product.designTheme || "simple",
       designThemeCustom: "",
-      stock: product.stock?.toString() ?? "",
-      inStock: product.inStock,
+      stockMode: derivedStock.stockMode,
+      stockQty: derivedStock.stockMode === "limited" ? String(derivedStock.stockQty ?? 0) : "",
       sizes: (product.sizes || [])
         .map((size) => size.toUpperCase())
         .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
@@ -317,10 +363,10 @@ export default function AdminProductsPage() {
         </div>
       ) : null}
 
-      <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+      <div className="mt-6 flex flex-col gap-6">
         <section
           id="products-list"
-          className="space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40"
+          className="order-2 space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40 lg:order-3"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
@@ -359,6 +405,10 @@ export default function AdminProductsPage() {
                   <ul className="divide-y divide-white/10">
                     {products.map((product) => {
                       const mainImage = product.images.main || product.images.gallery[0];
+                      const derivedStock = deriveStockState(product);
+                      const isLimited = derivedStock.stockMode === "limited";
+                      const stockCount = isLimited ? derivedStock.stockQty ?? 0 : null;
+                      const safeStockCount = typeof stockCount === "number" ? stockCount : 0;
                       return (
                         <li
                           key={product.id}
@@ -405,17 +455,23 @@ export default function AdminProductsPage() {
                             ) : null}
                           </div>
                           <div className="space-y-1 text-sm">
-                            <p>{product.stock} pcs</p>
+                            {isLimited ? (
+                              <p>{stockCount} pcs</p>
+                            ) : (
+                              <p>Unlimited</p>
+                            )}
                           </div>
                           <div className="space-y-1 text-sm">
                             <span
                               className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                product.inStock
+                                isLimited
+                                  ? safeStockCount > 0
+                                  : true
                                   ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
                                   : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
                               }`}
                             >
-                              {product.inStock ? "Yes" : "No"}
+                              {isLimited ? (safeStockCount > 0 ? "Yes" : "No") : "Yes"}
                             </span>
                           </div>
                           <div className="flex items-center justify-end gap-2">
@@ -428,7 +484,7 @@ export default function AdminProductsPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDelete(product.id)}
+                              onClick={() => handleDelete(product)}
                               className="rounded-full bg-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-50 transition hover:bg-rose-500/30"
                             >
                               Delete
@@ -446,7 +502,7 @@ export default function AdminProductsPage() {
 
         <section
           id="product-form"
-          className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40"
+          className="order-3 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40 lg:order-2"
         >
           <ProductForm
             key={formKey}
@@ -470,7 +526,52 @@ export default function AdminProductsPage() {
             onReloadDesignThemes={loadDesignThemes}
           />
         </section>
-      </section>
+      </div>
+
+      {pendingDelete ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-product-title"
+          onClick={() => {
+            if (!isDeleting) {
+              setPendingDelete(null);
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950/95 p-6 text-sky-50 shadow-2xl shadow-black/40"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="space-y-2">
+              <h2 id="delete-product-title" className="text-xl font-semibold text-white">
+                Delete product?
+              </h2>
+              <p className="text-sm text-sky-100/80">This cannot be undone.</p>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+              <button
+                ref={cancelButtonRef}
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setPendingDelete(null)}
+                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="rounded-full border border-rose-500/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

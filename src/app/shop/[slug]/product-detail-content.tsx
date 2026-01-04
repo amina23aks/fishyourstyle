@@ -60,10 +60,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const viewItemTrackedRef = useRef<string | null>(null);
-  const stockCount = typeof product.stock === "number" ? product.stock : null;
-  const isOutOfStock =
-    product.inStock === false || (stockCount !== null && stockCount <= 0);
-  const availableStock = stockCount ?? undefined;
+  const derivedStockMode =
+    product.stockMode ??
+    (product.inStock === false
+      ? "limited"
+      : typeof product.stockQty === "number"
+        ? "limited"
+        : "unlimited");
+  const stockQty = typeof product.stockQty === "number" ? product.stockQty : null;
+  const isLimited = derivedStockMode === "limited";
+  const isOutOfStock = isLimited && (stockQty ?? 0) <= 0;
+  const availableStock = isLimited && typeof stockQty === "number" ? stockQty : undefined;
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -192,16 +199,18 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const isSelectionMissing =
     (!activeColor && requiresColorSelection) || (!selectedSize && requiresSizeSelection);
-  const stockMessage = isOutOfStock
-    ? "Out of stock"
-    : typeof availableStock === "number"
-      ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
-      : null;
+  const availabilityLine = isLimited
+    ? isOutOfStock
+      ? "Sold out"
+      : typeof availableStock === "number"
+        ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
+        : null
+    : "In stock";
   const selectionMessage = isSelectionMissing
     ? "Please choose a color and size before adding to cart."
     : null;
   const displayMessage = isOutOfStock
-    ? "Out of stock"
+    ? "Sold out"
     : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
 
   return (
@@ -419,9 +428,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
               {displayMessage ?? "\u00a0"}
             </p>
 
-            {!isOutOfStock && hasVariantAvailable && stockMessage && (
+            {availabilityLine && (
               <p className="min-h-[18px] text-xs font-semibold text-white" aria-live="polite">
-                {stockMessage}
+                {availabilityLine}
               </p>
             )}
 

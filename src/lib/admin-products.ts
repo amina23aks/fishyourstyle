@@ -32,7 +32,9 @@ export type AdminProduct = {
   colors: { hex: string; image?: string }[];
   soldOutSizes?: string[];
   soldOutColorCodes?: string[];
-  stock: number;
+  stockMode?: "unlimited" | "limited";
+  stockQty?: number;
+  stock?: number;
   inStock: boolean;
   images: { main: string; gallery: string[] };
   gender?: "unisex" | "men" | "women";
@@ -165,6 +167,36 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
       ? data.finalPrice
       : computeFinalPrice(basePrice, Number.isFinite(discountPercent) ? discountPercent : 0);
 
+  const legacyStockQuantity =
+    typeof data.stockQuantity === "number"
+      ? data.stockQuantity
+      : typeof data.stock === "number"
+        ? data.stock
+        : Number(data.stock ?? 0);
+  const inStockValue = typeof data.inStock === "boolean" ? data.inStock : true;
+  const requestedMode = data.stockMode === "limited" || data.stockMode === "unlimited" ? data.stockMode : null;
+  const stockMode =
+    requestedMode ??
+    (inStockValue === false
+      ? "limited"
+      : Number.isFinite(legacyStockQuantity)
+        ? "limited"
+        : "unlimited");
+  const stockQty =
+    stockMode === "limited"
+      ? Math.max(
+          Number(
+            typeof data.stockQty === "number"
+              ? data.stockQty
+              : Number.isFinite(legacyStockQuantity)
+                ? legacyStockQuantity
+                : 0,
+          ),
+          0,
+        )
+      : undefined;
+  const resolvedInStock = stockMode === "limited" ? (stockQty ?? 0) > 0 : true;
+
   return {
     id,
     name: typeof data.name === "string" ? data.name : "Untitled product",
@@ -179,8 +211,10 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     colors: parseColorObjects(data.colors),
     soldOutSizes: parseStringArray(data.soldOutSizes),
     soldOutColorCodes: parseStringArray(data.soldOutColorCodes),
+    stockMode,
+    stockQty,
     stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
-    inStock: typeof data.inStock === "boolean" ? data.inStock : Boolean(data.stock ?? 0),
+    inStock: resolvedInStock,
     images: normalizeImages(data.images),
     gender: typeof data.gender === "string" ? (data.gender as AdminProduct["gender"]) : undefined,
     createdAt: (data.createdAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
@@ -192,6 +226,8 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
   const normalizedColors = parseColorObjects(input.colors);
   const soldOutSizes = parseStringArray(input.soldOutSizes);
   const soldOutColorCodes = parseStringArray(input.soldOutColorCodes);
+  const stockMode = input.stockMode === "limited" ? "limited" : "unlimited";
+  const stockQty = stockMode === "limited" ? Math.max(Number(input.stockQty ?? 0), 0) : undefined;
   const payload: Record<string, unknown> = {
     name: input.name.trim(),
     slug: input.slug || slugifyName(input.name),
@@ -204,8 +240,10 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     colors: normalizedColors,
     soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
     soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
-    stock: Number(input.stock),
-    inStock: Boolean(input.inStock),
+    stockMode,
+    stockQty,
+    stock: stockMode === "limited" ? stockQty ?? 0 : undefined,
+    inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: input.images ?? { main: "", gallery: [] },
     gender: input.gender ?? null,
     createdAt: serverTimestamp(),
@@ -257,8 +295,19 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
     const parsed = parseStringArray(patch.soldOutColorCodes);
     payload.soldOutColorCodes = parsed.length > 0 ? parsed : null;
   }
-  if (patch.stock !== undefined) payload.stock = Number(patch.stock);
-  if (patch.inStock !== undefined) payload.inStock = Boolean(patch.inStock);
+  if (patch.stockMode !== undefined) {
+    payload.stockMode = patch.stockMode === "limited" ? "limited" : "unlimited";
+  }
+  if (patch.stockQty !== undefined || patch.stock !== undefined || patch.stockMode !== undefined) {
+    const nextMode = (payload.stockMode as AdminProduct["stockMode"]) ?? patch.stockMode ?? "unlimited";
+    const quantity =
+      nextMode === "limited"
+        ? Math.max(Number(patch.stockQty ?? patch.stock ?? 0), 0)
+        : undefined;
+    payload.stockQty = nextMode === "limited" ? quantity : null;
+    payload.stock = nextMode === "limited" ? quantity : null;
+    payload.inStock = nextMode === "limited" ? Boolean(quantity && quantity > 0) : true;
+  }
   if (patch.images !== undefined) payload.images = patch.images;
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
 

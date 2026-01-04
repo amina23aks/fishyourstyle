@@ -6,7 +6,14 @@ import type { Product } from "@/types/product";
 import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
 
 type Props = {
-  products: (Product & { designTheme?: string; tags?: string[]; discountPercent?: number; stock?: number; inStock?: boolean })[];
+  products: (Product & {
+    designTheme?: string;
+    tags?: string[];
+    discountPercent?: number;
+    stockMode?: "unlimited" | "limited";
+    stockQty?: number;
+    inStock?: boolean;
+  })[];
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
 };

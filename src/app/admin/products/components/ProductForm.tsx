@@ -15,8 +15,8 @@ export type ProductFormValues = {
   category: AdminProductCategory;
   designTheme: string;
   designThemeCustom: string;
-  stock: string;
-  inStock: boolean;
+  stockMode: "unlimited" | "limited";
+  stockQty: string;
   sizes: ("S" | "M" | "L" | "XL" | "XXL")[];
   colors: { hex: string }[];
   soldOutSizes: string[];
@@ -115,8 +115,8 @@ const defaultValues: ProductFormValues = {
   category: "hoodies",
   designTheme: "simple",
   designThemeCustom: "",
-  stock: "",
-  inStock: true,
+  stockMode: "unlimited",
+  stockQty: "",
   sizes: [],
   colors: [{ hex: "#000000" }],
   soldOutSizes: [],
@@ -744,27 +744,47 @@ export function ProductForm({
           )}
         </div>
 
-        <label className="space-y-2 text-sm text-sky-100/90">
-          <span className="font-semibold text-white">Stock quantity</span>
-          <input
-            type="number"
-            min="0"
-            inputMode="numeric"
-            value={values.stock}
-            onChange={(e) => setValues((prev) => ({ ...prev, stock: e.target.value }))}
-            className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-            placeholder="25"
-          />
-          <label className="flex items-center gap-2 text-xs text-sky-100/80">
-            <input
-              type="checkbox"
-              checked={values.inStock}
-              onChange={(e) => setValues((prev) => ({ ...prev, inStock: e.target.checked }))}
-              className="h-4 w-4 rounded border-white/30 bg-white/10 text-emerald-400 focus:ring-2 focus:ring-white/40"
-            />
-            Mark as available in stock
-          </label>
-        </label>
+        <div className="space-y-2 text-sm text-sky-100/90">
+          <span className="font-semibold text-white">Stock mode</span>
+          <div className="flex flex-wrap gap-2">
+            {(["unlimited", "limited"] as const).map((mode) => {
+              const isSelected = values.stockMode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() =>
+                    setValues((prev) => ({
+                      ...prev,
+                      stockMode: mode,
+                    }))
+                  }
+                  className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
+                    isSelected
+                      ? "border-white/60 bg-white/15 text-white"
+                      : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                  }`}
+                >
+                  {mode === "unlimited" ? "Unlimited" : "Limited"}
+                </button>
+              );
+            })}
+          </div>
+          {values.stockMode === "limited" ? (
+            <div className="space-y-2">
+              <span className="text-xs text-sky-100/80">Stock quantity</span>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={values.stockQty}
+                onChange={(e) => setValues((prev) => ({ ...prev, stockQty: e.target.value }))}
+                className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                placeholder="25"
+              />
+            </div>
+          ) : null}
+        </div>
 
         <div className="space-y-2 text-sm text-sky-100/90">
           <span className="font-semibold text-white">Sizes</span>

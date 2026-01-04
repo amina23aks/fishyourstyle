@@ -31,7 +31,7 @@ import {
 import { useFavorites } from "@/hooks/use-favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
 
-type ProductWithInventory = Product & { stock?: number; inStock?: boolean };
+type ProductWithInventory = Product & { stockMode?: "unlimited" | "limited"; stockQty?: number; inStock?: boolean };
 
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
@@ -76,13 +76,20 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const touchStartX = useRef<number | null>(null);
   const { flyToCart } = useFlyToCart();
-  const stockCount = typeof product.stock === "number" ? product.stock : null;
+  const derivedStockMode =
+    product.stockMode ??
+    (product.inStock === false
+      ? "limited"
+      : typeof product.stockQty === "number"
+        ? "limited"
+        : "unlimited");
+  const stockCount = typeof product.stockQty === "number" ? product.stockQty : null;
+  const isLimited = derivedStockMode === "limited";
   const requiresColorSelection = availableColors.length > 1;
   const requiresSizeSelection = availableSizes.length > 1;
   const hasVariantAvailable = hasAvailableVariants(product);
-  const isOutOfStock =
-    product.inStock === false || (stockCount !== null && stockCount <= 0) || !hasVariantAvailable;
-  const availableStock = stockCount ?? undefined;
+  const isOutOfStock = (isLimited && (stockCount ?? 0) <= 0) || !hasVariantAvailable;
+  const availableStock = isLimited ? stockCount ?? undefined : undefined;
   const selectedSizeOption = selectedSize ? sizeOptions.find((size) => size.value === selectedSize) : null;
   const isSelectionInvalid =
     isOutOfStock ||
@@ -371,7 +378,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               <div className="absolute left-2.5 right-2.5 top-2.5 flex items-start justify-between text-[10px] font-semibold uppercase tracking-wide text-white">
                 <div className="flex flex-col gap-1">
                   {(() => {
-                    const isOutOfStock = !product.inStock || (product.stock !== undefined && product.stock <= 0);
+                    const isOutOfStock = isLimited && (stockCount ?? 0) <= 0;
                     return (
                       <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] shadow-sm shadow-black/10 ${
                         isOutOfStock

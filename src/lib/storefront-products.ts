@@ -41,7 +41,8 @@ export type StorefrontProduct = {
   soldOutSizes?: string[];
   soldOutColorCodes?: string[];
   gender?: "unisex" | "men" | "women";
-  stock: number;
+  stockMode?: "unlimited" | "limited";
+  stockQty?: number;
   inStock: boolean;
   images: StorefrontProductImages;
   tags?: string[];
@@ -130,6 +131,34 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
       : undefined;
   const soldOutSizes = parseStringArray(data.soldOutSizes);
   const soldOutColorCodes = parseStringArray(data.soldOutColorCodes);
+  const legacyStockQuantity =
+    typeof data.stockQuantity === "number"
+      ? data.stockQuantity
+      : typeof data.stock === "number"
+        ? data.stock
+        : Number(data.stock ?? 0);
+  const inStockValue = typeof data.inStock === "boolean" ? data.inStock : true;
+  const requestedMode = data.stockMode === "limited" || data.stockMode === "unlimited" ? data.stockMode : null;
+  const stockMode =
+    requestedMode ??
+    (inStockValue === false
+      ? "limited"
+      : Number.isFinite(legacyStockQuantity)
+        ? "limited"
+        : "unlimited");
+  const stockQty =
+    stockMode === "limited"
+      ? Math.max(
+          Number(
+            typeof data.stockQty === "number"
+              ? data.stockQty
+              : Number.isFinite(legacyStockQuantity)
+                ? legacyStockQuantity
+                : 0,
+          ),
+          0,
+        )
+      : undefined;
 
   return {
     id,
@@ -146,11 +175,9 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     gender,
     soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
     soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
-    stock: typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
-    inStock:
-      typeof data.inStock === "boolean"
-        ? data.inStock
-        : (typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0)) > 0,
+    stockMode,
+    stockQty,
+    inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: imagesValue,
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
     status: data.status === "inactive" ? "inactive" : "active",

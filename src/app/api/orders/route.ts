@@ -131,6 +131,33 @@ function validateOrder(data: unknown): data is NewOrder {
   return true;
 }
 
+function resolveStockState(data: DocumentData): { stockMode: "unlimited" | "limited"; stockQty: number | null } {
+  const requestedMode = data.stockMode === "limited" || data.stockMode === "unlimited" ? data.stockMode : null;
+  const legacyQty =
+    typeof data.stockQty === "number"
+      ? data.stockQty
+      : typeof data.stockQuantity === "number"
+        ? data.stockQuantity
+        : typeof data.stock === "number"
+          ? data.stock
+          : Number(data.stock ?? 0);
+  const inStockValue = typeof data.inStock === "boolean" ? data.inStock : true;
+
+  if (requestedMode === "unlimited") {
+    return { stockMode: "unlimited", stockQty: null };
+  }
+  if (requestedMode === "limited") {
+    return { stockMode: "limited", stockQty: Math.max(Number(legacyQty ?? 0), 0) };
+  }
+  if (inStockValue === false) {
+    return { stockMode: "limited", stockQty: 0 };
+  }
+  if (Number.isFinite(legacyQty)) {
+    return { stockMode: "limited", stockQty: Math.max(Number(legacyQty ?? 0), 0) };
+  }
+  return { stockMode: "unlimited", stockQty: null };
+}
+
 /**
  * POST /api/orders
  * Create a new order in Firestore
@@ -247,12 +274,13 @@ export async function POST(request: NextRequest) {
         }
 
         productSnapshots.set(productId, data);
-        const rawStock = typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0);
-        const availableStock = data.inStock === false ? 0 : rawStock;
-
-        if (requestedQty > availableStock) {
-          const name = typeof data.name === "string" ? data.name : productId;
-          throw new Error(`Insufficient stock for ${name}`);
+        const stockState = resolveStockState(data);
+        if (stockState.stockMode === "limited") {
+          const availableStock = stockState.stockQty ?? 0;
+          if (requestedQty > availableStock) {
+            const name = typeof data.name === "string" ? data.name : productId;
+            throw new Error(`Insufficient stock for ${name}`);
+          }
         }
       }
 
@@ -260,9 +288,17 @@ export async function POST(request: NextRequest) {
         const productRef = productsCollection.doc(productId);
         const data = productSnapshots.get(productId);
         if (!data) continue;
-        const rawStock = typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0);
-        const nextStock = Math.max(rawStock - requestedQty, 0);
-        transaction.update(productRef, { stock: nextStock, inStock: nextStock > 0 });
+        const stockState = resolveStockState(data);
+        if (stockState.stockMode === "limited") {
+          const currentStock = stockState.stockQty ?? 0;
+          const nextStock = Math.max(currentStock - requestedQty, 0);
+          transaction.update(productRef, {
+            stockMode: "limited",
+            stockQty: nextStock,
+            stock: nextStock,
+            inStock: nextStock > 0,
+          });
+        }
       }
 
       const existingCategoryTotals =
