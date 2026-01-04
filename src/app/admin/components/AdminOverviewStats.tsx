@@ -71,6 +71,7 @@ type RangeMeta = {
 };
 
 type StatusCounts = {
+  total: number;
   pending: number;
   delivered: number;
   cancelled: number;
@@ -231,6 +232,7 @@ export function AdminOverviewStats() {
   const [dailyError, setDailyError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [statusCounts, setStatusCounts] = useState<StatusCounts>({
+    total: 0,
     pending: 0,
     delivered: 0,
     cancelled: 0,
@@ -365,6 +367,7 @@ export function AdminOverviewStats() {
         setDailyStats(daily);
 
         const nextStatusCounts: StatusCounts = {
+          total: ordersSnapshot.size,
           pending: 0,
           delivered: 0,
           cancelled: 0,
@@ -485,6 +488,8 @@ export function AdminOverviewStats() {
         title: "Pending orders",
         value: statusLoading ? "—" : formatCount(statusCounts.pending),
         description: `Pending orders created ${rangeDescription}.`,
+        rateLabel: "Pending rate",
+        rateValue: pendingRate,
         delta: getDeltaInfo(statusCounts.pending, statusCounts.prevPending),
         accent: "from-amber-500/20 via-amber-500/5 to-transparent",
         icon: (
@@ -498,11 +503,27 @@ export function AdminOverviewStats() {
         title: "Delivered orders",
         value: statusLoading ? "—" : formatCount(statusCounts.delivered),
         description: `Delivered orders created ${rangeDescription}.`,
+        rateLabel: "Delivery rate",
+        rateValue: deliveryRate,
         delta: getDeltaInfo(statusCounts.delivered, statusCounts.prevDelivered),
         accent: "from-emerald-400/20 via-emerald-400/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
             <path strokeWidth="1.5" d="M5 12l4 4L19 7" />
+          </svg>
+        ),
+      },
+      {
+        title: "Cancelled orders",
+        value: statusLoading ? "—" : formatCount(statusCounts.cancelled),
+        description: `Cancelled orders created ${rangeDescription}.`,
+        rateLabel: "Cancel rate",
+        rateValue: cancelRate,
+        delta: getDeltaInfo(statusCounts.cancelled, statusCounts.prevCancelled),
+        accent: "from-rose-500/20 via-rose-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-rose-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M6 6l12 12M18 6l-12 12" />
           </svg>
         ),
       },
@@ -512,10 +533,15 @@ export function AdminOverviewStats() {
       currentRevenueTotal,
       previousOrdersTotal,
       previousRevenueTotal,
+      deliveryRate,
+      cancelRate,
+      pendingRate,
       rangeDescription,
+      statusCounts.cancelled,
       statusCounts.delivered,
       statusCounts.pending,
       statusCounts.prevDelivered,
+      statusCounts.prevCancelled,
       statusCounts.prevPending,
       statusLoading,
     ]
@@ -560,8 +586,9 @@ export function AdminOverviewStats() {
   }, [dailyStats, rangeKeys]);
 
   const topProductMaxRevenue = topProducts.reduce((max, product) => Math.max(max, product.revenue), 0);
-  const fulfillmentTotal = statusCounts.pending + statusCounts.delivered + statusCounts.cancelled;
-  const deliveryRate = fulfillmentTotal > 0 ? (statusCounts.delivered / fulfillmentTotal) * 100 : 0;
+  const deliveryRate = statusCounts.total > 0 ? (statusCounts.delivered / statusCounts.total) * 100 : null;
+  const cancelRate = statusCounts.total > 0 ? (statusCounts.cancelled / statusCounts.total) * 100 : null;
+  const pendingRate = statusCounts.total > 0 ? (statusCounts.pending / statusCounts.total) * 100 : null;
 
   const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
   const donutData = useMemo(
@@ -633,6 +660,11 @@ export function AdminOverviewStats() {
             </div>
             <p className="mt-3 text-2xl font-semibold text-white">{card.value}</p>
             <p className="mt-3 text-sm text-sky-100/80">{card.description}</p>
+            {card.rateLabel ? (
+              <p className="mt-2 text-xs text-sky-100/60">
+                {card.rateLabel}: {card.rateValue === null ? "—" : `${Math.round(card.rateValue)}%`}
+              </p>
+            ) : null}
             <div className="mt-3 flex items-center justify-between text-xs text-sky-100/70">
               <div className="flex items-center gap-1">
                 <span
@@ -902,49 +934,6 @@ export function AdminOverviewStats() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Fulfillment Health</p>
-                <h3 className="text-lg font-semibold text-white">{rangeLabel}</h3>
-              </div>
-              <span className="text-xs text-sky-100/60">Operational</span>
-            </div>
-            <div className="mt-4 space-y-3 text-sm text-sky-100/85">
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <span className="text-xs text-sky-100/70">Pending orders</span>
-                <span className="font-semibold text-white">
-                  {statusLoading ? "—" : formatCount(statusCounts.pending)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <span className="text-xs text-sky-100/70">Delivered orders</span>
-                <span className="font-semibold text-white">
-                  {statusLoading ? "—" : formatCount(statusCounts.delivered)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <span className="text-xs text-sky-100/70">Cancelled orders</span>
-                <span className="font-semibold text-white">
-                  {statusLoading ? "—" : formatCount(statusCounts.cancelled)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <span className="text-xs text-sky-100/70">Delivery rate</span>
-                <span className="font-semibold text-white">
-                  {statusLoading ? "—" : `${Math.round(deliveryRate)}%`}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-dashed border-white/15 bg-white/5 px-3 py-2 text-xs text-sky-100/60">
-                <span>Avg time to deliver</span>
-                <span>Coming soon</span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-dashed border-white/15 bg-white/5 px-3 py-2 text-xs text-sky-100/60">
-                <span>Cancel rate</span>
-                <span>Coming soon</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
