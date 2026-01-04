@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, documentId, getDoc, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { collection, doc, documentId, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import type { Timestamp } from "firebase/firestore";
 import {
   Area,
@@ -44,11 +44,6 @@ const AUTO_PALETTE = [
 ];
 
 type AdminSummary = {
-  totalOrders: number;
-  totalRevenue: number;
-  pendingOrders: number;
-  ordersToday: number;
-  ordersThisWeek: number;
   updatedAt?: Timestamp | Date | string | null;
 };
 
@@ -65,6 +60,24 @@ type TrendPoint = {
   label: string;
   orders: number;
   revenue: number;
+};
+
+type RangeKey = "today" | "7d" | "30d" | "month";
+
+type RangeMeta = {
+  days: number;
+  startKey: string;
+  points: TrendPoint[];
+};
+
+type StatusCounts = {
+  total: number;
+  pending: number;
+  delivered: number;
+  cancelled: number;
+  prevPending: number;
+  prevDelivered: number;
+  prevCancelled: number;
 };
 
 function buildDateRange(days: number, timeZone: string): TrendPoint[] {
@@ -86,6 +99,70 @@ function buildDateRange(days: number, timeZone: string): TrendPoint[] {
   }
 
   return points;
+}
+
+function buildDateRangeFromStart(startKey: string, days: number, timeZone: string): TrendPoint[] {
+  const [year, month, day] = startKey.split("-").map(Number);
+  const anchor = new Date(Date.UTC(year, month - 1, day));
+  const points: TrendPoint[] = [];
+
+  for (let i = 0; i < days; i += 1) {
+    const date = new Date(anchor);
+    date.setUTCDate(anchor.getUTCDate() + i);
+    const dateKey = dateKeyInTZ(date, timeZone);
+    points.push({
+      dateKey,
+      label: dateKey.slice(5),
+      orders: 0,
+      revenue: 0,
+    });
+  }
+
+  return points;
+}
+
+function getTimeZoneOffset(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const parts = formatter.formatToParts(date);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const utcTime = Date.UTC(
+    Number(lookup.year),
+    Number(lookup.month) - 1,
+    Number(lookup.day),
+    Number(lookup.hour),
+    Number(lookup.minute),
+    Number(lookup.second)
+  );
+  return utcTime - date.getTime();
+}
+
+function addDaysToDateKey(dateKey: string, days: number, timeZone: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const anchor = new Date(Date.UTC(year, month - 1, day));
+  anchor.setUTCDate(anchor.getUTCDate() + days);
+  return dateKeyInTZ(anchor, timeZone);
+}
+
+function startOfDayInTZ(dateKey: string, timeZone: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  const offset = getTimeZoneOffset(utcDate, timeZone);
+  return new Date(utcDate.getTime() - offset);
+}
+
+function endOfDayInTZ(dateKey: string, timeZone: string) {
+  const nextDayKey = addDaysToDateKey(dateKey, 1, timeZone);
+  const nextStart = startOfDayInTZ(nextDayKey, timeZone);
+  return new Date(nextStart.getTime() - 1);
 }
 
 function toDateSafe(value: unknown): Date | null {
@@ -126,20 +203,27 @@ function normalizeCategory(name: string) {
   return name.trim().toLowerCase();
 }
 
-function getCategoryColor(categoryName: string) {
+function getCategoryColor(categoryName: string, overrideColor?: string) {
+  if (overrideColor) return overrideColor;
   const key = normalizeCategory(categoryName);
   if (COLOR_BY_CATEGORY[key]) return COLOR_BY_CATEGORY[key];
   const idx = hashToIndex(key, AUTO_PALETTE.length);
   return AUTO_PALETTE[idx];
 }
 
+function getDeltaInfo(current: number, previous: number) {
+  if (previous === 0) {
+    return { label: "—", direction: "neutral" as const };
+  }
+  const diff = current - previous;
+  const pct = Math.round((Math.abs(diff) / previous) * 100);
+  if (diff > 0) return { label: `${pct}%`, direction: "up" as const };
+  if (diff < 0) return { label: `${pct}%`, direction: "down" as const };
+  return { label: "0%", direction: "neutral" as const };
+}
+
 export function AdminOverviewStats() {
   const [summary, setSummary] = useState<AdminSummary>({
-    totalOrders: 0,
-    totalRevenue: 0,
-    pendingOrders: 0,
-    ordersToday: 0,
-    ordersThisWeek: 0,
     updatedAt: null,
   });
   const [loading, setLoading] = useState(true);
@@ -147,8 +231,67 @@ export function AdminOverviewStats() {
   const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
   const [dailyLoading, setDailyLoading] = useState(true);
   const [dailyError, setDailyError] = useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusCounts, setStatusCounts] = useState<StatusCounts>({
+    total: 0,
+    pending: 0,
+    delivered: 0,
+    cancelled: 0,
+    prevPending: 0,
+    prevDelivered: 0,
+    prevCancelled: 0,
+  });
+  const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
   const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
-  const [rangeDays, setRangeDays] = useState<7 | 30>(7);
+  const [rangeKey, setRangeKey] = useState<RangeKey>("7d");
+
+  const rangeMeta = useMemo<RangeMeta>(() => {
+    const todayKey = dateKeyInTZ(new Date(), TIME_ZONE);
+    const [year, month, day] = todayKey.split("-").map(Number);
+    let days = 7;
+
+    if (rangeKey === "today") {
+      days = 1;
+    } else if (rangeKey === "30d") {
+      days = 30;
+    } else if (rangeKey === "month") {
+      days = Math.max(day, 1);
+    }
+
+    const points = buildDateRange(days, TIME_ZONE);
+    const startKey = rangeKey === "month" ? `${year}-${String(month).padStart(2, "0")}-01` : points[0]?.dateKey;
+    return {
+      days,
+      startKey: startKey ?? todayKey,
+      points,
+    };
+  }, [rangeKey]);
+
+  const previousRangeMeta = useMemo(() => {
+    const prevStartKey = addDaysToDateKey(rangeMeta.startKey, -rangeMeta.days, TIME_ZONE);
+    return {
+      startKey: prevStartKey,
+      points: buildDateRangeFromStart(prevStartKey, rangeMeta.days, TIME_ZONE),
+    };
+  }, [rangeMeta.days, rangeMeta.startKey]);
+
+  const rangeLabel = useMemo(() => {
+    if (rangeKey === "today") return "Today";
+    if (rangeKey === "month") return "This month";
+    return `Last ${rangeMeta.days} days`;
+  }, [rangeKey, rangeMeta.days]);
+
+  const rangeLabelShort = useMemo(() => {
+    if (rangeKey === "today") return "Today";
+    if (rangeKey === "month") return "This month";
+    return `${rangeMeta.days}d`;
+  }, [rangeKey, rangeMeta.days]);
+
+  const rangeDescription = useMemo(() => {
+    if (rangeKey === "today") return "today";
+    if (rangeKey === "month") return "this month";
+    return `in the last ${rangeMeta.days} days`;
+  }, [rangeKey, rangeMeta.days]);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -156,6 +299,7 @@ export function AdminOverviewStats() {
       setError(null);
       setDailyLoading(true);
       setDailyError(null);
+      setStatusLoading(true);
 
       const db = getDb();
       if (!db) {
@@ -163,29 +307,46 @@ export function AdminOverviewStats() {
         setLoading(false);
         setDailyError("Firebase is not configured. Please check environment variables.");
         setDailyLoading(false);
+        setStatusLoading(false);
         return;
       }
 
       try {
         const summaryRef = doc(db, ...SUMMARY_DOC_PATH);
+        const rangeStart = startOfDayInTZ(rangeMeta.startKey, TIME_ZONE);
+        const rangeEnd = new Date();
+        const prevRangeEnd = new Date(rangeStart.getTime() - 1);
+        const prevRangeStart = startOfDayInTZ(previousRangeMeta.startKey, TIME_ZONE);
+        const prevRangeEndKey = addDaysToDateKey(rangeMeta.startKey, -1, TIME_ZONE);
+        const prevRangeEndDay = endOfDayInTZ(prevRangeEndKey, TIME_ZONE);
+        const prevEnd = prevRangeEndDay.getTime() < prevRangeEnd.getTime() ? prevRangeEndDay : prevRangeEnd;
         const dailyQuery = query(
           collection(db, DAILY_COLLECTION),
           orderBy(documentId(), "desc"),
-          limit(rangeDays)
+          limit(rangeMeta.days * 2)
         );
+        const ordersQuery = query(
+          collection(db, "orders"),
+          where("createdAt", ">=", rangeStart),
+          where("createdAt", "<=", rangeEnd)
+        );
+        const prevOrdersQuery = query(
+          collection(db, "orders"),
+          where("createdAt", ">=", prevRangeStart),
+          where("createdAt", "<=", prevEnd)
+        );
+        const categoriesQuery = query(collection(db, "categories"), where("type", "==", "collection"));
 
-        const [summarySnapshot, dailySnapshot] = await Promise.all([
+        const [summarySnapshot, dailySnapshot, ordersSnapshot, prevOrdersSnapshot, categoriesSnapshot] = await Promise.all([
           getDoc(summaryRef),
           getDocs(dailyQuery),
+          getDocs(ordersQuery),
+          getDocs(prevOrdersQuery),
+          getDocs(categoriesQuery),
         ]);
 
         const data = summarySnapshot.data() ?? {};
         setSummary({
-          totalOrders: Number(data.totalOrders ?? 0),
-          totalRevenue: Number(data.totalRevenue ?? 0),
-          pendingOrders: Number(data.pendingOrders ?? 0),
-          ordersToday: Number(data.ordersToday ?? 0),
-          ordersThisWeek: Number(data.ordersThisWeek ?? 0),
           updatedAt: data.updatedAt ?? null,
         });
 
@@ -208,6 +369,45 @@ export function AdminOverviewStats() {
           })
           .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
         setDailyStats(daily);
+
+        const nextStatusCounts: StatusCounts = {
+          total: ordersSnapshot.size,
+          pending: 0,
+          delivered: 0,
+          cancelled: 0,
+          prevPending: 0,
+          prevDelivered: 0,
+          prevCancelled: 0,
+        };
+        ordersSnapshot.docs.forEach((docSnap) => {
+          const orderData = docSnap.data() ?? {};
+          const status = typeof orderData.status === "string" ? orderData.status : "pending";
+          if (status === "pending") nextStatusCounts.pending += 1;
+          if (status === "delivered") nextStatusCounts.delivered += 1;
+          if (status === "cancelled") nextStatusCounts.cancelled += 1;
+        });
+        prevOrdersSnapshot.docs.forEach((docSnap) => {
+          const orderData = docSnap.data() ?? {};
+          const status = typeof orderData.status === "string" ? orderData.status : "pending";
+          if (status === "pending") nextStatusCounts.prevPending += 1;
+          if (status === "delivered") nextStatusCounts.prevDelivered += 1;
+          if (status === "cancelled") nextStatusCounts.prevCancelled += 1;
+        });
+        setStatusCounts(nextStatusCounts);
+
+        const nextCategoryColors: Record<string, string> = {};
+        categoriesSnapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data() ?? {};
+          const rawColor = typeof data.color === "string" ? data.color.trim() : "";
+          if (!rawColor) return;
+          const slug = typeof data.slug === "string" ? data.slug : docSnap.id;
+          const label = typeof data.name === "string" ? data.name : typeof data.label === "string" ? data.label : "";
+          nextCategoryColors[normalizeCategory(slug)] = rawColor;
+          if (label) {
+            nextCategoryColors[normalizeCategory(label)] = rawColor;
+          }
+        });
+        setCategoryColors(nextCategoryColors);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load admin stats";
         setError(message);
@@ -215,11 +415,12 @@ export function AdminOverviewStats() {
       } finally {
         setLoading(false);
         setDailyLoading(false);
+        setStatusLoading(false);
       }
     };
 
     loadSummary();
-  }, [rangeDays]);
+  }, [rangeMeta.days, rangeMeta.startKey]);
 
   const lastUpdatedLabel = useMemo(() => {
     const date = toDateSafe(summary.updatedAt);
@@ -233,12 +434,57 @@ export function AdminOverviewStats() {
     });
   }, [summary.updatedAt]);
 
+  const trendSeries = useMemo(() => {
+    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
+    return rangeMeta.points.map((point) => {
+      const match = dailyMap.get(point.dateKey);
+      return {
+        ...point,
+        orders: match?.orders ?? 0,
+        revenue: match?.revenue ?? 0,
+      };
+    });
+  }, [dailyStats, rangeMeta.points]);
+
+  const previousTrendSeries = useMemo(() => {
+    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
+    return previousRangeMeta.points.map((point) => {
+      const match = dailyMap.get(point.dateKey);
+      return {
+        ...point,
+        orders: match?.orders ?? 0,
+        revenue: match?.revenue ?? 0,
+      };
+    });
+  }, [dailyStats, previousRangeMeta.points]);
+
+  const currentOrdersTotal = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.orders, 0),
+    [trendSeries]
+  );
+  const currentRevenueTotal = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.revenue, 0),
+    [trendSeries]
+  );
+  const previousOrdersTotal = useMemo(
+    () => previousTrendSeries.reduce((sum, item) => sum + item.orders, 0),
+    [previousTrendSeries]
+  );
+  const previousRevenueTotal = useMemo(
+    () => previousTrendSeries.reduce((sum, item) => sum + item.revenue, 0),
+    [previousTrendSeries]
+  );
+  const deliveryRate = statusCounts.total > 0 ? (statusCounts.delivered / statusCounts.total) * 100 : null;
+  const cancelRate = statusCounts.total > 0 ? (statusCounts.cancelled / statusCounts.total) * 100 : null;
+  const pendingRate = statusCounts.total > 0 ? (statusCounts.pending / statusCounts.total) * 100 : null;
+
   const cards = useMemo(
     () => [
       {
-        title: "Total orders",
-        value: formatCount(summary.totalOrders),
-        description: "All orders placed to date.",
+        title: "Orders",
+        value: formatCount(currentOrdersTotal),
+        description: `Orders placed ${rangeDescription}.`,
+        delta: getDeltaInfo(currentOrdersTotal, previousOrdersTotal),
         accent: "from-sky-500/20 via-sky-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-sky-200" fill="none" stroke="currentColor">
@@ -248,44 +494,29 @@ export function AdminOverviewStats() {
         ),
       },
       {
-        title: "Total revenue",
-        value: formatCurrency(summary.totalRevenue),
-        description: "Total gross sales across all orders.",
+        title: "Revenue",
+        value: formatCurrency(currentRevenueTotal),
+        description: `Gross sales ${rangeDescription}.`,
+        delta: getDeltaInfo(currentRevenueTotal, previousRevenueTotal),
         accent: "from-emerald-500/20 via-emerald-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
-            <path strokeWidth="1.5" d="M4 12h16M7 8h10M9 16h6" />
-          </svg>
-        ),
-      },
-      {
-        title: "Orders today",
-        value: formatCount(summary.ordersToday),
-        description: "Orders placed since midnight.",
-        accent: "from-indigo-500/20 via-indigo-500/5 to-transparent",
-        icon: (
-          <svg viewBox="0 0 24 24" className="h-5 w-5 text-indigo-200" fill="none" stroke="currentColor">
-            <circle cx="12" cy="12" r="7" strokeWidth="1.5" />
-            <path strokeWidth="1.5" d="M12 8v4l3 2" />
-          </svg>
-        ),
-      },
-      {
-        title: "Orders this week",
-        value: formatCount(summary.ordersThisWeek),
-        description: "Orders placed during the current week.",
-        accent: "from-fuchsia-500/20 via-fuchsia-500/5 to-transparent",
-        icon: (
-          <svg viewBox="0 0 24 24" className="h-5 w-5 text-fuchsia-200" fill="none" stroke="currentColor">
-            <path strokeWidth="1.5" d="M5 5h14v14H5z" />
-            <path strokeWidth="1.5" d="M8 3v4M16 3v4" />
+            <path
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 3v18M16 7a4 4 0 0 0-8 0c0 2.5 8 2.5 8 5a4 4 0 0 1-8 0"
+            />
           </svg>
         ),
       },
       {
         title: "Pending orders",
-        value: formatCount(summary.pendingOrders),
-        description: "Orders still awaiting fulfilment.",
+        value: statusLoading ? "—" : formatCount(statusCounts.pending),
+        description: `Pending orders created ${rangeDescription}.`,
+        rateLabel: "Pending rate",
+        rateValue: pendingRate,
+        delta: getDeltaInfo(statusCounts.pending, statusCounts.prevPending),
         accent: "from-amber-500/20 via-amber-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-amber-200" fill="none" stroke="currentColor">
@@ -294,35 +525,63 @@ export function AdminOverviewStats() {
           </svg>
         ),
       },
+      {
+        title: "Delivered orders",
+        value: statusLoading ? "—" : formatCount(statusCounts.delivered),
+        description: `Delivered orders created ${rangeDescription}.`,
+        rateLabel: "Delivery rate",
+        rateValue: deliveryRate,
+        delta: getDeltaInfo(statusCounts.delivered, statusCounts.prevDelivered),
+        accent: "from-emerald-400/20 via-emerald-400/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M5 12l4 4L19 7" />
+          </svg>
+        ),
+      },
+      {
+        title: "Cancelled orders",
+        value: statusLoading ? "—" : formatCount(statusCounts.cancelled),
+        description: `Cancelled orders created ${rangeDescription}.`,
+        rateLabel: "Cancel rate",
+        rateValue: cancelRate,
+        delta: getDeltaInfo(statusCounts.cancelled, statusCounts.prevCancelled),
+        accent: "from-rose-500/20 via-rose-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-rose-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M6 6l12 12M18 6l-12 12" />
+          </svg>
+        ),
+      },
     ],
     [
-      summary.ordersThisWeek,
-      summary.ordersToday,
-      summary.pendingOrders,
-      summary.totalOrders,
-      summary.totalRevenue,
+      currentOrdersTotal,
+      currentRevenueTotal,
+      previousOrdersTotal,
+      previousRevenueTotal,
+      deliveryRate,
+      cancelRate,
+      pendingRate,
+      rangeDescription,
+      statusCounts.cancelled,
+      statusCounts.delivered,
+      statusCounts.pending,
+      statusCounts.prevDelivered,
+      statusCounts.prevCancelled,
+      statusCounts.prevPending,
+      statusLoading,
     ]
   );
 
-  const trendSeries = useMemo(() => {
-    const range = buildDateRange(rangeDays, TIME_ZONE);
-    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
-    return range.map((point) => {
-      const match = dailyMap.get(point.dateKey);
-      return {
-        ...point,
-        orders: match?.orders ?? 0,
-        revenue: match?.revenue ?? 0,
-      };
-    });
-  }, [dailyStats, rangeDays]);
-
-  const lastSevenKeys = useMemo(() => new Set(buildDateRange(7, TIME_ZONE).map((point) => point.dateKey)), []);
+  const rangeKeys = useMemo(
+    () => new Set(rangeMeta.points.map((point) => point.dateKey)),
+    [rangeMeta.points]
+  );
 
   const topCategoryData = useMemo(() => {
     const totals: Record<string, number> = {};
     dailyStats.forEach((stat) => {
-      if (!lastSevenKeys.has(stat.dateKey)) return;
+      if (!rangeKeys.has(stat.dateKey)) return;
       Object.entries(stat.topCategories).forEach(([category, revenue]) => {
         totals[category] = (totals[category] ?? 0) + revenue;
       });
@@ -331,12 +590,12 @@ export function AdminOverviewStats() {
       .map(([name, revenue]) => ({ name, revenue }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
-  }, [dailyStats, lastSevenKeys]);
+  }, [dailyStats, rangeKeys]);
 
   const topProducts = useMemo(() => {
     const totals: Record<string, { name: string; qty: number; revenue: number }> = {};
     dailyStats.forEach((stat) => {
-      if (!lastSevenKeys.has(stat.dateKey)) return;
+      if (!rangeKeys.has(stat.dateKey)) return;
       Object.entries(stat.topProducts).forEach(([productId, product]) => {
         const existing = totals[productId] ?? { name: product.name, qty: 0, revenue: 0 };
         totals[productId] = {
@@ -350,17 +609,22 @@ export function AdminOverviewStats() {
       .map(([id, data]) => ({ id, ...data }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
-  }, [dailyStats, lastSevenKeys]);
+  }, [dailyStats, rangeKeys]);
+
+  const topProductMaxRevenue = topProducts.reduce((max, product) => Math.max(max, product.revenue), 0);
 
   const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
   const donutData = useMemo(
     () =>
-      topCategoryData.map((category) => ({
-        name: category.name,
-        value: category.revenue,
-        color: getCategoryColor(category.name),
-      })),
-    [topCategoryData]
+      topCategoryData.map((category) => {
+        const override = categoryColors[normalizeCategory(category.name)];
+        return {
+          name: category.name,
+          value: category.revenue,
+          color: getCategoryColor(category.name, override),
+        };
+      }),
+    [categoryColors, topCategoryData]
   );
   const donutTotal = useMemo(
     () => donutData.reduce((sum, item) => sum + (item.value || 0), 0),
@@ -369,9 +633,33 @@ export function AdminOverviewStats() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-sky-100/80">
-        <span>Snapshot of orders, revenue, and performance trends.</span>
-        <span className="text-xs text-sky-100/70">Last updated: {lastUpdatedLabel}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100/80">
+        <div className="space-y-1">
+          <span>Snapshot of orders, revenue, and performance trends.</span>
+          <p className="text-xs text-sky-100/70">Last updated: {lastUpdatedLabel}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-[0.18em] text-sky-200">Date range</span>
+          <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
+            {[
+              { key: "today", label: "Today" },
+              { key: "7d", label: "7 days" },
+              { key: "30d", label: "30 days" },
+              { key: "month", label: "This month" },
+            ].map((range) => (
+              <button
+                key={range.key}
+                type="button"
+                onClick={() => setRangeKey(range.key as RangeKey)}
+                className={`rounded-full px-3 py-1 transition ${
+                  rangeKey === range.key ? "bg-white/20 text-white" : "text-sky-100/70 hover:text-white"
+                }`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {error ? (
@@ -390,7 +678,7 @@ export function AdminOverviewStats() {
         {cards.map((card) => (
           <div
             key={card.title}
-            className={`rounded-2xl border border-white/10 bg-gradient-to-br ${card.accent} p-5 shadow-inner shadow-sky-900/30`}
+            className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${card.accent} p-5 shadow-inner shadow-sky-900/30`}
           >
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-[0.18em] text-sky-200">{card.title}</p>
@@ -398,12 +686,50 @@ export function AdminOverviewStats() {
             </div>
             <p className="mt-3 text-2xl font-semibold text-white">{card.value}</p>
             <p className="mt-3 text-sm text-sky-100/80">{card.description}</p>
+            {card.rateLabel ? (
+              <p className="mt-2 text-xs text-sky-100/60">
+                {card.rateLabel}: {card.rateValue === null ? "—" : `${Math.round(card.rateValue)}%`}
+              </p>
+            ) : null}
+            <div className="mt-3 flex items-center justify-between text-xs text-sky-100/70">
+              <div className="flex items-center gap-1">
+                <span
+                  className={
+                    card.delta.direction === "up"
+                      ? "text-emerald-300"
+                      : card.delta.direction === "down"
+                        ? "text-rose-300"
+                        : "text-sky-100/60"
+                  }
+                >
+                  {card.delta.label === "—"
+                    ? "—"
+                    : card.delta.direction === "up"
+                      ? "▲"
+                      : card.delta.direction === "down"
+                        ? "▼"
+                        : "•"}
+                </span>
+                <span
+                  className={
+                    card.delta.direction === "up"
+                      ? "text-emerald-200"
+                      : card.delta.direction === "down"
+                        ? "text-rose-200"
+                        : "text-sky-100/70"
+                  }
+                >
+                  {card.delta.label}
+                </span>
+              </div>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-sky-100/60">vs prev period</span>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Sales Analytics</p>
@@ -426,20 +752,6 @@ export function AdminOverviewStats() {
                   </button>
                 ))}
               </div>
-              <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
-                {([7, 30] as const).map((days) => (
-                  <button
-                    key={days}
-                    type="button"
-                    onClick={() => setRangeDays(days)}
-                    className={`rounded-full px-3 py-1 transition ${
-                      rangeDays === days ? "bg-white/20 text-white" : "text-sky-100/70 hover:text-white"
-                    }`}
-                  >
-                    {days} days
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -455,7 +767,7 @@ export function AdminOverviewStats() {
             </div>
           ) : isChartEmpty ? (
             <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-10 text-center text-sm text-sky-100/80">
-              <p className="text-base font-semibold text-white">No data yet for the last {rangeDays} days</p>
+              <p className="text-base font-semibold text-white">No data yet for {rangeLabel}</p>
               <p className="mt-2 text-xs text-sky-100/70">Create a test order to populate analytics.</p>
             </div>
           ) : (
@@ -506,7 +818,7 @@ export function AdminOverviewStats() {
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between text-sm text-sky-100/80">
-            <span className="text-xs uppercase tracking-[0.18em] text-sky-200">Last {rangeDays} days</span>
+            <span className="text-xs uppercase tracking-[0.18em] text-sky-200">{rangeLabel}</span>
             <span>
               {trendMetric === "orders"
                 ? `${formatCount(trendSeries.reduce((sum, item) => sum + item.orders, 0))} orders`
@@ -515,125 +827,133 @@ export function AdminOverviewStats() {
           </div>
         </div>
 
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-xs tracking-[0.2em] text-white/60">TOP CATEGORIES</div>
-                <div className="text-lg font-semibold text-white">Last 7 days</div>
-              </div>
-              <div className="text-xs text-white/60">Revenue share</div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs tracking-[0.2em] text-white/60">TOP CATEGORIES</div>
+              <div className="text-lg font-semibold text-white">{rangeLabel}</div>
             </div>
-            {donutData.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
-                No category data yet.
-              </div>
-            ) : (
-              <>
-                <div className="mt-5 flex items-center justify-center">
-                  <div className="h-[200px] w-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={donutData}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={70}
-                          outerRadius={95}
-                          paddingAngle={2}
-                          stroke="rgba(255,255,255,0.12)"
-                          strokeWidth={1}
-                        >
-                          {donutData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <text
-                          x="50%"
-                          y="48%"
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          className="fill-white text-sm font-semibold"
-                        >
-                          {formatCount(donutTotal)} DA
-                        </text>
-                        <text
-                          x="50%"
-                          y="60%"
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          className="fill-white/60 text-xs"
-                        >
-                          Total (7d)
-                        </text>
-                        <Tooltip
-                          formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
-                            const numeric = Number(value || 0);
-                            const pct = donutTotal > 0 ? Math.round((numeric / donutTotal) * 100) : 0;
-                            return [`${formatCount(numeric)} DA (${pct}%)`, props?.payload?.name ?? "Category"];
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  {donutData
-                    .slice()
-                    .sort((a, b) => (b.value || 0) - (a.value || 0))
-                    .slice(0, 5)
-                    .map((item) => {
-                      const pct = donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0;
-                      return (
-                        <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
-                            <span className="truncate text-sm text-white/90">{item.name}</span>
-                          </div>
-                          <div className="text-sm text-white/80 tabular-nums">
-                            {pct}% • {formatCount(item.value || 0)} DA
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </>
-            )}
+            <div className="text-xs text-white/60">Revenue share</div>
           </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Products</p>
-                <h3 className="text-lg font-semibold text-white">Last 7 days</h3>
-              </div>
-              <span className="text-xs text-sky-100/60">Top 5</span>
+          {donutData.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
+              No category data yet.
             </div>
-            {topProducts.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
-                No product data yet.
+          ) : (
+            <>
+              <div className="mt-5 flex items-center justify-center">
+                <div className="h-[200px] w-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={70}
+                        outerRadius={95}
+                        paddingAngle={2}
+                        stroke="rgba(255,255,255,0.12)"
+                        strokeWidth={1}
+                      >
+                        {donutData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <text
+                        x="50%"
+                        y="48%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-white text-sm font-semibold"
+                      >
+                        {formatCount(donutTotal)} DA
+                      </text>
+                      <text
+                        x="50%"
+                        y="60%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-white/60 text-xs"
+                      >
+                        Total ({rangeLabelShort})
+                      </text>
+                      <Tooltip
+                        formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
+                          const numeric = Number(value || 0);
+                          const pct = donutTotal > 0 ? Math.round((numeric / donutTotal) * 100) : 0;
+                          return [`${formatCount(numeric)} DA (${pct}%)`, props?.payload?.name ?? "Category"];
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            ) : (
-              <div className="mt-4 space-y-3 text-sm text-sky-100/85">
-                {topProducts.map((product, index) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-                  >
-                    <div>
+
+              <div className="mt-4 space-y-2">
+                {donutData
+                  .slice()
+                  .sort((a, b) => (b.value || 0) - (a.value || 0))
+                  .slice(0, 5)
+                  .map((item) => {
+                    const pct = donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0;
+                    return (
+                      <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
+                          <span className="truncate text-sm text-white/90">{item.name}</span>
+                        </div>
+                        <div className="text-sm text-white/80 tabular-nums">
+                          {pct}% • {formatCount(item.value || 0)} DA
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Products</p>
+              <h3 className="text-lg font-semibold text-white">{rangeLabel}</h3>
+            </div>
+            <span className="text-xs text-sky-100/60">Top 5</span>
+          </div>
+          {topProducts.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
+              No product data yet.
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3 text-sm text-sky-100/85">
+              {topProducts.map((product, index) => (
+                <div key={product.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
                       <p className="text-xs text-sky-100/60">#{index + 1}</p>
-                      <p className="font-semibold text-white">{product.name}</p>
+                      <p className="truncate font-semibold text-white">{product.name}</p>
+                      <p className="text-xs text-sky-100/60">{formatCount(product.qty)} units sold</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-sky-100/60">{formatCount(product.qty)} items</p>
+                      <p className="text-xs text-sky-100/60">Revenue</p>
                       <p className="font-semibold text-white">{formatCurrency(product.revenue)}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-sky-400/70"
+                      style={{
+                        width: topProductMaxRevenue
+                          ? `${Math.max(6, Math.round((product.revenue / topProductMaxRevenue) * 100))}%`
+                          : "0%",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
