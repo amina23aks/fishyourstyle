@@ -30,6 +30,67 @@ function formatCurrency(value: number) {
 
 type Toast = { id: number; type: "success" | "error"; message: string };
 
+const CSV_HEADERS = [
+  "orderId",
+  "createdAt",
+  "status",
+  "customerName",
+  "customerEmail",
+  "phone",
+  "address",
+  "itemName",
+  "itemSlug",
+  "itemQty",
+  "itemUnitPrice",
+  "itemTotal",
+  "orderSubtotal",
+  "shippingFee",
+  "discount",
+  "orderTotal",
+  "paymentMethod",
+];
+
+function escapeCsvValue(value: string | number | null | undefined) {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  const escaped = stringValue.replace(/"/g, '""');
+  if (/[",\n]/.test(escaped)) {
+    return `"${escaped}"`;
+  }
+  return escaped;
+}
+
+function buildOrdersCsv(orders: Order[]) {
+  const rows = [CSV_HEADERS];
+  orders.forEach((order) => {
+    const items = order.items.length > 0 ? order.items : [null];
+    const discountValue = Math.max(0, order.subtotal + order.shippingCost - order.total);
+    items.forEach((item) => {
+      rows.push([
+        order.id,
+        order.createdAt,
+        order.status,
+        order.shipping?.customerName ?? "",
+        order.customerEmail ?? "",
+        order.shipping?.phone ?? "",
+        order.shipping?.address ?? "",
+        item?.name ?? "",
+        item?.slug ?? "",
+        item?.quantity ?? 0,
+        item?.price ?? 0,
+        item ? item.price * item.quantity : 0,
+        order.subtotal,
+        order.shippingCost,
+        discountValue,
+        order.total,
+        order.paymentMethod ?? "",
+      ]);
+    });
+  });
+
+  return rows.map((row) => row.map(escapeCsvValue).join(",")).join("\n");
+}
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +175,26 @@ export default function AdminOrdersPage() {
 
   const isEmpty = !loading && !error && filteredOrders.length === 0;
 
+  const handleExportCsv = useCallback(async () => {
+    try {
+      const exportOrders = orders.length > 0 ? filteredOrders : await fetchRecentOrders(200);
+      const csvContent = buildOrdersCsv(exportOrders);
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      pushToast({ type: "success", message: "CSV downloaded" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to export CSV";
+      pushToast({ type: "error", message });
+    }
+  }, [filteredOrders, orders.length, pushToast]);
+
   return (
     <div className="relative space-y-5">
       <div className="space-y-1">
@@ -163,6 +244,13 @@ export default function AdminOrdersPage() {
           >
             <span className="h-2 w-2 rounded-full bg-emerald-300" aria-hidden />
             Refresh
+          </button>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            Export CSV
           </button>
         </div>
       </div>
