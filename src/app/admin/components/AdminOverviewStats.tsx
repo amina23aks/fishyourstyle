@@ -7,6 +7,7 @@ import {
   Area,
   Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Pie,
   PieChart,
@@ -22,6 +23,25 @@ import { dateKeyInTZ } from "@/lib/dateKeys";
 const SUMMARY_DOC_PATH = ["adminStats", "summary"] as const;
 const DAILY_COLLECTION = "adminStatsDaily";
 const TIME_ZONE = "Africa/Algiers";
+const COLOR_BY_CATEGORY: Record<string, string> = {
+  hoodies: "#3B82F6",
+  pants: "#7F1D1D",
+  sweatshirts: "#064E3B",
+  ensembles: "#6D28D9",
+  tshirts: "#FACC15",
+};
+const AUTO_PALETTE = [
+  "#22C55E",
+  "#06B6D4",
+  "#A855F7",
+  "#F97316",
+  "#EF4444",
+  "#84CC16",
+  "#14B8A6",
+  "#EAB308",
+  "#6366F1",
+  "#EC4899",
+];
 
 type AdminSummary = {
   totalOrders: number;
@@ -92,6 +112,25 @@ function formatCurrency(value: number) {
 
 function formatCount(value: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
+}
+
+function hashToIndex(input: string, mod: number) {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return hash % mod;
+}
+
+function normalizeCategory(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function getCategoryColor(categoryName: string) {
+  const key = normalizeCategory(categoryName);
+  if (COLOR_BY_CATEGORY[key]) return COLOR_BY_CATEGORY[key];
+  const idx = hashToIndex(key, AUTO_PALETTE.length);
+  return AUTO_PALETTE[idx];
 }
 
 export function AdminOverviewStats() {
@@ -289,8 +328,8 @@ export function AdminOverviewStats() {
       });
     });
     return Object.entries(totals)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
+      .map(([name, revenue]) => ({ name, revenue }))
+      .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
   }, [dailyStats, lastSevenKeys]);
 
@@ -314,6 +353,19 @@ export function AdminOverviewStats() {
   }, [dailyStats, lastSevenKeys]);
 
   const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
+  const donutData = useMemo(
+    () =>
+      topCategoryData.map((category) => ({
+        name: category.name,
+        value: category.revenue,
+        color: getCategoryColor(category.name),
+      })),
+    [topCategoryData]
+  );
+  const donutTotal = useMemo(
+    () => donutData.reduce((sum, item) => sum + (item.value || 0), 0),
+    [donutData]
+  );
 
   return (
     <div className="space-y-6">
@@ -464,47 +516,68 @@ export function AdminOverviewStats() {
         </div>
 
         <div className="space-y-5">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Categories</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Top Categories</p>
                 <h3 className="text-lg font-semibold text-white">Last 7 days</h3>
               </div>
               <span className="text-xs text-sky-100/60">Revenue share</span>
             </div>
-            {topCategoryData.length === 0 ? (
+            {donutData.length === 0 ? (
               <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
                 No category data yet.
               </div>
             ) : (
-              <div className="mt-4 h-52">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={topCategoryData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={80}
-                      paddingAngle={4}
-                      fill="rgba(59, 130, 246, 0.6)"
-                    />
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.length) return null;
-                        const entry = payload[0];
-                        return (
-                          <div className="rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-sky-100 shadow-xl">
-                            <p className="text-[10px] uppercase tracking-[0.18em] text-sky-200">{entry.name}</p>
-                            <p className="mt-1 text-sm font-semibold text-white">
-                              {formatCurrency(Number(entry.value))}
-                            </p>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 md:items-center">
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={70}
+                        outerRadius={95}
+                        paddingAngle={2}
+                        stroke="rgba(255,255,255,0.12)"
+                        strokeWidth={1}
+                      >
+                        {donutData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
+                          const numeric = Number(value || 0);
+                          const pct = donutTotal > 0 ? Math.round((numeric / donutTotal) * 100) : 0;
+                          return [`${formatCount(numeric)} DA (${pct}%)`, props?.payload?.name ?? "Category"];
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-2">
+                  {donutData
+                    .slice()
+                    .sort((a, b) => (b.value || 0) - (a.value || 0))
+                    .slice(0, 6)
+                    .map((item) => {
+                      const pct = donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0;
+                      return (
+                        <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
+                            <span className="text-sm text-white/90">{item.name}</span>
                           </div>
-                        );
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                          <div className="text-sm text-white/80 tabular-nums">
+                            {pct}% • {formatCount(item.value || 0)} DA
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
             )}
           </div>
