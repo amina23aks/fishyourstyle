@@ -73,8 +73,10 @@ type RangeMeta = {
 type StatusCounts = {
   pending: number;
   delivered: number;
+  cancelled: number;
   prevPending: number;
   prevDelivered: number;
+  prevCancelled: number;
 };
 
 function buildDateRange(days: number, timeZone: string): TrendPoint[] {
@@ -231,8 +233,10 @@ export function AdminOverviewStats() {
   const [statusCounts, setStatusCounts] = useState<StatusCounts>({
     pending: 0,
     delivered: 0,
+    cancelled: 0,
     prevPending: 0,
     prevDelivered: 0,
+    prevCancelled: 0,
   });
   const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
   const [rangeKey, setRangeKey] = useState<RangeKey>("7d");
@@ -363,20 +367,24 @@ export function AdminOverviewStats() {
         const nextStatusCounts: StatusCounts = {
           pending: 0,
           delivered: 0,
+          cancelled: 0,
           prevPending: 0,
           prevDelivered: 0,
+          prevCancelled: 0,
         };
         ordersSnapshot.docs.forEach((docSnap) => {
           const orderData = docSnap.data() ?? {};
           const status = typeof orderData.status === "string" ? orderData.status : "pending";
           if (status === "pending") nextStatusCounts.pending += 1;
           if (status === "delivered") nextStatusCounts.delivered += 1;
+          if (status === "cancelled") nextStatusCounts.cancelled += 1;
         });
         prevOrdersSnapshot.docs.forEach((docSnap) => {
           const orderData = docSnap.data() ?? {};
           const status = typeof orderData.status === "string" ? orderData.status : "pending";
           if (status === "pending") nextStatusCounts.prevPending += 1;
           if (status === "delivered") nextStatusCounts.prevDelivered += 1;
+          if (status === "cancelled") nextStatusCounts.prevCancelled += 1;
         });
         setStatusCounts(nextStatusCounts);
       } catch (err) {
@@ -552,6 +560,8 @@ export function AdminOverviewStats() {
   }, [dailyStats, rangeKeys]);
 
   const topProductMaxRevenue = topProducts.reduce((max, product) => Math.max(max, product.revenue), 0);
+  const fulfillmentTotal = statusCounts.pending + statusCounts.delivered + statusCounts.cancelled;
+  const deliveryRate = fulfillmentTotal > 0 ? (statusCounts.delivered / fulfillmentTotal) * 100 : 0;
 
   const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
   const donutData = useMemo(
@@ -890,6 +900,50 @@ export function AdminOverviewStats() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Fulfillment Health</p>
+                <h3 className="text-lg font-semibold text-white">{rangeLabel}</h3>
+              </div>
+              <span className="text-xs text-sky-100/60">Operational</span>
+            </div>
+            <div className="mt-4 space-y-3 text-sm text-sky-100/85">
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                <span className="text-xs text-sky-100/70">Pending orders</span>
+                <span className="font-semibold text-white">
+                  {statusLoading ? "—" : formatCount(statusCounts.pending)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                <span className="text-xs text-sky-100/70">Delivered orders</span>
+                <span className="font-semibold text-white">
+                  {statusLoading ? "—" : formatCount(statusCounts.delivered)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                <span className="text-xs text-sky-100/70">Cancelled orders</span>
+                <span className="font-semibold text-white">
+                  {statusLoading ? "—" : formatCount(statusCounts.cancelled)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                <span className="text-xs text-sky-100/70">Delivery rate</span>
+                <span className="font-semibold text-white">
+                  {statusLoading ? "—" : `${Math.round(deliveryRate)}%`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-dashed border-white/15 bg-white/5 px-3 py-2 text-xs text-sky-100/60">
+                <span>Avg time to deliver</span>
+                <span>Coming soon</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-dashed border-white/15 bg-white/5 px-3 py-2 text-xs text-sky-100/60">
+                <span>Cancel rate</span>
+                <span>Coming soon</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
