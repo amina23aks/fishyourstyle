@@ -11,7 +11,8 @@ type ShopClientProps = {
     designTheme?: string;
     tags?: string[];
     discountPercent?: number;
-    stockQuantity?: number;
+    stockMode?: "unlimited" | "limited";
+    stockQty?: number;
     inStock?: boolean;
   })[];
   errorMessage?: string | null;

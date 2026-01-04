@@ -10,7 +10,8 @@ type Props = {
     designTheme?: string;
     tags?: string[];
     discountPercent?: number;
-    stockQuantity?: number;
+    stockMode?: "unlimited" | "limited";
+    stockQty?: number;
     inStock?: boolean;
   })[];
   categories?: SelectableItem[];

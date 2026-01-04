@@ -105,10 +105,12 @@ export type Product = {
   tags?: string[];
   /** Discount percent (0-100) */
   discountPercent?: number;
+  /** Stock mode for availability */
+  stockMode?: "unlimited" | "limited";
+  /** Stock quantity for limited inventory */
+  stockQty?: number;
   /** Current available stock */
   stock?: number;
-  /** Optional per-product stock quantity */
-  stockQuantity?: number;
   /** Whether the product is available for purchase */
   inStock?: boolean;
 };

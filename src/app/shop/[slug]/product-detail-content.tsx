@@ -60,10 +60,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const viewItemTrackedRef = useRef<string | null>(null);
-  const stockQuantity = typeof product.stockQuantity === "number" ? product.stockQuantity : null;
-  const isOutOfStock =
-    product.inStock === false || (stockQuantity !== null && stockQuantity <= 0);
-  const availableStock = stockQuantity ?? undefined;
+  const derivedStockMode =
+    product.stockMode ??
+    (product.inStock === false
+      ? "limited"
+      : typeof product.stockQty === "number"
+        ? "limited"
+        : "unlimited");
+  const stockQty = typeof product.stockQty === "number" ? product.stockQty : null;
+  const isLimited = derivedStockMode === "limited";
+  const isOutOfStock = isLimited && (stockQty ?? 0) <= 0;
+  const availableStock = isLimited && typeof stockQty === "number" ? stockQty : undefined;
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -192,19 +199,18 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const isSelectionMissing =
     (!activeColor && requiresColorSelection) || (!selectedSize && requiresSizeSelection);
-  const availabilityLine =
-    product.inStock === false
+  const availabilityLine = isLimited
+    ? isOutOfStock
       ? "Sold out"
       : typeof availableStock === "number"
         ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
-        : null;
+        : null
+    : "In stock";
   const selectionMessage = isSelectionMissing
     ? "Please choose a color and size before adding to cart."
     : null;
   const displayMessage = isOutOfStock
-    ? product.inStock === false
-      ? "Sold out"
-      : "Out of stock"
+    ? "Sold out"
     : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
 
   return (

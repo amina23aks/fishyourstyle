@@ -40,13 +40,15 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     designTheme: sp.designTheme || "simple",
     tags: sp.tags ?? [],
     discountPercent: sp.discountPercent ?? 0,
-    stockQuantity: sp.stockQuantity,
+    stockMode: sp.stockMode,
+    stockQty: sp.stockQty,
     inStock: sp.inStock ?? true,
   } as Product & {
     designTheme?: string;
     tags?: string[];
     discountPercent?: number;
-    stockQuantity?: number;
+    stockMode?: "unlimited" | "limited";
+    stockQty?: number;
     inStock?: boolean;
   };
 }
