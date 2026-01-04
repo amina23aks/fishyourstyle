@@ -551,6 +551,8 @@ export function AdminOverviewStats() {
       .slice(0, 5);
   }, [dailyStats, rangeKeys]);
 
+  const topProductMaxRevenue = topProducts.reduce((max, product) => Math.max(max, product.revenue), 0);
+
   const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
   const donutData = useMemo(
     () =>
@@ -861,15 +863,28 @@ export function AdminOverviewStats() {
                 {topProducts.map((product, index) => (
                   <div
                     key={product.id}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
                   >
-                    <div>
-                      <p className="text-xs text-sky-100/60">#{index + 1}</p>
-                      <p className="font-semibold text-white">{product.name}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-sky-100/60">#{index + 1}</p>
+                        <p className="truncate font-semibold text-white">{product.name}</p>
+                        <p className="text-xs text-sky-100/60">{formatCount(product.qty)} units sold</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-sky-100/60">Revenue</p>
+                        <p className="font-semibold text-white">{formatCurrency(product.revenue)}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-sky-100/60">{formatCount(product.qty)} items</p>
-                      <p className="font-semibold text-white">{formatCurrency(product.revenue)}</p>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-sky-400/70"
+                        style={{
+                          width: topProductMaxRevenue
+                            ? `${Math.max(6, Math.round((product.revenue / topProductMaxRevenue) * 100))}%`
+                            : "0%",
+                        }}
+                      />
                     </div>
                   </div>
                 ))}
