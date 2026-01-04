@@ -10,8 +10,10 @@ import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
 import { getAdminResources } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
+import { dateKeyInTZ, weekKeyInTZ } from "@/lib/dateKeys";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
+const ADMIN_STATS_DOC = "adminStats/summary";
 
 function parseBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
@@ -192,6 +194,9 @@ export async function POST(request: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
+    const todayKey = dateKeyInTZ(new Date(), "Africa/Algiers");
+    const weekKey = weekKeyInTZ(new Date(), "Africa/Algiers");
+    const orderTotal = typeof orderToSave.total === "number" ? orderToSave.total : 0;
 
     console.log("[api/orders] Order payload prepared", {
       hasUser: Boolean(orderToSave.userId),
@@ -211,6 +216,25 @@ export async function POST(request: NextRequest) {
     const productSnapshots = new Map<string, DocumentData>();
 
     await db.runTransaction(async (transaction) => {
+      const summaryRef = db.doc(ADMIN_STATS_DOC);
+      const summarySnapshot = await transaction.get(summaryRef);
+      const summaryData = summarySnapshot.data() ?? {};
+      const previousTodayKey =
+        typeof summaryData.todayKey === "string" ? summaryData.todayKey : null;
+      const previousWeekKey =
+        typeof summaryData.weekKey === "string" ? summaryData.weekKey : null;
+      const baseOrdersToday =
+        previousTodayKey === todayKey ? Number(summaryData.ordersToday ?? 0) : 0;
+      const baseRevenueToday =
+        previousTodayKey === todayKey ? Number(summaryData.revenueToday ?? 0) : 0;
+      const baseOrdersWeek =
+        previousWeekKey === weekKey ? Number(summaryData.ordersThisWeek ?? 0) : 0;
+      const baseRevenueWeek =
+        previousWeekKey === weekKey ? Number(summaryData.revenueThisWeek ?? 0) : 0;
+      const dailyRef = db.collection("adminStatsDaily").doc(todayKey);
+      const dailySnapshot = await transaction.get(dailyRef);
+      const dailyData = dailySnapshot.data() ?? {};
+
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
         const snapshot = await transaction.get(productRef);
@@ -241,9 +265,69 @@ export async function POST(request: NextRequest) {
         transaction.update(productRef, { stock: nextStock, inStock: nextStock > 0 });
       }
 
+      const existingCategoryTotals =
+        typeof dailyData.topCategories === "object" && dailyData.topCategories
+          ? (dailyData.topCategories as Record<string, number>)
+          : {};
+      const existingProductTotals =
+        typeof dailyData.topProducts === "object" && dailyData.topProducts
+          ? (dailyData.topProducts as Record<string, { name: string; qty: number; revenue: number }>)
+          : {};
+      const nextCategoryTotals = { ...existingCategoryTotals };
+      const nextProductTotals = { ...existingProductTotals };
+
+      for (const item of orderToSave.items) {
+        const productData = productSnapshots.get(item.id);
+        const category =
+          typeof productData?.category === "string" && productData.category.trim()
+            ? productData.category
+            : "uncategorized";
+        const revenue = item.price * item.quantity;
+        nextCategoryTotals[category] = (nextCategoryTotals[category] ?? 0) + revenue;
+        const existingProduct = nextProductTotals[item.id] ?? {
+          name: item.name,
+          qty: 0,
+          revenue: 0,
+        };
+        nextProductTotals[item.id] = {
+          name: existingProduct.name || item.name,
+          qty: existingProduct.qty + item.quantity,
+          revenue: existingProduct.revenue + revenue,
+        };
+      }
+
       const orderRef = ordersCollection.doc();
       createdOrderId = orderRef.id;
       transaction.set(orderRef, orderDataForFirestore);
+
+      transaction.set(
+        summaryRef,
+        {
+          totalOrders: Number(summaryData.totalOrders ?? 0) + 1,
+          totalRevenue: Number(summaryData.totalRevenue ?? 0) + orderTotal,
+          pendingOrders: Number(summaryData.pendingOrders ?? 0) + 1,
+          ordersToday: baseOrdersToday + 1,
+          revenueToday: baseRevenueToday + orderTotal,
+          ordersThisWeek: baseOrdersWeek + 1,
+          revenueThisWeek: baseRevenueWeek + orderTotal,
+          updatedAt: FieldValue.serverTimestamp(),
+          todayKey,
+          weekKey,
+        },
+        { merge: true }
+      );
+
+      transaction.set(
+        dailyRef,
+        {
+          orders: Number(dailyData.orders ?? 0) + 1,
+          revenue: Number(dailyData.revenue ?? 0) + orderTotal,
+          topCategories: nextCategoryTotals,
+          topProducts: nextProductTotals,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
     });
 
     if (!createdOrderId) {
