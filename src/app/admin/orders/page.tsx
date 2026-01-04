@@ -32,16 +32,13 @@ type Toast = { id: number; type: "success" | "error"; message: string };
 
 const ORDER_EXPORT_HEADERS = [
   "orderId",
-  "createdAt",
+  "date",
   "month",
-  "day",
   "status",
   "customerName",
-  "customerEmail",
   "phone",
   "wilaya",
   "address",
-  "device",
   "deliveryMode",
   "itemsCount",
   "itemsSummary",
@@ -55,12 +52,9 @@ const ORDER_EXPORT_HEADERS = [
 const ORDER_ITEM_EXPORT_HEADERS = [
   "rowKey",
   "orderId",
-  "createdAt",
+  "date",
   "status",
-  "customerName",
-  "phone",
   "wilaya",
-  "device",
   "deliveryMode",
   "itemName",
   "itemSlug",
@@ -95,14 +89,6 @@ function resolveWilaya(order: Order) {
   return parts.length > 0 ? parts[parts.length - 1] : "";
 }
 
-function resolveDevice(order: Order) {
-  const deviceValue = (order as { device?: unknown }).device;
-  if (typeof deviceValue === "string") return deviceValue;
-  const userAgent = (order as { userAgent?: unknown }).userAgent;
-  if (typeof userAgent !== "string") return "";
-  return /mobile/i.test(userAgent) ? "mobile" : "desktop";
-}
-
 function resolveDeliveryMode(order: Order) {
   const mode = order.shipping?.mode;
   if (mode === "home") return "domicile";
@@ -118,7 +104,6 @@ function buildOrdersCsv(orders: Order[]) {
     const discountValue = Math.max(0, order.subtotal + order.shippingCost - order.total);
     const { month, day } = getDateParts(order.createdAt);
     const wilaya = resolveWilaya(order);
-    const device = resolveDevice(order);
     const deliveryMode = resolveDeliveryMode(order);
     const itemsCount = (order.items ?? []).reduce((sum, item) => sum + (item.quantity ?? 0), 0);
     const itemsSummary = (order.items ?? [])
@@ -126,16 +111,13 @@ function buildOrdersCsv(orders: Order[]) {
       .join(" | ");
     rows.push([
       s(order.id),
-      s(order.createdAt),
-      s(month),
       s(day),
+      s(month),
       s(order.status),
       s(order.shipping?.customerName),
-      s(order.customerEmail),
       s(order.shipping?.phone),
       s(wilaya),
       s(order.shipping?.address),
-      s(device),
       s(deliveryMode),
       n(itemsCount),
       s(itemsSummary),
@@ -157,19 +139,15 @@ function buildOrderItemsCsv(orders: Order[]) {
   orders.forEach((order) => {
     const items = order.items.length > 0 ? order.items : [null];
     const wilaya = resolveWilaya(order);
-    const device = resolveDevice(order);
     const deliveryMode = resolveDeliveryMode(order);
     items.forEach((item) => {
       const rowKey = `${order.id}_${item?.slug || item?.name || ""}`;
       rows.push([
         s(rowKey),
         s(order.id),
-        s(order.createdAt),
+        s(getDateParts(order.createdAt).day),
         s(order.status),
-        s(order.shipping?.customerName),
-        s(order.shipping?.phone),
         s(wilaya),
-        s(device),
         s(deliveryMode),
         s(item?.name),
         s(item?.slug),
@@ -369,14 +347,14 @@ export default function AdminOrdersPage() {
             onClick={handleExportOrdersCsv}
             className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
-            Export Orders (1 row per order)
+            Orders CSV
           </button>
           <button
             type="button"
             onClick={handleExportOrderItemsCsv}
             className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
-            Export Order Items (1 row per item)
+            Order Items CSV
           </button>
         </div>
       </div>
