@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
       Object.entries(orderToSave).filter(([, v]) => v !== undefined),
     ) as NewOrder;
 
-    const orderDataForFirestore = {
+    let orderDataForFirestore = {
       ...cleanedOrder,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -312,7 +312,21 @@ export async function POST(request: NextRequest) {
       const nextCategoryTotals = { ...existingCategoryTotals };
       const nextProductTotals = { ...existingProductTotals };
 
-      for (const item of orderToSave.items) {
+      // Snapshot category/design on the order items to avoid extra reads during exports.
+      const itemsWithMetadata = orderToSave.items.map((item) => {
+        const productData = productSnapshots.get(item.id);
+        const category =
+          typeof productData?.category === "string" && productData.category.trim()
+            ? productData.category
+            : "";
+        const design =
+          typeof productData?.designTheme === "string" && productData.designTheme.trim()
+            ? productData.designTheme
+            : "";
+        return { ...item, category, design };
+      });
+
+      for (const item of itemsWithMetadata) {
         const productData = productSnapshots.get(item.id);
         const category =
           typeof productData?.category === "string" && productData.category.trim()
@@ -334,6 +348,7 @@ export async function POST(request: NextRequest) {
 
       const orderRef = ordersCollection.doc();
       createdOrderId = orderRef.id;
+      orderDataForFirestore = { ...orderDataForFirestore, items: itemsWithMetadata };
       transaction.set(orderRef, orderDataForFirestore);
 
       transaction.set(

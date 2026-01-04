@@ -8,9 +8,10 @@ const MAX_LIMIT = 500;
 
 type ExportItem = {
   name: string;
-  slug: string;
   quantity: number;
   price: number;
+  category: string;
+  design: string;
 };
 
 type ExportOrder = {
@@ -84,7 +85,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Cap limit to keep reads bounded on the free plan.
-  const rawLimit = Number(request.nextUrl.searchParams.get("limit") ?? DEFAULT_LIMIT);
+  // Cap max to keep reads bounded on the free plan.
+  const rawLimit = Number(request.nextUrl.searchParams.get("max") ?? DEFAULT_LIMIT);
   const requestedLimit = Number.isFinite(rawLimit) ? rawLimit : DEFAULT_LIMIT;
   const limit = Math.min(Math.max(requestedLimit, 1), MAX_LIMIT);
 
@@ -126,9 +128,10 @@ export async function GET(request: NextRequest) {
         const itemData = item as Record<string, unknown>;
         return {
           name: typeof itemData.name === "string" ? itemData.name : "",
-          slug: typeof itemData.slug === "string" ? itemData.slug : "",
           quantity: typeof itemData.quantity === "number" ? itemData.quantity : 0,
           price: typeof itemData.price === "number" ? itemData.price : 0,
+          category: typeof itemData.category === "string" ? itemData.category : "",
+          design: typeof itemData.design === "string" ? itemData.design : "",
         };
       });
 

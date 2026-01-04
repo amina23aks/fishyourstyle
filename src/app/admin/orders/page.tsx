@@ -55,9 +55,8 @@ const ORDER_ITEM_EXPORT_HEADERS = [
   "rowKey",
   "orderId",
   "createdAt",
+  "date",
   "status",
-  "customerName",
-  "phone",
   "wilaya",
   "deliveryMode",
   "itemName",
@@ -146,16 +145,19 @@ function buildOrderItemsCsv(orders: Order[]) {
     const wilaya = resolveWilaya(order);
     const deliveryMode = resolveDeliveryMode(order);
     items.forEach((item, index) => {
-      const rowKey = item?.slug ? `${order.id}_${item.slug}` : `${order.id}_${index}`;
+      const itemIndex = Number.isFinite(index) ? index : null;
+      const rowKey =
+        itemIndex !== null
+          ? `${order.id}_${itemIndex}`
+          : `${order.id}_${item?.name ?? ""}_${item?.quantity ?? 0}`;
       const category = (item as { category?: unknown })?.category;
       const design = (item as { design?: unknown })?.design;
       rows.push([
         s(rowKey),
         s(order.id),
         s(order.createdAt),
+        s(getDateParts(order.createdAt).day),
         s(order.status),
-        s(order.shipping?.customerName),
-        s(order.shipping?.phone),
         s(wilaya),
         s(deliveryMode),
         s(item?.name),
