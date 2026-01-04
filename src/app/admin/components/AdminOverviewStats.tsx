@@ -203,7 +203,8 @@ function normalizeCategory(name: string) {
   return name.trim().toLowerCase();
 }
 
-function getCategoryColor(categoryName: string) {
+function getCategoryColor(categoryName: string, overrideColor?: string) {
+  if (overrideColor) return overrideColor;
   const key = normalizeCategory(categoryName);
   if (COLOR_BY_CATEGORY[key]) return COLOR_BY_CATEGORY[key];
   const idx = hashToIndex(key, AUTO_PALETTE.length);
@@ -240,6 +241,7 @@ export function AdminOverviewStats() {
     prevDelivered: 0,
     prevCancelled: 0,
   });
+  const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
   const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
   const [rangeKey, setRangeKey] = useState<RangeKey>("7d");
 
@@ -333,12 +335,14 @@ export function AdminOverviewStats() {
           where("createdAt", ">=", prevRangeStart),
           where("createdAt", "<=", prevEnd)
         );
+        const categoriesQuery = query(collection(db, "categories"), where("type", "==", "collection"));
 
-        const [summarySnapshot, dailySnapshot, ordersSnapshot, prevOrdersSnapshot] = await Promise.all([
+        const [summarySnapshot, dailySnapshot, ordersSnapshot, prevOrdersSnapshot, categoriesSnapshot] = await Promise.all([
           getDoc(summaryRef),
           getDocs(dailyQuery),
           getDocs(ordersQuery),
           getDocs(prevOrdersQuery),
+          getDocs(categoriesQuery),
         ]);
 
         const data = summarySnapshot.data() ?? {};
@@ -390,6 +394,20 @@ export function AdminOverviewStats() {
           if (status === "cancelled") nextStatusCounts.prevCancelled += 1;
         });
         setStatusCounts(nextStatusCounts);
+
+        const nextCategoryColors: Record<string, string> = {};
+        categoriesSnapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data() ?? {};
+          const rawColor = typeof data.color === "string" ? data.color.trim() : "";
+          if (!rawColor) return;
+          const slug = typeof data.slug === "string" ? data.slug : docSnap.id;
+          const label = typeof data.name === "string" ? data.name : typeof data.label === "string" ? data.label : "";
+          nextCategoryColors[normalizeCategory(slug)] = rawColor;
+          if (label) {
+            nextCategoryColors[normalizeCategory(label)] = rawColor;
+          }
+        });
+        setCategoryColors(nextCategoryColors);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load admin stats";
         setError(message);
@@ -483,7 +501,12 @@ export function AdminOverviewStats() {
         accent: "from-emerald-500/20 via-emerald-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
-            <path strokeWidth="1.5" d="M4 12h16M7 8h10M9 16h6" />
+            <path
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 3v18M16 7a4 4 0 0 0-8 0c0 2.5 8 2.5 8 5a4 4 0 0 1-8 0"
+            />
           </svg>
         ),
       },
@@ -593,12 +616,15 @@ export function AdminOverviewStats() {
   const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
   const donutData = useMemo(
     () =>
-      topCategoryData.map((category) => ({
-        name: category.name,
-        value: category.revenue,
-        color: getCategoryColor(category.name),
-      })),
-    [topCategoryData]
+      topCategoryData.map((category) => {
+        const override = categoryColors[normalizeCategory(category.name)];
+        return {
+          name: category.name,
+          value: category.revenue,
+          color: getCategoryColor(category.name, override),
+        };
+      }),
+    [categoryColors, topCategoryData]
   );
   const donutTotal = useMemo(
     () => donutData.reduce((sum, item) => sum + (item.value || 0), 0),
@@ -652,7 +678,7 @@ export function AdminOverviewStats() {
         {cards.map((card) => (
           <div
             key={card.title}
-            className={`rounded-2xl border border-white/10 bg-gradient-to-br ${card.accent} p-5 shadow-inner shadow-sky-900/30`}
+            className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${card.accent} p-5 shadow-inner shadow-sky-900/30`}
           >
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-[0.18em] text-sky-200">{card.title}</p>
@@ -802,136 +828,133 @@ export function AdminOverviewStats() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-xs tracking-[0.2em] text-white/60">TOP CATEGORIES</div>
-                <div className="text-lg font-semibold text-white">{rangeLabel}</div>
-              </div>
-              <div className="text-xs text-white/60">Revenue share</div>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs tracking-[0.2em] text-white/60">TOP CATEGORIES</div>
+              <div className="text-lg font-semibold text-white">{rangeLabel}</div>
             </div>
-            {donutData.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
-                No category data yet.
-              </div>
-            ) : (
-              <>
-                <div className="mt-5 flex items-center justify-center">
-                  <div className="h-[200px] w-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={donutData}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={70}
-                          outerRadius={95}
-                          paddingAngle={2}
-                          stroke="rgba(255,255,255,0.12)"
-                          strokeWidth={1}
-                        >
-                          {donutData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <text
-                          x="50%"
-                          y="48%"
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          className="fill-white text-sm font-semibold"
-                        >
-                          {formatCount(donutTotal)} DA
-                        </text>
-                        <text
-                          x="50%"
-                          y="60%"
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          className="fill-white/60 text-xs"
-                        >
-                          Total ({rangeLabelShort})
-                        </text>
-                        <Tooltip
-                          formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
-                            const numeric = Number(value || 0);
-                            const pct = donutTotal > 0 ? Math.round((numeric / donutTotal) * 100) : 0;
-                            return [`${formatCount(numeric)} DA (${pct}%)`, props?.payload?.name ?? "Category"];
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  {donutData
-                    .slice()
-                    .sort((a, b) => (b.value || 0) - (a.value || 0))
-                    .slice(0, 5)
-                    .map((item) => {
-                      const pct = donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0;
-                      return (
-                        <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
-                            <span className="truncate text-sm text-white/90">{item.name}</span>
-                          </div>
-                          <div className="text-sm text-white/80 tabular-nums">
-                            {pct}% • {formatCount(item.value || 0)} DA
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </>
-            )}
+            <div className="text-xs text-white/60">Revenue share</div>
           </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Products</p>
-                <h3 className="text-lg font-semibold text-white">{rangeLabel}</h3>
-              </div>
-              <span className="text-xs text-sky-100/60">Top 5</span>
+          {donutData.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
+              No category data yet.
             </div>
-            {topProducts.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
-                No product data yet.
-              </div>
-            ) : (
-              <div className="mt-4 space-y-3 text-sm text-sky-100/85">
-                {topProducts.map((product, index) => (
-                  <div
-                    key={product.id}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs text-sky-100/60">#{index + 1}</p>
-                        <p className="truncate font-semibold text-white">{product.name}</p>
-                        <p className="text-xs text-sky-100/60">{formatCount(product.qty)} units sold</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-sky-100/60">Revenue</p>
-                        <p className="font-semibold text-white">{formatCurrency(product.revenue)}</p>
-                      </div>
-                    </div>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-sky-400/70"
-                        style={{
-                          width: topProductMaxRevenue
-                            ? `${Math.max(6, Math.round((product.revenue / topProductMaxRevenue) * 100))}%`
-                            : "0%",
+          ) : (
+            <>
+              <div className="mt-5 flex items-center justify-center">
+                <div className="h-[200px] w-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={70}
+                        outerRadius={95}
+                        paddingAngle={2}
+                        stroke="rgba(255,255,255,0.12)"
+                        strokeWidth={1}
+                      >
+                        {donutData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <text
+                        x="50%"
+                        y="48%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-white text-sm font-semibold"
+                      >
+                        {formatCount(donutTotal)} DA
+                      </text>
+                      <text
+                        x="50%"
+                        y="60%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-white/60 text-xs"
+                      >
+                        Total ({rangeLabelShort})
+                      </text>
+                      <Tooltip
+                        formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
+                          const numeric = Number(value || 0);
+                          const pct = donutTotal > 0 ? Math.round((numeric / donutTotal) * 100) : 0;
+                          return [`${formatCount(numeric)} DA (${pct}%)`, props?.payload?.name ?? "Category"];
                         }}
                       />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {donutData
+                  .slice()
+                  .sort((a, b) => (b.value || 0) - (a.value || 0))
+                  .slice(0, 5)
+                  .map((item) => {
+                    const pct = donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0;
+                    return (
+                      <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
+                          <span className="truncate text-sm text-white/90">{item.name}</span>
+                        </div>
+                        <div className="text-sm text-white/80 tabular-nums">
+                          {pct}% • {formatCount(item.value || 0)} DA
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Products</p>
+              <h3 className="text-lg font-semibold text-white">{rangeLabel}</h3>
+            </div>
+            <span className="text-xs text-sky-100/60">Top 5</span>
+          </div>
+          {topProducts.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
+              No product data yet.
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3 text-sm text-sky-100/85">
+              {topProducts.map((product, index) => (
+                <div key={product.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs text-sky-100/60">#{index + 1}</p>
+                      <p className="truncate font-semibold text-white">{product.name}</p>
+                      <p className="text-xs text-sky-100/60">{formatCount(product.qty)} units sold</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-sky-100/60">Revenue</p>
+                      <p className="font-semibold text-white">{formatCurrency(product.revenue)}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-sky-400/70"
+                      style={{
+                        width: topProductMaxRevenue
+                          ? `${Math.max(6, Math.round((product.revenue / topProductMaxRevenue) * 100))}%`
+                          : "0%",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

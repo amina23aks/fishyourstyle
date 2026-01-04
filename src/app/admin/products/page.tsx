@@ -283,6 +283,20 @@ export default function AdminProductsPage() {
         <p className="max-w-2xl text-sm text-sky-100/85 sm:text-base">
           Manage the catalog in real-time: upload imagery to Cloudinary, keep Firestore in sync, and export what you see.
         </p>
+        <div className="hidden flex-wrap gap-3 md:flex">
+          <a
+            href="#product-form"
+            className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+          >
+            Create product
+          </a>
+          <a
+            href="#products-list"
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Manage / Edit products
+          </a>
+        </div>
       </div>
 
       {toast ? (
@@ -304,7 +318,10 @@ export default function AdminProductsPage() {
       ) : null}
 
       <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <section className="space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40">
+        <section
+          id="products-list"
+          className="space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-white">Current products</p>
@@ -427,7 +444,10 @@ export default function AdminProductsPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40">
+        <section
+          id="product-form"
+          className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40"
+        >
           <ProductForm
             key={formKey}
             mode={editingId ? "edit" : "create"}
