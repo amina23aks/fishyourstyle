@@ -70,6 +70,13 @@ type RangeMeta = {
   points: TrendPoint[];
 };
 
+type StatusCounts = {
+  pending: number;
+  delivered: number;
+  prevPending: number;
+  prevDelivered: number;
+};
+
 function buildDateRange(days: number, timeZone: string): TrendPoint[] {
   const todayKey = dateKeyInTZ(new Date(), timeZone);
   const [year, month, day] = todayKey.split("-").map(Number);
@@ -79,6 +86,26 @@ function buildDateRange(days: number, timeZone: string): TrendPoint[] {
   for (let i = days - 1; i >= 0; i -= 1) {
     const date = new Date(anchor);
     date.setUTCDate(anchor.getUTCDate() - i);
+    const dateKey = dateKeyInTZ(date, timeZone);
+    points.push({
+      dateKey,
+      label: dateKey.slice(5),
+      orders: 0,
+      revenue: 0,
+    });
+  }
+
+  return points;
+}
+
+function buildDateRangeFromStart(startKey: string, days: number, timeZone: string): TrendPoint[] {
+  const [year, month, day] = startKey.split("-").map(Number);
+  const anchor = new Date(Date.UTC(year, month - 1, day));
+  const points: TrendPoint[] = [];
+
+  for (let i = 0; i < days; i += 1) {
+    const date = new Date(anchor);
+    date.setUTCDate(anchor.getUTCDate() + i);
     const dateKey = dateKeyInTZ(date, timeZone);
     points.push({
       dateKey,
@@ -115,11 +142,24 @@ function getTimeZoneOffset(date: Date, timeZone: string) {
   return utcTime - date.getTime();
 }
 
+function addDaysToDateKey(dateKey: string, days: number, timeZone: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const anchor = new Date(Date.UTC(year, month - 1, day));
+  anchor.setUTCDate(anchor.getUTCDate() + days);
+  return dateKeyInTZ(anchor, timeZone);
+}
+
 function startOfDayInTZ(dateKey: string, timeZone: string) {
   const [year, month, day] = dateKey.split("-").map(Number);
   const utcDate = new Date(Date.UTC(year, month - 1, day));
   const offset = getTimeZoneOffset(utcDate, timeZone);
   return new Date(utcDate.getTime() - offset);
+}
+
+function endOfDayInTZ(dateKey: string, timeZone: string) {
+  const nextDayKey = addDaysToDateKey(dateKey, 1, timeZone);
+  const nextStart = startOfDayInTZ(nextDayKey, timeZone);
+  return new Date(nextStart.getTime() - 1);
 }
 
 function toDateSafe(value: unknown): Date | null {
@@ -167,6 +207,17 @@ function getCategoryColor(categoryName: string) {
   return AUTO_PALETTE[idx];
 }
 
+function getDeltaInfo(current: number, previous: number) {
+  if (previous === 0) {
+    return { label: "—", direction: "neutral" as const };
+  }
+  const diff = current - previous;
+  const pct = Math.round((Math.abs(diff) / previous) * 100);
+  if (diff > 0) return { label: `${pct}%`, direction: "up" as const };
+  if (diff < 0) return { label: `${pct}%`, direction: "down" as const };
+  return { label: "0%", direction: "neutral" as const };
+}
+
 export function AdminOverviewStats() {
   const [summary, setSummary] = useState<AdminSummary>({
     updatedAt: null,
@@ -177,7 +228,12 @@ export function AdminOverviewStats() {
   const [dailyLoading, setDailyLoading] = useState(true);
   const [dailyError, setDailyError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [statusCounts, setStatusCounts] = useState({ pending: 0, delivered: 0 });
+  const [statusCounts, setStatusCounts] = useState<StatusCounts>({
+    pending: 0,
+    delivered: 0,
+    prevPending: 0,
+    prevDelivered: 0,
+  });
   const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
   const [rangeKey, setRangeKey] = useState<RangeKey>("7d");
 
@@ -202,6 +258,14 @@ export function AdminOverviewStats() {
       points,
     };
   }, [rangeKey]);
+
+  const previousRangeMeta = useMemo(() => {
+    const prevStartKey = addDaysToDateKey(rangeMeta.startKey, -rangeMeta.days, TIME_ZONE);
+    return {
+      startKey: prevStartKey,
+      points: buildDateRangeFromStart(prevStartKey, rangeMeta.days, TIME_ZONE),
+    };
+  }, [rangeMeta.days, rangeMeta.startKey]);
 
   const rangeLabel = useMemo(() => {
     if (rangeKey === "today") return "Today";
@@ -243,21 +307,32 @@ export function AdminOverviewStats() {
         const summaryRef = doc(db, ...SUMMARY_DOC_PATH);
         const rangeStart = startOfDayInTZ(rangeMeta.startKey, TIME_ZONE);
         const rangeEnd = new Date();
+        const prevRangeEnd = new Date(rangeStart.getTime() - 1);
+        const prevRangeStart = startOfDayInTZ(previousRangeMeta.startKey, TIME_ZONE);
+        const prevRangeEndKey = addDaysToDateKey(rangeMeta.startKey, -1, TIME_ZONE);
+        const prevRangeEndDay = endOfDayInTZ(prevRangeEndKey, TIME_ZONE);
+        const prevEnd = prevRangeEndDay.getTime() < prevRangeEnd.getTime() ? prevRangeEndDay : prevRangeEnd;
         const dailyQuery = query(
           collection(db, DAILY_COLLECTION),
           orderBy(documentId(), "desc"),
-          limit(rangeMeta.days)
+          limit(rangeMeta.days * 2)
         );
         const ordersQuery = query(
           collection(db, "orders"),
           where("createdAt", ">=", rangeStart),
           where("createdAt", "<=", rangeEnd)
         );
+        const prevOrdersQuery = query(
+          collection(db, "orders"),
+          where("createdAt", ">=", prevRangeStart),
+          where("createdAt", "<=", prevEnd)
+        );
 
-        const [summarySnapshot, dailySnapshot, ordersSnapshot] = await Promise.all([
+        const [summarySnapshot, dailySnapshot, ordersSnapshot, prevOrdersSnapshot] = await Promise.all([
           getDoc(summaryRef),
           getDocs(dailyQuery),
           getDocs(ordersQuery),
+          getDocs(prevOrdersQuery),
         ]);
 
         const data = summarySnapshot.data() ?? {};
@@ -285,12 +360,23 @@ export function AdminOverviewStats() {
           .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
         setDailyStats(daily);
 
-        const nextStatusCounts = { pending: 0, delivered: 0 };
+        const nextStatusCounts: StatusCounts = {
+          pending: 0,
+          delivered: 0,
+          prevPending: 0,
+          prevDelivered: 0,
+        };
         ordersSnapshot.docs.forEach((docSnap) => {
           const orderData = docSnap.data() ?? {};
           const status = typeof orderData.status === "string" ? orderData.status : "pending";
           if (status === "pending") nextStatusCounts.pending += 1;
           if (status === "delivered") nextStatusCounts.delivered += 1;
+        });
+        prevOrdersSnapshot.docs.forEach((docSnap) => {
+          const orderData = docSnap.data() ?? {};
+          const status = typeof orderData.status === "string" ? orderData.status : "pending";
+          if (status === "pending") nextStatusCounts.prevPending += 1;
+          if (status === "delivered") nextStatusCounts.prevDelivered += 1;
         });
         setStatusCounts(nextStatusCounts);
       } catch (err) {
@@ -331,12 +417,42 @@ export function AdminOverviewStats() {
     });
   }, [dailyStats, rangeMeta.points]);
 
+  const previousTrendSeries = useMemo(() => {
+    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
+    return previousRangeMeta.points.map((point) => {
+      const match = dailyMap.get(point.dateKey);
+      return {
+        ...point,
+        orders: match?.orders ?? 0,
+        revenue: match?.revenue ?? 0,
+      };
+    });
+  }, [dailyStats, previousRangeMeta.points]);
+
+  const currentOrdersTotal = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.orders, 0),
+    [trendSeries]
+  );
+  const currentRevenueTotal = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.revenue, 0),
+    [trendSeries]
+  );
+  const previousOrdersTotal = useMemo(
+    () => previousTrendSeries.reduce((sum, item) => sum + item.orders, 0),
+    [previousTrendSeries]
+  );
+  const previousRevenueTotal = useMemo(
+    () => previousTrendSeries.reduce((sum, item) => sum + item.revenue, 0),
+    [previousTrendSeries]
+  );
+
   const cards = useMemo(
     () => [
       {
         title: "Orders",
-        value: formatCount(trendSeries.reduce((sum, item) => sum + item.orders, 0)),
+        value: formatCount(currentOrdersTotal),
         description: `Orders placed ${rangeDescription}.`,
+        delta: getDeltaInfo(currentOrdersTotal, previousOrdersTotal),
         accent: "from-sky-500/20 via-sky-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-sky-200" fill="none" stroke="currentColor">
@@ -347,8 +463,9 @@ export function AdminOverviewStats() {
       },
       {
         title: "Revenue",
-        value: formatCurrency(trendSeries.reduce((sum, item) => sum + item.revenue, 0)),
+        value: formatCurrency(currentRevenueTotal),
         description: `Gross sales ${rangeDescription}.`,
+        delta: getDeltaInfo(currentRevenueTotal, previousRevenueTotal),
         accent: "from-emerald-500/20 via-emerald-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
@@ -360,6 +477,7 @@ export function AdminOverviewStats() {
         title: "Pending orders",
         value: statusLoading ? "—" : formatCount(statusCounts.pending),
         description: `Pending orders created ${rangeDescription}.`,
+        delta: getDeltaInfo(statusCounts.pending, statusCounts.prevPending),
         accent: "from-amber-500/20 via-amber-500/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-amber-200" fill="none" stroke="currentColor">
@@ -372,6 +490,7 @@ export function AdminOverviewStats() {
         title: "Delivered orders",
         value: statusLoading ? "—" : formatCount(statusCounts.delivered),
         description: `Delivered orders created ${rangeDescription}.`,
+        delta: getDeltaInfo(statusCounts.delivered, statusCounts.prevDelivered),
         accent: "from-emerald-400/20 via-emerald-400/5 to-transparent",
         icon: (
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-emerald-200" fill="none" stroke="currentColor">
@@ -380,7 +499,18 @@ export function AdminOverviewStats() {
         ),
       },
     ],
-    [rangeDescription, statusCounts.delivered, statusCounts.pending, statusLoading, trendSeries]
+    [
+      currentOrdersTotal,
+      currentRevenueTotal,
+      previousOrdersTotal,
+      previousRevenueTotal,
+      rangeDescription,
+      statusCounts.delivered,
+      statusCounts.pending,
+      statusCounts.prevDelivered,
+      statusCounts.prevPending,
+      statusLoading,
+    ]
   );
 
   const rangeKeys = useMemo(
@@ -491,6 +621,39 @@ export function AdminOverviewStats() {
             </div>
             <p className="mt-3 text-2xl font-semibold text-white">{card.value}</p>
             <p className="mt-3 text-sm text-sky-100/80">{card.description}</p>
+            <div className="mt-3 flex items-center justify-between text-xs text-sky-100/70">
+              <div className="flex items-center gap-1">
+                <span
+                  className={
+                    card.delta.direction === "up"
+                      ? "text-emerald-300"
+                      : card.delta.direction === "down"
+                        ? "text-rose-300"
+                        : "text-sky-100/60"
+                  }
+                >
+                  {card.delta.label === "—"
+                    ? "—"
+                    : card.delta.direction === "up"
+                      ? "▲"
+                      : card.delta.direction === "down"
+                        ? "▼"
+                        : "•"}
+                </span>
+                <span
+                  className={
+                    card.delta.direction === "up"
+                      ? "text-emerald-200"
+                      : card.delta.direction === "down"
+                        ? "text-rose-200"
+                        : "text-sky-100/70"
+                  }
+                >
+                  {card.delta.label}
+                </span>
+              </div>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-sky-100/60">vs prev period</span>
+            </div>
           </div>
         ))}
       </div>
