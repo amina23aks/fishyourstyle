@@ -702,8 +702,8 @@ export function AdminOverviewStats() {
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Sales Analytics</p>
@@ -801,8 +801,7 @@ export function AdminOverviewStats() {
           </div>
         </div>
 
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs tracking-[0.2em] text-white/60">TOP CATEGORIES</div>
@@ -888,7 +887,7 @@ export function AdminOverviewStats() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Products</p>
@@ -933,8 +932,6 @@ export function AdminOverviewStats() {
               </div>
             )}
           </div>
-
-        </div>
       </div>
     </div>
   );
