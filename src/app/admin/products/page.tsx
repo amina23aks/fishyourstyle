@@ -408,6 +408,7 @@ export default function AdminProductsPage() {
                       const derivedStock = deriveStockState(product);
                       const isLimited = derivedStock.stockMode === "limited";
                       const stockCount = isLimited ? derivedStock.stockQty ?? 0 : null;
+                      const safeStockCount = typeof stockCount === "number" ? stockCount : 0;
                       return (
                         <li
                           key={product.id}
@@ -464,7 +465,7 @@ export default function AdminProductsPage() {
                             <span
                               className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                                 isLimited
-                                  ? stockCount > 0
+                                  ? safeStockCount > 0
                                   : true
                                   ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
                                   : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
