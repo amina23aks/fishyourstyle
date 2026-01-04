@@ -42,6 +42,7 @@ const ORDER_EXPORT_HEADERS = [
   "wilaya",
   "address",
   "device",
+  "deliveryMode",
   "itemsCount",
   "itemsSummary",
   "subtotal",
@@ -55,24 +56,17 @@ const ORDER_ITEM_EXPORT_HEADERS = [
   "rowKey",
   "orderId",
   "createdAt",
-  "month",
-  "day",
   "status",
   "customerName",
-  "customerEmail",
   "phone",
   "wilaya",
-  "address",
   "device",
+  "deliveryMode",
   "itemName",
   "itemSlug",
   "itemQty",
   "itemUnitPrice",
   "itemTotal",
-  "orderSubtotal",
-  "shippingFee",
-  "discount",
-  "orderTotal",
   "paymentMethod",
 ];
 
@@ -102,8 +96,18 @@ function resolveWilaya(order: Order) {
 }
 
 function resolveDevice(order: Order) {
-  const value = (order as { device?: unknown }).device;
-  return typeof value === "string" ? value : "";
+  const deviceValue = (order as { device?: unknown }).device;
+  if (typeof deviceValue === "string") return deviceValue;
+  const userAgent = (order as { userAgent?: unknown }).userAgent;
+  if (typeof userAgent !== "string") return "";
+  return /mobile/i.test(userAgent) ? "mobile" : "desktop";
+}
+
+function resolveDeliveryMode(order: Order) {
+  const mode = order.shipping?.mode;
+  if (mode === "home") return "domicile";
+  if (mode === "desk") return "desktop";
+  return "";
 }
 
 function buildOrdersCsv(orders: Order[]) {
@@ -115,7 +119,8 @@ function buildOrdersCsv(orders: Order[]) {
     const { month, day } = getDateParts(order.createdAt);
     const wilaya = resolveWilaya(order);
     const device = resolveDevice(order);
-    const itemsCount = order.items?.length ?? 0;
+    const deliveryMode = resolveDeliveryMode(order);
+    const itemsCount = (order.items ?? []).reduce((sum, item) => sum + (item.quantity ?? 0), 0);
     const itemsSummary = (order.items ?? [])
       .map((item) => `${item.name} x${item.quantity} (${item.price})`)
       .join(" | ");
@@ -131,6 +136,7 @@ function buildOrdersCsv(orders: Order[]) {
       s(wilaya),
       s(order.shipping?.address),
       s(device),
+      s(deliveryMode),
       n(itemsCount),
       s(itemsSummary),
       n(order.subtotal),
@@ -150,34 +156,26 @@ function buildOrderItemsCsv(orders: Order[]) {
   const rows = [ORDER_ITEM_EXPORT_HEADERS];
   orders.forEach((order) => {
     const items = order.items.length > 0 ? order.items : [null];
-    const discountValue = Math.max(0, order.subtotal + order.shippingCost - order.total);
-    const { month, day } = getDateParts(order.createdAt);
     const wilaya = resolveWilaya(order);
     const device = resolveDevice(order);
+    const deliveryMode = resolveDeliveryMode(order);
     items.forEach((item) => {
-      const rowKey = item?.slug ? `${order.id}_${item.slug}` : order.id;
+      const rowKey = `${order.id}_${item?.slug || item?.name || ""}`;
       rows.push([
         s(rowKey),
         s(order.id),
         s(order.createdAt),
-        s(month),
-        s(day),
         s(order.status),
         s(order.shipping?.customerName),
-        s(order.customerEmail),
         s(order.shipping?.phone),
         s(wilaya),
-        s(order.shipping?.address),
         s(device),
+        s(deliveryMode),
         s(item?.name),
         s(item?.slug),
         n(item?.quantity ?? 0),
         n(item?.price ?? 0),
         n(item ? item.price * item.quantity : 0),
-        n(order.subtotal),
-        n(order.shippingCost),
-        n(discountValue),
-        n(order.total),
         s(order.paymentMethod),
       ]);
     });
@@ -290,6 +288,12 @@ export default function AdminOrdersPage() {
     try {
       const exportOrders = await exportOrdersData();
       const csvContent = buildOrdersCsv(exportOrders);
+      /*
+       * Testing checklist:
+       * - Download both CSVs and confirm Excel columns align (semicolon).
+       * - Confirm order-items export has no duplicated date/orderId columns.
+       * - Confirm rowKey is unique and stable.
+       */
       triggerCsvDownload(csvContent, `orders-${new Date().toISOString().slice(0, 10)}.csv`);
       pushToast({ type: "success", message: "CSV downloaded" });
     } catch (err) {
