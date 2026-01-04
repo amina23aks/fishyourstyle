@@ -32,10 +32,12 @@ type Toast = { id: number; type: "success" | "error"; message: string };
 
 const ORDER_EXPORT_HEADERS = [
   "orderId",
-  "date",
+  "createdAt",
   "month",
+  "date",
   "status",
   "customerName",
+  "customerEmail",
   "phone",
   "wilaya",
   "address",
@@ -52,16 +54,19 @@ const ORDER_EXPORT_HEADERS = [
 const ORDER_ITEM_EXPORT_HEADERS = [
   "rowKey",
   "orderId",
-  "date",
+  "createdAt",
   "status",
+  "customerName",
+  "phone",
   "wilaya",
   "deliveryMode",
   "itemName",
-  "itemSlug",
   "itemQty",
   "itemUnitPrice",
   "itemTotal",
   "paymentMethod",
+  "category",
+  "design",
 ];
 
 function escapeCsvValue(value: string | number | null | undefined) {
@@ -106,15 +111,15 @@ function buildOrdersCsv(orders: Order[]) {
     const wilaya = resolveWilaya(order);
     const deliveryMode = resolveDeliveryMode(order);
     const itemsCount = (order.items ?? []).reduce((sum, item) => sum + (item.quantity ?? 0), 0);
-    const itemsSummary = (order.items ?? [])
-      .map((item) => `${item.name} x${item.quantity} (${item.price})`)
-      .join(" | ");
+    const itemsSummary = (order.items ?? []).map((item) => `${item.name} x${item.quantity}`).join(" | ");
     rows.push([
       s(order.id),
-      s(day),
+      s(order.createdAt),
       s(month),
+      s(day),
       s(order.status),
       s(order.shipping?.customerName),
+      s(order.customerEmail),
       s(order.shipping?.phone),
       s(wilaya),
       s(order.shipping?.address),
@@ -137,24 +142,29 @@ function buildOrderItemsCsv(orders: Order[]) {
   const n = (value: unknown) => String(typeof value === "number" ? value : Number(value ?? 0));
   const rows = [ORDER_ITEM_EXPORT_HEADERS];
   orders.forEach((order) => {
-    const items = order.items.length > 0 ? order.items : [null];
+    const items = order.items.length > 0 ? order.items : [];
     const wilaya = resolveWilaya(order);
     const deliveryMode = resolveDeliveryMode(order);
-    items.forEach((item) => {
-      const rowKey = `${order.id}_${item?.slug || item?.name || ""}`;
+    items.forEach((item, index) => {
+      const rowKey = item?.slug ? `${order.id}_${item.slug}` : `${order.id}_${index}`;
+      const category = (item as { category?: unknown })?.category;
+      const design = (item as { design?: unknown })?.design;
       rows.push([
         s(rowKey),
         s(order.id),
-        s(getDateParts(order.createdAt).day),
+        s(order.createdAt),
         s(order.status),
+        s(order.shipping?.customerName),
+        s(order.shipping?.phone),
         s(wilaya),
         s(deliveryMode),
         s(item?.name),
-        s(item?.slug),
         n(item?.quantity ?? 0),
         n(item?.price ?? 0),
         n(item ? item.price * item.quantity : 0),
         s(order.paymentMethod),
+        s(category),
+        s(design),
       ]);
     });
   });
@@ -271,6 +281,7 @@ export default function AdminOrdersPage() {
        * - Download both CSVs and confirm Excel columns align (semicolon).
        * - Confirm order-items export has no duplicated date/orderId columns.
        * - Confirm rowKey is unique and stable.
+       * - Verify admin vs guest access for /api/admin/orders-export.
        */
       triggerCsvDownload(csvContent, `orders-${new Date().toISOString().slice(0, 10)}.csv`);
       pushToast({ type: "success", message: "CSV downloaded" });
