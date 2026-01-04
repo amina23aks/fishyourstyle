@@ -30,14 +30,40 @@ function formatCurrency(value: number) {
 
 type Toast = { id: number; type: "success" | "error"; message: string };
 
-const CSV_HEADERS = [
+const ORDER_EXPORT_HEADERS = [
   "orderId",
   "createdAt",
+  "month",
+  "day",
   "status",
   "customerName",
   "customerEmail",
   "phone",
+  "wilaya",
   "address",
+  "device",
+  "itemsCount",
+  "itemsSummary",
+  "subtotal",
+  "shippingFee",
+  "discount",
+  "total",
+  "paymentMethod",
+];
+
+const ORDER_ITEM_EXPORT_HEADERS = [
+  "rowKey",
+  "orderId",
+  "createdAt",
+  "month",
+  "day",
+  "status",
+  "customerName",
+  "customerEmail",
+  "phone",
+  "wilaya",
+  "address",
+  "device",
   "itemName",
   "itemSlug",
   "itemQty",
@@ -52,30 +78,97 @@ const CSV_HEADERS = [
 
 function escapeCsvValue(value: string | number | null | undefined) {
   if (value === null || value === undefined) return "";
-  const stringValue = String(value);
+  const stringValue = String(value).replace(/[\r\n\t]+/g, " ").trim();
   const escaped = stringValue.replace(/"/g, '""');
-  if (/[\";\n]/.test(escaped)) {
-    return `"${escaped}"`;
+  return `"${escaped}"`;
+}
+
+function getDateParts(iso: string) {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    return { month: "", day: "" };
   }
-  return escaped;
+  const day = parsed.toISOString().slice(0, 10);
+  const month = day.slice(0, 7);
+  return { month, day };
+}
+
+function resolveWilaya(order: Order) {
+  if (order.shipping?.wilaya) return order.shipping.wilaya;
+  const address = order.shipping?.address ?? "";
+  if (!address) return "";
+  const parts = address.split(",").map((part) => part.trim()).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : "";
+}
+
+function resolveDevice(order: Order) {
+  const value = (order as { device?: unknown }).device;
+  return typeof value === "string" ? value : "";
 }
 
 function buildOrdersCsv(orders: Order[]) {
   const s = (value: unknown) => (value === null || value === undefined ? "" : String(value));
   const n = (value: unknown) => String(typeof value === "number" ? value : Number(value ?? 0));
-  const rows = [CSV_HEADERS];
+  const rows = [ORDER_EXPORT_HEADERS];
+  orders.forEach((order) => {
+    const discountValue = Math.max(0, order.subtotal + order.shippingCost - order.total);
+    const { month, day } = getDateParts(order.createdAt);
+    const wilaya = resolveWilaya(order);
+    const device = resolveDevice(order);
+    const itemsCount = order.items?.length ?? 0;
+    const itemsSummary = (order.items ?? [])
+      .map((item) => `${item.name} x${item.quantity} (${item.price})`)
+      .join(" | ");
+    rows.push([
+      s(order.id),
+      s(order.createdAt),
+      s(month),
+      s(day),
+      s(order.status),
+      s(order.shipping?.customerName),
+      s(order.customerEmail),
+      s(order.shipping?.phone),
+      s(wilaya),
+      s(order.shipping?.address),
+      s(device),
+      n(itemsCount),
+      s(itemsSummary),
+      n(order.subtotal),
+      n(order.shippingCost),
+      n(discountValue),
+      n(order.total),
+      s(order.paymentMethod),
+    ]);
+  });
+
+  return rows.map((row) => row.map(escapeCsvValue).join(";")).join("\n");
+}
+
+function buildOrderItemsCsv(orders: Order[]) {
+  const s = (value: unknown) => (value === null || value === undefined ? "" : String(value));
+  const n = (value: unknown) => String(typeof value === "number" ? value : Number(value ?? 0));
+  const rows = [ORDER_ITEM_EXPORT_HEADERS];
   orders.forEach((order) => {
     const items = order.items.length > 0 ? order.items : [null];
     const discountValue = Math.max(0, order.subtotal + order.shippingCost - order.total);
+    const { month, day } = getDateParts(order.createdAt);
+    const wilaya = resolveWilaya(order);
+    const device = resolveDevice(order);
     items.forEach((item) => {
+      const rowKey = item?.slug ? `${order.id}_${item.slug}` : order.id;
       rows.push([
+        s(rowKey),
         s(order.id),
         s(order.createdAt),
+        s(month),
+        s(day),
         s(order.status),
         s(order.shipping?.customerName),
         s(order.customerEmail),
         s(order.shipping?.phone),
+        s(wilaya),
         s(order.shipping?.address),
+        s(device),
         s(item?.name),
         s(item?.slug),
         n(item?.quantity ?? 0),
@@ -177,25 +270,45 @@ export default function AdminOrdersPage() {
 
   const isEmpty = !loading && !error && filteredOrders.length === 0;
 
-  const handleExportCsv = useCallback(async () => {
+  const exportOrdersData = useCallback(async () => {
+    return orders.length > 0 ? filteredOrders : await fetchRecentOrders(200);
+  }, [filteredOrders, orders.length]);
+
+  const triggerCsvDownload = useCallback((csvContent: string, filename: string) => {
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const handleExportOrdersCsv = useCallback(async () => {
     try {
-      const exportOrders = orders.length > 0 ? filteredOrders : await fetchRecentOrders(200);
+      const exportOrders = await exportOrdersData();
       const csvContent = buildOrdersCsv(exportOrders);
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      triggerCsvDownload(csvContent, `orders-${new Date().toISOString().slice(0, 10)}.csv`);
       pushToast({ type: "success", message: "CSV downloaded" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to export CSV";
       pushToast({ type: "error", message });
     }
-  }, [filteredOrders, orders.length, pushToast]);
+  }, [exportOrdersData, pushToast, triggerCsvDownload]);
+
+  const handleExportOrderItemsCsv = useCallback(async () => {
+    try {
+      const exportOrders = await exportOrdersData();
+      const csvContent = buildOrderItemsCsv(exportOrders);
+      triggerCsvDownload(csvContent, `order-items-${new Date().toISOString().slice(0, 10)}.csv`);
+      pushToast({ type: "success", message: "CSV downloaded" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to export CSV";
+      pushToast({ type: "error", message });
+    }
+  }, [exportOrdersData, pushToast, triggerCsvDownload]);
 
   return (
     <div className="relative space-y-5">
@@ -249,10 +362,17 @@ export default function AdminOrdersPage() {
           </button>
           <button
             type="button"
-            onClick={handleExportCsv}
+            onClick={handleExportOrdersCsv}
             className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
-            Export CSV
+            Export Orders (1 row per order)
+          </button>
+          <button
+            type="button"
+            onClick={handleExportOrderItemsCsv}
+            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            Export Order Items (1 row per item)
           </button>
         </div>
       </div>
