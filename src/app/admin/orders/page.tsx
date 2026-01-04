@@ -54,7 +54,7 @@ function escapeCsvValue(value: string | number | null | undefined) {
   if (value === null || value === undefined) return "";
   const stringValue = String(value);
   const escaped = stringValue.replace(/"/g, '""');
-  if (/[",\n]/.test(escaped)) {
+  if (/[\";\n]/.test(escaped)) {
     return `"${escaped}"`;
   }
   return escaped;
@@ -90,7 +90,7 @@ function buildOrdersCsv(orders: Order[]) {
     });
   });
 
-  return rows.map((row) => row.map(escapeCsvValue).join(",")).join("\n");
+  return rows.map((row) => row.map(escapeCsvValue).join(";")).join("\n");
 }
 
 export default function AdminOrdersPage() {
