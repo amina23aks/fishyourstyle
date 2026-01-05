@@ -315,14 +315,18 @@ export async function POST(request: NextRequest) {
       // Snapshot category/design on the order items to avoid extra reads during exports.
       const itemsWithMetadata = orderToSave.items.map((item) => {
         const productData = productSnapshots.get(item.id);
+        const categoryFromCart = typeof item.category === "string" ? item.category.trim() : "";
+        const designFromCart = typeof item.design === "string" ? item.design.trim() : "";
         const category =
-          typeof productData?.category === "string" && productData.category.trim()
+          categoryFromCart ||
+          (typeof productData?.category === "string" && productData.category.trim()
             ? productData.category
-            : "";
+            : "");
         const design =
-          typeof productData?.designTheme === "string" && productData.designTheme.trim()
+          designFromCart ||
+          (typeof productData?.designTheme === "string" && productData.designTheme.trim()
             ? productData.designTheme
-            : "";
+            : "");
         return { ...item, category, design };
       });
 

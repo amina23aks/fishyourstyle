@@ -229,6 +229,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       id: product.id,
       slug: product.slug,
       name: product.nameFr,
+      category: product.category ?? "",
+      design: product.designTheme ?? "",
       price: product.priceDzd,
       currency: product.currency,
       image: currentImage ?? product.images.main,

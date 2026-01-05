@@ -178,6 +178,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
       id: product.id,
       slug: product.slug,
       name: product.nameFr,
+      category: product.category ?? "",
+      design: product.designTheme ?? "",
       price: product.priceDzd,
       currency: product.currency,
       image: imageList[activeImage] ?? product.images.main,

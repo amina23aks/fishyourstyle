@@ -15,6 +15,8 @@ export type CartItem = {
   id: string;
   slug: string;
   name: string;
+  category?: string;
+  design?: string;
   price: number;
   currency: string;
   image: string;
@@ -30,6 +32,8 @@ export type AddItemPayload = {
   id: string;
   slug: string;
   name: string;
+  category?: string;
+  design?: string;
   price: number;
   currency: string;
   image: string;
@@ -66,6 +70,15 @@ const ensureVariantKey = (item: CartItem | AddItemPayload): string =>
     ? item.variantKey
     : makeVariantKey(item);
 
+export const normalizeCartItem = (item: CartItem | AddItemPayload): CartItem => ({
+  ...item,
+  category: typeof item.category === "string" ? item.category : "",
+  design: typeof item.design === "string" ? item.design : "",
+  quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
+  maxQuantity: typeof item.maxQuantity === "number" ? Math.max(item.maxQuantity, 0) : undefined,
+  variantKey: ensureVariantKey(item),
+});
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [lastAddedAt, setLastAddedAt] = useState<number | null>(null);
@@ -79,11 +92,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(stored) as Partial<CartItem>[];
         const normalized = parsed
           .filter((item): item is CartItem => Boolean(item))
-          .map((item) => ({
-            ...item,
-            quantity: item.quantity ?? 1,
-            variantKey: ensureVariantKey(item as CartItem),
-          }));
+          .map((item) => normalizeCartItem(item as CartItem));
         setItems(normalized);
       } catch (error) {
         console.error("Failed to parse cart from storage", error);
@@ -99,10 +108,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = useCallback((payload: AddItemPayload) => {
     // HARD BLOCK: block all add-to-cart if out of stock per single source of truth
     if (
-      payload.maxQuantity === 0 ||
-      payload.maxQuantity === null ||
-      payload.maxQuantity === undefined ||
-      (typeof payload.maxQuantity === 'number' && payload.maxQuantity <= 0)
+      typeof payload.maxQuantity === "number" && payload.maxQuantity <= 0
     ) {
       return;
     }
