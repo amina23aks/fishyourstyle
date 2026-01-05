@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
         discount,
         total,
         paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
-      };
+      });
 
       itemsRaw.forEach((item, index) => {
         const itemData = item as Record<string, unknown>;
