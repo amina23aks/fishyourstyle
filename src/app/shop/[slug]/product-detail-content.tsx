@@ -12,6 +12,7 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { trackViewItem } from "@/lib/analytics";
+import { normalizeProductStock } from "@/lib/stock";
 import {
   buildProductColorOptions,
   buildProductSizeOptions,
@@ -60,17 +61,13 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const viewItemTrackedRef = useRef<string | null>(null);
-  const derivedStockMode =
-    product.stockMode ??
-    (product.inStock === false
-      ? "limited"
-      : typeof product.stockQty === "number"
-        ? "limited"
-        : "unlimited");
-  const stockQty = typeof product.stockQty === "number" ? product.stockQty : null;
-  const isLimited = derivedStockMode === "limited";
-  const isOutOfStock = isLimited && (stockQty ?? 0) <= 0;
-  const availableStock = isLimited && typeof stockQty === "number" ? stockQty : undefined;
+  const stockState = normalizeProductStock({
+    stockMode: product.stockMode,
+    stockQty: product.stockQty,
+    inStock: product.inStock,
+  });
+  const isOutOfStock = !stockState.isAvailable;
+  const availableStock = stockState.stockMode === "limited" ? stockState.stockQty : undefined;
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -170,7 +167,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
     const existing = items.find((item) => item.variantKey === variantKey);
     const maxQty = existing?.maxQuantity ?? availableStock;
     if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
-      setSelectionError("Max stock reached");
+      setSelectionError("Out of stock");
+      return false;
+    }
+
+    if (!stockState.isAvailable) {
+      setSelectionError("Out of stock");
       return false;
     }
 
@@ -178,6 +180,10 @@ export function ProductDetailContent({ product }: { product: Product }) {
       id: product.id,
       slug: product.slug,
       name: product.nameFr,
+      category: product.category ?? "",
+      design: product.designTheme ?? "",
+      stockMode: stockState.stockMode,
+      stockQty: stockState.stockQty,
       price: product.priceDzd,
       currency: product.currency,
       image: imageList[activeImage] ?? product.images.main,
@@ -199,13 +205,14 @@ export function ProductDetailContent({ product }: { product: Product }) {
 
   const isSelectionMissing =
     (!activeColor && requiresColorSelection) || (!selectedSize && requiresSizeSelection);
-  const availabilityLine = isLimited
-    ? isOutOfStock
-      ? "Sold out"
-      : typeof availableStock === "number"
-        ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
-        : null
-    : "In stock";
+  const availabilityLine =
+    stockState.stockMode === "limited"
+      ? isOutOfStock
+        ? "Sold out"
+        : typeof availableStock === "number"
+          ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
+          : null
+      : "In stock";
   const selectionMessage = isSelectionMissing
     ? "Please choose a color and size before adding to cart."
     : null;

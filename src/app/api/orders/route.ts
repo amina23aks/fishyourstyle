@@ -11,6 +11,7 @@ import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
 import { getAdminResources } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
 import { dateKeyInTZ, weekKeyInTZ } from "@/lib/dateKeys";
+import { normalizeProductStock } from "@/lib/stock";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
 const ADMIN_STATS_DOC = "adminStats/summary";
@@ -132,30 +133,17 @@ function validateOrder(data: unknown): data is NewOrder {
 }
 
 function resolveStockState(data: DocumentData): { stockMode: "unlimited" | "limited"; stockQty: number | null } {
-  const requestedMode = data.stockMode === "limited" || data.stockMode === "unlimited" ? data.stockMode : null;
-  const legacyQty =
-    typeof data.stockQty === "number"
-      ? data.stockQty
-      : typeof data.stockQuantity === "number"
-        ? data.stockQuantity
-        : typeof data.stock === "number"
-          ? data.stock
-          : Number(data.stock ?? 0);
-  const inStockValue = typeof data.inStock === "boolean" ? data.inStock : true;
-
-  if (requestedMode === "unlimited") {
-    return { stockMode: "unlimited", stockQty: null };
-  }
-  if (requestedMode === "limited") {
-    return { stockMode: "limited", stockQty: Math.max(Number(legacyQty ?? 0), 0) };
-  }
-  if (inStockValue === false) {
-    return { stockMode: "limited", stockQty: 0 };
-  }
-  if (Number.isFinite(legacyQty)) {
-    return { stockMode: "limited", stockQty: Math.max(Number(legacyQty ?? 0), 0) };
-  }
-  return { stockMode: "unlimited", stockQty: null };
+  const stockState = normalizeProductStock({
+    stockMode: data.stockMode,
+    stockQty: typeof data.stockQty === "number" ? data.stockQty : undefined,
+    stockQuantity: typeof data.stockQuantity === "number" ? data.stockQuantity : undefined,
+    stock: typeof data.stock === "number" ? data.stock : undefined,
+    inStock: typeof data.inStock === "boolean" ? data.inStock : undefined,
+  });
+  return {
+    stockMode: stockState.stockMode,
+    stockQty: stockState.stockMode === "limited" ? stockState.stockQty : null,
+  };
 }
 
 /**
@@ -216,7 +204,7 @@ export async function POST(request: NextRequest) {
       Object.entries(orderToSave).filter(([, v]) => v !== undefined),
     ) as NewOrder;
 
-    const orderDataForFirestore = {
+    let orderDataForFirestore = {
       ...cleanedOrder,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -312,7 +300,25 @@ export async function POST(request: NextRequest) {
       const nextCategoryTotals = { ...existingCategoryTotals };
       const nextProductTotals = { ...existingProductTotals };
 
-      for (const item of orderToSave.items) {
+      // Snapshot category/design on the order items to avoid extra reads during exports.
+      const itemsWithMetadata = orderToSave.items.map((item) => {
+        const productData = productSnapshots.get(item.id);
+        const categoryFromCart = typeof item.category === "string" ? item.category.trim() : "";
+        const designFromCart = typeof item.design === "string" ? item.design.trim() : "";
+        const category =
+          categoryFromCart ||
+          (typeof productData?.category === "string" && productData.category.trim()
+            ? productData.category
+            : "");
+        const design =
+          designFromCart ||
+          (typeof productData?.designTheme === "string" && productData.designTheme.trim()
+            ? productData.designTheme
+            : "");
+        return { ...item, category, design };
+      });
+
+      for (const item of itemsWithMetadata) {
         const productData = productSnapshots.get(item.id);
         const category =
           typeof productData?.category === "string" && productData.category.trim()
@@ -334,6 +340,7 @@ export async function POST(request: NextRequest) {
 
       const orderRef = ordersCollection.doc();
       createdOrderId = orderRef.id;
+      orderDataForFirestore = { ...orderDataForFirestore, items: itemsWithMetadata };
       transaction.set(orderRef, orderDataForFirestore);
 
       transaction.set(

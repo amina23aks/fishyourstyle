@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageShell from "@/components/PageShell";
-import { useCart } from "@/context/cart";
+import { normalizeCartItem, useCart } from "@/context/cart";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
 import {
@@ -16,6 +16,7 @@ import {
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
+import { normalizeProductStock } from "@/lib/stock";
 
 type CheckoutFormState = {
   fullName: string;
@@ -134,7 +135,27 @@ export default function CheckoutClient() {
     console.log("[CheckoutClient] All validations passed. Building order payload...");
     setIsSubmitting(true);
 
-    const analyticsItems = items.map((item) => ({
+    const normalizedItems = items.map((item) => normalizeCartItem(item));
+    const hasOutOfStock = normalizedItems.some((item) => {
+      const stockState = normalizeProductStock({
+        stockMode: item.stockMode,
+        stockQty: item.stockQty,
+      });
+      return stockState.stockMode === "limited" && !stockState.isAvailable;
+    });
+    if (hasOutOfStock) {
+      setError("Some items are out of stock. Please refresh your cart.");
+      setIsSubmitting(false);
+      return;
+    }
+    /*
+     * Testing checklist:
+     * - Unlimited product adds to cart and checkout succeeds.
+     * - Limited product with stockQty=0 is blocked.
+     * - Limited product decrements on order creation.
+     * - New order export shows category/design populated.
+     */
+    const analyticsItems = normalizedItems.map((item) => ({
       item_id: item.id,
       item_name: item.name,
       quantity: item.quantity,
@@ -152,10 +173,12 @@ export default function CheckoutClient() {
     try {
       // Map cart items to order items
       console.log("[CheckoutClient] Mapping cart items to order items...");
-      const orderItems: OrderItem[] = items.map((item) => ({
+      const orderItems: OrderItem[] = normalizedItems.map((item) => ({
         id: item.id,
         slug: item.slug,
         name: item.name,
+        category: item.category,
+        design: item.design,
         price: item.price,
         currency: item.currency,
         image: item.image,

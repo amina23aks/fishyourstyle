@@ -11,6 +11,10 @@ export type OrderItem = {
   slug: string;
   /** Product name (French) */
   name: string;
+  /** Product category (optional snapshot) */
+  category?: string;
+  /** Product design theme (optional snapshot) */
+  design?: string;
   /** Unit price in DZD */
   price: number;
   /** Currency code */

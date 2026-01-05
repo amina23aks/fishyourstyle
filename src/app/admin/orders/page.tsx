@@ -30,6 +30,150 @@ function formatCurrency(value: number) {
 
 type Toast = { id: number; type: "success" | "error"; message: string };
 
+const ORDER_EXPORT_HEADERS = [
+  "orderId",
+  "createdAt",
+  "month",
+  "date",
+  "status",
+  "customerName",
+  "customerEmail",
+  "phone",
+  "wilaya",
+  "address",
+  "deliveryMode",
+  "itemsCount",
+  "itemsSummary",
+  "subtotal",
+  "shippingFee",
+  "discount",
+  "total",
+  "paymentMethod",
+];
+
+const ORDER_ITEM_EXPORT_HEADERS = [
+  "rowKey",
+  "orderId",
+  "createdAt",
+  "date",
+  "status",
+  "wilaya",
+  "deliveryMode",
+  "itemName",
+  "itemQty",
+  "itemUnitPrice",
+  "itemTotal",
+  "paymentMethod",
+  "category",
+  "design",
+];
+
+function escapeCsvValue(value: string | number | null | undefined) {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value).replace(/[\r\n\t]+/g, " ").trim();
+  const escaped = stringValue.replace(/"/g, '""');
+  return `"${escaped}"`;
+}
+
+function getDateParts(iso: string) {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    return { month: "", day: "" };
+  }
+  const day = parsed.toISOString().slice(0, 10);
+  const month = day.slice(0, 7);
+  return { month, day };
+}
+
+function resolveWilaya(order: Order) {
+  if (order.shipping?.wilaya) return order.shipping.wilaya;
+  const address = order.shipping?.address ?? "";
+  if (!address) return "";
+  const parts = address.split(",").map((part) => part.trim()).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : "";
+}
+
+function resolveDeliveryMode(order: Order) {
+  const mode = order.shipping?.mode;
+  if (mode === "home") return "domicile";
+  if (mode === "desk") return "desktop";
+  return "";
+}
+
+function buildOrdersCsv(orders: Order[]) {
+  const s = (value: unknown) => (value === null || value === undefined ? "" : String(value));
+  const n = (value: unknown) => String(typeof value === "number" ? value : Number(value ?? 0));
+  const rows = [ORDER_EXPORT_HEADERS];
+  orders.forEach((order) => {
+    const discountValue = Math.max(0, order.subtotal + order.shippingCost - order.total);
+    const { month, day } = getDateParts(order.createdAt);
+    const wilaya = resolveWilaya(order);
+    const deliveryMode = resolveDeliveryMode(order);
+    const itemsCount = (order.items ?? []).reduce((sum, item) => sum + (item.quantity ?? 0), 0);
+    const itemsSummary = (order.items ?? []).map((item) => `${item.name} x${item.quantity}`).join(" | ");
+    rows.push([
+      s(order.id),
+      s(order.createdAt),
+      s(month),
+      s(day),
+      s(order.status),
+      s(order.shipping?.customerName),
+      s(order.customerEmail),
+      s(order.shipping?.phone),
+      s(wilaya),
+      s(order.shipping?.address),
+      s(deliveryMode),
+      n(itemsCount),
+      s(itemsSummary),
+      n(order.subtotal),
+      n(order.shippingCost),
+      n(discountValue),
+      n(order.total),
+      s(order.paymentMethod),
+    ]);
+  });
+
+  return rows.map((row) => row.map(escapeCsvValue).join(";")).join("\n");
+}
+
+function buildOrderItemsCsv(orders: Order[]) {
+  const s = (value: unknown) => (value === null || value === undefined ? "" : String(value));
+  const n = (value: unknown) => String(typeof value === "number" ? value : Number(value ?? 0));
+  const rows = [ORDER_ITEM_EXPORT_HEADERS];
+  orders.forEach((order) => {
+    const items = order.items.length > 0 ? order.items : [];
+    const wilaya = resolveWilaya(order);
+    const deliveryMode = resolveDeliveryMode(order);
+    items.forEach((item, index) => {
+      const itemIndex = Number.isFinite(index) ? index : null;
+      const rowKey =
+        itemIndex !== null
+          ? `${order.id}_${itemIndex}`
+          : `${order.id}_${item?.name ?? ""}_${item?.quantity ?? 0}`;
+      const category = (item as { category?: unknown })?.category;
+      const design = (item as { design?: unknown })?.design;
+      rows.push([
+        s(rowKey),
+        s(order.id),
+        s(order.createdAt),
+        s(getDateParts(order.createdAt).day),
+        s(order.status),
+        s(wilaya),
+        s(deliveryMode),
+        s(item?.name),
+        n(item?.quantity ?? 0),
+        n(item?.price ?? 0),
+        n(item ? item.price * item.quantity : 0),
+        s(order.paymentMethod),
+        s(category),
+        s(design),
+      ]);
+    });
+  });
+
+  return rows.map((row) => row.map(escapeCsvValue).join(";")).join("\n");
+}
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +258,53 @@ export default function AdminOrdersPage() {
 
   const isEmpty = !loading && !error && filteredOrders.length === 0;
 
+  const exportOrdersData = useCallback(async () => {
+    return orders.length > 0 ? filteredOrders : await fetchRecentOrders(200);
+  }, [filteredOrders, orders.length]);
+
+  const triggerCsvDownload = useCallback((csvContent: string, filename: string) => {
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const handleExportOrdersCsv = useCallback(async () => {
+    try {
+      const exportOrders = await exportOrdersData();
+      const csvContent = buildOrdersCsv(exportOrders);
+      /*
+       * Testing checklist:
+       * - Download both CSVs and confirm Excel columns align (semicolon).
+       * - Confirm order-items export has no duplicated date/orderId columns.
+       * - Confirm rowKey is unique and stable.
+       * - Verify admin vs guest access for /api/admin/orders-export.
+       */
+      triggerCsvDownload(csvContent, `orders-${new Date().toISOString().slice(0, 10)}.csv`);
+      pushToast({ type: "success", message: "CSV downloaded" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to export CSV";
+      pushToast({ type: "error", message });
+    }
+  }, [exportOrdersData, pushToast, triggerCsvDownload]);
+
+  const handleExportOrderItemsCsv = useCallback(async () => {
+    try {
+      const exportOrders = await exportOrdersData();
+      const csvContent = buildOrderItemsCsv(exportOrders);
+      triggerCsvDownload(csvContent, `order-items-${new Date().toISOString().slice(0, 10)}.csv`);
+      pushToast({ type: "success", message: "CSV downloaded" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to export CSV";
+      pushToast({ type: "error", message });
+    }
+  }, [exportOrdersData, pushToast, triggerCsvDownload]);
+
   return (
     <div className="relative space-y-5">
       <div className="space-y-1">
@@ -163,6 +354,20 @@ export default function AdminOrdersPage() {
           >
             <span className="h-2 w-2 rounded-full bg-emerald-300" aria-hidden />
             Refresh
+          </button>
+          <button
+            type="button"
+            onClick={handleExportOrdersCsv}
+            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            Orders CSV
+          </button>
+          <button
+            type="button"
+            onClick={handleExportOrderItemsCsv}
+            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            Order Items CSV
           </button>
         </div>
       </div>
