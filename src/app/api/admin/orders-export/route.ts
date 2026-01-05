@@ -1,36 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
-import { getAdminResources, isAdmin, verifyIdTokenFromRequest } from "@/lib/firebaseAdmin";
+import { getAdminResources } from "@/lib/firebaseAdmin";
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 500;
 
-type ExportItem = {
-  name: string;
-  quantity: number;
-  price: number;
-  category: string;
-  design: string;
-};
-
-type ExportOrder = {
+type ExportOrderRow = {
+  rowKey: string;
   orderId: string;
   createdAt: string;
-  date: string;
   month: string;
+  date: string;
   status: string;
   customerName: string;
+  customerEmail: string;
   phone: string;
   wilaya: string;
   address: string;
   deliveryMode: string;
+  itemsCount: number;
+  itemsSummary: string;
   subtotal: number;
   shippingFee: number;
   discount: number;
   total: number;
   paymentMethod: string;
-  items: ExportItem[];
+};
+
+type ExportOrderItemRow = {
+  rowKey: string;
+  orderId: string;
+  createdAt: string;
+  date: string;
+  status: string;
+  wilaya: string;
+  deliveryMode: string;
+  itemName: string;
+  itemQty: number;
+  itemUnitPrice: number;
+  itemTotal: number;
+  paymentMethod: string;
+  category: string;
+  design: string;
 };
 
 function getDateParts(iso: string) {
@@ -56,31 +68,30 @@ function toIsoString(value: unknown): string {
   return new Date(0).toISOString();
 }
 
+function parseBearerToken(request: NextRequest): string | null {
+  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+  if (!authHeader) return null;
+  const [scheme, value] = authHeader.split(" ");
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !value) return null;
+  return value.trim();
+}
+
 export async function GET(request: NextRequest) {
-  let decoded;
-  try {
-    decoded = await verifyIdTokenFromRequest(request);
-  } catch (error) {
+  const expectedToken = process.env.ADMIN_EXPORT_TOKEN;
+  const providedToken = parseBearerToken(request);
+  if (!expectedToken || !providedToken || providedToken !== expectedToken) {
     return NextResponse.json(
       {
         error: "unauthorized",
-        message: error instanceof Error ? error.message : "Unable to verify token.",
+        message: "Missing Authorization header.",
       },
       { status: 401 },
     );
   }
 
-  if (!isAdmin(decoded)) {
-    return NextResponse.json({ error: "unauthorized", message: "Admin access required." }, { status: 401 });
-  }
-
-  const since = request.nextUrl.searchParams.get("since");
-  if (!since) {
-    return NextResponse.json({ error: "bad_request", message: "since is required." }, { status: 400 });
-  }
-
-  const sinceDate = new Date(since);
-  if (Number.isNaN(sinceDate.getTime())) {
+  const sinceParam = request.nextUrl.searchParams.get("since");
+  const sinceDate = sinceParam ? new Date(sinceParam) : null;
+  if (sinceDate && Number.isNaN(sinceDate.getTime())) {
     return NextResponse.json({ error: "bad_request", message: "since must be a valid ISO date." }, { status: 400 });
   }
 
@@ -100,16 +111,18 @@ export async function GET(request: NextRequest) {
 
   try {
     const { db } = adminResources;
-    const snapshot = await db
-      .collection("orders")
-      .where("createdAt", ">", Timestamp.fromDate(sinceDate))
-      .orderBy("createdAt", "asc")
-      .limit(limit)
-      .get();
+    let ordersQuery = db.collection("orders").orderBy("createdAt", "asc").limit(limit);
+    if (sinceDate) {
+      ordersQuery = ordersQuery.where("createdAt", ">", Timestamp.fromDate(sinceDate));
+    }
 
-    let nextSince = sinceDate.toISOString();
+    const snapshot = await ordersQuery.get();
 
-    const orders: ExportOrder[] = snapshot.docs.map((doc) => {
+    const orders: ExportOrderRow[] = [];
+    const orderItems: ExportOrderItemRow[] = [];
+    let newestCreatedAt = sinceDate?.toISOString() ?? "";
+
+    snapshot.docs.forEach((doc) => {
       const data = doc.data() as Record<string, unknown>;
       const shipping = (data.shipping as Record<string, unknown> | undefined) ?? {};
       const createdAtIso = toIsoString(data.createdAt);
@@ -119,46 +132,73 @@ export async function GET(request: NextRequest) {
       const total = typeof data.total === "number" ? data.total : 0;
       const discount = Math.max(0, subtotal + shippingFee - total);
       const itemsRaw = Array.isArray(data.items) ? data.items : [];
+      const itemsCount = itemsRaw.reduce((sum, item) => {
+        const itemData = item as Record<string, unknown>;
+        return sum + (typeof itemData.quantity === "number" ? itemData.quantity : 0);
+      }, 0);
+      const itemsSummary = itemsRaw
+        .map((item) => {
+          const itemData = item as Record<string, unknown>;
+          const name = typeof itemData.name === "string" ? itemData.name : "";
+          const qty = typeof itemData.quantity === "number" ? itemData.quantity : 0;
+          return name ? `${name} x${qty}` : "";
+        })
+        .filter(Boolean)
+        .join(" | ");
 
       if (createdAtIso) {
-        nextSince = createdAtIso;
+        newestCreatedAt = createdAtIso;
       }
 
-      const items: ExportItem[] = itemsRaw.map((item) => {
-        const itemData = item as Record<string, unknown>;
-        return {
-          name: typeof itemData.name === "string" ? itemData.name : "",
-          quantity: typeof itemData.quantity === "number" ? itemData.quantity : 0,
-          price: typeof itemData.price === "number" ? itemData.price : 0,
-          category: typeof itemData.category === "string" ? itemData.category : "",
-          design: typeof itemData.design === "string" ? itemData.design : "",
-        };
-      });
-
-      return {
+      orders.push({
+        rowKey: doc.id,
         orderId: doc.id,
         createdAt: createdAtIso,
-        date,
         month,
+        date,
         status: typeof data.status === "string" ? data.status : "",
         customerName: typeof shipping.customerName === "string" ? shipping.customerName : "",
+        customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : "",
         phone: typeof shipping.phone === "string" ? shipping.phone : "",
         wilaya: typeof shipping.wilaya === "string" ? shipping.wilaya : "",
         address: typeof shipping.address === "string" ? shipping.address : "",
         deliveryMode: resolveDeliveryMode(shipping.mode),
+        itemsCount,
+        itemsSummary,
         subtotal,
         shippingFee,
         discount,
         total,
         paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
-        items,
       };
+
+      itemsRaw.forEach((item, index) => {
+        const itemData = item as Record<string, unknown>;
+        const itemQty = typeof itemData.quantity === "number" ? itemData.quantity : 0;
+        const itemUnitPrice = typeof itemData.price === "number" ? itemData.price : 0;
+        orderItems.push({
+          rowKey: `${doc.id}_${index}`,
+          orderId: doc.id,
+          createdAt: createdAtIso,
+          date,
+          status: typeof data.status === "string" ? data.status : "",
+          wilaya: typeof shipping.wilaya === "string" ? shipping.wilaya : "",
+          deliveryMode: resolveDeliveryMode(shipping.mode),
+          itemName: typeof itemData.name === "string" ? itemData.name : "",
+          itemQty,
+          itemUnitPrice,
+          itemTotal: itemQty * itemUnitPrice,
+          paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
+          category: typeof itemData.category === "string" ? itemData.category : "",
+          design: typeof itemData.design === "string" ? itemData.design : "",
+        });
+      });
     });
 
     return NextResponse.json({
+      nextSince: orders.length > 0 ? newestCreatedAt : sinceDate?.toISOString() ?? new Date().toISOString(),
       orders,
-      nextSince,
-      hasMore: snapshot.size === limit,
+      orderItems,
     });
   } catch (error) {
     console.error("[api/admin/orders-export] GET error", error);
