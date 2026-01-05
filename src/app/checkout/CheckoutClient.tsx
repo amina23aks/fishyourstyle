@@ -16,6 +16,7 @@ import {
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
+import { normalizeProductStock } from "@/lib/stock";
 
 type CheckoutFormState = {
   fullName: string;
@@ -135,6 +136,18 @@ export default function CheckoutClient() {
     setIsSubmitting(true);
 
     const normalizedItems = items.map((item) => normalizeCartItem(item));
+    const hasOutOfStock = normalizedItems.some((item) => {
+      const stockState = normalizeProductStock({
+        stockMode: item.stockMode,
+        stockQty: item.stockQty,
+      });
+      return stockState.stockMode === "limited" && !stockState.isAvailable;
+    });
+    if (hasOutOfStock) {
+      setError("Some items are out of stock. Please refresh your cart.");
+      setIsSubmitting(false);
+      return;
+    }
     /*
      * Testing checklist:
      * - Unlimited product adds to cart and checkout succeeds.

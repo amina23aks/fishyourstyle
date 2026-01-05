@@ -11,6 +11,7 @@ import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
 import { getAdminResources } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
 import { dateKeyInTZ, weekKeyInTZ } from "@/lib/dateKeys";
+import { normalizeProductStock } from "@/lib/stock";
 
 const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
 const ADMIN_STATS_DOC = "adminStats/summary";
@@ -132,30 +133,17 @@ function validateOrder(data: unknown): data is NewOrder {
 }
 
 function resolveStockState(data: DocumentData): { stockMode: "unlimited" | "limited"; stockQty: number | null } {
-  const requestedMode = data.stockMode === "limited" || data.stockMode === "unlimited" ? data.stockMode : null;
-  const legacyQty =
-    typeof data.stockQty === "number"
-      ? data.stockQty
-      : typeof data.stockQuantity === "number"
-        ? data.stockQuantity
-        : typeof data.stock === "number"
-          ? data.stock
-          : Number(data.stock ?? 0);
-  const inStockValue = typeof data.inStock === "boolean" ? data.inStock : true;
-
-  if (requestedMode === "unlimited") {
-    return { stockMode: "unlimited", stockQty: null };
-  }
-  if (requestedMode === "limited") {
-    return { stockMode: "limited", stockQty: Math.max(Number(legacyQty ?? 0), 0) };
-  }
-  if (inStockValue === false) {
-    return { stockMode: "limited", stockQty: 0 };
-  }
-  if (Number.isFinite(legacyQty)) {
-    return { stockMode: "limited", stockQty: Math.max(Number(legacyQty ?? 0), 0) };
-  }
-  return { stockMode: "unlimited", stockQty: null };
+  const stockState = normalizeProductStock({
+    stockMode: data.stockMode,
+    stockQty: typeof data.stockQty === "number" ? data.stockQty : undefined,
+    stockQuantity: typeof data.stockQuantity === "number" ? data.stockQuantity : undefined,
+    stock: typeof data.stock === "number" ? data.stock : undefined,
+    inStock: typeof data.inStock === "boolean" ? data.inStock : undefined,
+  });
+  return {
+    stockMode: stockState.stockMode,
+    stockQty: stockState.stockMode === "limited" ? stockState.stockQty : null,
+  };
 }
 
 /**

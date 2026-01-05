@@ -17,6 +17,8 @@ export type CartItem = {
   name: string;
   category?: string;
   design?: string;
+  stockMode?: "unlimited" | "limited";
+  stockQty?: number;
   price: number;
   currency: string;
   image: string;
@@ -34,6 +36,8 @@ export type AddItemPayload = {
   name: string;
   category?: string;
   design?: string;
+  stockMode?: "unlimited" | "limited";
+  stockQty?: number;
   price: number;
   currency: string;
   image: string;
@@ -74,6 +78,18 @@ export const normalizeCartItem = (item: CartItem | AddItemPayload): CartItem => 
   ...item,
   category: typeof item.category === "string" ? item.category : "",
   design: typeof item.design === "string" ? item.design : "",
+  stockMode:
+    item.stockMode === "limited" || item.stockMode === "unlimited"
+      ? item.stockMode
+      : typeof item.maxQuantity === "number"
+        ? "limited"
+        : "unlimited",
+  stockQty:
+    typeof item.stockQty === "number"
+      ? Math.max(item.stockQty, 0)
+      : typeof item.maxQuantity === "number"
+        ? Math.max(item.maxQuantity, 0)
+        : 0,
   quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
   maxQuantity: typeof item.maxQuantity === "number" ? Math.max(item.maxQuantity, 0) : undefined,
   variantKey: ensureVariantKey(item),
