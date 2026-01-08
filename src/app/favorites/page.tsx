@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
+import AuthModal from "@/components/AuthModal";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { useAuth } from "@/context/auth";
 import { useCart } from "@/context/cart";
@@ -111,21 +113,36 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
   );
 }
 
-function FavoritesEmpty({ signedOut }: { signedOut?: boolean }) {
+function FavoritesEmpty({ signedOut, onSignIn }: { signedOut?: boolean; onSignIn?: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 px-6 py-12 text-center text-white shadow-lg shadow-black/30 backdrop-blur">
-      <p className="text-xl font-semibold">
-        {signedOut ? "Sign in to see your favorites." : "Your favorites list is empty."}
-      </p>
-      <p className="text-sm text-white/70">
-        {signedOut ? "Log in to save products you love." : "Tap the heart on any product to save it here."}
-      </p>
-      <Link
-        href="/shop"
-        className="mt-2 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-400 to-cyan-300 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-cyan-500/30 transition hover:from-sky-300 hover:to-cyan-200"
-      >
-        Go to shop
-      </Link>
+    <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-white/10 bg-white/5 px-6 py-10 text-center text-white shadow-lg shadow-black/30 backdrop-blur">
+      <div className="relative h-36 w-36 overflow-hidden rounded-2xl border border-white/10 bg-white/10">
+        <Image src="/favorite.png" alt="Favorites" fill className="object-cover" />
+      </div>
+      <div className="space-y-2">
+        <p className="text-xl font-semibold">
+          {signedOut ? "Sign in to view and save your favorites." : "Your favorites list is empty."}
+        </p>
+        <p className="text-sm text-white/70">
+          {signedOut ? "Sign in to view and save your favorites" : "Tap the heart on any product to save it here."}
+        </p>
+      </div>
+      {signedOut ? (
+        <button
+          type="button"
+          onClick={onSignIn}
+          className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-400 to-cyan-300 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-cyan-500/30 transition hover:from-sky-300 hover:to-cyan-200"
+        >
+          Sign in
+        </button>
+      ) : (
+        <Link
+          href="/shop"
+          className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-400 to-cyan-300 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-cyan-500/30 transition hover:from-sky-300 hover:to-cyan-200"
+        >
+          Go to shop
+        </Link>
+      )}
     </div>
   );
 }
@@ -133,6 +150,7 @@ function FavoritesEmpty({ signedOut }: { signedOut?: boolean }) {
 export default function FavoritesPage() {
   const { user, loading: authLoading } = useAuth();
   const { items, isLoading, isUpdating, toggleFavorite, isFavorite } = useFavorites();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const loadingState = authLoading || isLoading;
   const showEmpty = !loadingState && (!user || items.length === 0);
@@ -148,12 +166,13 @@ export default function FavoritesPage() {
         {!user && (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xs font-semibold text-white shadow-sm shadow-black/30">
             <span>You&apos;re not signed in. These favorites are only saved on this device.</span>
-            <Link
-              href="/account"
+            <button
+              type="button"
+              onClick={() => setIsAuthModalOpen(true)}
               className="inline-flex items-center justify-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-white/25"
             >
               Sign in
-            </Link>
+            </button>
           </div>
         )}
       </div>
@@ -175,7 +194,7 @@ export default function FavoritesPage() {
           ))}
         </div>
       ) : showEmpty ? (
-        <FavoritesEmpty signedOut={!user} />
+        <FavoritesEmpty signedOut={!user} onSignIn={() => setIsAuthModalOpen(true)} />
       ) : (
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {items.map((item) => (
@@ -202,6 +221,7 @@ export default function FavoritesPage() {
           ))}
         </div>
       )}
+      <AuthModal open={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </main>
   );
 }
