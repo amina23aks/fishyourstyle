@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
+import { useAuthModal } from "@/context/auth-modal";
 import { getDb } from "@/lib/firebaseClient";
 
 function toDateSafe(value: unknown): Date | null {
@@ -38,6 +39,7 @@ function toDateSafe(value: unknown): Date | null {
 export default function OrdersList() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { openModal } = useAuthModal();
   const { user, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
@@ -219,12 +221,13 @@ export default function OrdersList() {
             Log in with the same email you used for your orders to see them here.
           </p>
           <div className="mt-6 flex justify-center">
-            <Link
-              href="/account"
+            <button
+              type="button"
+              onClick={() => openModal({ returnTo: "/orders" })}
               className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
             >
               Go to my account
-            </Link>
+            </button>
           </div>
         </div>
       </div>
