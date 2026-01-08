@@ -40,9 +40,9 @@ export default function CookiesBanner() {
           <Image
             src="/cookie.png"
             alt="Cookie mascot"
-            width={60}
-            height={60}
-            className="h-12 w-12"
+            width={84}
+            height={84}
+            className="h-17 w-17"
             priority
           />
         </div>
