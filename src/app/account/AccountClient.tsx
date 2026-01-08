@@ -6,7 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import PageShell from "@/components/PageShell";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { getDb } from "@/lib/firebaseClient";
 
 function ShoppingCartIcon() {
@@ -46,23 +46,23 @@ function AccountContent() {
   const clampedOrderCount = useMemo(() => Math.min(Math.max(orderCount, 0), 5), [orderCount]);
 
   useEffect(() => {
-    const loadOrderCount = async () => {
-      if (!user) {
-        setOrderCount(0);
-        return;
-      }
+    if (!user) {
+      setOrderCount(0);
+      return;
+    }
 
-      const db = getDb();
-      if (!db) return;
+    const db = getDb();
+    if (!db) return;
 
-      const userRef = doc(db, "users", user.uid);
-      const snapshot = await getDoc(userRef);
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
       const data = snapshot.data();
       const count = typeof data?.orderCount === "number" ? data.orderCount : 0;
       setOrderCount(count);
-    };
+    });
 
-    void loadOrderCount();
+    // Dev helper: reset loyalty by setting users/{uid}.orderCount = 0 in Firestore.
+    return () => unsubscribe();
   }, [user]);
 
   if (loading) {
@@ -116,21 +116,27 @@ function AccountContent() {
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center justify-between text-sm font-semibold text-white">
                 <span>Loyalty: {clampedOrderCount} / 5 orders</span>
-                <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-200">
-                  Coming soon
-                </span>
               </div>
               <div className="flex items-center gap-2">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <span
-                    key={index}
-                    className={`h-2 w-6 rounded-full border ${
-                      index < clampedOrderCount
-                        ? "border-sky-200/80 bg-gradient-to-r from-sky-400 to-cyan-300"
-                        : "border-white/15 bg-white/10"
-                    }`}
-                  />
-                ))}
+                {Array.from({ length: 5 }).map((_, index) => {
+                  const isActive = index < clampedOrderCount;
+                  return (
+                    <span
+                      key={index}
+                      className={`flex h-7 w-7 items-center justify-center rounded-full border ${
+                        isActive
+                          ? "border-sky-200/80 bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-900"
+                          : "border-white/15 bg-white/10 text-white/50"
+                      }`}
+                    >
+                      {isActive ? (
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                          <path d="M5 12l4 4L19 7" />
+                        </svg>
+                      ) : null}
+                    </span>
+                  );
+                })}
               </div>
               <p className="text-xs text-sky-200">Reward: 8% after 5 orders</p>
               <div className="space-y-2 text-xs text-sky-100">
