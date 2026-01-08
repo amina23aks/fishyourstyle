@@ -151,7 +151,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href="/" className="group flex items-center gap-3">

@@ -224,7 +224,7 @@ export default function OrdersList() {
               onClick={() => openModal({ returnTo: "/orders" })}
               className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
             >
-              Go to my account
+              Sign in to view orders
             </button>
           </div>
         </div>

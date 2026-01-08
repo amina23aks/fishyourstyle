@@ -2,16 +2,68 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import PageShell from "@/components/PageShell";
+import { doc, getDoc } from "firebase/firestore";
+import { getDb } from "@/lib/firebaseClient";
+
+function ShoppingCartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 text-sky-200" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+      <path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 7H7" />
+      <circle cx="10" cy="19" r="1.2" />
+      <circle cx="17" cy="19" r="1.2" />
+    </svg>
+  );
+}
+
+function BadgePercentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 text-sky-200" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+      <path d="M6 3h12l3 5-9 13L3 8l3-5z" />
+      <circle cx="9" cy="9" r="1" />
+      <circle cx="15" cy="15" r="1" />
+      <path d="M9.5 14.5l5-5" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 text-sky-200" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+      <path d="M12 3l2.9 5.9 6.5.9-4.7 4.5 1.1 6.4L12 17l-5.8 3.1 1.1-6.4L2.6 9.8l6.5-.9L12 3z" />
+    </svg>
+  );
+}
 
 function AccountContent() {
   const { user, loading } = useAuth();
   const { openModal } = useAuthModal();
   const displayName = user?.displayName || "Customer";
-  const orderCount = 0;
+  const [orderCount, setOrderCount] = useState(0);
+  const clampedOrderCount = useMemo(() => Math.min(Math.max(orderCount, 0), 5), [orderCount]);
+
+  useEffect(() => {
+    const loadOrderCount = async () => {
+      if (!user) {
+        setOrderCount(0);
+        return;
+      }
+
+      const db = getDb();
+      if (!db) return;
+
+      const userRef = doc(db, "users", user.uid);
+      const snapshot = await getDoc(userRef);
+      const data = snapshot.data();
+      const count = typeof data?.orderCount === "number" ? data.orderCount : 0;
+      setOrderCount(count);
+    };
+
+    void loadOrderCount();
+  }, [user]);
 
   if (loading) {
     return (
@@ -30,7 +82,7 @@ function AccountContent() {
     <PageShell>
       <section className="w-full space-y-6 rounded-3xl bg-white/10 p-6 text-sky-50 shadow-lg shadow-sky-900/30 backdrop-blur">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-white">My account</h1>
+          <h1 className="text-3xl font-semibold text-white">My profile</h1>
           <p className="text-sm text-sky-100">
             Manage your orders, favorites, and loyalty in one place.
           </p>
@@ -63,18 +115,38 @@ function AccountContent() {
 
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center justify-between text-sm font-semibold text-white">
-                <span>Loyalty: {orderCount} / 5 orders</span>
+                <span>Loyalty: {clampedOrderCount} / 5 orders</span>
                 <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-200">
                   Coming soon
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-white/10">
-                <div
-                  className="h-2 rounded-full bg-gradient-to-r from-sky-400 to-cyan-300"
-                  style={{ width: "0%" }}
-                />
+              <div className="flex items-center gap-2">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <span
+                    key={index}
+                    className={`h-2 w-6 rounded-full border ${
+                      index < clampedOrderCount
+                        ? "border-sky-200/80 bg-gradient-to-r from-sky-400 to-cyan-300"
+                        : "border-white/15 bg-white/10"
+                    }`}
+                  />
+                ))}
               </div>
               <p className="text-xs text-sky-200">Reward: 8% after 5 orders</p>
+              <div className="space-y-2 text-xs text-sky-100">
+                <div className="flex items-center gap-2">
+                  <ShoppingCartIcon />
+                  <span>Place 5 orders to unlock rewards.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <BadgePercentIcon />
+                  <span>After your 5th order, you get 8% off.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StarIcon />
+                  <span>Discount applies automatically when available.</span>
+                </div>
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

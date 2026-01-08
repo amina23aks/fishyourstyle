@@ -223,6 +223,23 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           updatedAt: FieldValue.serverTimestamp(),
         };
 
+        const shouldCountLoyalty =
+          nextStatus === "delivered" &&
+          previousStatus !== "delivered" &&
+          !orderData.loyaltyCounted &&
+          typeof orderData.userId === "string" &&
+          orderData.userId.length > 0;
+
+        if (shouldCountLoyalty) {
+          const userRef = db.collection("users").doc(orderData.userId);
+          transaction.set(
+            userRef,
+            { orderCount: FieldValue.increment(1) },
+            { merge: true }
+          );
+          orderUpdate.loyaltyCounted = true;
+        }
+
         if (nextStatus === "cancelled") {
           orderUpdate.cancelledAt = FieldValue.serverTimestamp();
         }

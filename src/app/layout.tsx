@@ -46,7 +46,7 @@ export default function RootLayout({
                 <FavoritesProvider>
                   <CartProvider>
                     <OceanBackdrop />
-                    <div className="relative z-10 flex min-h-screen flex-col overflow-x-hidden">
+                    <div className="relative z-10 flex min-h-screen flex-col overflow-x-hidden pt-20">
                       <Navbar />
                       <main className="flex-1">{children}</main>
                       <Footer />
