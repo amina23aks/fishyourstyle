@@ -214,12 +214,10 @@ export default function OrdersList() {
       <div className="space-y-6">
         {successBanner}
         <div className="mx-auto max-w-lg rounded-2xl border border-white/20 bg-white/10 px-6 py-10 text-center text-sm shadow-sm shadow-sky-900/30 backdrop-blur sm:text-base">
-          <p className="mb-2 font-medium">
-            سجّل دخول بنفس الإيميل الذي استخدمته في طلباتك لتظهر هنا.
-          </p>
-          <p className="text-white/60">
-            Log in with the same email you used for your orders to see them here.
-          </p>
+          <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/10">
+            <Image src="/myorder.png" alt="My orders" width={96} height={96} className="object-contain" />
+          </div>
+          <p className="mb-2 font-medium text-white">Sign in to view your orders.</p>
           <div className="mt-6 flex justify-center">
             <button
               type="button"
