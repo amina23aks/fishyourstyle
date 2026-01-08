@@ -42,8 +42,11 @@ function AccountContent() {
   const { user, loading } = useAuth();
   const { openModal } = useAuthModal();
   const displayName = user?.displayName || "Customer";
-  const [orderCount, setOrderCount] = useState(0);
-  const clampedOrderCount = useMemo(() => Math.min(Math.max(orderCount, 0), 5), [orderCount]);
+  const [orderCount, setOrderCount] = useState<number | null>(null);
+  const clampedOrderCount = useMemo(
+    () => Math.min(Math.max(orderCount ?? 0, 0), 5),
+    [orderCount]
+  );
 
   useEffect(() => {
     if (!user) {
@@ -57,7 +60,7 @@ function AccountContent() {
     const userRef = doc(db, "users", user.uid);
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
       const data = snapshot.data();
-      const count = typeof data?.orderCount === "number" ? data.orderCount : 0;
+      const count = typeof data?.orderCount === "number" ? data.orderCount : null;
       setOrderCount(count);
     });
 
@@ -119,7 +122,7 @@ function AccountContent() {
               </div>
               {process.env.NODE_ENV === "development" && user ? (
                 <p className="text-[11px] text-sky-200/80">
-                  Debug: uid={user.uid}, orderCount={orderCount}
+                  Debug uid: {user.uid} | orderCount: {orderCount ?? "missing"}
                 </p>
               ) : null}
               <div className="flex items-center gap-2">
