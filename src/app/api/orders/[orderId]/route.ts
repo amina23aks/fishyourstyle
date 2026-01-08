@@ -206,6 +206,18 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
         const orderData = orderSnapshot.data() ?? {};
         const previousStatus = typeof orderData.status === "string" ? orderData.status : "pending";
+        const normalizedNextStatus = nextStatus.toLowerCase();
+        const normalizedPreviousStatus = previousStatus.toLowerCase();
+        const orderUserId =
+          typeof orderData.userId === "string" ? orderData.userId : null;
+        const alreadyCounted = Boolean(orderData.loyaltyCounted);
+
+        console.log("[orders][loyalty] status update", {
+          orderId,
+          newStatus: nextStatus,
+          orderUserId,
+          loyaltyCounted: alreadyCounted,
+        });
 
         const summaryRef = db.doc("adminStats/summary");
         const summarySnapshot = await transaction.get(summaryRef);
@@ -224,20 +236,26 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         };
 
         const shouldCountLoyalty =
-          nextStatus === "delivered" &&
-          previousStatus !== "delivered" &&
-          !orderData.loyaltyCounted &&
-          typeof orderData.userId === "string" &&
-          orderData.userId.length > 0;
+          normalizedNextStatus === "delivered" &&
+          normalizedPreviousStatus !== "delivered" &&
+          !alreadyCounted &&
+          Boolean(orderUserId);
 
         if (shouldCountLoyalty) {
-          const userRef = db.collection("users").doc(orderData.userId);
+          const userRef = db.collection("users").doc(orderUserId ?? "");
+          console.log("[orders][loyalty] incrementing user orderCount", {
+            userDocPath: `users/${orderUserId}`,
+          });
           transaction.set(
             userRef,
             { orderCount: FieldValue.increment(1) },
             { merge: true }
           );
           orderUpdate.loyaltyCounted = true;
+        } else if (!orderUserId && normalizedNextStatus === "delivered") {
+          console.log("[orders][loyalty] missing userId, skipping increment", {
+            orderId,
+          });
         }
 
         if (nextStatus === "cancelled") {

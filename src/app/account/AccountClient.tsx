@@ -117,6 +117,11 @@ function AccountContent() {
               <div className="flex items-center justify-between text-sm font-semibold text-white">
                 <span>Loyalty: {clampedOrderCount} / 5 orders</span>
               </div>
+              {process.env.NODE_ENV === "development" && user ? (
+                <p className="text-[11px] text-sky-200/80">
+                  Debug: uid={user.uid}, orderCount={orderCount}
+                </p>
+              ) : null}
               <div className="flex items-center gap-2">
                 {Array.from({ length: 5 }).map((_, index) => {
                   const isActive = index < clampedOrderCount;
