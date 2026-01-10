@@ -159,12 +159,20 @@ export async function POST(request: NextRequest) {
       createdAt: _ignoredCreatedAt,
       updatedAt: _ignoredUpdatedAt,
       cancelledAt: _ignoredCancelledAt,
+      totalBeforeDiscount: _ignoredTotalBeforeDiscount,
+      discountType: _ignoredDiscountType,
+      discountPercent: _ignoredDiscountPercent,
+      discountAmount: _ignoredDiscountAmount,
       ...rest
     } = rawBody;
     void _ignoredUserId;
     void _ignoredCreatedAt;
     void _ignoredUpdatedAt;
     void _ignoredCancelledAt;
+    void _ignoredTotalBeforeDiscount;
+    void _ignoredDiscountType;
+    void _ignoredDiscountPercent;
+    void _ignoredDiscountAmount;
 
     if (!validateOrder(rest)) {
       return NextResponse.json(
@@ -211,7 +219,15 @@ export async function POST(request: NextRequest) {
     };
     const todayKey = dateKeyInTZ(new Date(), "Africa/Algiers");
     const weekKey = weekKeyInTZ(new Date(), "Africa/Algiers");
-    const orderTotal = typeof orderToSave.total === "number" ? orderToSave.total : 0;
+    const orderSubtotal = typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : 0;
+    const orderShippingCost =
+      typeof orderToSave.shippingCost === "number" ? orderToSave.shippingCost : 0;
+    const orderTotalBeforeDiscount = orderSubtotal + orderShippingCost;
+    const defaultLoyaltyPercent = 8;
+    let loyaltyDiscountPercent = 0;
+    let loyaltyDiscountAmount = 0;
+    let loyaltyApplied = false;
+    let orderTotal = 0;
 
     console.log("[api/orders] Order payload prepared", {
       hasUser: Boolean(orderToSave.userId),
@@ -249,6 +265,11 @@ export async function POST(request: NextRequest) {
       const dailyRef = db.collection("adminStatsDaily").doc(todayKey);
       const dailySnapshot = await transaction.get(dailyRef);
       const dailyData = dailySnapshot.data() ?? {};
+      const userRef = orderToSave.userId
+        ? db.collection("users").doc(orderToSave.userId)
+        : null;
+      const userSnapshot = userRef ? await transaction.get(userRef) : null;
+      const userData = userSnapshot?.data();
 
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
@@ -272,6 +293,21 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      if (userData) {
+        const rewardAvailable = Boolean(userData.loyaltyRewardAvailable);
+        const rewardPercent =
+          typeof userData.loyaltyRewardPercent === "number"
+            ? userData.loyaltyRewardPercent
+            : defaultLoyaltyPercent;
+        if (rewardAvailable && rewardPercent > 0) {
+          loyaltyDiscountPercent = rewardPercent;
+          loyaltyDiscountAmount = Math.round((orderSubtotal * rewardPercent) / 100);
+          loyaltyApplied = loyaltyDiscountAmount > 0;
+        }
+      }
+
+      orderTotal = Math.max(0, orderSubtotal + orderShippingCost - loyaltyDiscountAmount);
+
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
         const data = productSnapshots.get(productId);
@@ -287,6 +323,16 @@ export async function POST(request: NextRequest) {
             inStock: nextStock > 0,
           });
         }
+      }
+      if (loyaltyApplied && userRef) {
+        transaction.set(
+          userRef,
+          {
+            loyaltyRewardAvailable: false,
+            loyaltyRedeemedCount: FieldValue.increment(1),
+          },
+          { merge: true }
+        );
       }
 
       const existingCategoryTotals =
@@ -340,7 +386,20 @@ export async function POST(request: NextRequest) {
 
       const orderRef = ordersCollection.doc();
       createdOrderId = orderRef.id;
-      orderDataForFirestore = { ...orderDataForFirestore, items: itemsWithMetadata };
+      orderDataForFirestore = {
+        ...orderDataForFirestore,
+        items: itemsWithMetadata,
+        totalBeforeDiscount: orderTotalBeforeDiscount,
+        total: orderTotal,
+      };
+      if (loyaltyApplied) {
+        orderDataForFirestore = {
+          ...orderDataForFirestore,
+          discountType: "LOYALTY",
+          discountPercent: loyaltyDiscountPercent,
+          discountAmount: loyaltyDiscountAmount,
+        };
+      }
       transaction.set(orderRef, orderDataForFirestore);
 
       transaction.set(
@@ -403,7 +462,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ orderId: createdOrderId }, { status: 201 });
+    return NextResponse.json(
+      {
+        orderId: createdOrderId,
+        totals: {
+          subtotal: orderSubtotal,
+          shippingCost: orderShippingCost,
+          discountPercent: loyaltyApplied ? loyaltyDiscountPercent : 0,
+          discountAmount: loyaltyApplied ? loyaltyDiscountAmount : 0,
+          totalBeforeDiscount: orderTotalBeforeDiscount,
+          total: orderTotal,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("[api/orders] POST error", error);
 
@@ -466,6 +538,10 @@ function firestoreDocToOrder(docId: string, data: DocumentData): Order {
     notes: data.notes,
     subtotal: data.subtotal,
     shippingCost: data.shippingCost,
+    totalBeforeDiscount: data.totalBeforeDiscount,
+    discountType: data.discountType,
+    discountPercent: data.discountPercent,
+    discountAmount: data.discountAmount,
     total: data.total,
     paymentMethod: data.paymentMethod || "COD",
     status: (data.status || "pending") as OrderStatus,

@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { doc, onSnapshot } from "firebase/firestore";
 
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { useCart } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
 import { useFavorites } from "@/hooks/use-favorites";
+import { getDb } from "@/lib/firebaseClient";
 
 import CartDrawer from "./cart/cart-drawer";
 
@@ -83,6 +85,7 @@ export function Navbar() {
   const [isBumping, setIsBumping] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,6 +100,27 @@ export function Navbar() {
     setIsAccountMenuOpen(false);
     setIsDrawerOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!user) {
+      setLoyaltyRewardAvailable(false);
+      return;
+    }
+    const db = getDb();
+    if (!db) return;
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(
+      userRef,
+      (snapshot) => {
+        const data = snapshot.data();
+        setLoyaltyRewardAvailable(Boolean(data?.loyaltyRewardAvailable));
+      },
+      (error) => {
+        console.error("[navbar] user doc snapshot error", error);
+      }
+    );
+    return () => unsubscribe();
+  }, [user]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -238,11 +262,14 @@ export function Navbar() {
                 onClick={toggleAccountMenu}
                 aria-haspopup="menu"
                 aria-expanded={isAccountMenuOpen}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Account"
                 disabled={authLoading}
               >
                 <AccountIcon />
+                {loyaltyRewardAvailable ? (
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
+                ) : null}
                 <span className="sr-only">Account menu</span>
               </button>
             ) : (
@@ -268,7 +295,7 @@ export function Navbar() {
                     <div className="p-3">
                       <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-sky-100">
                         <span className="font-semibold">
-                          {user.email ?? "My account"}
+                          {user.email ?? "My profile"}
                         </span>
                       </div>
                       <div className="my-3 h-px bg-white/10" aria-hidden />
@@ -279,7 +306,12 @@ export function Navbar() {
                           role="menuitem"
                           onClick={() => setIsAccountMenuOpen(false)}
                         >
-                          My account
+                          <span className="flex items-center gap-2">
+                            My profile
+                            {loyaltyRewardAvailable ? (
+                              <span className="h-2 w-2 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
+                            ) : null}
+                          </span>
                         </Link>
                         <Link
                           href="/orders"

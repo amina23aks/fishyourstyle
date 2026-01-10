@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { doc, onSnapshot } from "firebase/firestore";
 
 import { useCart, type CartItem } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
@@ -19,6 +20,8 @@ import {
 } from "@/data/shipping";
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
+import { getDb } from "@/lib/firebaseClient";
+import { submitOrder } from "@/lib/ordersClient";
 
 type CartDrawerProps = {
   open: boolean;
@@ -47,6 +50,8 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ orderId: string } | null>(null);
   const viewCartTrackedRef = useRef(false);
+  const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
+  const [loyaltyRewardPercent, setLoyaltyRewardPercent] = useState(8);
 
   const hasItems = items.length > 0;
 
@@ -57,10 +62,16 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     return deliveryMode === "home" ? wilayaData.home : wilayaData.desk;
   }, [deliveryMode, form.wilaya]);
 
+  const loyaltyDiscountAmount = useMemo(() => {
+    if (!user || !loyaltyRewardAvailable) return 0;
+    if (loyaltyRewardPercent <= 0) return 0;
+    return Math.round((totals.subtotal * loyaltyRewardPercent) / 100);
+  }, [loyaltyRewardAvailable, loyaltyRewardPercent, totals.subtotal, user]);
+
   const grandTotal = useMemo(() => {
-    if (shippingPrice == null) return totals.subtotal;
-    return totals.subtotal + shippingPrice;
-  }, [shippingPrice, totals.subtotal]);
+    const shippingTotal = shippingPrice ?? 0;
+    return Math.max(0, totals.subtotal + shippingTotal - loyaltyDiscountAmount);
+  }, [loyaltyDiscountAmount, shippingPrice, totals.subtotal]);
 
   useEffect(() => {
     if (user?.email) {
@@ -73,6 +84,31 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             },
       );
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setLoyaltyRewardAvailable(false);
+      setLoyaltyRewardPercent(8);
+      return;
+    }
+    const db = getDb();
+    if (!db) return;
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(
+      userRef,
+      (snapshot) => {
+        const data = snapshot.data();
+        setLoyaltyRewardAvailable(Boolean(data?.loyaltyRewardAvailable));
+        setLoyaltyRewardPercent(
+          typeof data?.loyaltyRewardPercent === "number" ? data.loyaltyRewardPercent : 8
+        );
+      },
+      (error) => {
+        console.error("[cart-drawer] user doc snapshot error", error);
+      }
+    );
+    return () => unsubscribe();
   }, [user]);
 
   const handleDecrease = (item: CartItem) => {
@@ -161,13 +197,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       };
 
       // Send to API
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newOrder),
-      });
+      const response = await submitOrder(newOrder, user ?? null);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -404,6 +434,11 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <span>Quick delivery info</span>
                       <span className="text-xs text-sky-200">COD</span>
                     </div>
+                    {loyaltyRewardAvailable ? (
+                      <p className="text-xs text-sky-200">
+                        Your order is now discounted by 8%.
+                      </p>
+                    ) : null}
                     <p className="text-xs text-sky-200">
                       Shipping calculated at checkout. Choose A domicile or Stop Desk for delivery.
                     </p>
@@ -530,6 +565,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                           {shippingPrice != null ? formatCurrency(shippingPrice) : "Select wilaya"}
                         </span>
                       </div>
+                      {loyaltyRewardAvailable && loyaltyDiscountAmount > 0 ? (
+                        <div className="flex items-center justify-between text-xs text-emerald-200">
+                          <span>Loyalty discount ({loyaltyRewardPercent}%)</span>
+                          <span className="tabular-nums text-emerald-100">
+                            -{formatCurrency(loyaltyDiscountAmount)}
+                          </span>
+                        </div>
+                      ) : null}
                       <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm font-semibold text-white">
                         <span>Total</span>
                         <span className="tabular-nums">{formatCurrency(grandTotal)}</span>

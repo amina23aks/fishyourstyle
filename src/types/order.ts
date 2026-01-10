@@ -86,6 +86,14 @@ export type Order = {
   subtotal: number;
   /** Shipping cost */
   shippingCost: number;
+  /** Total before any discount */
+  totalBeforeDiscount?: number;
+  /** Discount type (if any) */
+  discountType?: "LOYALTY";
+  /** Discount percent applied (if any) */
+  discountPercent?: number;
+  /** Discount amount applied (if any) */
+  discountAmount?: number;
   /** Grand total (subtotal + shipping) */
   total: number;
   /** Payment method */
