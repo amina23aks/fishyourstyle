@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useAuth } from "@/context/auth";
+import { useAuthModal } from "@/context/auth-modal";
 import { useCart } from "@/context/cart";
 import { AnimatePresence, motion } from "@/lib/motion";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -74,6 +75,7 @@ function HeartIcon() {
 export function Navbar() {
   const pathname = usePathname();
   const { user, loading: authLoading, signOut } = useAuth();
+  const { openModal } = useAuthModal();
   const { totalQuantity, lastAddedAt } = useCart();
   const { items: favoriteItems } = useFavorites();
   const isFavoritesActive = pathname?.startsWith("/favorites");
@@ -144,8 +146,12 @@ export function Navbar() {
     }
   };
 
+  const handleOpenAuthModal = () => {
+    openModal({ returnTo: pathname || "/" });
+  };
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href="/" className="group flex items-center gap-3">
@@ -226,18 +232,28 @@ export function Navbar() {
             <span className="sr-only">Cart drawer</span>
           </motion.button>
           <div className="relative" ref={accountMenuRef}>
-            <button
-              type="button"
-              onClick={toggleAccountMenu}
-              aria-haspopup="menu"
-              aria-expanded={isAccountMenuOpen}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
-              aria-label="Account"
-              disabled={authLoading}
-            >
-              <AccountIcon />
-              <span className="sr-only">Account menu</span>
-            </button>
+            {user ? (
+              <button
+                type="button"
+                onClick={toggleAccountMenu}
+                aria-haspopup="menu"
+                aria-expanded={isAccountMenuOpen}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Account"
+                disabled={authLoading}
+              >
+                <AccountIcon />
+                <span className="sr-only">Account menu</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleOpenAuthModal}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-white/25 bg-white/15 px-4 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                Sign in
+              </button>
+            )}
             <AnimatePresence>
               {isAccountMenuOpen && !authLoading && (
                 <motion.div
@@ -283,19 +299,7 @@ export function Navbar() {
                         </button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="p-4">
-                      <p className="mb-2 text-xs uppercase tracking-wide text-sky-200/70">Welcome</p>
-                      <Link
-                        href="/account"
-                        className="inline-flex w-full items-center justify-center rounded-xl bg-white/90 px-3 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-white"
-                        role="menuitem"
-                        onClick={() => setIsAccountMenuOpen(false)}
-                      >
-                        Sign in / Create account
-                      </Link>
-                    </div>
-                  )}
+                  ) : null}
                 </motion.div>
               )}
             </AnimatePresence>

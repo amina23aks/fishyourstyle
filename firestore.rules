@@ -46,5 +46,13 @@ service cloud.firestore {
     match /adminStatsTop/{id} {
       allow read, write: if isAdmin();
     }
+
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if isAdmin() ||
+        (request.auth != null &&
+          request.auth.uid == uid &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(["orderCount"]));
+    }
   }
 }
