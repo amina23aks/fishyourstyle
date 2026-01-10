@@ -49,8 +49,8 @@ function AccountContent() {
   const [loyaltyCycleSize, setLoyaltyCycleSize] = useState(5);
   const progress = useMemo(() => {
     const safeCount = Math.max(orderCount ?? 0, 0);
-    return Math.max(0, Math.min(safeCount, 5));
-  }, [orderCount]);
+    return Math.max(0, Math.min(safeCount, loyaltyCycleSize));
+  }, [orderCount, loyaltyCycleSize]);
 
   useEffect(() => {
     if (!user) {
@@ -162,7 +162,7 @@ function AccountContent() {
 
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center justify-between text-sm font-semibold text-white">
-                <span>Loyalty: {progress} / 5 orders</span>
+                <span>Loyalty: {progress} / {loyaltyCycleSize} orders</span>
               </div>
               {process.env.NODE_ENV !== "production" && user ? (
                 <p className="text-[11px] text-sky-200/80">
@@ -185,7 +185,7 @@ function AccountContent() {
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    {Array.from({ length: 5 }).map((_, index) => {
+                    {Array.from({ length: loyaltyCycleSize }).map((_, index) => {
                       const circleIndex = index + 1;
                       const isActive = circleIndex <= progress;
                       return (
@@ -207,16 +207,16 @@ function AccountContent() {
                     })}
                   </div>
                   <p className="text-xs text-sky-200">
-                    Reward: {loyaltyRewardPercent}% after 5 orders
+                    Reward: {loyaltyRewardPercent}% after {loyaltyCycleSize} orders
                   </p>
                   <div className="space-y-2 text-xs text-sky-100">
                     <div className="flex items-center gap-2">
                       <ShoppingCartIcon />
-                      <span>Place 5 orders to unlock rewards.</span>
+                      <span>Place {loyaltyCycleSize} orders to unlock rewards.</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <BadgePercentIcon />
-                      <span>After your 5th order, you get {loyaltyRewardPercent}% off.</span>
+                      <span>After your {loyaltyCycleSize}th order, you get {loyaltyRewardPercent}% off.</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <StarIcon />
