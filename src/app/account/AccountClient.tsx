@@ -138,7 +138,8 @@ function AccountContent() {
               </div>
               {process.env.NODE_ENV === "development" && user ? (
                 <p className="text-[11px] text-sky-200/80">
-                  Debug uid: {user.uid} | orderCount: {orderCount ?? "missing"}
+                  Debug uid: {user.uid} | orderCount: {orderCount ?? "missing"} | rewardAvailable:{" "}
+                  {loyaltyRewardAvailable ? "true" : "false"}
                 </p>
               ) : null}
               {loyaltyRewardAvailable ? (

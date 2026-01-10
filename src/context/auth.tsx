@@ -20,6 +20,7 @@ import {
 } from "react";
 
 import { getAuthInstance } from "@/lib/firebaseClient";
+import { ensureUserDoc } from "@/lib/ensureUserDoc";
 
 type AuthContextType = {
   user: User | null;
@@ -57,6 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
+      if (firebaseUser?.uid && typeof window !== "undefined") {
+        const storageKey = `ensuredUserDoc_${firebaseUser.uid}`;
+        if (!window.localStorage.getItem(storageKey)) {
+          void ensureUserDoc(firebaseUser.uid)
+            .then(() => {
+              window.localStorage.setItem(storageKey, "1");
+            })
+            .catch((error) => {
+              console.error("[auth] Failed to ensure user doc", error);
+            });
+        }
+      }
     });
 
     return () => unsubscribe();

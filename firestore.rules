@@ -15,10 +15,15 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Users: owner can READ, only admin can WRITE (secure)
+    // Users: owner can READ/CREATE, admin can WRITE, owner can only touch updatedAt
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if isAdmin();
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if isAdmin()
+        || (request.auth != null
+          && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(["updatedAt"]));
+      allow delete: if isAdmin();
     }
 
     // Products / Categories / Themes

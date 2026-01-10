@@ -248,6 +248,19 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           });
           const userSnapshot = await transaction.get(userRef);
           const userData = userSnapshot.data() ?? {};
+          if (!userSnapshot.exists) {
+            transaction.set(
+              userRef,
+              {
+                orderCount: 0,
+                loyaltyRewardAvailable: false,
+                loyaltyRewardPercent: 8,
+                createdAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp(),
+              },
+              { merge: true }
+            );
+          }
           const currentOrderCount = Number(userData.orderCount ?? 0);
           const nextOrderCount = currentOrderCount + 1;
           const loyaltyRewardAvailable = Boolean(userData.loyaltyRewardAvailable);
