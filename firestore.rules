@@ -1,61 +1,56 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
+match /databases/{database}/documents {
+function isAdmin() {
+return request.auth != null
+&& request.auth.token.email in ["fishyourstyle.supp@gmail.com
+"];
+}
 
-    function isAdmin() {
-      return request.auth != null
-        && request.auth.token.email in ["fishyourstyle.supp@gmail.com"];
-    }
+match /adminStats/{id} { allow read, write: if isAdmin(); }
+match /adminStatsDaily/{id} { allow read, write: if isAdmin(); }
 
-    // Admin-only stats
-    match /adminStats/{id} {
-      allow read, write: if isAdmin();
-    }
-    match /adminStatsDaily/{id} {
-      allow read, write: if isAdmin();
-    }
+match /users/{uid} {
+  allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+  allow create: if request.auth != null
+    && request.auth.uid == uid
+    && request.resource.data.keys().hasOnly([
+      "orderCount",
+      "loyaltyRewardAvailable",
+      "loyaltyRewardPercent",
+      "createdAt",
+      "updatedAt"
+    ])
+    && request.resource.data.orderCount is int
+    && request.resource.data.orderCount >= 0
+    && request.resource.data.loyaltyRewardAvailable is bool
+    && request.resource.data.loyaltyRewardPercent is int
+    && request.resource.data.loyaltyRewardPercent >= 0
+    && request.resource.data.loyaltyRewardPercent <= 50;
 
-    // Users: owner can READ/CREATE, admin can WRITE, owner can only touch updatedAt
-    match /users/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow create: if request.auth != null && request.auth.uid == uid;
-      allow update: if isAdmin()
-        || (request.auth != null
-          && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).changedKeys().hasOnly(["updatedAt"]));
-      allow delete: if isAdmin();
-    }
+  allow update: if isAdmin()
+    || (
+      request.auth != null
+      && request.auth.uid == uid
+      && request.resource.data.diff(resource.data).changedKeys().hasOnly(["updatedAt"])
+    );
+  allow delete: if isAdmin();
+}
 
-    // Products / Categories / Themes
-    match /products/{id} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    match /categories/{id} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    match /designThemes/{id} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
+match /products/{id} { allow read: if true; allow create, update, delete: if isAdmin(); }
+match /categories/{id} { allow read: if true; allow create, update, delete: if isAdmin(); }
+match /designThemes/{id} { allow read: if true; allow create, update, delete: if isAdmin(); }
 
-    // Orders
-    match /orders/{id} {
-      allow create: if false;
+match /orders/{id} {
+  allow create: if false;
+  allow read: if isAdmin()
+    || (request.auth != null && resource.data.userId == request.auth.uid)
+    || (request.auth != null && resource.data.customerEmail == request.auth.token.email);
+  allow update, delete: if isAdmin();
+}
 
-      // Admin can read everything, user can read only their orders (by userId OR email)
-      allow read: if isAdmin()
-        || (request.auth != null && resource.data.userId == request.auth.uid)
-        || (request.auth != null && resource.data.customerEmail == request.auth.token.email);
+match /contactMessages/{id} { allow create: if true; allow read, update, delete: if isAdmin(); }
 
-      allow update, delete: if isAdmin();
-    }
 
-    // Contact messages
-    match /contactMessages/{id} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
-    }
-  }
+}
 }

@@ -6,7 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import PageShell from "@/components/PageShell";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDb } from "@/lib/firebaseClient";
 
 function ShoppingCartIcon() {
@@ -43,17 +43,19 @@ function AccountContent() {
   const { openModal } = useAuthModal();
   const displayName = user?.displayName || "Customer";
   const [orderCount, setOrderCount] = useState<number | null>(null);
+  const [docExists, setDocExists] = useState<boolean | null>(null);
   const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
   const [loyaltyRewardPercent, setLoyaltyRewardPercent] = useState(8);
   const [loyaltyCycleSize, setLoyaltyCycleSize] = useState(5);
-  const progressInCycle = useMemo(() => {
+  const progress = useMemo(() => {
     const safeCount = Math.max(orderCount ?? 0, 0);
-    return safeCount % loyaltyCycleSize;
-  }, [orderCount, loyaltyCycleSize]);
+    return Math.max(0, Math.min(safeCount, 5));
+  }, [orderCount]);
 
   useEffect(() => {
     if (!user) {
-      setOrderCount(0);
+      setOrderCount(null);
+      setDocExists(null);
       setLoyaltyRewardAvailable(false);
       setLoyaltyRewardPercent(8);
       setLoyaltyCycleSize(5);
@@ -64,21 +66,47 @@ function AccountContent() {
     if (!db) return;
 
     const userRef = doc(db, "users", user.uid);
-    const unsubscribe = onSnapshot(userRef, (snapshot) => {
-      const data = snapshot.data();
-      const count = typeof data?.orderCount === "number" ? data.orderCount : null;
-      const rewardAvailable = Boolean(data?.loyaltyRewardAvailable);
-      const rewardPercent =
-        typeof data?.loyaltyRewardPercent === "number" ? data.loyaltyRewardPercent : 8;
-      const cycleSize =
-        typeof data?.loyaltyCycleSize === "number" && data.loyaltyCycleSize > 0
-          ? data.loyaltyCycleSize
-          : 5;
-      setOrderCount(count);
-      setLoyaltyRewardAvailable(rewardAvailable);
-      setLoyaltyRewardPercent(rewardPercent);
-      setLoyaltyCycleSize(cycleSize);
-    });
+    const unsubscribe = onSnapshot(
+      userRef,
+      async (snapshot) => {
+        if (!snapshot.exists()) {
+          setDocExists(false);
+          try {
+            await setDoc(
+              userRef,
+              {
+                orderCount: 0,
+                loyaltyRewardAvailable: false,
+                loyaltyRewardPercent: 8,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              },
+              { merge: true }
+            );
+          } catch (error) {
+            console.error("[account] Failed to create user doc", error);
+          }
+          return;
+        }
+        setDocExists(true);
+        const data = snapshot.data();
+        const count = typeof data?.orderCount === "number" ? data.orderCount : null;
+        const rewardAvailable = Boolean(data?.loyaltyRewardAvailable);
+        const rewardPercent =
+          typeof data?.loyaltyRewardPercent === "number" ? data.loyaltyRewardPercent : 8;
+        const cycleSize =
+          typeof data?.loyaltyCycleSize === "number" && data.loyaltyCycleSize > 0
+            ? data.loyaltyCycleSize
+            : 5;
+        setOrderCount(count);
+        setLoyaltyRewardAvailable(rewardAvailable);
+        setLoyaltyRewardPercent(rewardPercent);
+        setLoyaltyCycleSize(cycleSize);
+      },
+      (error) => {
+        console.error("[account] user doc snapshot error", error);
+      }
+    );
 
     // Dev helper: reset loyalty by setting users/{uid}.orderCount = 0 in Firestore.
     return () => unsubscribe();
@@ -134,12 +162,12 @@ function AccountContent() {
 
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center justify-between text-sm font-semibold text-white">
-                <span>Loyalty: {progressInCycle} / {loyaltyCycleSize} orders</span>
+                <span>Loyalty: {progress} / 5 orders</span>
               </div>
-              {process.env.NODE_ENV === "development" && user ? (
+              {process.env.NODE_ENV !== "production" && user ? (
                 <p className="text-[11px] text-sky-200/80">
-                  Debug uid: {user.uid} | orderCount: {orderCount ?? "missing"} | rewardAvailable:{" "}
-                  {loyaltyRewardAvailable ? "true" : "false"}
+                  Debug: uid={user.uid} | orderCount={orderCount ?? "missing"} | docExists=
+                  {docExists === null ? "unknown" : docExists ? "true" : "false"} | path=users/{user.uid}
                 </p>
               ) : null}
               {loyaltyRewardAvailable ? (
@@ -157,8 +185,9 @@ function AccountContent() {
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    {Array.from({ length: loyaltyCycleSize }).map((_, index) => {
-                      const isActive = index < progressInCycle;
+                    {Array.from({ length: 5 }).map((_, index) => {
+                      const circleIndex = index + 1;
+                      const isActive = circleIndex <= progress;
                       return (
                         <span
                           key={index}
@@ -178,16 +207,16 @@ function AccountContent() {
                     })}
                   </div>
                   <p className="text-xs text-sky-200">
-                    Reward: {loyaltyRewardPercent}% after {loyaltyCycleSize} orders
+                    Reward: {loyaltyRewardPercent}% after 5 orders
                   </p>
                   <div className="space-y-2 text-xs text-sky-100">
                     <div className="flex items-center gap-2">
                       <ShoppingCartIcon />
-                      <span>Place {loyaltyCycleSize} orders to unlock rewards.</span>
+                      <span>Place 5 orders to unlock rewards.</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <BadgePercentIcon />
-                      <span>After your {loyaltyCycleSize}th order, you get {loyaltyRewardPercent}% off.</span>
+                      <span>After your 5th order, you get {loyaltyRewardPercent}% off.</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <StarIcon />
