@@ -246,11 +246,21 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           console.log("[orders][loyalty] incrementing user orderCount", {
             userDocPath: `users/${orderUserId}`,
           });
-          transaction.set(
-            userRef,
-            { orderCount: FieldValue.increment(1) },
-            { merge: true }
-          );
+          const userSnapshot = await transaction.get(userRef);
+          const userData = userSnapshot.data() ?? {};
+          const currentOrderCount = Number(userData.orderCount ?? 0);
+          const nextOrderCount = currentOrderCount + 1;
+          const loyaltyRewardAvailable = Boolean(userData.loyaltyRewardAvailable);
+          const shouldUnlockReward = nextOrderCount % 5 === 0 && !loyaltyRewardAvailable;
+          const userUpdate: Record<string, unknown> = {
+            orderCount: nextOrderCount,
+          };
+          if (shouldUnlockReward) {
+            userUpdate.loyaltyRewardAvailable = true;
+            userUpdate.loyaltyRewardPercent = 8;
+            userUpdate.loyaltyCycleSize = 5;
+          }
+          transaction.set(userRef, userUpdate, { merge: true });
           orderUpdate.loyaltyCounted = true;
         } else if (!orderUserId && normalizedNextStatus === "delivered") {
           console.log("[orders][loyalty] missing userId, skipping increment", {

@@ -159,12 +159,18 @@ export async function POST(request: NextRequest) {
       createdAt: _ignoredCreatedAt,
       updatedAt: _ignoredUpdatedAt,
       cancelledAt: _ignoredCancelledAt,
+      discountType: _ignoredDiscountType,
+      discountPercent: _ignoredDiscountPercent,
+      discountAmount: _ignoredDiscountAmount,
       ...rest
     } = rawBody;
     void _ignoredUserId;
     void _ignoredCreatedAt;
     void _ignoredUpdatedAt;
     void _ignoredCancelledAt;
+    void _ignoredDiscountType;
+    void _ignoredDiscountPercent;
+    void _ignoredDiscountAmount;
 
     if (!validateOrder(rest)) {
       return NextResponse.json(
@@ -211,7 +217,14 @@ export async function POST(request: NextRequest) {
     };
     const todayKey = dateKeyInTZ(new Date(), "Africa/Algiers");
     const weekKey = weekKeyInTZ(new Date(), "Africa/Algiers");
-    const orderTotal = typeof orderToSave.total === "number" ? orderToSave.total : 0;
+    const orderSubtotal = typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : 0;
+    const orderShippingCost =
+      typeof orderToSave.shippingCost === "number" ? orderToSave.shippingCost : 0;
+    const defaultLoyaltyPercent = 8;
+    let loyaltyDiscountPercent = 0;
+    let loyaltyDiscountAmount = 0;
+    let loyaltyApplied = false;
+    let orderTotal = 0;
 
     console.log("[api/orders] Order payload prepared", {
       hasUser: Boolean(orderToSave.userId),
@@ -249,6 +262,32 @@ export async function POST(request: NextRequest) {
       const dailyRef = db.collection("adminStatsDaily").doc(todayKey);
       const dailySnapshot = await transaction.get(dailyRef);
       const dailyData = dailySnapshot.data() ?? {};
+      if (orderToSave.userId) {
+        const userRef = db.collection("users").doc(orderToSave.userId);
+        const userSnapshot = await transaction.get(userRef);
+        const userData = userSnapshot.data();
+        const rewardAvailable = Boolean(userData?.loyaltyRewardAvailable);
+        const rewardPercent =
+          typeof userData?.loyaltyRewardPercent === "number"
+            ? userData.loyaltyRewardPercent
+            : defaultLoyaltyPercent;
+        if (rewardAvailable && rewardPercent > 0) {
+          loyaltyDiscountPercent = rewardPercent;
+          loyaltyDiscountAmount = Math.round((orderSubtotal * rewardPercent) / 100);
+          loyaltyApplied = loyaltyDiscountAmount > 0;
+        }
+        if (loyaltyApplied) {
+          transaction.set(
+            userRef,
+            {
+              loyaltyRewardAvailable: false,
+              loyaltyRedeemedCount: FieldValue.increment(1),
+            },
+            { merge: true }
+          );
+        }
+      }
+      orderTotal = Math.max(0, orderSubtotal + orderShippingCost - loyaltyDiscountAmount);
 
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
@@ -340,7 +379,19 @@ export async function POST(request: NextRequest) {
 
       const orderRef = ordersCollection.doc();
       createdOrderId = orderRef.id;
-      orderDataForFirestore = { ...orderDataForFirestore, items: itemsWithMetadata };
+      orderDataForFirestore = {
+        ...orderDataForFirestore,
+        items: itemsWithMetadata,
+        total: orderTotal,
+      };
+      if (loyaltyApplied) {
+        orderDataForFirestore = {
+          ...orderDataForFirestore,
+          discountType: "LOYALTY",
+          discountPercent: loyaltyDiscountPercent,
+          discountAmount: loyaltyDiscountAmount,
+        };
+      }
       transaction.set(orderRef, orderDataForFirestore);
 
       transaction.set(
@@ -466,6 +517,9 @@ function firestoreDocToOrder(docId: string, data: DocumentData): Order {
     notes: data.notes,
     subtotal: data.subtotal,
     shippingCost: data.shippingCost,
+    discountType: data.discountType,
+    discountPercent: data.discountPercent,
+    discountAmount: data.discountAmount,
     total: data.total,
     paymentMethod: data.paymentMethod || "COD",
     status: (data.status || "pending") as OrderStatus,

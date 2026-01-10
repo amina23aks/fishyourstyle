@@ -8,6 +8,7 @@ import PageShell from "@/components/PageShell";
 import { normalizeCartItem, useCart } from "@/context/cart";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
+import { doc, onSnapshot } from "firebase/firestore";
 import {
   ECONOMIC_SHIPPING,
   getEconomicShippingByWilaya,
@@ -17,6 +18,7 @@ import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { normalizeProductStock } from "@/lib/stock";
+import { getDb } from "@/lib/firebaseClient";
 
 type CheckoutFormState = {
   fullName: string;
@@ -43,6 +45,8 @@ export default function CheckoutClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ orderId: string } | null>(null);
+  const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
+  const [loyaltyRewardPercent, setLoyaltyRewardPercent] = useState(8);
 
   const hasItems = items.length > 0;
 
@@ -53,10 +57,16 @@ export default function CheckoutClient() {
     return deliveryMode === "home" ? wilayaData.home : wilayaData.desk;
   }, [deliveryMode, form.wilaya]);
 
+  const loyaltyDiscountAmount = useMemo(() => {
+    if (!user || !loyaltyRewardAvailable) return 0;
+    if (loyaltyRewardPercent <= 0) return 0;
+    return Math.round((totals.subtotal * loyaltyRewardPercent) / 100);
+  }, [loyaltyRewardAvailable, loyaltyRewardPercent, totals.subtotal, user]);
+
   const grandTotal = useMemo(() => {
-    if (shippingPrice == null) return totals.subtotal;
-    return totals.subtotal + shippingPrice;
-  }, [shippingPrice, totals.subtotal]);
+    const shippingTotal = shippingPrice ?? 0;
+    return Math.max(0, totals.subtotal + shippingTotal - loyaltyDiscountAmount);
+  }, [loyaltyDiscountAmount, shippingPrice, totals.subtotal]);
 
   useEffect(() => {
     if (user?.email) {
@@ -69,6 +79,28 @@ export default function CheckoutClient() {
             },
       );
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setLoyaltyRewardAvailable(false);
+      setLoyaltyRewardPercent(8);
+      return;
+    }
+
+    const db = getDb();
+    if (!db) return;
+
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      const data = snapshot.data();
+      setLoyaltyRewardAvailable(Boolean(data?.loyaltyRewardAvailable));
+      setLoyaltyRewardPercent(
+        typeof data?.loyaltyRewardPercent === "number" ? data.loyaltyRewardPercent : 8
+      );
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   const handleChange = (field: keyof CheckoutFormState, value: string) => {
@@ -162,7 +194,9 @@ export default function CheckoutClient() {
       price: item.price,
     }));
     const analyticsTotal =
-      shippingPrice == null ? totals.subtotal : totals.subtotal + shippingPrice;
+      shippingPrice == null
+        ? totals.subtotal - loyaltyDiscountAmount
+        : totals.subtotal + shippingPrice - loyaltyDiscountAmount;
 
     trackBeginCheckout({
       value: analyticsTotal,
@@ -571,6 +605,12 @@ export default function CheckoutClient() {
                     {shippingPrice != null ? `${shippingPrice} DZD` : "Select wilaya"}
                   </span>
                 </div>
+                {loyaltyRewardAvailable && loyaltyDiscountAmount > 0 ? (
+                  <div className="flex items-center justify-between text-emerald-200">
+                    <span>Loyalty discount ({loyaltyRewardPercent}%)</span>
+                    <span className="tabular-nums">-{loyaltyDiscountAmount} DZD</span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between text-white font-semibold">
                   <span>Total</span>
                   <span className="tabular-nums">{grandTotal} DZD</span>
