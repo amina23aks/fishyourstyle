@@ -47,10 +47,13 @@ function AccountContent() {
   const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
   const [loyaltyRewardPercent, setLoyaltyRewardPercent] = useState(8);
   const [loyaltyCycleSize, setLoyaltyCycleSize] = useState(5);
-  const progress = useMemo(() => {
+  const cycleProgress = useMemo(() => {
     const safeCount = Math.max(orderCount ?? 0, 0);
-    return Math.max(0, Math.min(safeCount, loyaltyCycleSize));
+    if (loyaltyCycleSize <= 0) return 0;
+    return safeCount % loyaltyCycleSize;
   }, [orderCount, loyaltyCycleSize]);
+  const rewardUnlocked = Boolean(orderCount && orderCount > 0 && cycleProgress === 0);
+  const progress = rewardUnlocked ? loyaltyCycleSize : cycleProgress;
 
   useEffect(() => {
     if (!user) {
@@ -155,7 +158,12 @@ function AccountContent() {
         ) : (
           <section className="space-y-6 rounded-2xl border border-white/15 bg-slate-900/40 p-6 shadow-inner shadow-sky-900/30">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.3em] text-sky-200">My profile</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs uppercase tracking-[0.3em] text-sky-200">My profile</p>
+                {rewardUnlocked ? (
+                  <span className="h-2.5 w-2.5 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
+                ) : null}
+              </div>
               <h2 className="text-2xl font-semibold text-white">{displayName}</h2>
               <p className="text-sm text-sky-200">{user.email}</p>
             </div>
@@ -169,6 +177,11 @@ function AccountContent() {
                   Debug: uid={user.uid} | orderCount={orderCount ?? "missing"} | docExists=
                   {docExists === null ? "unknown" : docExists ? "true" : "false"} | path=users/{user.uid}
                 </p>
+              ) : null}
+              {rewardUnlocked ? (
+                <div className="rounded-xl border border-rose-200/60 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+                  Reward unlocked: {loyaltyRewardPercent}% off your next order. Go to checkout to use it.
+                </div>
               ) : null}
               {loyaltyRewardAvailable ? (
                 <div className="flex items-center gap-3 rounded-2xl border border-emerald-200/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-50 shadow-inner shadow-emerald-900/30">
