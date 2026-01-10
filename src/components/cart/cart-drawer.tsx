@@ -21,6 +21,7 @@ import {
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { getDb } from "@/lib/firebaseClient";
+import { submitOrder } from "@/lib/ordersClient";
 
 type CartDrawerProps = {
   open: boolean;
@@ -196,13 +197,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       };
 
       // Send to API
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newOrder),
-      });
+      const response = await submitOrder(newOrder, user ?? null);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

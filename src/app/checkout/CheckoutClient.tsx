@@ -19,6 +19,7 @@ import { useAuth } from "@/context/auth";
 import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { normalizeProductStock } from "@/lib/stock";
 import { getDb } from "@/lib/firebaseClient";
+import { submitOrder } from "@/lib/ordersClient";
 
 type CheckoutFormState = {
   fullName: string;
@@ -265,19 +266,7 @@ export default function CheckoutClient() {
 
       // Send to API
       console.log("[CheckoutClient] Sending POST request to /api/orders...");
-      const token = await user?.getIdToken?.();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(newOrder),
-      });
+      const response = await submitOrder(newOrder, user ?? null);
       console.log("[CheckoutClient] Response received:", {
         status: response.status,
         statusText: response.statusText,

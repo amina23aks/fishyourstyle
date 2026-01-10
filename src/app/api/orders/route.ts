@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
       createdAt: _ignoredCreatedAt,
       updatedAt: _ignoredUpdatedAt,
       cancelledAt: _ignoredCancelledAt,
+      totalBeforeDiscount: _ignoredTotalBeforeDiscount,
       discountType: _ignoredDiscountType,
       discountPercent: _ignoredDiscountPercent,
       discountAmount: _ignoredDiscountAmount,
@@ -168,6 +169,7 @@ export async function POST(request: NextRequest) {
     void _ignoredCreatedAt;
     void _ignoredUpdatedAt;
     void _ignoredCancelledAt;
+    void _ignoredTotalBeforeDiscount;
     void _ignoredDiscountType;
     void _ignoredDiscountPercent;
     void _ignoredDiscountAmount;
@@ -220,6 +222,7 @@ export async function POST(request: NextRequest) {
     const orderSubtotal = typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : 0;
     const orderShippingCost =
       typeof orderToSave.shippingCost === "number" ? orderToSave.shippingCost : 0;
+    const orderTotalBeforeDiscount = orderSubtotal + orderShippingCost;
     const defaultLoyaltyPercent = 8;
     let loyaltyDiscountPercent = 0;
     let loyaltyDiscountAmount = 0;
@@ -386,6 +389,7 @@ export async function POST(request: NextRequest) {
       orderDataForFirestore = {
         ...orderDataForFirestore,
         items: itemsWithMetadata,
+        totalBeforeDiscount: orderTotalBeforeDiscount,
         total: orderTotal,
       };
       if (loyaltyApplied) {
@@ -458,7 +462,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ orderId: createdOrderId }, { status: 201 });
+    return NextResponse.json(
+      {
+        orderId: createdOrderId,
+        totals: {
+          subtotal: orderSubtotal,
+          shippingCost: orderShippingCost,
+          discountPercent: loyaltyApplied ? loyaltyDiscountPercent : 0,
+          discountAmount: loyaltyApplied ? loyaltyDiscountAmount : 0,
+          totalBeforeDiscount: orderTotalBeforeDiscount,
+          total: orderTotal,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("[api/orders] POST error", error);
 
@@ -521,6 +538,7 @@ function firestoreDocToOrder(docId: string, data: DocumentData): Order {
     notes: data.notes,
     subtotal: data.subtotal,
     shippingCost: data.shippingCost,
+    totalBeforeDiscount: data.totalBeforeDiscount,
     discountType: data.discountType,
     discountPercent: data.discountPercent,
     discountAmount: data.discountAmount,
