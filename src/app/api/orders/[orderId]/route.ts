@@ -262,7 +262,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
             );
           }
           const currentOrderCount = Number(userData.orderCount ?? 0);
-          const nextOrderCount = currentOrderCount + 1;
+          const shouldResetCycle = currentOrderCount > 0 && currentOrderCount % 5 === 0;
+          const nextOrderCount = shouldResetCycle ? 1 : currentOrderCount + 1;
           const loyaltyRewardAvailable = Boolean(userData.loyaltyRewardAvailable);
           const shouldUnlockReward = nextOrderCount % 5 === 0 && !loyaltyRewardAvailable;
           const userUpdate: Record<string, unknown> = {
@@ -272,6 +273,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
             userUpdate.loyaltyRewardAvailable = true;
             userUpdate.loyaltyRewardPercent = 8;
             userUpdate.loyaltyCycleSize = 5;
+          } else if (shouldResetCycle) {
+            userUpdate.loyaltyRewardAvailable = false;
           }
           transaction.set(userRef, userUpdate, { merge: true });
           orderUpdate.loyaltyCounted = true;

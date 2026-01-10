@@ -439,9 +439,11 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <span>Quick delivery info</span>
                       <span className="text-xs text-sky-200">COD</span>
                     </div>
-                    <p className="text-xs text-sky-200">
-                      Loyalty discount will apply automatically when available.
-                    </p>
+                    {loyaltyRewardAvailable ? (
+                      <p className="text-xs text-sky-200">
+                        Your order is now discounted by 8%.
+                      </p>
+                    ) : null}
                     <p className="text-xs text-sky-200">
                       Shipping calculated at checkout. Choose A domicile or Stop Desk for delivery.
                     </p>
