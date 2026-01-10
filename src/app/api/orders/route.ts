@@ -262,32 +262,11 @@ export async function POST(request: NextRequest) {
       const dailyRef = db.collection("adminStatsDaily").doc(todayKey);
       const dailySnapshot = await transaction.get(dailyRef);
       const dailyData = dailySnapshot.data() ?? {};
-      if (orderToSave.userId) {
-        const userRef = db.collection("users").doc(orderToSave.userId);
-        const userSnapshot = await transaction.get(userRef);
-        const userData = userSnapshot.data();
-        const rewardAvailable = Boolean(userData?.loyaltyRewardAvailable);
-        const rewardPercent =
-          typeof userData?.loyaltyRewardPercent === "number"
-            ? userData.loyaltyRewardPercent
-            : defaultLoyaltyPercent;
-        if (rewardAvailable && rewardPercent > 0) {
-          loyaltyDiscountPercent = rewardPercent;
-          loyaltyDiscountAmount = Math.round((orderSubtotal * rewardPercent) / 100);
-          loyaltyApplied = loyaltyDiscountAmount > 0;
-        }
-        if (loyaltyApplied) {
-          transaction.set(
-            userRef,
-            {
-              loyaltyRewardAvailable: false,
-              loyaltyRedeemedCount: FieldValue.increment(1),
-            },
-            { merge: true }
-          );
-        }
-      }
-      orderTotal = Math.max(0, orderSubtotal + orderShippingCost - loyaltyDiscountAmount);
+      const userRef = orderToSave.userId
+        ? db.collection("users").doc(orderToSave.userId)
+        : null;
+      const userSnapshot = userRef ? await transaction.get(userRef) : null;
+      const userData = userSnapshot?.data();
 
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
@@ -311,6 +290,21 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      if (userData) {
+        const rewardAvailable = Boolean(userData.loyaltyRewardAvailable);
+        const rewardPercent =
+          typeof userData.loyaltyRewardPercent === "number"
+            ? userData.loyaltyRewardPercent
+            : defaultLoyaltyPercent;
+        if (rewardAvailable && rewardPercent > 0) {
+          loyaltyDiscountPercent = rewardPercent;
+          loyaltyDiscountAmount = Math.round((orderSubtotal * rewardPercent) / 100);
+          loyaltyApplied = loyaltyDiscountAmount > 0;
+        }
+      }
+
+      orderTotal = Math.max(0, orderSubtotal + orderShippingCost - loyaltyDiscountAmount);
+
       for (const [productId, requestedQty] of Object.entries(aggregatedQuantities)) {
         const productRef = productsCollection.doc(productId);
         const data = productSnapshots.get(productId);
@@ -326,6 +320,16 @@ export async function POST(request: NextRequest) {
             inStock: nextStock > 0,
           });
         }
+      }
+      if (loyaltyApplied && userRef) {
+        transaction.set(
+          userRef,
+          {
+            loyaltyRewardAvailable: false,
+            loyaltyRedeemedCount: FieldValue.increment(1),
+          },
+          { merge: true }
+        );
       }
 
       const existingCategoryTotals =
