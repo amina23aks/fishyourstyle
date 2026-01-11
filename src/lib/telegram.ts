@@ -5,20 +5,16 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_NOTIFICATIONS_ENABLED = process.env.TELEGRAM_NOTIFICATIONS_ENABLED;
 
 export async function sendOrderTelegramNotification(order: Order): Promise<void> {
+  // Feature-flag: only send when explicitly enabled
   if (TELEGRAM_NOTIFICATIONS_ENABLED !== "true") {
-    console.log("[Telegram] Notifications disabled by TELEGRAM_NOTIFICATIONS_ENABLED");
     return;
   }
 
+  // Must have token + chat id
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn("[Telegram] Missing TELEGRAM env at runtime", {
-      hasToken: !!TELEGRAM_BOT_TOKEN,
-      hasChatId: !!TELEGRAM_CHAT_ID,
-    });
+    // Keep only errors if you want; here we keep it silent to avoid noise
     return;
   }
-
-  console.log("[Telegram] Sending message to chat", TELEGRAM_CHAT_ID);
 
   try {
     const orderShortId = order.id.slice(-6);
@@ -28,18 +24,15 @@ export async function sendOrderTelegramNotification(order: Order): Promise<void>
       .map((item) => `• ${item.quantity}x ${item.name} – ${item.colorName} / ${item.size}`)
       .join("\n");
 
-    const messageParts = [
+    const message = [
       `🛒 New order #${orderShortId} – ${order.total} DZD`,
       customerLine,
       itemsLines ? `Items:\n${itemsLines}` : "Items: none",
       `Status: ${order.status}`,
       `From: ${customerEmail}`,
-    ];
+    ].join("\n");
 
-    const message = messageParts.join("\n");
-
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    const res = await fetch(url, {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -48,26 +41,17 @@ export async function sendOrderTelegramNotification(order: Order): Promise<void>
       }),
     });
 
-    let body: unknown = null;
-    try {
-      body = await res.json();
-    } catch {
-      // ignore JSON parse errors
-    }
-
-    if (!res.ok || (body && typeof body === "object" && (body as { ok?: boolean }).ok === false)) {
-      console.error("[Telegram] API error", {
+    // Optional: only log errors (server-side) if Telegram API fails
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("[Telegram] sendMessage failed", {
         status: res.status,
         statusText: res.statusText,
-        body,
-      });
-    } else {
-      console.log("[Telegram] Message sent successfully", {
-        status: res.status,
-        body,
+        response: text,
       });
     }
   } catch (error) {
+    // Never throw, keep non-blocking
     console.error("[Telegram] Failed to send order notification", error);
   }
 }
