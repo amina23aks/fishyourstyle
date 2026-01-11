@@ -2,8 +2,14 @@ import type { Order } from "@/types/order";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const TELEGRAM_NOTIFICATIONS_ENABLED = process.env.TELEGRAM_NOTIFICATIONS_ENABLED;
 
 export async function sendOrderTelegramNotification(order: Order): Promise<void> {
+  if (TELEGRAM_NOTIFICATIONS_ENABLED !== "true") {
+    console.log("[Telegram] Notifications disabled by TELEGRAM_NOTIFICATIONS_ENABLED");
+    return;
+  }
+
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn("[Telegram] Missing TELEGRAM env at runtime", {
       hasToken: !!TELEGRAM_BOT_TOKEN,
