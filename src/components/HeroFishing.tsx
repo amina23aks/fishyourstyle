@@ -1,7 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useLanguage } from "@/context/language";
 
 export default function HeroFishing() {
+  const { t } = useLanguage();
   const heroBubbles = [
     { size: 12, left: "44%", delay: "0s", duration: "9s" },
     { size: 10, left: "48%", delay: "1.2s", duration: "10s" },
@@ -19,7 +23,7 @@ export default function HeroFishing() {
   ];
 
   return (
-    <section className="relative overflow-hidden text-white">
+    <section className="aurora-shell relative overflow-hidden text-white">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute inset-x-[-6%] top-6 h-64 light-rays" />
         {/* Mobile hero water alignment fix */}
@@ -98,7 +102,7 @@ export default function HeroFishing() {
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
           <div className="relative order-2 w-full space-y-4 text-left text-white lg:order-1 lg:max-w-xl lg:space-y-5 lg:pt-2">
             <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-              Fish Your Style. Catch What You Love.
+              {t("heroTitle")}
             </h1>
             <p className="text-lg text-sky-50/90">
               Streetwear made for every style, every mood, and every moment.

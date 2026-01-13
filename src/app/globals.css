@@ -4,6 +4,11 @@
 :root {
   --background: #a7c7f0;
   --foreground: #e2f3ff;
+  --ocean-1: #cfe9ff;
+  --ocean-2: #a8d7ff;
+  --ocean-3: #6db3f0;
+  --ocean-4: #1e4c82;
+  --ocean-5: #020617;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -26,6 +31,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+body[data-theme="aurora"] {
+  --background: #0a162c;
+  --foreground: #e3f2ff;
+  --ocean-1: #0d1d3a;
+  --ocean-2: #0b1934;
+  --ocean-3: #09162d;
+  --ocean-4: #071226;
+  --ocean-5: #050d1c;
 }
 
 .admin-glass-stability {
@@ -60,19 +75,68 @@ body {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
   background: linear-gradient(
     to bottom,
-    #cfe9ff 0%,
-    #a8d7ff 32%,
-    #6db3f0 62%,
-    #1e4c82 84%,
-    #020617 100%
+    var(--ocean-1) 0%,
+    var(--ocean-2) 32%,
+    var(--ocean-3) 62%,
+    var(--ocean-4) 84%,
+    var(--ocean-5) 100%
   );
   color: var(--foreground);
 }
 
 
 .ocean-bg {
-  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background-image: linear-gradient(to bottom, var(--ocean-2) 0%, var(--ocean-4) 48%, var(--ocean-5) 100%);
   background-size: 100% 100%;
+}
+
+@keyframes auroraSway {
+  0% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, 2%, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(-3%, 1%, 0) scale(1);
+  }
+}
+
+body[data-theme="aurora"] .aurora-shell {
+  isolation: isolate;
+}
+
+body[data-theme="aurora"] .aurora-shell::before,
+body[data-theme="aurora"] .aurora-shell::after {
+  content: "";
+  position: absolute;
+  inset: -40% -20% 0;
+  background:
+    radial-gradient(120% 80% at 10% 20%, rgba(56, 189, 248, 0.28), transparent 55%),
+    radial-gradient(90% 70% at 80% 10%, rgba(129, 140, 248, 0.24), transparent 60%),
+    linear-gradient(120deg, rgba(59, 130, 246, 0.16), transparent 70%);
+  filter: blur(32px);
+  opacity: 0.7;
+  animation: auroraSway 26s ease-in-out infinite;
+  pointer-events: none;
+}
+
+body[data-theme="aurora"] .aurora-shell::after {
+  inset: -50% -10% 10%;
+  background:
+    radial-gradient(80% 60% at 20% 10%, rgba(14, 165, 233, 0.22), transparent 55%),
+    radial-gradient(100% 80% at 70% 30%, rgba(94, 234, 212, 0.18), transparent 60%);
+  filter: blur(36px);
+  opacity: 0.6;
+  animation-duration: 32s;
+  animation-direction: alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-theme="aurora"] .aurora-shell::before,
+  body[data-theme="aurora"] .aurora-shell::after {
+    animation: none;
+  }
 }
 
 .bubble {

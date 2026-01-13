@@ -17,6 +17,7 @@ import {
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
+import { useLanguage } from "@/context/language";
 import { normalizeProductStock } from "@/lib/stock";
 import { getDb } from "@/lib/firebaseClient";
 import { submitOrder } from "@/lib/ordersClient";
@@ -31,6 +32,7 @@ type CheckoutFormState = {
 };
 
 export default function CheckoutClient() {
+  const { t } = useLanguage();
   const router = useRouter();
   const { items, totals, clearCart } = useCart();
   const { user, signOut } = useAuth();
@@ -327,8 +329,8 @@ export default function CheckoutClient() {
     <PageShell>
       <main className="space-y-6 lg:space-y-8">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Checkout</p>
-          <h1 className="text-3xl font-semibold text-white">Confirm your order</h1>
+          <p className="text-xs uppercase tracking-[0.28em] text-sky-200">{t("checkout")}</p>
+          <h1 className="text-3xl font-semibold text-white">{t("checkout")}</h1>
           <p className="max-w-2xl text-sm text-sky-100">
             Delivery across all wilayas with
             <span className="font-semibold text-white"> Economic shipping </span>

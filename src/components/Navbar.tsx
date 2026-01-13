@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -8,18 +8,13 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { useCart } from "@/context/cart";
+import { useLanguage } from "@/context/language";
+import { useTheme } from "@/context/theme";
 import { AnimatePresence, motion } from "@/lib/motion";
 import { useFavorites } from "@/hooks/use-favorites";
 import { getDb } from "@/lib/firebaseClient";
 
 import CartDrawer from "./cart/cart-drawer";
-
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/contact", label: "Contact" },
-  { href: "/orders", label: "Orders" },
-];
 
 const iconStyles = "h-5 w-5";
 
@@ -80,6 +75,8 @@ export function Navbar() {
   const { openModal } = useAuthModal();
   const { totalQuantity, lastAddedAt } = useCart();
   const { items: favoriteItems } = useFavorites();
+  const { language, setLanguage, t } = useLanguage();
+  const { theme, setTheme } = useTheme();
   const isFavoritesActive = pathname?.startsWith("/favorites");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isBumping, setIsBumping] = useState(false);
@@ -87,6 +84,17 @@ export function Navbar() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const isAuthenticated = Boolean(user);
+
+  const links = useMemo(
+    () => [
+      { href: "/", label: t("home") },
+      { href: "/shop", label: t("shop") },
+      { href: "/contact", label: t("contact") },
+      { href: "/orders", label: t("orders") },
+    ],
+    [t],
+  );
 
   useEffect(() => {
     if (!lastAddedAt) return;
@@ -172,10 +180,11 @@ export function Navbar() {
 
   const handleOpenAuthModal = () => {
     openModal({ returnTo: pathname || "/" });
+    setIsAccountMenuOpen(false);
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+    <header className="aurora-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href="/" className="group flex items-center gap-3">
@@ -256,31 +265,24 @@ export function Navbar() {
             <span className="sr-only">Cart</span>
           </motion.button>
           <div className="relative" ref={accountMenuRef}>
-            {user ? (
-              <button
-                type="button"
-                onClick={toggleAccountMenu}
-                aria-haspopup="menu"
-                aria-expanded={isAccountMenuOpen}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label="Account"
-                disabled={authLoading}
-              >
-                <AccountIcon />
-                {loyaltyRewardAvailable ? (
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
-                ) : null}
-                <span className="sr-only">Account</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleOpenAuthModal}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-white/25 bg-white/15 px-4 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-              >
-                Sign in
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={toggleAccountMenu}
+              aria-haspopup="menu"
+              aria-expanded={isAccountMenuOpen}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Account"
+              disabled={authLoading}
+            >
+              <AccountIcon />
+              {loyaltyRewardAvailable ? (
+                <span
+                  className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]"
+                  aria-hidden
+                />
+              ) : null}
+              <span className="sr-only">Account</span>
+            </button>
             <AnimatePresence>
               {isAccountMenuOpen && !authLoading && (
                 <motion.div
@@ -288,50 +290,125 @@ export function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/20 bg-slate-900/80 text-sm text-sky-50 shadow-xl shadow-black/30 backdrop-blur"
+                  className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-white/20 bg-slate-900/80 text-sm text-sky-50 shadow-xl shadow-black/30 backdrop-blur"
                   role="menu"
                 >
-                  {user ? (
-                    <div className="p-3">
-                      <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-sky-100">
-                        <span className="font-semibold">
-                          {user.email ?? "My Profile"}
-                        </span>
-                      </div>
-                      <div className="my-3 h-px bg-white/10" aria-hidden />
-                      <div className="flex flex-col gap-1">
-                        <Link
-                          href="/account"
-                          className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
-                          role="menuitem"
-                          onClick={() => setIsAccountMenuOpen(false)}
-                        >
-                          <span className="flex items-center gap-2">
-                            My Profile
-                            {loyaltyRewardAvailable ? (
-                              <span className="h-2 w-2 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
-                            ) : null}
+                  <div className="space-y-3 p-3">
+                    {isAuthenticated ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-sky-100">
+                          <span className="font-semibold">
+                            {user?.email ?? t("myProfile")}
                           </span>
-                        </Link>
-                        <Link
-                          href="/orders"
-                          className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
-                          role="menuitem"
-                          onClick={() => setIsAccountMenuOpen(false)}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Link
+                            href="/account"
+                            className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                            role="menuitem"
+                            onClick={() => setIsAccountMenuOpen(false)}
+                          >
+                            <span className="flex items-center gap-2">
+                              {t("myProfile")}
+                              {loyaltyRewardAvailable ? (
+                                <span
+                                  className="h-2 w-2 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]"
+                                  aria-hidden
+                                />
+                              ) : null}
+                            </span>
+                          </Link>
+                          <Link
+                            href="/orders"
+                            className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                            role="menuitem"
+                            onClick={() => setIsAccountMenuOpen(false)}
+                          >
+                            {t("myOrders")}
+                          </Link>
+                        </div>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleOpenAuthModal}
+                        className="w-full rounded-xl bg-white px-3 py-2 text-center text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-100"
+                        role="menuitem"
+                      >
+                        {t("signIn")}
+                      </button>
+                    )}
+
+                    <div className="h-px bg-white/10" aria-hidden />
+
+                    <div className="space-y-2">
+                      <p className="px-3 text-[10px] uppercase tracking-[0.3em] text-sky-200">
+                        {t("preferences")}
+                      </p>
+                      <div className="space-y-2 rounded-xl bg-white/5 px-3 py-2">
+                        <label
+                          className="text-[11px] uppercase tracking-[0.2em] text-sky-200"
+                          htmlFor="language-select"
                         >
-                          My orders
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={handleSignOut}
-                          className="flex items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10"
-                          role="menuitem"
+                          {t("language")}
+                        </label>
+                        <select
+                          id="language-select"
+                          value={language}
+                          onChange={(event) =>
+                            setLanguage(event.target.value as "en" | "fr" | "ar")
+                          }
+                          className="w-full rounded-lg border border-white/15 bg-white/10 px-2 py-1.5 text-xs text-white shadow-inner shadow-sky-900/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                         >
-                          Sign out
-                        </button>
+                          <option value="en">EN</option>
+                          <option value="fr">FR</option>
+                          <option value="ar">AR</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2 rounded-xl bg-white/5 px-3 py-2">
+                        <span className="text-[11px] uppercase tracking-[0.2em] text-sky-200">
+                          {t("theme")}
+                        </span>
+                        <div className="flex rounded-full bg-white/10 p-1">
+                          <button
+                            type="button"
+                            onClick={() => setTheme("light")}
+                            className={`flex-1 rounded-full px-2 py-1 text-xs font-semibold transition ${
+                              theme === "light"
+                                ? "bg-white text-slate-900 shadow-sm"
+                                : "text-sky-100 hover:text-white"
+                            }`}
+                            aria-pressed={theme === "light"}
+                          >
+                            {t("light")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTheme("aurora")}
+                            className={`flex-1 rounded-full px-2 py-1 text-xs font-semibold transition ${
+                              theme === "aurora"
+                                ? "bg-white text-slate-900 shadow-sm"
+                                : "text-sky-100 hover:text-white"
+                            }`}
+                            aria-pressed={theme === "aurora"}
+                          >
+                            {t("auroraDark")}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  ) : null}
+
+                    {isAuthenticated ? (
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="flex items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10"
+                        role="menuitem"
+                      >
+                        {t("signOut")}
+                      </button>
+                    ) : null}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
