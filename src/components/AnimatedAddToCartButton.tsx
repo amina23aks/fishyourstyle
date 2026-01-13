@@ -101,18 +101,22 @@ export function AnimatedAddToCartButton({ onClick, className, disabled }: Animat
     );
   }, [state]);
 
-  const scaleClass = state === "loading" ? "scale-[0.97]" : state === "added" ? "scale-[0.99]" : "hover:scale-[1.01] active:scale-[0.98]";
+  const scaleClass =
+    state === "loading"
+      ? "scale-[0.97]"
+      : state === "added"
+        ? "scale-[0.99]"
+        : "hover:scale-[1.01] active:scale-[0.98]";
 
   // When disabled, use a different style and ensure no pointer events
   const disabledClasses = "opacity-50 cursor-not-allowed";
 
   return (
     <div className="relative">
-      
       <button
         type="button"
         onClick={handleClick}
-        className={`${baseClasses} ${scaleClass} ${className ?? ""} ${disabled ? disabledClasses : ""}`.trim()}
+        className={`${baseClasses} ${scaleClass} ${state === "loading" ? "shimmer" : ""} ${className ?? ""} ${disabled ? disabledClasses : ""}`.trim()}
         aria-live="polite"
       >
         {content}

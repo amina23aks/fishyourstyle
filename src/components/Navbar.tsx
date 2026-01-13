@@ -8,7 +8,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { useCart } from "@/context/cart";
-import { useLanguage } from "@/context/language";
+import { useI18n } from "@/context/language";
 import { useTheme } from "@/context/theme";
 import { AnimatePresence, motion } from "@/lib/motion";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -82,7 +82,7 @@ export function Navbar() {
   const { openModal } = useAuthModal();
   const { totalQuantity, lastAddedAt } = useCart();
   const { items: favoriteItems } = useFavorites();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t } = useI18n();
   const { theme, setTheme } = useTheme();
   const isFavoritesActive = pathname?.startsWith("/favorites");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -179,7 +179,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+    <header className="site-header fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href="/" className="group flex items-center gap-3">
@@ -382,7 +382,7 @@ export function Navbar() {
                               }`}
                               aria-pressed={theme === "aurora"}
                             >
-                              {t("auroraDark")}
+                              {t("aurora")}
                             </button>
                           </div>
                         </div>

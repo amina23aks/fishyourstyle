@@ -23,7 +23,7 @@ type TranslationKey =
   | "language"
   | "theme"
   | "light"
-  | "auroraDark"
+  | "aurora"
   | "checkout"
   | "confirmOrder";
 
@@ -40,14 +40,14 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     contact: "Contact",
     orders: "Orders",
     signIn: "Sign in",
-    myProfile: "My Profile",
+    myProfile: "My profile",
     myOrders: "My orders",
     signOut: "Sign out",
     preferences: "Preferences",
     language: "Language",
     theme: "Theme",
     light: "Light",
-    auroraDark: "Aurora Dark",
+    aurora: "Aurora",
     checkout: "Checkout",
     confirmOrder: "Confirm your order",
   },
@@ -64,7 +64,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     language: "Langue",
     theme: "Thème",
     light: "Clair",
-    auroraDark: "Aurore sombre",
+    aurora: "Aurore",
     checkout: "Paiement",
     confirmOrder: "Confirmez votre commande",
   },
@@ -81,7 +81,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     language: "اللغة",
     theme: "المظهر",
     light: "فاتح",
-    auroraDark: "شفق داكن",
+    aurora: "الشفق",
     checkout: "إتمام الشراء",
     confirmOrder: "تأكيد الطلب",
   },
@@ -89,7 +89,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "fys-language";
+const STORAGE_KEY = "fys_lang";
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>("en");
@@ -107,7 +107,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const dir = language === "ar" ? "rtl" : "ltr";
     document.documentElement.setAttribute("lang", language);
     document.documentElement.setAttribute("dir", dir);
-    document.body.setAttribute("dir", dir);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, language);
     }
@@ -124,10 +123,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
-export function useLanguage() {
+export function useI18n() {
   const context = useContext(LanguageContext);
   if (!context) {
-    throw new Error("useLanguage must be used within LanguageProvider");
+    throw new Error("useI18n must be used within LanguageProvider");
   }
   return context;
 }

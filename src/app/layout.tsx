@@ -7,6 +7,7 @@ import OceanBackdrop from "@/components/OceanBackdrop";
 import CookiesBanner from "@/components/CookiesBanner";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
 import AuthModal from "@/components/AuthModal";
+import CustomCursor from "@/components/CustomCursor";
 import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
 import { AuthModalProvider } from "@/context/auth-modal";
@@ -51,6 +52,7 @@ export default function RootLayout({
                       <CartProvider>
                         <OceanBackdrop />
                         <div className="relative z-10 flex min-h-screen flex-col overflow-x-hidden pt-20">
+                          <CustomCursor enabled />
                           <Navbar />
                           <main className="flex-1">{children}</main>
                           <Footer />

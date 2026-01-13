@@ -16,7 +16,7 @@ import {
 } from "@/data/shipping";
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
-import { useLanguage } from "@/context/language";
+import { useI18n } from "@/context/language";
 import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { normalizeProductStock } from "@/lib/stock";
 import { getDb } from "@/lib/firebaseClient";
@@ -35,7 +35,7 @@ export default function CheckoutClient() {
   const router = useRouter();
   const { items, totals, clearCart } = useCart();
   const { user, signOut } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useI18n();
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
     email: "",

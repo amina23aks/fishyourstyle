@@ -12,6 +12,9 @@
     #1e4c82 84%,
     #020617 100%
   );
+  --header-aurora: radial-gradient(120px 80px at 20% 30%, rgba(45, 212, 191, 0.5), transparent 70%),
+    radial-gradient(160px 90px at 70% 20%, rgba(14, 165, 233, 0.45), transparent 68%),
+    radial-gradient(140px 90px at 45% 60%, rgba(34, 211, 238, 0.35), transparent 72%);
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -36,14 +39,10 @@ body {
   font-family: var(--font-sans);
 }
 
-body[data-theme="aurora"] {
+html[data-theme="aurora"] {
   --background: #050b24;
   --foreground: #e4f2ff;
-  --page-background:
-    radial-gradient(1200px 700px at 10% 0%, rgba(34, 211, 238, 0.18), transparent 60%),
-    radial-gradient(900px 600px at 80% 10%, rgba(14, 165, 233, 0.16), transparent 55%),
-    radial-gradient(700px 500px at 40% 20%, rgba(45, 212, 191, 0.12), transparent 60%),
-    linear-gradient(180deg, #050b24 0%, #020617 55%, #01040f 100%);
+  --page-background: #050b24;
 }
 
 .admin-glass-stability {
@@ -92,14 +91,53 @@ body[data-theme="aurora"] {
   }
 }
 
-body[data-theme="aurora"].ocean-page {
-  background-size: 200% 200%;
-  animation: auroraShift 18s ease-in-out infinite;
+.site-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+html[data-theme="aurora"] .site-header::before {
+  content: "";
+  position: absolute;
+  inset: -40% 0 auto;
+  height: 160%;
+  background-image: var(--header-aurora);
+  opacity: 0.65;
+  filter: blur(26px);
+  transform: translateZ(0);
+  pointer-events: none;
+  z-index: -1;
+  animation: auroraShift 14s ease-in-out infinite;
+  background-size: 180% 180%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body[data-theme="aurora"].ocean-page {
+  html[data-theme="aurora"] .site-header::before {
     animation: none;
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: shimmerMove 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmerMove {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
   }
 }
 
