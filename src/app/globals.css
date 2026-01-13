@@ -6,6 +6,17 @@
   --foreground: #e2f3ff;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --ocean-page-gradient: linear-gradient(
+    to bottom,
+    #cfe9ff 0%,
+    #a8d7ff 32%,
+    #6db3f0 62%,
+    #1e4c82 84%,
+    #020617 100%
+  );
+  --ocean-bg-gradient: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  --ocean-glow: radial-gradient(180% 48% at 50% 0%, rgba(255, 255, 255, 0.18), transparent 54%);
+  --ocean-bottom-fade: linear-gradient(to top, #020617, rgba(2, 6, 23, 0.7), transparent);
 }
 
 @theme inline {
@@ -26,6 +37,25 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+body[data-theme="dark"] {
+  --bg: #071526;
+  --panel: #0a2036;
+  --text: rgba(255, 255, 255, 0.92);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --ocean-page-gradient: linear-gradient(
+    to bottom,
+    #081628 0%,
+    #071526 35%,
+    #061224 62%,
+    #040b1c 82%,
+    #020617 100%
+  );
+  --ocean-bg-gradient: linear-gradient(to bottom, #0e223a 0%, #0a1a33 52%, #020617 100%);
+  --ocean-glow: radial-gradient(160% 55% at 50% 0%, rgba(120, 170, 255, 0.2), transparent 62%);
+  --ocean-bottom-fade: linear-gradient(to top, rgba(2, 6, 23, 0.95), rgba(2, 6, 23, 0.8), transparent);
 }
 
 .admin-glass-stability {
@@ -58,21 +88,71 @@ body {
 
 .ocean-page {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
-  background: linear-gradient(
-    to bottom,
-    #cfe9ff 0%,
-    #a8d7ff 32%,
-    #6db3f0 62%,
-    #1e4c82 84%,
-    #020617 100%
-  );
+  background: var(--ocean-page-gradient);
   color: var(--foreground);
 }
 
 
 .ocean-bg {
-  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background-image: var(--ocean-bg-gradient);
   background-size: 100% 100%;
+}
+
+.ocean-glow {
+  background: var(--ocean-glow);
+}
+
+.ocean-bottom-fade {
+  background: var(--ocean-bottom-fade);
+}
+
+body[data-theme="dark"] .top-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+body[data-theme="dark"] .top-shell::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: -10%;
+  width: 120%;
+  height: 260px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.95;
+  background:
+    radial-gradient(900px 220px at 15% 25%, rgba(0, 255, 170, 0.55), rgba(0, 255, 170, 0) 60%),
+    radial-gradient(800px 240px at 55% 10%, rgba(80, 255, 200, 0.4), rgba(80, 255, 200, 0) 62%),
+    radial-gradient(900px 260px at 85% 30%, rgba(140, 120, 255, 0.28), rgba(140, 120, 255, 0) 65%);
+  filter: blur(22px) saturate(140%);
+  transform: translateZ(0);
+}
+
+body[data-theme="dark"] .top-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body[data-theme="dark"] .top-shell::before {
+    animation: auroraShift 10s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes auroraShift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-20px, 6px, 0) scale(1.03);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-theme="dark"] .top-shell::before {
+    animation: none;
+  }
 }
 
 .bubble {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
+import { useLanguage } from "@/context/language";
 import PageShell from "@/components/PageShell";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDb } from "@/lib/firebaseClient";
@@ -41,6 +42,7 @@ function StarIcon() {
 function AccountContent() {
   const { user, loading } = useAuth();
   const { openModal } = useAuthModal();
+  const { t } = useLanguage();
   const displayName = user?.displayName || "Customer";
   const [orderCount, setOrderCount] = useState<number | null>(null);
   const [docExists, setDocExists] = useState<boolean | null>(null);
@@ -132,7 +134,7 @@ function AccountContent() {
     <PageShell>
       <section className="w-full space-y-6 rounded-3xl bg-white/10 p-6 text-sky-50 shadow-lg shadow-sky-900/30 backdrop-blur">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-white">My Profile</h1>
+          <h1 className="text-3xl font-semibold text-white">{t("menu.myProfile")}</h1>
           <p className="text-sm text-sky-100">
             Manage your orders, favorites, and rewards in one place.
           </p>
