@@ -19,7 +19,7 @@ export async function sendOrderTelegramNotification(order: Order): Promise<void>
   try {
     const orderShortId = order.id.slice(-6);
     const customerEmail = order.customerEmail?.trim() || "guest (no email)";
-    const customerLine = `${order.shipping.customerName} – ${order.shipping.wilaya} – ${order.shipping.mode}`;
+    const customerLine = `${order.shipping.customerName} – ${order.shipping.mode}`;
     const itemsLines = order.items
       .map((item) => `• ${item.quantity}x ${item.name} – ${item.colorName} / ${item.size}`)
       .join("\n");
