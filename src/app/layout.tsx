@@ -53,7 +53,7 @@ export default function RootLayout({
                     <FavoritesProvider>
                       <CartProvider>
                         <OceanBackdrop />
-                        <div className="aurora-top relative flex min-h-screen flex-col overflow-x-hidden pt-20">
+                        <div className="aurora-top relative z-10 flex min-h-screen flex-col overflow-x-hidden pt-20">
                           <Navbar />
                           <main className="flex-1">{children}</main>
                           <Footer />

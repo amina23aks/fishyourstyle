@@ -39,21 +39,21 @@ body {
   font-family: var(--font-sans);
 }
 
-body[data-theme="dark"] {
-  --bg: #071526;
-  --panel: #0a2036;
-  --text: rgba(255, 255, 255, 0.92);
+body[data-theme="aurora"] {
+  --bg: #071423;
+  --surface: #0b1e33;
+  --text: #eaf2ff;
   --background: var(--bg);
   --foreground: var(--text);
   --ocean-page-gradient: linear-gradient(
     to bottom,
-    #081628 0%,
-    #071526 35%,
+    #081527 0%,
+    #071423 35%,
     #061224 62%,
     #040b1c 82%,
     #020617 100%
   );
-  --ocean-bg-gradient: linear-gradient(to bottom, #0e223a 0%, #0a1a33 52%, #020617 100%);
+  --ocean-bg-gradient: linear-gradient(to bottom, #0e223a 0%, #09182f 52%, #020617 100%);
   --ocean-glow: radial-gradient(160% 55% at 50% 0%, rgba(120, 170, 255, 0.2), transparent 62%);
   --ocean-bottom-fade: linear-gradient(to top, rgba(2, 6, 23, 0.95), rgba(2, 6, 23, 0.8), transparent);
 }
@@ -93,6 +93,7 @@ body[data-theme="dark"] {
 }
 
 
+
 .ocean-bg {
   background-image: var(--ocean-bg-gradient);
   background-size: 100% 100%;
@@ -106,37 +107,31 @@ body[data-theme="dark"] {
   background: var(--ocean-bottom-fade);
 }
 
-body[data-theme="dark"] .top-shell {
+body[data-theme="aurora"] {
   position: relative;
-  overflow: hidden;
 }
 
-body[data-theme="dark"] .top-shell::before {
+body[data-theme="aurora"]::before {
   content: "";
   position: absolute;
-  top: -40px;
-  left: -10%;
-  width: 120%;
-  height: 260px;
-  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 220px;
+  z-index: 1;
   pointer-events: none;
-  opacity: 0.95;
+  opacity: 0.75;
   background:
-    radial-gradient(900px 220px at 15% 25%, rgba(0, 255, 170, 0.55), rgba(0, 255, 170, 0) 60%),
-    radial-gradient(800px 240px at 55% 10%, rgba(80, 255, 200, 0.4), rgba(80, 255, 200, 0) 62%),
-    radial-gradient(900px 260px at 85% 30%, rgba(140, 120, 255, 0.28), rgba(140, 120, 255, 0) 65%);
+    radial-gradient(700px 260px at 15% 0%, rgba(34, 197, 94, 0.22), transparent 60%),
+    radial-gradient(600px 240px at 60% 0%, rgba(45, 212, 191, 0.18), transparent 62%),
+    radial-gradient(700px 300px at 95% 0%, rgba(56, 189, 248, 0.12), transparent 65%);
   filter: blur(22px) saturate(140%);
   transform: translateZ(0);
 }
 
-body[data-theme="dark"] .top-shell > * {
-  position: relative;
-  z-index: 1;
-}
-
 @media (prefers-reduced-motion: no-preference) {
-  body[data-theme="dark"] .top-shell::before {
-    animation: auroraShift 10s ease-in-out infinite alternate;
+  body[data-theme="aurora"]::before {
+    animation: auroraShift 14s ease-in-out infinite alternate;
   }
 }
 
@@ -150,7 +145,7 @@ body[data-theme="dark"] .top-shell > * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body[data-theme="dark"] .top-shell::before {
+  body[data-theme="aurora"]::before {
     animation: none;
   }
 }

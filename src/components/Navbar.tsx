@@ -370,9 +370,9 @@ export function Navbar() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setTheme("dark")}
+                              onClick={() => setTheme("aurora")}
                               className={`rounded-full px-2.5 py-1 transition ${
-                                theme === "dark"
+                                theme === "aurora"
                                   ? "bg-white text-slate-900 shadow"
                                   : "text-sky-100 hover:text-white"
                               }`}
