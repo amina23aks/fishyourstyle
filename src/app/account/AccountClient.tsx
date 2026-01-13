@@ -132,9 +132,9 @@ function AccountContent() {
     <PageShell>
       <section className="w-full space-y-6 rounded-3xl bg-white/10 p-6 text-sky-50 shadow-lg shadow-sky-900/30 backdrop-blur">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-white">My profile</h1>
+          <h1 className="text-3xl font-semibold text-white">My Profile</h1>
           <p className="text-sm text-sky-100">
-            Manage your orders, favorites, and loyalty in one place.
+            Manage your orders, favorites, and rewards in one place.
           </p>
         </div>
 
@@ -158,7 +158,7 @@ function AccountContent() {
         ) : (
           <section className="space-y-6 rounded-2xl border border-white/15 bg-slate-900/40 p-6 shadow-inner shadow-sky-900/30">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.3em] text-sky-200">My profile</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-sky-200">MY PROFILE</p>
               <h2 className="text-2xl font-semibold text-white">{displayName}</h2>
               <p className="text-sm text-sky-200">{user.email}</p>
             </div>

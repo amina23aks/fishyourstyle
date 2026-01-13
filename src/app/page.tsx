@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import Hero from "@/components/Hero";
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
@@ -55,16 +56,19 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
 
 const reasons = [
   {
-    title: "Livraison sur 58 wilayas",
-    description: "موّفرين التوصيل لكل الولايات مع تتبع الطلب خطوة بخطوة.",
+    title: "Delivery to 69 Wilayas",
+    description: "We deliver across the country with reliable service and clear follow-up.",
+    icon: "/delivery.gif",
   },
   {
-    title: "Coupe & confort maîtrisés",
-    description: "قصّات متوازنة، خامات ناعمة، وتفاصيل تعطيك الراحة والأناقة.",
+    title: "Quality & Comfort",
+    description: "Carefully selected fabrics, clean printing, and relaxed fits made to last.",
+    icon: "/quality.gif",
   },
   {
-    title: "Qualité qui dure",
-    description: "أقمشة مختارة ولمسات بحرية في كل تصميم تبقى معك وقت طويل.",
+    title: "Easy Ordering",
+    description: "Choose your item, place your order, and let us handle the rest.",
+    icon: "/order.gif",
   },
 ];
 
@@ -101,8 +105,12 @@ export default async function Home() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-col gap-2">
               <p className="text-sm uppercase tracking-[0.28em] text-sky-700">Shop</p>
-              <h2 className="text-2xl font-semibold text-slate-900">Fresh arrivals</h2>
-              <p className="text-slate-600">Browse our latest drops right from the homepage.</p>
+              <h2 className="text-2xl font-semibold text-slate-900">Explore Our Collection</h2>
+              <p className="text-slate-600">
+                Discover modern streetwear designed for comfort, fit, and everyday wear.
+                <br />
+                New pieces are added regularly to keep your style fresh.
+              </p>
             </div>
           </div>
 
@@ -118,7 +126,7 @@ export default async function Home() {
               href="/shop"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition hover:-translate-y-0.5 hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             >
-              See all products
+              Explore the Latest Drop
               <span aria-hidden>→</span>
             </Link>
           </div>
@@ -126,11 +134,10 @@ export default async function Home() {
 
         <section className="space-y-4 rounded-3xl bg-sky-900/90 px-6 py-10 text-sky-50 shadow-lg shadow-sky-200/60">
           <div className="flex flex-col gap-2">
-            <p className="text-sm uppercase tracking-[0.28em] text-sky-200">Why Us</p>
+            <p className="text-sm uppercase tracking-[0.28em] text-sky-200">WHY US</p>
             <h2 className="text-2xl font-semibold">Why Choose Fish Your Style?</h2>
             <p className="text-sky-100">
-              These pillars echo the visuals you shared: delivery, personalization,
-              and premium quality.
+              Comfort, quality, and a smooth experience — built into every order.
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
@@ -139,7 +146,14 @@ export default async function Home() {
                 key={reason.title}
                 className="rounded-2xl bg-white/10 p-6 shadow-inner shadow-sky-950/30 backdrop-blur"
               >
-                <div className="text-2xl">🌟</div>
+                <div className="relative h-12 w-12">
+                  <Image
+                    src={reason.icon}
+                    alt={reason.title}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
                 <h3 className="mt-3 text-lg font-semibold text-white">
                   {reason.title}
                 </h3>

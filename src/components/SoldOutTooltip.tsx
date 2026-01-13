@@ -4,7 +4,7 @@ type SoldOutTooltipProps = {
   className?: string;
 };
 
-export function SoldOutTooltip({ show, message = "Out of stock", className = "" }: SoldOutTooltipProps) {
+export function SoldOutTooltip({ show, message = "OUT OF STOCK", className = "" }: SoldOutTooltipProps) {
   return (
     <div
       className={`pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-full flex flex-col items-center transition-all duration-150 ${

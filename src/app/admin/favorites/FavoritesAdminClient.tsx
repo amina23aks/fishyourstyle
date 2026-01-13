@@ -221,7 +221,7 @@ export function FavoritesAdminClient({
                       <p className="text-sm font-semibold text-white">{item.name}</p>
                       <p className="text-xs text-sky-100/80">
                         {item.price.toLocaleString("fr-DZ")} {item.currency} •{" "}
-                        {item.inStock ? "In stock" : "Out of stock"}
+                        {item.inStock ? "IN STOCK" : "OUT OF STOCK"}
                       </p>
                       <p className="text-[11px] text-sky-100/70">Added: {formatItemDate(item.addedAt)}</p>
                     </div>

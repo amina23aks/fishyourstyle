@@ -72,9 +72,13 @@ export default function ShopClient({ products, errorMessage, categories, designT
       <div className="mb-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-neutral-400">Boutique</p>
-            <h1 className="mt-2 text-4xl font-semibold text-white">Découvrezc notre sélection</h1>
-            <p className="mt-3 text-sm text-neutral-400">Une grille élégante inspirée des vitrines minimalistes.</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-neutral-400">Shop</p>
+            <h1 className="mt-2 text-4xl font-semibold text-white">Explore Our Collection</h1>
+            <p className="mt-3 text-sm text-neutral-400">
+              Discover modern streetwear designed for comfort, fit, and everyday wear.
+              <br />
+              New pieces are added regularly to keep your style fresh.
+            </p>
           </div>
         </div>
 
@@ -132,7 +136,7 @@ export default function ShopClient({ products, errorMessage, categories, designT
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher par nom ou tag…"
+              placeholder="Search by name or tag..."
               className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 placeholder:text-slate-300 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
           </div>

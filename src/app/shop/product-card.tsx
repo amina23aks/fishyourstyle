@@ -201,7 +201,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       const fallbackMessage = !hasVariantAvailable
         ? "Selected options are sold out"
         : "Please choose a color and size before adding to cart.";
-      const message = isOutOfStock ? "Out of stock" : fallbackMessage;
+      const message = isOutOfStock ? "OUT OF STOCK" : fallbackMessage;
       setSelectionWarning(message);
       return false;
     }
@@ -219,12 +219,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     const existing = items.find((item) => item.variantKey === variantKey);
     const maxQty = existing?.maxQuantity ?? availableStock;
     if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
-      setSelectionWarning("Out of stock");
+      setSelectionWarning("OUT OF STOCK");
       return false;
     }
 
     if (!stockState.isAvailable) {
-      setSelectionWarning("Out of stock");
+      setSelectionWarning("OUT OF STOCK");
       return false;
     }
 
@@ -395,7 +395,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                         <span className={`h-1.5 w-1.5 rounded-full ${
                           isOutOfStock ? "bg-white" : "bg-emerald-500"
                         }`} />
-                        {isOutOfStock ? "Out of stock" : "In stock"}
+                        {isOutOfStock ? "OUT OF STOCK" : "IN STOCK"}
                       </span>
                     );
                   })()}

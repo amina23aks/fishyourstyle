@@ -19,11 +19,7 @@ export default function TermsPage() {
         <div className="space-y-6 text-sm leading-6 text-slate-200">
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-white">About Fish Your Style</h2>
-            <p>
-              Fish Your Style is a streetwear brand inspired by the sea. We aim
-              to deliver comfortable, stylish clothing made with care for our
-              community.
-            </p>
+            <p>Streetwear built for everyday life.</p>
           </section>
 
           <section className="space-y-2">

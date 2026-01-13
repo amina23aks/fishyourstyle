@@ -192,7 +192,7 @@ export function Navbar() {
             />
             <div className="leading-tight">
               <p className="text-base font-semibold text-white">Fish Your Style</p>
-              <span className="text-xs text-sky-100">Sea streetwear</span>
+              <span className="text-xs text-sky-100">Streetwear for every mood</span>
             </div>
         </Link>
 
@@ -225,7 +225,7 @@ export function Navbar() {
                 ? "border-rose-200/70 bg-rose-400/30"
                 : "border-white/25 bg-white/10 hover:-translate-y-0.5 hover:bg-white/15"
             }`}
-            aria-label="Favorites"
+            aria-label="Wishlist"
           >
             <HeartIcon />
             {favoriteItems.length > 0 && (
@@ -233,7 +233,7 @@ export function Navbar() {
                 {favoriteItems.length}
               </span>
             )}
-            <span className="sr-only">Favorites</span>
+            <span className="sr-only">Wishlist</span>
           </Link>
           <motion.button
             type="button"
@@ -253,7 +253,7 @@ export function Navbar() {
                 {totalQuantity}
               </span>
             )}
-            <span className="sr-only">Cart drawer</span>
+            <span className="sr-only">Cart</span>
           </motion.button>
           <div className="relative" ref={accountMenuRef}>
             {user ? (
@@ -270,7 +270,7 @@ export function Navbar() {
                 {loyaltyRewardAvailable ? (
                   <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
                 ) : null}
-                <span className="sr-only">Account menu</span>
+                <span className="sr-only">Account</span>
               </button>
             ) : (
               <button
@@ -295,7 +295,7 @@ export function Navbar() {
                     <div className="p-3">
                       <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-sky-100">
                         <span className="font-semibold">
-                          {user.email ?? "My profile"}
+                          {user.email ?? "My Profile"}
                         </span>
                       </div>
                       <div className="my-3 h-px bg-white/10" aria-hidden />
@@ -307,7 +307,7 @@ export function Navbar() {
                           onClick={() => setIsAccountMenuOpen(false)}
                         >
                           <span className="flex items-center gap-2">
-                            My profile
+                            My Profile
                             {loyaltyRewardAvailable ? (
                               <span className="h-2 w-2 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
                             ) : null}

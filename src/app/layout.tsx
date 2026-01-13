@@ -14,13 +14,13 @@ import { FavoritesProvider } from "@/hooks/use-favorites";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FishYourStyle – Streetwear for Sea Lovers",
-  description: "Algerian streetwear brand inspired by the sea.",
+  title: "Fish Your Style — Streetwear for every mood",
+  description: "Streetwear made for every style, every mood, and every moment.",
   keywords: [
     "fish your style",
-    "sea streetwear",
-    "تيشيرتات",
-    "هودي",
+    "streetwear for every mood",
+    "streetwear",
+    "style",
   ],
 };
 

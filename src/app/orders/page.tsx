@@ -5,7 +5,7 @@ import PageShell from "@/components/PageShell";
 
 export const metadata: Metadata = {
   title: "Orders | Fish Your Style",
-  description: "Track and manage your Fish Your Style orders.",
+  description: "Track your deliveries and review the details of orders placed through Fish Your Style.",
 };
 
 export default function OrdersPage() {
@@ -13,9 +13,9 @@ export default function OrdersPage() {
     <PageShell>
       <section className="mx-auto max-w-5xl space-y-6 py-10">
         <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-sky-50">Order history</h1>
+          <h1 className="text-3xl font-semibold text-sky-50">Order History</h1>
           <p className="text-sky-100/80">
-            Track your deliveries and review the details of orders placed through the Fish Your Style checkout.
+            Track your deliveries and review the details of orders placed through Fish Your Style.
           </p>
         </header>
 

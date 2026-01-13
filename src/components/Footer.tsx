@@ -42,11 +42,10 @@ export default function Footer() {
             Fish Your Style
           </p>
           <h2 className="text-2xl font-semibold text-white">
-            Sea-inspired streetwear for explorers.
+            Streetwear built for everyday life.
           </h2>
           <p className="text-sky-200">
-            Built with Next.js, Tailwind, and a splash of ocean magic. More
-            sections are coming as we wire up products, cart, and admin.
+            Versatile designs and comfortable fits made to match your lifestyle — whatever you’re into.
           </p>
         </div>
 
@@ -156,8 +155,7 @@ export default function Footer() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-white">Wishlist </h3>
             <p className="text-sky-200">
-              Drop your email to be the first to know when new drops hit your
-              wishlist.
+              Drop your email to be the first to know when new drops hit your wishlist.
             </p>
             <form className="space-y-2" onSubmit={handleWishlistSubmit}>
               <label className="sr-only" htmlFor="wishlist-email">
@@ -167,7 +165,7 @@ export default function Footer() {
                 id="wishlist-email"
                 type="email"
                 name="email"
-                placeholder="you@example.commimimi"
+                placeholder="you@example.com"
                 value={wishlistEmail}
                 onChange={(event) => setWishlistEmail(event.target.value)}
                 className="w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-sky-200 focus:border-white/40 focus:outline-none"
@@ -190,7 +188,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-sky-800 bg-sky-900/20 py-4 text-center text-xs text-sky-200">
-        © 2024 Fish Your Style — Crafted for the ocean-loving community.
+        Copyright © 2026 Fish Your Style. All rights reserved.
       </div>
     </footer>
   );
