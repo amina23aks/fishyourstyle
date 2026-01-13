@@ -156,25 +156,6 @@ body[data-theme="aurora"] .top-shell > * {
   }
 }
 
-body[data-theme="aurora"] .hero-wave-stop-1 {
-  stop-color: #3b7fae;
-  stop-opacity: 0.65;
-}
-
-body[data-theme="aurora"] .hero-wave-stop-2 {
-  stop-color: #123d63;
-  stop-opacity: 0.8;
-}
-
-body[data-theme="aurora"] .hero-wave-stop-3 {
-  stop-color: #2a6b9c;
-  stop-opacity: 0.7;
-}
-
-body[data-theme="aurora"] .hero-wave-stop-4 {
-  stop-color: #0b2b4b;
-  stop-opacity: 0.85;
-}
 
 .bubble {
   position: absolute;
