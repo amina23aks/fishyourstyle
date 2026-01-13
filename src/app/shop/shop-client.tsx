@@ -71,10 +71,10 @@ export default function ShopClient({ products, errorMessage, categories, designT
     <>
       <div className="mb-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-neutral-400">Shop</p>
+          <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-inner shadow-black/30 backdrop-blur">
+            <p className="text-sm uppercase tracking-[0.25em] text-white/90">SHOP</p>
             <h1 className="mt-2 text-4xl font-semibold text-white">Explore Our Collection</h1>
-            <p className="mt-3 text-sm text-neutral-400">
+            <p className="mt-3 text-sm text-white/80">
               Discover modern streetwear designed for comfort, fit, and everyday wear.
               <br />
               New pieces are added regularly to keep your style fresh.
