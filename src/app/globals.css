@@ -107,31 +107,27 @@ body[data-theme="aurora"] {
   background: var(--ocean-bottom-fade);
 }
 
-body[data-theme="aurora"] {
-  position: relative;
-}
-
-body[data-theme="aurora"]::before {
+body[data-theme="aurora"] .aurora-overlay::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 220px;
+  top: -40px;
+  left: -10%;
+  width: 120%;
+  height: 240px;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.75;
+  opacity: 0.85;
   background:
-    radial-gradient(700px 260px at 15% 0%, rgba(34, 197, 94, 0.22), transparent 60%),
-    radial-gradient(600px 240px at 60% 0%, rgba(45, 212, 191, 0.18), transparent 62%),
-    radial-gradient(700px 300px at 95% 0%, rgba(56, 189, 248, 0.12), transparent 65%);
-  filter: blur(22px) saturate(140%);
+    radial-gradient(700px 260px at 15% 0%, rgba(34, 197, 94, 0.3), transparent 60%),
+    radial-gradient(600px 240px at 60% 0%, rgba(45, 212, 191, 0.26), transparent 62%),
+    radial-gradient(700px 300px at 95% 0%, rgba(56, 189, 248, 0.18), transparent 65%);
+  filter: blur(24px) saturate(150%);
   transform: translateZ(0);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  body[data-theme="aurora"]::before {
-    animation: auroraShift 14s ease-in-out infinite alternate;
+  body[data-theme="aurora"] .aurora-overlay::before {
+    animation: auroraShift 16s ease-in-out infinite alternate;
   }
 }
 
@@ -145,7 +141,7 @@ body[data-theme="aurora"]::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body[data-theme="aurora"]::before {
+  body[data-theme="aurora"] .aurora-overlay::before {
     animation: none;
   }
 }
