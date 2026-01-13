@@ -107,26 +107,36 @@ body[data-theme="aurora"] {
   background: var(--ocean-bottom-fade);
 }
 
-body[data-theme="aurora"] .aurora-overlay::before {
+body[data-theme="aurora"] .top-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+body[data-theme="aurora"] .top-shell::before {
   content: "";
   position: absolute;
-  top: -40px;
-  left: -10%;
-  width: 120%;
-  height: 240px;
-  z-index: 1;
+  top: -48px;
+  left: -12%;
+  width: 124%;
+  height: 260px;
+  z-index: 0;
   pointer-events: none;
-  opacity: 0.85;
+  opacity: 0.92;
   background:
-    radial-gradient(700px 260px at 15% 0%, rgba(34, 197, 94, 0.3), transparent 60%),
-    radial-gradient(600px 240px at 60% 0%, rgba(45, 212, 191, 0.26), transparent 62%),
-    radial-gradient(700px 300px at 95% 0%, rgba(56, 189, 248, 0.18), transparent 65%);
-  filter: blur(24px) saturate(150%);
+    radial-gradient(760px 280px at 18% 0%, rgba(34, 197, 94, 0.36), transparent 60%),
+    radial-gradient(700px 260px at 60% -4%, rgba(45, 212, 191, 0.32), transparent 62%),
+    radial-gradient(760px 320px at 92% 4%, rgba(56, 189, 248, 0.22), transparent 68%);
+  filter: blur(26px) saturate(155%);
   transform: translateZ(0);
 }
 
+body[data-theme="aurora"] .top-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  body[data-theme="aurora"] .aurora-overlay::before {
+  body[data-theme="aurora"] .top-shell::before {
     animation: auroraShift 16s ease-in-out infinite alternate;
   }
 }
@@ -141,9 +151,29 @@ body[data-theme="aurora"] .aurora-overlay::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body[data-theme="aurora"] .aurora-overlay::before {
+  body[data-theme="aurora"] .top-shell::before {
     animation: none;
   }
+}
+
+body[data-theme="aurora"] .hero-wave-stop-1 {
+  stop-color: #3b7fae;
+  stop-opacity: 0.65;
+}
+
+body[data-theme="aurora"] .hero-wave-stop-2 {
+  stop-color: #123d63;
+  stop-opacity: 0.8;
+}
+
+body[data-theme="aurora"] .hero-wave-stop-3 {
+  stop-color: #2a6b9c;
+  stop-opacity: 0.7;
+}
+
+body[data-theme="aurora"] .hero-wave-stop-4 {
+  stop-color: #0b2b4b;
+  stop-opacity: 0.85;
 }
 
 .bubble {

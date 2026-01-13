@@ -12,7 +12,7 @@ export default function OceanBackdrop() {
 
   return (
     <div
-      className="aurora-overlay pointer-events-none absolute inset-0 z-0 h-full min-h-screen overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-0 h-full min-h-screen overflow-hidden"
       aria-hidden
     >
       <div className="absolute inset-0 ocean-bg" />
