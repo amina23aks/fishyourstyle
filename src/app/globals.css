@@ -4,6 +4,14 @@
 :root {
   --background: #a7c7f0;
   --foreground: #e2f3ff;
+  --ocean-bg: linear-gradient(
+    to bottom,
+    #cfe9ff 0%,
+    #a8d7ff 32%,
+    #6db3f0 62%,
+    #1e4c82 84%,
+    #020617 100%
+  );
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -26,6 +34,15 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+body[data-theme="aurora"] {
+  --background: #050913;
+  --foreground: #e6f1ff;
+  --ocean-bg: radial-gradient(1200px 700px at 15% 10%, rgba(106, 255, 222, 0.2), transparent 60%),
+    radial-gradient(900px 600px at 85% 20%, rgba(120, 146, 255, 0.22), transparent 55%),
+    radial-gradient(800px 520px at 50% 80%, rgba(80, 196, 255, 0.14), transparent 60%),
+    linear-gradient(160deg, #071427 0%, #091a31 45%, #02060f 100%);
 }
 
 .admin-glass-stability {
@@ -58,21 +75,50 @@ body {
 
 .ocean-page {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
-  background: linear-gradient(
-    to bottom,
-    #cfe9ff 0%,
-    #a8d7ff 32%,
-    #6db3f0 62%,
-    #1e4c82 84%,
-    #020617 100%
-  );
+  background: var(--ocean-bg);
   color: var(--foreground);
+}
+
+body[data-theme="aurora"].ocean-page {
+  background-size: 160% 160%;
+  animation: auroraShift 18s ease-in-out infinite;
+}
+
+body[data-theme="aurora"].ocean-page::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  background: radial-gradient(600px 420px at 20% 20%, rgba(120, 255, 214, 0.3), transparent 70%),
+    radial-gradient(520px 360px at 80% 30%, rgba(140, 170, 255, 0.28), transparent 70%),
+    radial-gradient(520px 360px at 55% 75%, rgba(92, 210, 255, 0.22), transparent 75%);
+  filter: blur(60px);
+  opacity: 0.6;
+  z-index: 0;
+  pointer-events: none;
 }
 
 
 .ocean-bg {
-  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background-image: var(--ocean-bg);
   background-size: 100% 100%;
+}
+
+@keyframes auroraShift {
+  0% {
+    background-position: 0% 40%;
+  }
+  50% {
+    background-position: 60% 30%;
+  }
+  100% {
+    background-position: 0% 40%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-theme="aurora"].ocean-page {
+    animation: none;
+  }
 }
 
 .bubble {

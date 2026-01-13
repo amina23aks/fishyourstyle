@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -8,6 +8,8 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { useCart } from "@/context/cart";
+import { useLanguage } from "@/context/language";
+import { useTheme } from "@/context/theme";
 import { AnimatePresence, motion } from "@/lib/motion";
 import { useFavorites } from "@/hooks/use-favorites";
 import { getDb } from "@/lib/firebaseClient";
@@ -15,11 +17,11 @@ import { getDb } from "@/lib/firebaseClient";
 import CartDrawer from "./cart/cart-drawer";
 
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/contact", label: "Contact" },
-  { href: "/orders", label: "Orders" },
-];
+  { href: "/", labelKey: "home" },
+  { href: "/shop", labelKey: "shop" },
+  { href: "/contact", labelKey: "contact" },
+  { href: "/orders", labelKey: "orders" },
+] as const;
 
 const iconStyles = "h-5 w-5";
 
@@ -80,6 +82,8 @@ export function Navbar() {
   const { openModal } = useAuthModal();
   const { totalQuantity, lastAddedAt } = useCart();
   const { items: favoriteItems } = useFavorites();
+  const { language, setLanguage, t } = useLanguage();
+  const { theme, setTheme } = useTheme();
   const isFavoritesActive = pathname?.startsWith("/favorites");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isBumping, setIsBumping] = useState(false);
@@ -174,6 +178,14 @@ export function Navbar() {
     openModal({ returnTo: pathname || "/" });
   };
 
+  const handleLanguageChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setLanguage(event.target.value as "en" | "fr" | "ar");
+  };
+
+  const handleThemeChange = (nextTheme: "light" | "aurora") => {
+    setTheme(nextTheme);
+  };
+
   return (
     <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       {/* Navbar height + mobile layout adjustments */}
@@ -210,7 +222,7 @@ export function Navbar() {
                     : "hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             );
           })}
@@ -256,31 +268,24 @@ export function Navbar() {
             <span className="sr-only">Cart</span>
           </motion.button>
           <div className="relative" ref={accountMenuRef}>
-            {user ? (
-              <button
-                type="button"
-                onClick={toggleAccountMenu}
-                aria-haspopup="menu"
-                aria-expanded={isAccountMenuOpen}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label="Account"
-                disabled={authLoading}
-              >
-                <AccountIcon />
-                {loyaltyRewardAvailable ? (
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
-                ) : null}
-                <span className="sr-only">Account</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleOpenAuthModal}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-white/25 bg-white/15 px-4 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-              >
-                Sign in
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={toggleAccountMenu}
+              aria-haspopup="menu"
+              aria-expanded={isAccountMenuOpen}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Account"
+              disabled={authLoading}
+            >
+              <AccountIcon />
+              {loyaltyRewardAvailable ? (
+                <span
+                  className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]"
+                  aria-hidden
+                />
+              ) : null}
+              <span className="sr-only">Account</span>
+            </button>
             <AnimatePresence>
               {isAccountMenuOpen && !authLoading && (
                 <motion.div
@@ -291,47 +296,119 @@ export function Navbar() {
                   className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/20 bg-slate-900/80 text-sm text-sky-50 shadow-xl shadow-black/30 backdrop-blur"
                   role="menu"
                 >
-                  {user ? (
-                    <div className="p-3">
-                      <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-sky-100">
-                        <span className="font-semibold">
-                          {user.email ?? "My Profile"}
-                        </span>
-                      </div>
-                      <div className="my-3 h-px bg-white/10" aria-hidden />
-                      <div className="flex flex-col gap-1">
-                        <Link
-                          href="/account"
-                          className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
-                          role="menuitem"
-                          onClick={() => setIsAccountMenuOpen(false)}
-                        >
-                          <span className="flex items-center gap-2">
-                            My Profile
-                            {loyaltyRewardAvailable ? (
-                              <span className="h-2 w-2 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]" aria-hidden />
-                            ) : null}
+                  <div className="p-3">
+                    {user ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-sky-100">
+                          <span className="font-semibold">
+                            {user.email ?? t("myProfile")}
                           </span>
-                        </Link>
-                        <Link
-                          href="/orders"
-                          className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                        </div>
+                        <div className="my-3 h-px bg-white/10" aria-hidden />
+                        <div className="flex flex-col gap-1">
+                          <Link
+                            href="/account"
+                            className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                            role="menuitem"
+                            onClick={() => setIsAccountMenuOpen(false)}
+                          >
+                            <span className="flex items-center gap-2">
+                              {t("myProfile")}
+                              {loyaltyRewardAvailable ? (
+                                <span
+                                  className="h-2 w-2 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]"
+                                  aria-hidden
+                                />
+                              ) : null}
+                            </span>
+                          </Link>
+                          <Link
+                            href="/orders"
+                            className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
+                            role="menuitem"
+                            onClick={() => setIsAccountMenuOpen(false)}
+                          >
+                            {t("myOrders")}
+                          </Link>
+                        </div>
+                        <div className="my-3 h-px bg-white/10" aria-hidden />
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleOpenAuthModal();
+                            setIsAccountMenuOpen(false);
+                          }}
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10"
                           role="menuitem"
-                          onClick={() => setIsAccountMenuOpen(false)}
                         >
-                          My orders
-                        </Link>
+                          {t("signIn")}
+                        </button>
+                        <div className="my-3 h-px bg-white/10" aria-hidden />
+                      </>
+                    )}
+
+                    <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-200">
+                        {t("preferences")}
+                      </p>
+                      <label className="flex items-center justify-between gap-3 text-xs text-sky-100">
+                        <span>{t("language")}</span>
+                        <select
+                          value={language}
+                          onChange={handleLanguageChange}
+                          className="rounded-full border border-white/20 bg-slate-900/70 px-2 py-1 text-xs text-white shadow-sm shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        >
+                          <option value="en">EN</option>
+                          <option value="fr">FR</option>
+                          <option value="ar">AR</option>
+                        </select>
+                      </label>
+                      <div className="flex items-center justify-between gap-3 text-xs text-sky-100">
+                        <span>{t("theme")}</span>
+                        <div className="flex items-center rounded-full border border-white/20 bg-slate-900/60 p-1">
+                          <button
+                            type="button"
+                            onClick={() => handleThemeChange("light")}
+                            className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
+                              theme === "light"
+                                ? "bg-white text-slate-900 shadow-sm"
+                                : "text-sky-100 hover:text-white"
+                            }`}
+                          >
+                            {t("light")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleThemeChange("aurora")}
+                            className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
+                              theme === "aurora"
+                                ? "bg-emerald-200 text-slate-900 shadow-sm"
+                                : "text-sky-100 hover:text-white"
+                            }`}
+                          >
+                            {t("auroraDark")}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {user ? (
+                      <>
+                        <div className="my-3 h-px bg-white/10" aria-hidden />
                         <button
                           type="button"
                           onClick={handleSignOut}
-                          className="flex items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10"
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10"
                           role="menuitem"
                         >
-                          Sign out
+                          {t("signOut")}
                         </button>
-                      </div>
-                    </div>
-                  ) : null}
+                      </>
+                    ) : null}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -395,7 +472,7 @@ export function Navbar() {
                         : "text-sky-100 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    {link.label}
+                    {t(link.labelKey)}
                     {active && <span className="text-xs text-sky-200">●</span>}
                   </Link>
                 );
