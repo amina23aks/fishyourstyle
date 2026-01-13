@@ -70,16 +70,14 @@ export default function ShopClient({ products, errorMessage, categories, designT
   return (
     <>
       <div className="mb-6 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-inner shadow-black/30 backdrop-blur">
-            <p className="text-sm uppercase tracking-[0.25em] text-white/90">SHOP</p>
-            <h1 className="mt-2 text-4xl font-semibold text-white">Explore Our Collection</h1>
-            <p className="mt-3 text-sm text-white/80">
-              Discover modern streetwear designed for comfort, fit, and everyday wear.
-              <br />
-              New pieces are added regularly to keep your style fresh.
-            </p>
-          </div>
+        <div className="flex flex-col gap-2 md:max-w-2xl">
+          <p className="text-sm uppercase tracking-[0.25em] text-white/90">SHOP</p>
+          <h1 className="text-4xl font-semibold text-white">Explore Our Collection</h1>
+          <p className="text-sm text-white/80">
+            Discover modern streetwear designed for comfort, fit, and everyday wear.
+            <br />
+            New pieces are added regularly to keep your style fresh.
+          </p>
         </div>
 
         <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/40">

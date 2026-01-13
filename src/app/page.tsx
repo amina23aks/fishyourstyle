@@ -102,16 +102,14 @@ export default async function Home() {
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
         <section className="space-y-4" id="shop-search">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-inner shadow-black/30 backdrop-blur">
-              <p className="text-sm uppercase tracking-[0.28em] text-white/90">SHOP</p>
-              <h2 className="text-2xl font-semibold text-white">Explore Our Collection</h2>
-              <p className="text-white/80">
-                Discover modern streetwear designed for comfort, fit, and everyday wear.
-                <br />
-                New pieces are added regularly to keep your style fresh.
-              </p>
-            </div>
+          <div className="flex flex-col gap-2 md:max-w-2xl">
+            <p className="text-sm uppercase tracking-[0.28em] text-white/90">SHOP</p>
+            <h2 className="text-2xl font-semibold text-white">Explore Our Collection</h2>
+            <p className="text-white/80">
+              Discover modern streetwear designed for comfort, fit, and everyday wear.
+              <br />
+              New pieces are added regularly to keep your style fresh.
+            </p>
           </div>
 
           <HomeClient products={products} categories={categories} designThemes={designThemes} />
@@ -121,13 +119,7 @@ export default async function Home() {
             </div>
           ) : null}
 
-          <div className="flex w-full flex-wrap justify-center gap-3 pt-2">
-            <Link
-              href="#shop-search-input"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/40 transition hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-            >
-              Search
-            </Link>
+          <div className="flex w-full justify-center pt-2">
             <Link
               href="/shop"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition hover:-translate-y-0.5 hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
@@ -138,8 +130,8 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="space-y-6 rounded-3xl bg-sky-900/90 px-6 py-12 text-sky-50 shadow-lg shadow-sky-200/60">
-          <div className="flex flex-col gap-2">
+        <section className="space-y-8 rounded-3xl bg-sky-900/90 px-6 py-14 text-sky-50 shadow-lg shadow-sky-200/60 md:px-10">
+          <div className="flex flex-col gap-3">
             <p className="text-sm uppercase tracking-[0.28em] text-sky-200">WHY US</p>
             <h2 className="text-2xl font-semibold">Why Choose Fish Your Style?</h2>
             <p className="text-sky-100">
@@ -150,7 +142,7 @@ export default async function Home() {
             {reasons.map((reason) => (
               <div
                 key={reason.title}
-                className="group rounded-3xl border border-white/20 bg-white/15 p-6 text-center shadow-[0_12px_30px_rgba(15,23,42,0.45)] backdrop-blur transition hover:-translate-y-1 hover:border-white/40 hover:bg-white/20 hover:shadow-[0_16px_40px_rgba(56,189,248,0.35)]"
+                className="group flex h-full flex-col items-center rounded-3xl border border-white/20 bg-white/15 p-7 text-center shadow-[0_12px_30px_rgba(15,23,42,0.45)] backdrop-blur transition hover:-translate-y-1 hover:border-white/40 hover:bg-white/20 hover:shadow-[0_16px_40px_rgba(56,189,248,0.35)]"
               >
                 <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-white/30 bg-white/10 shadow-inner shadow-sky-950/40">
                   <Image
@@ -160,10 +152,10 @@ export default async function Home() {
                     className="object-contain"
                   />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-white">
+                <h3 className="mt-5 text-lg font-semibold text-white">
                   {reason.title}
                 </h3>
-                <p className="mt-2 text-sm text-sky-100/90">{reason.description}</p>
+                <p className="mt-3 text-sm text-sky-100/90">{reason.description}</p>
               </div>
             ))}
           </div>
