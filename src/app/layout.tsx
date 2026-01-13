@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -32,6 +33,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
+          type="module"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">
         <Suspense fallback={null}>
           <AnalyticsProvider>

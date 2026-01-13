@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -184,13 +183,16 @@ export function Navbar() {
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href="/" className="group flex items-center gap-3">
-          <Image
-            src="/logoF.png"
-            alt="Fish Your Style logo"
-            width={56}
-            height={56}
-            className="h-12 w-auto transition group-hover:opacity-90"
-            priority
+          <model-viewer
+            src="/logo-3d.glb"
+            loading="lazy"
+            camera-controls
+            auto-rotate
+            rotation-per-second="120deg"
+            disable-zoom
+            shadow-intensity="1"
+            className="h-14 w-14"
+            aria-label="Fish Your Style 3D logo"
           />
           <div className="leading-tight">
             <p className="text-base font-semibold text-white">Fish Your Style</p>
