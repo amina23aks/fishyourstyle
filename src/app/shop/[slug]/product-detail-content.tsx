@@ -140,7 +140,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const handleAddToCart = () => {
     // Prevent any action if the item is out of stock.
     if (isOutOfStock) {
-      setSelectionError("Out of stock");
+      setSelectionError("OUT OF STOCK");
       return false;
     }
 
@@ -167,12 +167,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
     const existing = items.find((item) => item.variantKey === variantKey);
     const maxQty = existing?.maxQuantity ?? availableStock;
     if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
-      setSelectionError("Out of stock");
+      setSelectionError("OUT OF STOCK");
       return false;
     }
 
     if (!stockState.isAvailable) {
-      setSelectionError("Out of stock");
+      setSelectionError("OUT OF STOCK");
       return false;
     }
 
@@ -208,16 +208,16 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const availabilityLine =
     stockState.stockMode === "limited"
       ? isOutOfStock
-        ? "Sold out"
+        ? "OUT OF STOCK"
         : typeof availableStock === "number"
           ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
           : null
-      : "In stock";
+      : "IN STOCK";
   const selectionMessage = isSelectionMissing
     ? "Please choose a color and size before adding to cart."
     : null;
   const displayMessage = isOutOfStock
-    ? "Sold out"
+    ? "OUT OF STOCK"
     : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
 
   return (

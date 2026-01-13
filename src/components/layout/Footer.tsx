@@ -59,7 +59,7 @@ export default function Footer() {
   const [wishlistEmail, setWishlistEmail] = useState("");
   const [wishlistStatus, setWishlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [wishlistError, setWishlistError] = useState<string | null>(null);
-  const currentYear = new Date().getFullYear();
+  const currentYear = 2026;
 
   const handleWishlistSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -95,12 +95,10 @@ export default function Footer() {
             Fish Your Style
           </p>
           <h2 className="text-2xl font-semibold text-white">
-            Ocean-ready streetwear made for everyday adventures.
+            Streetwear built for everyday life.
           </h2>
           <p className="text-sky-200">
-            Discover limited drops, bold colors, and comfy fits crafted for the
-            sea-loving community. From the latest collection to custom pieces,
-            Fish Your Style keeps your look fresh and effortless.
+            Versatile designs and comfortable fits made to match your lifestyle — whatever you’re into.
           </p>
         </div>
 
@@ -180,8 +178,7 @@ export default function Footer() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-white">Wishlist</h3>
             <p className="text-sky-200">
-              Drop your email to be the first to know when new drops hit your
-              wishlist.
+              Drop your email to be the first to know when new drops hit your wishlist.
             </p>
             <form className="space-y-2" onSubmit={handleWishlistSubmit}>
               <label className="sr-only" htmlFor="wishlist-email">

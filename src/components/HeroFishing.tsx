@@ -97,9 +97,13 @@ export default function HeroFishing() {
       <div className="relative px-6 pb-24 pt-16 sm:px-10 lg:min-h-[80vh] lg:px-16">
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
           <div className="relative order-2 w-full space-y-4 text-left text-white lg:order-1 lg:max-w-xl lg:space-y-5 lg:pt-2">
-            <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">Fish Your Style</h1>
+            <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
+              Fish Your Style. Catch What You Love.
+            </h1>
             <p className="text-lg text-sky-50/90">
-              Streetwear inspiré par la mer : des coupes confortables, des couleurs fraîches et une vibe qui suit chacun de tes mouvements.
+              Streetwear made for every style, every mood, and every moment.
+              <br />
+              From everyday essentials to statement pieces — your style starts here.
             </p>
             <div className="flex flex-wrap justify-start gap-4 pt-3">
               <Link

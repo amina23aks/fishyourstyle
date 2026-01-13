@@ -73,7 +73,7 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
             }`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${isOutOfStock ? "bg-white" : "bg-emerald-700"}`} />
-            {isOutOfStock ? "Out of stock" : "In stock"}
+            {isOutOfStock ? "OUT OF STOCK" : "IN STOCK"}
           </span>
         </div>
       </div>
@@ -102,7 +102,7 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
                   : "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-900 hover:from-sky-300 hover:to-cyan-200"
               }`}
             >
-              {isOutOfStock ? "Out of stock" : "Add to cart"}
+              {isOutOfStock ? "OUT OF STOCK" : "Add to cart"}
             </button>
           </div>
           <p className="text-xs text-white/60">Added {formatAddedDate(item)}</p>
@@ -161,14 +161,14 @@ export default function FavoritesPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-6 space-y-2">
-        <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Favorites</p>
-        <h1 className="text-3xl font-semibold text-white sm:text-4xl">Favorites</h1>
+          <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Your Favorites</p>
+        <h1 className="text-3xl font-semibold text-white sm:text-4xl">Your Favorites</h1>
         <p className="text-sm text-white/70">
           View and manage the products you&apos;ve saved.
         </p>
         {!user && (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xs font-semibold text-white shadow-sm shadow-black/30">
-            <span>You&apos;re not signed in. These favorites are only saved on this device.</span>
+            <span>You&apos;re not signed in. These favorites are saved only on this device.</span>
             <button
               type="button"
               onClick={() => openModal({ returnTo: "/favorites" })}

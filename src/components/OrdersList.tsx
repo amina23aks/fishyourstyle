@@ -175,6 +175,22 @@ export default function OrdersList() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "delivered":
+        return "Delivered";
+      case "shipped":
+        return "Shipped";
+      case "cancelled":
+        return "Cancelled";
+      case "pending":
+      case "confirmed":
+        return "Processing";
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
   const renderLoadingSkeleton = () => (
     <div className="grid gap-4">
       {[1, 2, 3].map((i) => (
@@ -268,7 +284,9 @@ export default function OrdersList() {
         {successBanner}
         <div className="rounded-2xl border border-white/20 bg-white/10 p-6 text-center text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur">
           <p className="font-medium text-lg mb-2">You don’t have any orders yet.</p>
-          <p className="text-sm text-sky-100 mb-2">Discover the latest drops and place your first order.</p>
+          <p className="text-sm text-sky-100 mb-2">
+            Discover modern streetwear designed for comfort, fit, and everyday wear.
+          </p>
           <Link
             href="/shop"
             className="mt-4 inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
@@ -320,7 +338,7 @@ export default function OrdersList() {
                         <span
                           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(order.status)}`}
                         >
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          {getStatusLabel(order.status)}
                         </span>
                         {canEdit && (
                           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductCard } from "./shop/product-card";
 import type { Product } from "@/types/product";
 import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
@@ -26,6 +26,8 @@ function capitalizeLabel(value: string | undefined | null): string {
 export default function HomeClient({ products, categories, designThemes }: Props) {
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const collectionPills = useMemo(() => {
     const source = categories && categories.length > 0 ? categories : CANONICAL_CATEGORIES;
@@ -48,14 +50,29 @@ export default function HomeClient({ products, categories, designThemes }: Props
   }, [designThemes]);
 
   const filteredProducts = useMemo(() => {
+    const term = search.trim().toLowerCase();
     return products.filter((product) => {
       const category = (product.category as string)?.toLowerCase();
       const design = (product.designTheme ?? "simple").toLowerCase();
       if (collectionFilter !== "all" && category !== collectionFilter) return false;
       if (designFilter !== "all" && design !== designFilter) return false;
-      return true;
+      if (!term) return true;
+      const tags = (product.tags ?? []) as string[];
+      const haystack = `${product.nameFr} ${tags.join(" ")}`.toLowerCase();
+      return haystack.includes(term);
     });
-  }, [collectionFilter, designFilter, products]);
+  }, [collectionFilter, designFilter, products, search]);
+
+  useEffect(() => {
+    const focusSearch = () => {
+      if (window.location.hash === "#shop-search-input") {
+        searchInputRef.current?.focus();
+      }
+    };
+    focusSearch();
+    window.addEventListener("hashchange", focusSearch);
+    return () => window.removeEventListener("hashchange", focusSearch);
+  }, []);
 
   return (
     <>
@@ -106,6 +123,18 @@ export default function HomeClient({ products, categories, designThemes }: Props
               })}
             </div>
           </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-xs uppercase tracking-[0.25em] text-slate-100">Search</label>
+          <input
+            id="shop-search-input"
+            ref={searchInputRef}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or tag..."
+            className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 placeholder:text-slate-300 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+          />
         </div>
       </div>
 
