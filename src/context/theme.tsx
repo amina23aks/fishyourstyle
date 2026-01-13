@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-type Theme = "light" | "aurora";
+type Theme = "light" | "dark";
 
 type ThemeContextValue = {
   theme: Theme;
@@ -18,8 +18,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (stored && (stored === "light" || stored === "aurora")) {
+    if (stored === "light" || stored === "dark") {
       setTheme(stored);
+      return;
+    }
+    if (stored === "aurora") {
+      setTheme("dark");
     }
   }, []);
 

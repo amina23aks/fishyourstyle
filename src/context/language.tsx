@@ -17,7 +17,7 @@ type TranslationKey =
   | "menu.language"
   | "menu.theme"
   | "menu.light"
-  | "menu.auroraDark"
+  | "menu.dark"
   | "home.heading"
   | "checkout.heading";
 
@@ -43,7 +43,7 @@ const translations: Translations = {
     "menu.language": "Language",
     "menu.theme": "Theme",
     "menu.light": "Light",
-    "menu.auroraDark": "Dark",
+    "menu.dark": "Dark",
     "home.heading": "Fish Your Style. Catch What You Love.",
     "checkout.heading": "Confirm your order",
   },
@@ -60,7 +60,7 @@ const translations: Translations = {
     "menu.language": "Langue",
     "menu.theme": "Thème",
     "menu.light": "Light",
-    "menu.auroraDark": "Dark",
+    "menu.dark": "Dark",
     "home.heading": "Fish Your Style. Choisissez ce que vous aimez.",
     "checkout.heading": "Confirmez votre commande",
   },
@@ -77,7 +77,7 @@ const translations: Translations = {
     "menu.language": "اللغة",
     "menu.theme": "المظهر",
     "menu.light": "Light",
-    "menu.auroraDark": "Dark",
+    "menu.dark": "Dark",
     "home.heading": "Fish Your Style. اختر ما تحب.",
     "checkout.heading": "تأكيد الطلب",
   },

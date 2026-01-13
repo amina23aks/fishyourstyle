@@ -39,7 +39,7 @@ body {
   font-family: var(--font-sans);
 }
 
-body[data-theme="aurora"] {
+body[data-theme="dark"] {
   --background: #081425;
   --foreground: #e6f2ff;
   --ocean-page-gradient: linear-gradient(
@@ -141,7 +141,7 @@ body[data-theme="aurora"] {
   opacity: 0.6;
 }
 
-body[data-theme="aurora"] .aurora-veil {
+body[data-theme="dark"] .aurora-veil {
   opacity: 0.85;
 }
 
