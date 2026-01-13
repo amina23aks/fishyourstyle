@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
@@ -92,18 +91,9 @@ export default function Footer() {
     <footer className="mt-16 border-t border-white/10 text-sky-50 backdrop-blur-lg">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:flex-row md:items-start md:justify-between">
         <div className="max-w-md space-y-3">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logoF.png"
-              alt="Fish Your Style logo"
-              width={48}
-              height={48}
-              className="h-10 w-auto"
-            />
-            <p className="text-sm uppercase tracking-[0.28em] text-sky-200">
-              Fish Your Style
-            </p>
-          </div>
+          <p className="text-sm uppercase tracking-[0.28em] text-sky-200">
+            Fish Your Style
+          </p>
           <h2 className="text-2xl font-semibold text-white">
             Streetwear built for everyday life.
           </h2>
