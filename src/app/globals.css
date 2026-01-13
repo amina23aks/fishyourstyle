@@ -75,6 +75,56 @@ body {
   background-size: 100% 100%;
 }
 
+<<<<<<< HEAD
+=======
+.ocean-glow {
+  background: var(--ocean-glow);
+}
+
+.ocean-bottom-fade {
+  background: var(--ocean-bottom-fade);
+}
+
+body[data-theme="aurora"] .aurora-overlay::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: -10%;
+  width: 120%;
+  height: 240px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.85;
+  background:
+    radial-gradient(700px 260px at 15% 0%, rgba(34, 197, 94, 0.3), transparent 60%),
+    radial-gradient(600px 240px at 60% 0%, rgba(45, 212, 191, 0.26), transparent 62%),
+    radial-gradient(700px 300px at 95% 0%, rgba(56, 189, 248, 0.18), transparent 65%);
+  filter: blur(24px) saturate(150%);
+  transform: translateZ(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body[data-theme="aurora"] .aurora-overlay::before {
+    animation: auroraShift 16s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes auroraShift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-20px, 6px, 0) scale(1.03);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-theme="aurora"] .aurora-overlay::before {
+    animation: none;
+  }
+}
+
+>>>>>>> a947b38 (Render aurora overlay on ocean backdrop)
 .bubble {
   position: absolute;
   border-radius: 9999px;
