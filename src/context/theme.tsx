@@ -2,40 +2,37 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-type Theme = "light" | "aurora";
+export type ThemeMode = "light" | "aurora";
 
 type ThemeContextValue = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
-
-const STORAGE_KEY = "fys-theme";
+const THEME_STORAGE_KEY = "fys-theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<ThemeMode>("light");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === "light" || stored === "aurora") {
       setTheme(stored);
-      return;
-    }
-    if (stored === "dark") {
-      setTheme("aurora");
     }
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, theme);
     document.body.dataset.theme = theme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
   const value = useMemo(
     () => ({
       theme,
       setTheme,
+      toggleTheme: () => setTheme((previous) => (previous === "light" ? "aurora" : "light")),
     }),
     [theme]
   );
@@ -50,5 +47,3 @@ export function useTheme() {
   }
   return context;
 }
-
-export type { Theme };

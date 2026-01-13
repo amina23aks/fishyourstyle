@@ -6,6 +6,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { useLanguage } from "@/context/language";
+  const { t } = useLanguage();
+import { useLanguage } from "@/context/language";
 import PageShell from "@/components/PageShell";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDb } from "@/lib/firebaseClient";
@@ -107,8 +109,10 @@ function AccountContent() {
         setLoyaltyRewardAvailable(rewardAvailable);
         setLoyaltyRewardPercent(rewardPercent);
         setLoyaltyCycleSize(cycleSize);
-      },
-      (error) => {
+          <h1 className="text-3xl font-semibold text-white">{t("profileHeading")}</h1>
+              <p className="text-xs uppercase tracking-[0.3em] text-sky-200">
+                {t("profileHeading")}
+              </p>
         console.error("[account] user doc snapshot error", error);
       }
     );

@@ -9,6 +9,7 @@ import { normalizeCartItem, useCart } from "@/context/cart";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
 import { doc, onSnapshot } from "firebase/firestore";
+import { useLanguage } from "@/context/language";
 import {
   ECONOMIC_SHIPPING,
   getEconomicShippingByWilaya,
@@ -16,6 +17,7 @@ import {
 } from "@/data/shipping";
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
+  const { t } = useLanguage();
 import { useLanguage } from "@/context/language";
 import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { normalizeProductStock } from "@/lib/stock";
@@ -303,8 +305,8 @@ export default function CheckoutClient() {
         });
       }
 
-      // Clear cart on success
-      console.log("[CheckoutClient] Clearing cart...");
+          <p className="text-xs uppercase tracking-[0.28em] text-sky-200">{t("checkout")}</p>
+          <h1 className="text-3xl font-semibold text-white">{t("confirmOrder")}</h1>
       clearCart();
 
       // Show success state

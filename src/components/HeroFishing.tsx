@@ -1,5 +1,9 @@
 "use client";
 
+import { useLanguage } from "@/context/language";
+  const { t } = useLanguage();
+    <section className="top-shell relative overflow-hidden text-white">
+
 import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/context/language";
@@ -73,13 +77,9 @@ export default function HeroFishing() {
               className="light-column absolute inset-y-6 rounded-full"
               style={{
                 left: beam.left,
-                width: beam.width,
-                animationDelay: beam.delay,
-              }}
-            />
-          ))}
-
-          <div className="absolute left-[54%] top-12 h-64 w-64 -translate-x-1/2 rounded-full underwater-vortex" />
+              {t("heroTitle")}
+            <p className="text-lg text-sky-50/90">{t("heroSubtitle")}</p>
+                {t("shopNow")}
 
           <div className="pointer-events-none absolute inset-x-6 bottom-0 top-[10%]">
             {heroBubbles.map((bubble, index) => (

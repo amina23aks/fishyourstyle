@@ -10,23 +10,29 @@ import AuthModal from "@/components/AuthModal";
 import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
 import { AuthModalProvider } from "@/context/auth-modal";
-import { FavoritesProvider } from "@/hooks/use-favorites";
-import { ThemeProvider } from "@/context/theme";
 import { LanguageProvider } from "@/context/language";
-import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Fish Your Style — Streetwear for every mood",
-  description: "Streetwear made for every style, every mood, and every moment.",
-  keywords: [
-    "fish your style",
-    "streetwear for every mood",
-    "streetwear",
-    "style",
-  ],
-};
-
-export default function RootLayout({
+import { ThemeProvider } from "@/context/theme";
+import { FavoritesProvider } from "@/hooks/use-favorites";
+            <ThemeProvider>
+              <LanguageProvider>
+                <AuthProvider>
+                  <AuthModalProvider>
+                    <FavoritesProvider>
+                      <CartProvider>
+                        <OceanBackdrop />
+                        <div className="relative z-10 flex min-h-screen flex-col overflow-x-hidden pt-20">
+                          <Navbar />
+                          <main className="flex-1">{children}</main>
+                          <Footer />
+                        </div>
+                        <CookiesBanner />
+                        <AuthModal />
+                      </CartProvider>
+                    </FavoritesProvider>
+                  </AuthModalProvider>
+                </AuthProvider>
+              </LanguageProvider>
+            </ThemeProvider>
   children,
 }: Readonly<{
   children: React.ReactNode;
