@@ -69,10 +69,26 @@ body {
   color: var(--foreground);
 }
 
+body[data-theme="aurora"].ocean-page {
+  background: linear-gradient(
+    to bottom,
+    #061427 0%,
+    #071a33 36%,
+    #062040 62%,
+    #04122a 82%,
+    #020617 100%
+  );
+  color: #e2f3ff;
+}
+
 
 .ocean-bg {
   background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
   background-size: 100% 100%;
+}
+
+body[data-theme="aurora"] .ocean-bg {
+  background-image: linear-gradient(to bottom, #0a2546 0%, #0a1f3b 52%, #020617 100%);
 }
 
 .ocean-glow {
@@ -86,18 +102,18 @@ body {
 body[data-theme="aurora"] .aurora-overlay::before {
   content: "";
   position: absolute;
-  top: -40px;
-  left: -10%;
-  width: 120%;
-  height: 240px;
+  top: 0;
+  left: -8%;
+  width: 116%;
+  height: 220px;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.85;
+  opacity: 0.55;
   background:
-    radial-gradient(700px 260px at 15% 0%, rgba(34, 197, 94, 0.3), transparent 60%),
-    radial-gradient(600px 240px at 60% 0%, rgba(45, 212, 191, 0.26), transparent 62%),
-    radial-gradient(700px 300px at 95% 0%, rgba(56, 189, 248, 0.18), transparent 65%);
-  filter: blur(24px) saturate(150%);
+    radial-gradient(680px 240px at 18% 0%, rgba(34, 197, 94, 0.22), transparent 62%),
+    radial-gradient(600px 220px at 55% 0%, rgba(45, 212, 191, 0.2), transparent 64%),
+    radial-gradient(640px 260px at 90% 0%, rgba(56, 189, 248, 0.14), transparent 68%);
+  filter: blur(28px) saturate(135%);
   transform: translateZ(0);
 }
 
