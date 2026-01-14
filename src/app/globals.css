@@ -60,9 +60,9 @@ body {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
   background: linear-gradient(
     to bottom,
-    #cfe9ff 0%,
-    #a8d7ff 32%,
-    #6db3f0 62%,
+    #7bb0f5 0%,
+    #6db3f0 32%,
+    #3671a5 62%,
     #1e4c82 84%,
     #020617 100%
   );
@@ -72,9 +72,9 @@ body {
 html[data-theme="aurora"] body.ocean-page {
   background: linear-gradient(
     to bottom,
-    #061427 0%,
-    #071a33 36%,
-    #062040 62%,
+    #0a2546 0%,
+    #0a2546 36%,
+    #0a1f3b 62%,
     #04122a 82%,
     #020617 100%
   );
