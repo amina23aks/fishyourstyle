@@ -1,5 +1,3 @@
-"use client";
-
 export default function OceanBackdrop() {
   const bubbles = [
     { size: 14, left: "8%", delay: "0s", duration: "16s" },
