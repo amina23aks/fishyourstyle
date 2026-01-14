@@ -9,6 +9,7 @@ import { normalizeCartItem, useCart } from "@/context/cart";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
 import { doc, onSnapshot } from "firebase/firestore";
+import { useLanguage } from "@/context/language";
 import {
   ECONOMIC_SHIPPING,
   getEconomicShippingByWilaya,
@@ -16,6 +17,8 @@ import {
 } from "@/data/shipping";
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
+  const { t } = useLanguage();
+import { useLanguage } from "@/context/language";
 import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { normalizeProductStock } from "@/lib/stock";
 import { getDb } from "@/lib/firebaseClient";
@@ -34,6 +37,7 @@ export default function CheckoutClient() {
   const router = useRouter();
   const { items, totals, clearCart } = useCart();
   const { user, signOut } = useAuth();
+  const { t } = useLanguage();
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
     email: "",
@@ -301,8 +305,8 @@ export default function CheckoutClient() {
         });
       }
 
-      // Clear cart on success
-      console.log("[CheckoutClient] Clearing cart...");
+          <p className="text-xs uppercase tracking-[0.28em] text-sky-200">{t("checkout")}</p>
+          <h1 className="text-3xl font-semibold text-white">{t("confirmOrder")}</h1>
       clearCart();
 
       // Show success state
@@ -328,7 +332,7 @@ export default function CheckoutClient() {
       <main className="space-y-6 lg:space-y-8">
         <header className="space-y-2">
           <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Checkout</p>
-          <h1 className="text-3xl font-semibold text-white">Confirm your order</h1>
+          <h1 className="text-3xl font-semibold text-white">{t("checkout.heading")}</h1>
           <p className="max-w-2xl text-sm text-sky-100">
             Delivery across all wilayas with
             <span className="font-semibold text-white"> Economic shipping </span>
