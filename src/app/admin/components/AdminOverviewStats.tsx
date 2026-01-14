@@ -293,6 +293,8 @@ export function AdminOverviewStats() {
     return `in the last ${rangeMeta.days} days`;
   }, [rangeKey, rangeMeta.days]);
 
+  const previousStartKey = previousRangeMeta.startKey;
+
   useEffect(() => {
     const loadSummary = async () => {
       setLoading(true);
@@ -316,7 +318,7 @@ export function AdminOverviewStats() {
         const rangeStart = startOfDayInTZ(rangeMeta.startKey, TIME_ZONE);
         const rangeEnd = new Date();
         const prevRangeEnd = new Date(rangeStart.getTime() - 1);
-        const prevRangeStart = startOfDayInTZ(previousRangeMeta.startKey, TIME_ZONE);
+        const prevRangeStart = startOfDayInTZ(previousStartKey, TIME_ZONE);
         const prevRangeEndKey = addDaysToDateKey(rangeMeta.startKey, -1, TIME_ZONE);
         const prevRangeEndDay = endOfDayInTZ(prevRangeEndKey, TIME_ZONE);
         const prevEnd = prevRangeEndDay.getTime() < prevRangeEnd.getTime() ? prevRangeEndDay : prevRangeEnd;
@@ -420,7 +422,7 @@ export function AdminOverviewStats() {
     };
 
     loadSummary();
-  }, [rangeMeta.days, rangeMeta.startKey]);
+  }, [previousStartKey, rangeMeta.days, rangeMeta.startKey]);
 
   const lastUpdatedLabel = useMemo(() => {
     const date = toDateSafe(summary.updatedAt);
