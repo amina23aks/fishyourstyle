@@ -75,8 +75,6 @@ body {
   background-size: 100% 100%;
 }
 
-<<<<<<< HEAD
-=======
 .ocean-glow {
   background: var(--ocean-glow);
 }
@@ -124,7 +122,6 @@ body[data-theme="aurora"] .aurora-overlay::before {
   }
 }
 
->>>>>>> a947b38 (Render aurora overlay on ocean backdrop)
 .bubble {
   position: absolute;
   border-radius: 9999px;
