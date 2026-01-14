@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -22,6 +23,23 @@ const links = [
 ];
 
 const iconStyles = "h-5 w-5";
+
+const ModelViewerLogo = dynamic(() => import("./ModelViewerLogo"), {
+  ssr: false,
+  loading: () => <LogoPlaceholder />,
+});
+
+function LogoPlaceholder() {
+  return (
+    <img
+      src="/logoF.png"
+      alt="Fish Your Style logo"
+      className="h-14 w-14"
+      loading="lazy"
+      decoding="async"
+    />
+  );
+}
 
 function CartIcon() {
   return (
@@ -204,21 +222,13 @@ export function Navbar() {
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href="/" className="group flex items-center gap-3">
-            <model-viewer
-              src="/logo-3d.glb"
-              loading="lazy"
-              camera-controls
-              auto-rotate
-              rotation-per-second="120deg"
-              disable-zoom
-              shadow-intensity="1"
-              className="h-14 w-14"
-              aria-label="Fish Your Style 3D logo"
-            />
-            <div className="leading-tight">
-              <p className="text-base font-semibold text-white">Fish Your Style</p>
-              <span className="text-xs text-sky-100">Streetwear for every mood</span>
-            </div>
+          <ModelViewerLogo />
+          <div className="leading-tight">
+            <p className="text-base font-semibold text-white">Fish Your Style</p>
+            <span className="text-xs text-sky-100">
+              Streetwear for every mood
+            </span>
+          </div>
         </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-2 text-sm font-medium text-sky-100 md:flex">
