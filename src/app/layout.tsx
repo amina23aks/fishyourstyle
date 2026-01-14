@@ -22,6 +22,9 @@ export const metadata: Metadata = {
     "streetwear",
     "style",
   ],
+  icons: {
+    icon: "/logoF.png",
+  },
 };
 
 export default function RootLayout({

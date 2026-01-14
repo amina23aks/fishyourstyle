@@ -82,12 +82,13 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     stockQty: product.stockQty,
     inStock: product.inStock,
   });
-  const isLimited = stockState.stockMode === "limited";
+  const { isAvailable: stockIsAvailable, stockMode, stockQty } = stockState;
+  const isLimited = stockMode === "limited";
   const requiresColorSelection = availableColors.length > 1;
   const requiresSizeSelection = availableSizes.length > 1;
   const hasVariantAvailable = hasAvailableVariants(product);
-  const isOutOfStock = !stockState.isAvailable || !hasVariantAvailable;
-  const availableStock = isLimited ? stockState.stockQty : undefined;
+  const isOutOfStock = !stockIsAvailable || !hasVariantAvailable;
+  const availableStock = isLimited ? stockQty : undefined;
   const selectedSizeOption = selectedSize ? sizeOptions.find((size) => size.value === selectedSize) : null;
   const isSelectionInvalid =
     isOutOfStock ||
@@ -105,6 +106,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     });
   }
 
+  const productCategory = product.category ?? "";
+  const productDesignTheme = product.designTheme ?? "";
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
   const isSelectionMissing =
@@ -223,7 +226,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       return false;
     }
 
-    if (!stockState.isAvailable) {
+    if (!stockIsAvailable) {
       setSelectionWarning("OUT OF STOCK");
       return false;
     }
@@ -232,10 +235,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       id: product.id,
       slug: product.slug,
       name: product.nameFr,
-      category: product.category ?? "",
-      design: product.designTheme ?? "",
-      stockMode: stockState.stockMode,
-      stockQty: stockState.stockQty,
+      category: productCategory,
+      design: productDesignTheme,
+      stockMode,
+      stockQty,
       price: product.priceDzd,
       currency: product.currency,
       image: currentImage ?? product.images.main,
@@ -260,7 +263,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     isOutOfStock,
     isSelectionInvalid,
     items,
+    productCategory,
     product.currency,
+    productDesignTheme,
     product.id,
     product.images.main,
     product.nameFr,
@@ -270,6 +275,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     availableSizes,
     selectedColor,
     selectedSize,
+    stockIsAvailable,
+    stockMode,
+    stockQty,
   ]);
 
   if (loading) {
