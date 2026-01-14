@@ -32,10 +32,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(() => {
+  try {
+    const storedTheme = window.localStorage.getItem("theme");
+    if (storedTheme === "dark") {
+      document.documentElement.setAttribute("data-theme", "aurora");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  } catch (error) {
+    document.documentElement.removeAttribute("data-theme");
+  }
+})();`}
+        </Script>
         <Script
           src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
           type="module"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
         />
       </head>
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">

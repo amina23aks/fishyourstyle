@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -14,6 +13,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { getDb } from "@/lib/firebaseClient";
 
 import CartDrawer from "./cart/cart-drawer";
+import ModelViewerLogo from "./ModelViewerLogo";
 
 const links = [
   { href: "/", label: "Home" },
@@ -23,23 +23,6 @@ const links = [
 ];
 
 const iconStyles = "h-5 w-5";
-
-const ModelViewerLogo = dynamic(() => import("./ModelViewerLogo"), {
-  ssr: false,
-  loading: () => <LogoPlaceholder />,
-});
-
-function LogoPlaceholder() {
-  return (
-    <img
-      src="/logoF.png"
-      alt="Fish Your Style logo"
-      className="h-14 w-14"
-      loading="lazy"
-      decoding="async"
-    />
-  );
-}
 
 function CartIcon() {
   return (
@@ -125,9 +108,9 @@ export function Navbar() {
   useEffect(() => {
     if (typeof document === "undefined") return;
     if (theme === "dark") {
-      document.body.setAttribute("data-theme", "aurora");
+      document.documentElement.setAttribute("data-theme", "aurora");
     } else {
-      document.body.removeAttribute("data-theme");
+      document.documentElement.removeAttribute("data-theme");
     }
     if (typeof window !== "undefined") {
       window.localStorage.setItem("theme", theme);

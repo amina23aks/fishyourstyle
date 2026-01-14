@@ -69,7 +69,7 @@ body {
   color: var(--foreground);
 }
 
-body[data-theme="aurora"].ocean-page {
+html[data-theme="aurora"] body.ocean-page {
   background: linear-gradient(
     to bottom,
     #061427 0%,
@@ -87,7 +87,7 @@ body[data-theme="aurora"].ocean-page {
   background-size: 100% 100%;
 }
 
-body[data-theme="aurora"] .ocean-bg {
+html[data-theme="aurora"] .ocean-bg {
   background-image: linear-gradient(to bottom, #0a2546 0%, #0a1f3b 52%, #020617 100%);
 }
 
@@ -99,7 +99,7 @@ body[data-theme="aurora"] .ocean-bg {
   background: var(--ocean-bottom-fade);
 }
 
-body[data-theme="aurora"] .aurora-overlay::before {
+html[data-theme="aurora"] .aurora-overlay::before {
   content: "";
   position: absolute;
   top: 0;
@@ -118,7 +118,7 @@ body[data-theme="aurora"] .aurora-overlay::before {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  body[data-theme="aurora"] .aurora-overlay::before {
+  html[data-theme="aurora"] .aurora-overlay::before {
     animation: auroraShift 16s ease-in-out infinite alternate;
   }
 }
@@ -133,7 +133,7 @@ body[data-theme="aurora"] .aurora-overlay::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body[data-theme="aurora"] .aurora-overlay::before {
+  html[data-theme="aurora"] .aurora-overlay::before {
     animation: none;
   }
 }
