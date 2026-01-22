@@ -20,6 +20,7 @@ import {
   resolveSwatchHex,
 } from "@/lib/product-variants";
 import { useFavorites } from "@/hooks/use-favorites";
+import { viewContent } from "@/lib/metaPixel";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -126,6 +127,14 @@ export function ProductDetailContent({ product }: { product: Product }) {
           quantity: 1,
         },
       ],
+    });
+    // Meta Pixel: ViewContent event for product detail view.
+    viewContent({
+      content_ids: [product.id],
+      content_name: product.nameFr,
+      content_type: "product",
+      value: product.priceDzd,
+      currency: product.currency ?? "DZD",
     });
   }, [product.currency, product.id, product.nameFr, product.priceDzd]);
 

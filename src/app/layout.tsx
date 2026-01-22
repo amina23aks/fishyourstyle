@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/layout/Footer";
 import OceanBackdrop from "@/components/OceanBackdrop";
+import MetaPixelPageView from "@/components/MetaPixelPageView";
 import CookiesBanner from "@/components/CookiesBanner";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
 import AuthModal from "@/components/AuthModal";
@@ -11,6 +12,7 @@ import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
 import { AuthModalProvider } from "@/context/auth-modal";
 import { FavoritesProvider } from "@/hooks/use-favorites";
+import { FB_PIXEL_ID } from "@/lib/metaPixel";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -63,7 +65,7 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
 
-fbq('init', '1217191333852885');
+fbq('init', '${FB_PIXEL_ID}');
 fbq('track', 'PageView');`}
         </Script>
       </head>
@@ -73,11 +75,12 @@ fbq('track', 'PageView');`}
             height="1"
             width="1"
             style={{ display: "none" }}
-            src="https://www.facebook.com/tr?id=1217191333852885&ev=PageView&noscript=1"
+            src={`https://www.facebook.com/tr?id=${FB_PIXEL_ID}&ev=PageView&noscript=1`}
             alt=""
           />
         </noscript>
         <Suspense fallback={null}>
+          <MetaPixelPageView />
           <AnalyticsProvider>
             <AuthProvider>
               <AuthModalProvider>

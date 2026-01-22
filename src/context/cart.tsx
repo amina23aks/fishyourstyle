@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { trackAddToCart } from "@/lib/analytics";
+import { addToCart as trackMetaAddToCart } from "@/lib/metaPixel";
 
 export type CartItem = {
   id: string;
@@ -177,6 +178,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         price: payload.price,
         currency: "DZD",
         quantity: addedQuantity,
+      });
+      // Meta Pixel: AddToCart event.
+      trackMetaAddToCart({
+        content_ids: [payload.id],
+        content_name: payload.name,
+        value: payload.price * addedQuantity,
+        currency: payload.currency ?? "DZD",
       });
     }
     setLastAddedAt(Date.now());
