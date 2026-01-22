@@ -130,10 +130,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
     });
     // Meta Pixel: ViewContent event for product detail view.
     viewContent({
-      content_ids: [product.id],
-      content_name: product.nameFr,
-      content_type: "product",
-      value: product.priceDzd,
+      id: product.id,
+      name: product.nameFr,
+      price: product.priceDzd,
       currency: product.currency ?? "DZD",
     });
   }, [product.currency, product.id, product.nameFr, product.priceDzd]);

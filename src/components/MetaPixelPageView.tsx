@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { pageview } from "@/lib/metaPixel";
+import { pageView } from "@/lib/metaPixel";
 
 export default function MetaPixelPageView() {
   const pathname = usePathname();
@@ -17,7 +17,7 @@ export default function MetaPixelPageView() {
     }
 
     // Meta Pixel page view on client-side route change.
-    pageview();
+    pageView();
   }, [pathname, searchParams]);
 
   return null;

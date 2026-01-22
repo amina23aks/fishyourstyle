@@ -180,12 +180,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         quantity: addedQuantity,
       });
       // Meta Pixel: AddToCart event.
-      trackMetaAddToCart({
-        content_ids: [payload.id],
-        content_name: payload.name,
-        value: payload.price * addedQuantity,
-        currency: payload.currency ?? "DZD",
-      });
+      trackMetaAddToCart(
+        {
+          id: payload.id,
+          name: payload.name,
+          price: payload.price,
+          currency: payload.currency ?? "DZD",
+        },
+        addedQuantity,
+      );
     }
     setLastAddedAt(Date.now());
   }, []);

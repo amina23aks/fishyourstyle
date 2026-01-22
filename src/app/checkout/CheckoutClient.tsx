@@ -77,12 +77,16 @@ export default function CheckoutClient() {
       return;
     }
     if (initiateCheckoutTrackedRef.current) return;
-    const numItems = items.reduce((sum, item) => sum + item.quantity, 0);
+    const checkoutItems = items.map((item) => ({
+      id: item.id,
+      price: item.price,
+      quantity: item.quantity,
+    }));
     // Meta Pixel: InitiateCheckout event when the checkout flow starts.
     initiateCheckout({
       value: grandTotal,
       currency: "DZD",
-      num_items: numItems,
+      items: checkoutItems,
     });
     initiateCheckoutTrackedRef.current = true;
   }, [grandTotal, hasItems, items]);
@@ -321,9 +325,12 @@ export default function CheckoutClient() {
         purchase({
           value: analyticsTotal,
           currency: "DZD",
-          content_ids: normalizedItems.map((item) => item.id),
-          num_items: normalizedItems.reduce((sum, item) => sum + item.quantity, 0),
-          order_id: orderId,
+          orderId,
+          items: normalizedItems.map((item) => ({
+            id: item.id,
+            price: item.price,
+            quantity: item.quantity,
+          })),
         });
       }
 
