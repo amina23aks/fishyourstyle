@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageShell from "@/components/PageShell";
 import { normalizeCartItem, useCart } from "@/context/cart";
@@ -20,6 +20,7 @@ import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { normalizeProductStock } from "@/lib/stock";
 import { getDb } from "@/lib/firebaseClient";
 import { submitOrder } from "@/lib/ordersClient";
+import { initiateCheckout, purchase } from "@/lib/metaPixel";
 
 type CheckoutFormState = {
   fullName: string;
@@ -48,6 +49,7 @@ export default function CheckoutClient() {
   const [success, setSuccess] = useState<{ orderId: string } | null>(null);
   const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
   const [loyaltyRewardPercent, setLoyaltyRewardPercent] = useState(8);
+  const initiateCheckoutTrackedRef = useRef(false);
 
   const hasItems = items.length > 0;
 
@@ -68,6 +70,22 @@ export default function CheckoutClient() {
     const shippingTotal = shippingPrice ?? 0;
     return Math.max(0, totals.subtotal + shippingTotal - loyaltyDiscountAmount);
   }, [loyaltyDiscountAmount, shippingPrice, totals.subtotal]);
+
+  useEffect(() => {
+    if (!hasItems) {
+      initiateCheckoutTrackedRef.current = false;
+      return;
+    }
+    if (initiateCheckoutTrackedRef.current) return;
+    const numItems = items.reduce((sum, item) => sum + item.quantity, 0);
+    // Meta Pixel: InitiateCheckout event when the checkout flow starts.
+    initiateCheckout({
+      value: grandTotal,
+      currency: "DZD",
+      num_items: numItems,
+    });
+    initiateCheckoutTrackedRef.current = true;
+  }, [grandTotal, hasItems, items]);
 
   useEffect(() => {
     if (user?.email) {
@@ -298,6 +316,14 @@ export default function CheckoutClient() {
           currency: "DZD",
           shipping: shippingPrice ?? undefined,
           items: analyticsItems,
+        });
+        // Meta Pixel: Purchase event after successful order creation.
+        purchase({
+          value: analyticsTotal,
+          currency: "DZD",
+          content_ids: normalizedItems.map((item) => item.id),
+          num_items: normalizedItems.reduce((sum, item) => sum + item.quantity, 0),
+          order_id: orderId,
         });
       }
 
