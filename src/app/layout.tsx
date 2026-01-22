@@ -12,7 +12,6 @@ import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
 import { AuthModalProvider } from "@/context/auth-modal";
 import { FavoritesProvider } from "@/hooks/use-favorites";
-import { FB_PIXEL_ID } from "@/lib/metaPixel";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,6 +33,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
+
   return (
     <html lang="en">
       <head>
@@ -56,8 +57,9 @@ export default function RootLayout({
           type="module"
           strategy="beforeInteractive"
         />
-        <Script id="meta-pixel" strategy="afterInteractive">
-          {`!function(f,b,e,v,n,t,s)
+        {metaPixelId ? (
+          <Script id="meta-pixel" strategy="afterInteractive">
+            {`!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
@@ -65,22 +67,25 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
 
-fbq('init', '${FB_PIXEL_ID}');
+fbq('init', '${metaPixelId}');
 fbq('track', 'PageView');`}
-        </Script>
+          </Script>
+        ) : null}
       </head>
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">
-        <noscript>
-          <img
-            height="1"
-            width="1"
-            style={{ display: "none" }}
-            src={`https://www.facebook.com/tr?id=${FB_PIXEL_ID}&ev=PageView&noscript=1`}
-            alt=""
-          />
-        </noscript>
+        {metaPixelId ? (
+          <noscript>
+            <img
+              height="1"
+              width="1"
+              style={{ display: "none" }}
+              src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
+              alt=""
+            />
+          </noscript>
+        ) : null}
         <Suspense fallback={null}>
-          <MetaPixelPageView />
+          {metaPixelId ? <MetaPixelPageView /> : null}
           <AnalyticsProvider>
             <AuthProvider>
               <AuthModalProvider>
