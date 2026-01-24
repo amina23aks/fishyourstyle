@@ -22,6 +22,8 @@ import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { getDb } from "@/lib/firebaseClient";
 import { submitOrder } from "@/lib/ordersClient";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
+import { localizePathname } from "@/i18n/paths";
 
 type CartDrawerProps = {
   open: boolean;
@@ -33,6 +35,8 @@ const formatCurrency = (value: number) =>
 
 export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations();
   const { items, totals, totalQuantity, removeItem, updateQty, clearCart } =
     useCart();
   const { user } = useAuth();
@@ -46,6 +50,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     notes: "",
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
+  const [deliveryModeTouched, setDeliveryModeTouched] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ orderId: string } | null>(null);
@@ -137,23 +142,20 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     setError(null);
     setSuccess(null);
 
-    // Validate required fields (email is optional)
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
-      setError("Please fill in all required fields.");
+    // Validate required fields (email required)
+    if (!form.fullName || !form.phone || !form.wilaya || !form.address || !form.email) {
+      setError(t("cart.errorRequiredFields"));
       return;
     }
 
-    // Email is optional - validate format only if provided
-    if (form.email && form.email.trim() !== "") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(form.email)) {
-        setError("Please enter a valid email address or leave it blank.");
-        return;
-      }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setError(t("cart.errorInvalidEmail"));
+      return;
     }
 
     if (shippingPrice == null) {
-      setError("Please select a valid wilaya.");
+      setError(t("cart.errorSelectWilaya"));
       return;
     }
 
@@ -201,7 +203,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to create order. Please try again.");
+        throw new Error(errorData.error || t("cart.errorCreateOrder"));
       }
 
       const data = await response.json();
@@ -216,10 +218,10 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       // Close drawer and redirect after a short delay
       setTimeout(() => {
         onClose();
-        router.push(`/orders?status=success&orderId=${orderId}`);
+        router.push(`${localizePathname(locale, "/orders")}?status=success&orderId=${orderId}`);
       }, 1500);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       setError(errorMessage);
       setIsSubmitting(false);
     }
@@ -262,17 +264,19 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
   const summaryLines = useMemo(
     () => [
-      { label: "Subtotal", value: formatCurrency(totals.subtotal) },
+      { label: t("cart.subtotal"), value: formatCurrency(totals.subtotal) },
       {
-        label: "Shipping",
+        label: t("cart.shipping"),
         value:
-          deliveryMode === "home"
-            ? "A domicile (checkout)"
-            : "Stop Desk (checkout)",
+          deliveryModeTouched
+            ? deliveryMode === "home"
+              ? t("delivery.home")
+              : t("delivery.desk")
+            : t("cart.deliveryModePrompt"),
       },
-      { label: "Payment", value: "Cash on delivery" },
+      { label: t("cart.payment"), value: t("payment.cod") },
     ],
-    [deliveryMode, totals.subtotal],
+    [deliveryMode, deliveryModeTouched, t, totals.subtotal],
   );
 
   if (!mounted) return null;
@@ -289,7 +293,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
         >
           <motion.button
             type="button"
-            aria-label="Close cart"
+            aria-label={t("cart.close")}
             onClick={onClose}
             className="absolute inset-0 z-0 h-full w-full bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
@@ -310,28 +314,28 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             <div className="flex h-full w-full flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]">
               <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Cart</p>
-                  <h2 className="text-lg font-semibold text-white">Your cart</h2>
+                  <p className="text-xs uppercase tracking-[0.28em] text-sky-200">{t("cart.title")}</p>
+                  <h2 className="text-lg font-semibold text-white">{t("cart.yourCart")}</h2>
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
                   className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-sky-50 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 >
-                  Close
+                  {t("cart.close")}
                 </button>
               </header>
 
               <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4 pb-6">
                 {!hasItems ? (
                   <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-                    <p className="text-sm text-sky-100">Your cart is empty.</p>
+                    <p className="text-sm text-sky-100">{t("cart.empty")}</p>
                     <Link
-                      href="/shop"
+                      href={localizePathname(locale, "/shop")}
                       onClick={onClose}
                       className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                     >
-                      Back to shop
+                      {t("cart.backToShop")}
                     </Link>
                   </div>
                   ) : (
@@ -364,7 +368,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                                 onClick={() => removeItem(item.id, item.variantKey)}
                                 className="text-xs text-sky-300 underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:underline"
                               >
-                                Remove
+                                {t("cart.remove")}
                               </button>
                             </div>
 
@@ -375,7 +379,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                                   onClick={() => handleDecrease(item)}
                                   whileTap={{ scale: 0.9 }}
                                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                  aria-label="Decrease quantity"
+                                  aria-label={t("cart.decreaseQuantity")}
                                 >
                                   −
                                 </motion.button>
@@ -386,7 +390,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                                   disabled={typeof item.maxQuantity === "number" && item.maxQuantity > 0 && item.quantity >= item.maxQuantity}
                                   whileTap={{ scale: 0.9 }}
                                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:cursor-not-allowed disabled:opacity-60"
-                                  aria-label="Increase quantity"
+                                  aria-label={t("cart.increaseQuantity")}
                                 >
                                   +
                                 </motion.button>
@@ -394,7 +398,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                               <div className="text-sm font-semibold">{formatCurrency(item.price * item.quantity)}</div>
                             </div>
                             {typeof item.maxQuantity === "number" && item.maxQuantity > 0 && item.quantity >= item.maxQuantity && (
-                              <p className="text-[11px] text-amber-200">Max stock reached</p>
+                              <p className="text-[11px] text-amber-200">{t("cart.maxStockReached")}</p>
                             )}
                           </div>
                         </li>
@@ -404,8 +408,10 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
                 <div className="space-y-4 rounded-xl border border-white/10 bg-slate-950/60 p-4">
                   <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-sky-200">
-                    <span>{totalQuantity} item{totalQuantity === 1 ? "" : "s"}</span>
-                    <span>Total</span>
+                    <span>
+                      {totalQuantity} {totalQuantity === 1 ? t("cart.item") : t("cart.items")}
+                    </span>
+                    <span>{t("cart.total")}</span>
                   </div>
                   {summaryLines.map((line) => (
                     <div
@@ -420,31 +426,31 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
                 {hasItems && (
                   <Link
-                    href="/checkout"
+                    href={localizePathname(locale, "/checkout")}
                     onClick={onClose}
                     className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                   >
-                    Go to checkout page
+                    {t("cart.checkoutCta")}
                   </Link>
                 )}
 
                 {hasItems && (
                   <form className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4" onSubmit={handleSubmit}>
                     <div className="flex items-center justify-between text-sm font-semibold text-white">
-                      <span>Quick delivery info</span>
-                      <span className="text-xs text-sky-200">COD</span>
+                      <span>{t("cart.quickDeliveryInfo")}</span>
+                      <span className="text-xs text-sky-200">{t("payment.codShort")}</span>
                     </div>
                     {loyaltyRewardAvailable ? (
                       <p className="text-xs text-sky-200">
-                        Your order is now discounted by 8%.
+                        {t("cart.loyaltyDiscountInfo").replace("{percent}", String(loyaltyRewardPercent))}
                       </p>
                     ) : null}
                     <p className="text-xs text-sky-200">
-                      Shipping calculated at checkout. Choose A domicile or Stop Desk for delivery.
+                      {t("cart.quickDeliveryHelper")}
                     </p>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-full-name">
-                        Full name<span className="text-rose-200"> *</span>
+                        {t("cart.fullNameLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <input
                         id="drawer-full-name"
@@ -456,7 +462,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-email">
-                        Email<span className="text-sky-300 text-xs"> (optional)</span>
+                        {t("cart.emailLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <input
                         id="drawer-email"
@@ -465,11 +471,12 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
                         className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         placeholder="your@email.com"
+                        required
                       />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-phone">
-                        Phone<span className="text-rose-200"> *</span>
+                        {t("cart.phoneLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <input
                         id="drawer-phone"
@@ -482,7 +489,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-wilaya">
-                        Wilaya<span className="text-rose-200"> *</span>
+                        {t("cart.wilayaLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <select
                         id="drawer-wilaya"
@@ -491,7 +498,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         required
                       >
-                        <option value="">Select wilaya…</option>
+                        <option value="">{t("cart.selectWilaya")}</option>
                         {ECONOMIC_SHIPPING.map((entry: WilayaShipping) => (
                           <option key={entry.wilaya} value={entry.wilaya}>
                             {entry.wilaya}
@@ -500,11 +507,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <span className="text-xs text-sky-100">Delivery mode</span>
+                      <span className="text-xs text-sky-100">{t("cart.deliveryModeLabel")}</span>
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => setDeliveryMode("home")}
+                          onClick={() => {
+                            setDeliveryMode("home");
+                            setDeliveryModeTouched(true);
+                          }}
                           aria-pressed={deliveryMode === "home"}
                           className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
                             deliveryMode === "home"
@@ -512,11 +522,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                               : "border-white/20 bg-slate-950/70 text-white hover:border-white/40"
                           }`}
                         >
-                          A domicile
+                          {t("delivery.home")}
                         </button>
                         <button
                           type="button"
-                          onClick={() => setDeliveryMode("desk")}
+                          onClick={() => {
+                            setDeliveryMode("desk");
+                            setDeliveryModeTouched(true);
+                          }}
                           aria-pressed={deliveryMode === "desk"}
                           className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
                             deliveryMode === "desk"
@@ -524,13 +537,13 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                               : "border-white/20 bg-slate-950/70 text-white hover:border-white/40"
                           }`}
                         >
-                          Stop Desk
+                          {t("delivery.desk")}
                         </button>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-address">
-                        Address<span className="text-rose-200"> *</span>
+                        {t("cart.addressLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <textarea
                         id="drawer-address"
@@ -542,55 +555,55 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-notes">
-                        Notes (optional)
+                        {t("cart.notesLabel")} <span className="text-sky-300 text-xs">{t("cart.notesOptional")}</span>
                       </label>
                       <textarea
                         id="drawer-notes"
                         value={form.notes}
                         onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
                         className="min-h-[64px] w-full resize-none rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                        placeholder="Floor, apartment, delivery notes..."
+                        placeholder={t("cart.notesPlaceholder")}
                       />
                     </div>
 
                     {/* Order Summary - Display costs above button */}
                     <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
                       <div className="flex items-center justify-between text-xs text-sky-100">
-                        <span>Subtotal</span>
+                        <span>{t("cart.subtotal")}</span>
                         <span className="tabular-nums text-white">{formatCurrency(totals.subtotal)}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-sky-100">
-                        <span>Shipping</span>
+                        <span>{t("cart.shipping")}</span>
                         <span className="tabular-nums text-white">
-                          {shippingPrice != null ? formatCurrency(shippingPrice) : "Select wilaya"}
+                          {shippingPrice != null ? formatCurrency(shippingPrice) : t("cart.summaryShippingPlaceholder")}
                         </span>
                       </div>
                       {loyaltyRewardAvailable && loyaltyDiscountAmount > 0 ? (
                         <div className="flex items-center justify-between text-xs text-emerald-200">
-                          <span>Loyalty discount ({loyaltyRewardPercent}%)</span>
+                          <span>{t("cart.loyaltyDiscountLabel").replace("{percent}", String(loyaltyRewardPercent))}</span>
                           <span className="tabular-nums text-emerald-100">
                             -{formatCurrency(loyaltyDiscountAmount)}
                           </span>
                         </div>
                       ) : null}
                       <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm font-semibold text-white">
-                        <span>Total</span>
+                        <span>{t("cart.total")}</span>
                         <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
                       </div>
                     </div>
 
                     {error && (
                       <div className="rounded-lg border border-rose-200/60 bg-rose-500/15 px-3 py-2 text-xs text-rose-50 shadow-inner shadow-rose-900/30">
-                        <p className="font-medium">Error</p>
+                        <p className="font-medium">{t("common.error")}</p>
                         <p className="mt-1">{error}</p>
                       </div>
                     )}
 
                     {success && (
                       <div className="rounded-lg border border-emerald-200/60 bg-emerald-500/15 px-3 py-2 text-xs text-emerald-50 shadow-inner shadow-emerald-900/30">
-                        <p className="font-medium">Order placed successfully!</p>
-                        <p className="mt-1">Order ID: {success.orderId}</p>
-                        <p className="mt-2 text-[10px]">Redirecting to orders page...</p>
+                        <p className="font-medium">{t("cart.orderPlacedSuccess")}</p>
+                        <p className="mt-1">{t("cart.orderIdLabel").replace("{id}", success.orderId)}</p>
+                        <p className="mt-2 text-[10px]">{t("cart.redirecting")}</p>
                       </div>
                     )}
 
@@ -600,7 +613,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       whileTap={{ scale: 0.97 }}
                       className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-sky-100 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isSubmitting ? "Submitting..." : success ? "Order Placed!" : "Confirm order"}
+                      {isSubmitting ? t("cart.submitting") : success ? t("cart.orderPlaced") : t("cart.confirmOrder")}
                     </motion.button>
                   </form>
                 )}

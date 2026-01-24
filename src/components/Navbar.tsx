@@ -14,12 +14,15 @@ import { getDb } from "@/lib/firebaseClient";
 
 import CartDrawer from "./cart/cart-drawer";
 import ModelViewerLogo from "./ModelViewerLogo";
+import LocaleSwitcher from "./LocaleSwitcher";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
+import { localizePathname } from "@/i18n/paths";
 
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/contact", label: "Contact" },
-  { href: "/orders", label: "Orders" },
+  { href: "/", labelKey: "nav.home" },
+  { href: "/shop", labelKey: "nav.shop" },
+  { href: "/contact", labelKey: "nav.contact" },
+  { href: "/orders", labelKey: "nav.orders" },
 ];
 
 const iconStyles = "h-5 w-5";
@@ -77,11 +80,13 @@ function HeartIcon() {
 
 export function Navbar() {
   const pathname = usePathname();
+  const t = useTranslations();
+  const locale = useLocale();
   const { user, loading: authLoading, signOut } = useAuth();
   const { openModal } = useAuthModal();
   const { totalQuantity, lastAddedAt } = useCart();
   const { items: favoriteItems } = useFavorites();
-  const isFavoritesActive = pathname?.startsWith("/favorites");
+  const isFavoritesActive = pathname?.startsWith(localizePathname(locale, "/favorites"));
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isBumping, setIsBumping] = useState(false);
@@ -193,18 +198,23 @@ export function Navbar() {
   };
 
   const handleOpenAuthModal = () => {
-    openModal({ returnTo: pathname || "/" });
+    openModal({ returnTo: pathname || localizePathname(locale, "/") });
   };
 
   const handleThemeChange = (nextTheme: "light" | "dark") => {
     setTheme(nextTheme);
   };
 
+  const localizedLinks = links.map((link) => ({
+    ...link,
+    href: localizePathname(locale, link.href),
+  }));
+
   return (
     <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
-        <Link href="/" className="group flex items-center gap-3">
+        <Link href={localizePathname(locale, "/")} className="group flex items-center gap-3">
           <ModelViewerLogo />
           <div className="leading-tight">
             <p className="text-base font-semibold text-white">Fish Your Style</p>
@@ -215,7 +225,7 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-2 text-sm font-medium text-sky-100 md:flex">
-          {links.map((link) => {
+          {localizedLinks.map((link) => {
             const active = pathname === link.href;
             return (
               <Link
@@ -228,7 +238,7 @@ export function Navbar() {
                     : "hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             );
           })}
@@ -237,7 +247,7 @@ export function Navbar() {
         {/* Mobile icon ordering tweak: cart → account → menu (aligned together) */}
         <div className="ml-auto flex items-center gap-2 md:gap-3">
           <Link
-            href="/favorites"
+            href={localizePathname(locale, "/favorites")}
             className={`relative inline-flex h-10 w-10 items-center justify-center rounded-xl border text-white shadow-sm shadow-white/20 backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
               isFavoritesActive
                 ? "border-rose-200/70 bg-rose-400/30"
@@ -307,18 +317,18 @@ export function Navbar() {
                       <>
                         <div className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-sky-100">
                           <span className="font-semibold">
-                            {user.email ?? "My Profile"}
+                            {user.email ?? t("profile.myProfile")}
                           </span>
                         </div>
                         <div className="flex flex-col gap-1">
                           <Link
-                            href="/account"
+                            href={localizePathname(locale, "/account")}
                             className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
                             role="menuitem"
                             onClick={() => setIsAccountMenuOpen(false)}
                           >
                             <span className="flex items-center gap-2">
-                              My Profile
+                              {t("profile.myProfile")}
                               {loyaltyRewardAvailable ? (
                                 <span
                                   className="h-2 w-2 rounded-full border border-rose-200/70 bg-rose-400/90 shadow-[0_0_8px_rgba(251,113,133,0.6)]"
@@ -328,12 +338,12 @@ export function Navbar() {
                             </span>
                           </Link>
                           <Link
-                            href="/orders"
+                            href={localizePathname(locale, "/orders")}
                             className="flex items-center justify-between rounded-xl px-3 py-2 transition hover:bg-white/10"
                             role="menuitem"
                             onClick={() => setIsAccountMenuOpen(false)}
                           >
-                            My Orders
+                            {t("profile.myOrders")}
                           </Link>
                         </div>
                       </>
@@ -346,18 +356,18 @@ export function Navbar() {
                         }}
                         className="flex items-center justify-center rounded-xl bg-sky-400 px-3 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-sky-500/30 transition hover:bg-sky-300"
                       >
-                        Sign in
+                        {t("profile.signIn")}
                       </button>
                     )}
 
                     <div className="h-px bg-white/10" aria-hidden />
                     <div className="space-y-2">
                       <p className="px-2 text-[11px] uppercase tracking-[0.3em] text-sky-200/70">
-                        Preferences
+                        {t("profile.preferences")}
                       </p>
                       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                         <span className="text-xs font-semibold text-sky-100">
-                          Theme
+                          {t("profile.theme")}
                         </span>
                         <div className="flex items-center gap-1 rounded-full bg-slate-900/40 p-1 text-[11px] font-semibold">
                           <button
@@ -370,7 +380,7 @@ export function Navbar() {
                             }`}
                             aria-pressed={theme === "light"}
                           >
-                            Light
+                            {t("profile.light")}
                           </button>
                           <button
                             type="button"
@@ -382,10 +392,11 @@ export function Navbar() {
                             }`}
                             aria-pressed={theme === "dark"}
                           >
-                            Dark
+                            {t("profile.dark")}
                           </button>
                         </div>
                       </div>
+                      <LocaleSwitcher />
                     </div>
 
                     {user ? (
@@ -397,7 +408,7 @@ export function Navbar() {
                           className="flex items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-white/10"
                           role="menuitem"
                         >
-                          Sign out
+                          {t("profile.signOut")}
                         </button>
                       </>
                     ) : null}
@@ -452,7 +463,7 @@ export function Navbar() {
             className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pb-4 text-sm font-medium text-white md:hidden"
           >
             <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 shadow-lg shadow-black/30 backdrop-blur">
-              {links.map((link) => {
+              {localizedLinks.map((link) => {
                 const active = pathname === link.href;
                 return (
                   <Link
@@ -465,7 +476,7 @@ export function Navbar() {
                         : "text-sky-100 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    {link.label}
+                    {t(link.labelKey)}
                     {active && <span className="text-xs text-sky-200">●</span>}
                   </Link>
                 );

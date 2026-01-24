@@ -1,7 +1,13 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
+import { localizePathname } from "@/i18n/paths";
 
 export default function HeroFishing() {
+  const t = useTranslations();
+  const locale = useLocale();
   const heroBubbles = [
     { size: 12, left: "44%", delay: "0s", duration: "9s" },
     { size: 10, left: "48%", delay: "1.2s", duration: "10s" },
@@ -101,16 +107,16 @@ export default function HeroFishing() {
               Fish Your Style. Catch What You Love.
             </h1>
             <p className="text-lg text-sky-50/90">
-              Streetwear made for every style, every mood, and every moment.
+              {t("hero.subtitleLine1")}
               <br />
-              From everyday essentials to statement pieces — your style starts here.
+              {t("hero.subtitleLine2")}
             </p>
             <div className="flex flex-wrap justify-start gap-4 pt-3">
               <Link
-                href="/shop"
+                href={localizePathname(locale, "/shop")}
                 className="rounded-full bg-white/20 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/30"
               >
-                Shop Now
+                {t("hero.shopNow")}
               </Link>
             </div>
           </div>

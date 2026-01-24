@@ -9,6 +9,8 @@ import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { getDb } from "@/lib/firebaseClient";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
+import { localizePathname } from "@/i18n/paths";
 
 function toDateSafe(value: unknown): Date | null {
   if (!value) return null;
@@ -37,6 +39,8 @@ function toDateSafe(value: unknown): Date | null {
 }
 
 export default function OrdersList() {
+  const locale = useLocale();
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { openModal } = useAuthModal();
@@ -54,13 +58,13 @@ export default function OrdersList() {
 
     return (
       <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
-        <p className="font-medium">Order placed successfully!</p>
+        <p className="font-medium">{t("orders.successTitle")}</p>
         <p className="mt-1 text-sm">
-          Your order ID is <span className="font-mono font-semibold">{successOrderId}</span>.
+          {t("orders.successSubtitle").replace("{id}", successOrderId)}
         </p>
       </div>
     );
-  }, [showSuccessBanner, successOrderId]);
+  }, [showSuccessBanner, successOrderId, t]);
 
   const fetchOrders = useCallback(async () => {
     if (!user) {
@@ -122,13 +126,13 @@ export default function OrdersList() {
 
       setOrders(mergedOrders.slice(0, 20));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       setError(errorMessage);
       console.error("Failed to fetch orders:", err);
     } finally {
       setIsLoadingOrders(false);
     }
-  }, [user]);
+  }, [t, user]);
 
   useEffect(() => {
     if (authLoading) {
@@ -145,17 +149,17 @@ export default function OrdersList() {
   }, [authLoading, fetchOrders, user]);
 
   const handleCardClick = (orderId: string) => {
-    router.push(`/orders/${orderId}`);
+    router.push(localizePathname(locale, `/orders/${orderId}`));
   };
 
   // Helpers
   const getItemsSummary = (order: Order): string => {
-    if (order.items.length === 0) return "Empty order";
+    if (order.items.length === 0) return t("orders.emptyOrder");
     if (order.items.length === 1) {
       const item = order.items[0];
       return `${item.name} (${item.size}) × ${item.quantity}`;
     }
-    return `${order.items.length} items`;
+    return t("orders.itemsCount").replace("{count}", String(order.items.length));
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -178,14 +182,14 @@ export default function OrdersList() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "delivered":
-        return "Delivered";
+        return t("orders.status.delivered");
       case "shipped":
-        return "Shipped";
+        return t("orders.status.shipped");
       case "cancelled":
-        return "Cancelled";
+        return t("orders.status.cancelled");
       case "pending":
       case "confirmed":
-        return "Processing";
+        return t("orders.status.processing");
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -233,14 +237,15 @@ export default function OrdersList() {
           <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/10">
             <Image src="/myorder.png" alt="My orders" width={96} height={96} className="object-contain" />
           </div>
-          <p className="mb-2 font-medium text-white">Sign in to view your orders.</p>
+          <p className="mb-2 font-medium text-white">{t("orders.guestPrompt")}</p>
+          <p className="text-sm text-sky-100">{t("orders.guestCheckoutNote")}</p>
           <div className="mt-6 flex justify-center">
             <button
               type="button"
-              onClick={() => openModal({ returnTo: "/orders" })}
+              onClick={() => openModal({ returnTo: localizePathname(locale, "/orders") })}
               className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
             >
-              Sign in to view orders
+              {t("orders.guestCta")}
             </button>
           </div>
         </div>
@@ -264,13 +269,13 @@ export default function OrdersList() {
       <div className="space-y-4">
         {successBanner}
         <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-6 text-rose-50 shadow-inner shadow-rose-900/30">
-          <p className="font-medium mb-2">Error loading orders</p>
+          <p className="font-medium mb-2">{t("orders.errorLoadingTitle")}</p>
           <p className="text-sm mb-4">{error}</p>
           <button
             onClick={fetchOrders}
             className="rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
           >
-            Retry
+            {t("orders.retry")}
           </button>
         </div>
       </div>
@@ -283,15 +288,13 @@ export default function OrdersList() {
       <div className="space-y-4">
         {successBanner}
         <div className="rounded-2xl border border-white/20 bg-white/10 p-6 text-center text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur">
-          <p className="font-medium text-lg mb-2">You don’t have any orders yet.</p>
-          <p className="text-sm text-sky-100 mb-2">
-            Discover modern streetwear designed for comfort, fit, and everyday wear.
-          </p>
+          <p className="font-medium text-lg mb-2">{t("orders.emptyTitle")}</p>
+          <p className="text-sm text-sky-100 mb-2">{t("orders.emptySubtitle")}</p>
           <Link
-            href="/shop"
+            href={localizePathname(locale, "/shop")}
             className="mt-4 inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
           >
-            Start shopping
+            {t("orders.emptyCta")}
           </Link>
         </div>
       </div>
@@ -332,7 +335,9 @@ export default function OrdersList() {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm uppercase tracking-[0.18em] text-sky-200">Order #{order.id.slice(-8)}</p>
+                      <p className="text-sm uppercase tracking-[0.18em] text-sky-200">
+                        {t("orders.orderNumber").replace("{id}", order.id.slice(-8))}
+                      </p>
                       <h3 className="text-lg font-semibold text-white mt-1">{getItemsSummary(order)}</h3>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
@@ -344,11 +349,11 @@ export default function OrdersList() {
                           <button
                             onClick={event => {
                               event.stopPropagation();
-                              router.push(`/orders/${order.id}?edit=true`);
+                              router.push(localizePathname(locale, `/orders/${order.id}?edit=true`));
                             }}
                             className="inline-flex items-center rounded-full border border-violet-200/40 bg-violet-500/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
                           >
-                            Edit
+                            {t("orders.edit")}
                           </button>
                         )}
                       </div>
@@ -362,7 +367,7 @@ export default function OrdersList() {
                   </div>
                   <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
                     <div>
-                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Customer</dt>
+                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.customerLabel")}</dt>
                       <dd className="text-sm font-medium text-white mt-1">{order.shipping.customerName}</dd>
                       {order.customerEmail && (
                         <dd className="text-sm text-sky-100 mt-0.5">{order.customerEmail}</dd>
@@ -370,15 +375,15 @@ export default function OrdersList() {
                       <dd className="text-sm text-sky-200 mt-0.5">{order.shipping.phone}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Shipping</dt>
+                      <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.shippingLabel")}</dt>
                       <dd className="text-sm text-sky-100 mt-1">{order.shipping.wilaya}</dd>
                       <dd className="text-sm text-sky-200 mt-0.5">
-                        {order.shipping.mode === "home" ? "Home delivery" : "Stop Desk"} - {new Intl.NumberFormat("en-US").format(order.shipping.price)} DZD
+                        {order.shipping.mode === "home" ? t("delivery.home") : t("delivery.desk")} - {new Intl.NumberFormat("en-US").format(order.shipping.price)} DZD
                       </dd>
                     </div>
                     {order.notes && (
                       <div className="md:col-span-2">
-                        <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Notes</dt>
+                        <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.notesLabel")}</dt>
                         <dd className="text-sm text-sky-100 mt-1">{order.notes}</dd>
                       </div>
                     )}

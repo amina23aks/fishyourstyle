@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
+import { localizePathname } from "@/i18n/paths";
 
 const socialLinks = [
   {
@@ -56,6 +58,8 @@ const socialLinks = [
 ];
 
 export default function Footer() {
+  const t = useTranslations();
+  const locale = useLocale();
   const [wishlistEmail, setWishlistEmail] = useState("");
   const [wishlistStatus, setWishlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [wishlistError, setWishlistError] = useState<string | null>(null);
@@ -95,64 +99,64 @@ export default function Footer() {
             Fish Your Style
           </p>
           <h2 className="text-2xl font-semibold text-white">
-            Streetwear built for everyday life.
+            {t("footer.headline")}
           </h2>
           <p className="text-sky-200">
-            Versatile designs and comfortable fits made to match your lifestyle — whatever you’re into.
+            {t("footer.description")}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-6 text-sm md:grid-cols-4">
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">Navigate</h3>
+            <h3 className="text-sm font-semibold text-white">{t("footer.navigate")}</h3>
             <ul className="space-y-2 text-sky-200">
               <li>
-                <Link href="/" className="hover:text-white">
-                  Home
+                <Link href={localizePathname(locale, "/")} className="hover:text-white">
+                  {t("nav.home")}
                 </Link>
               </li>
               <li>
-                <Link href="/shop" className="hover:text-white">
-                  Shop
+                <Link href={localizePathname(locale, "/shop")} className="hover:text-white">
+                  {t("nav.shop")}
                 </Link>
               </li>
               <li>
-                <Link href="/orders" className="hover:text-white">
-                  Orders
+                <Link href={localizePathname(locale, "/orders")} className="hover:text-white">
+                  {t("nav.orders")}
                 </Link>
               </li>
               <li>
-                <Link href="/account" className="hover:text-white">
-                  My account
+                <Link href={localizePathname(locale, "/account")} className="hover:text-white">
+                  {t("footer.myAccount")}
                 </Link>
               </li>
             </ul>
           </div>
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">Support</h3>
+            <h3 className="text-sm font-semibold text-white">{t("footer.support")}</h3>
             <ul className="space-y-2 text-sky-200">
               <li>
-                <Link href="/contact" className="hover:text-white">
-                  Contact
+                <Link href={localizePathname(locale, "/contact")} className="hover:text-white">
+                  {t("nav.contact")}
                 </Link>
               </li>
               <li>
-                <Link href="/privacy-policy" className="hover:text-white">
+                <Link href={localizePathname(locale, "/privacy-policy")} className="hover:text-white">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-white">
+                <Link href={localizePathname(locale, "/terms")} className="hover:text-white">
                   Terms &amp; Conditions
                 </Link>
               </li>
               <li>
-                <Link href="/shipping" className="hover:text-white">
+                <Link href={localizePathname(locale, "/shipping")} className="hover:text-white">
                   Shipping &amp; returns
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="hover:text-white">
+                <Link href={localizePathname(locale, "/faq")} className="hover:text-white">
                   FAQ
                 </Link>
               </li>
@@ -176,9 +180,9 @@ export default function Footer() {
             </div>
           </div>
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">Wishlist</h3>
+            <h3 className="text-sm font-semibold text-white">{t("wishlist.title")}</h3>
             <p className="text-sky-200">
-              Drop your email to be the first to know when new drops hit your wishlist.
+              {t("wishlist.description")}
             </p>
             <form className="space-y-2" onSubmit={handleWishlistSubmit}>
               <label className="sr-only" htmlFor="wishlist-email">
@@ -198,7 +202,7 @@ export default function Footer() {
                 disabled={wishlistStatus === "loading"}
                 className="w-full rounded-md bg-gradient-to-r from-sky-400 to-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {wishlistStatus === "loading" ? "Submitting..." : "Join wishlist"}
+                {wishlistStatus === "loading" ? "Submitting..." : t("wishlist.cta")}
               </button>
               {wishlistStatus === "success" && (
                 <p className="text-[11px] text-emerald-100">Thanks! You&apos;re on the list.</p>
