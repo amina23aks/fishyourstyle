@@ -50,6 +50,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     notes: "",
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
+  const [deliveryModeTouched, setDeliveryModeTouched] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ orderId: string } | null>(null);
@@ -141,19 +142,16 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     setError(null);
     setSuccess(null);
 
-    // Validate required fields (email is optional)
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
+    // Validate required fields (email required)
+    if (!form.fullName || !form.phone || !form.wilaya || !form.address || !form.email) {
       setError(t("cart.errorRequiredFields"));
       return;
     }
 
-    // Email is optional - validate format only if provided
-    if (form.email && form.email.trim() !== "") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(form.email)) {
-        setError(t("cart.errorInvalidEmail"));
-        return;
-      }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setError(t("cart.errorInvalidEmail"));
+      return;
     }
 
     if (shippingPrice == null) {
@@ -270,13 +268,15 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       {
         label: t("cart.shipping"),
         value:
-          deliveryMode === "home"
-            ? t("cart.deliveryHomeCheckout")
-            : t("cart.deliveryDeskCheckout"),
+          deliveryModeTouched
+            ? deliveryMode === "home"
+              ? t("delivery.home")
+              : t("delivery.desk")
+            : t("cart.deliveryModePrompt"),
       },
       { label: t("cart.payment"), value: t("payment.cod") },
     ],
-    [deliveryMode, t, totals.subtotal],
+    [deliveryMode, deliveryModeTouched, t, totals.subtotal],
   );
 
   if (!mounted) return null;
@@ -462,7 +462,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-email">
-                        {t("cart.emailLabel")}<span className="text-sky-300 text-xs"> {t("cart.emailOptional")}</span>
+                        {t("cart.emailLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <input
                         id="drawer-email"
@@ -471,6 +471,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
                         className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         placeholder="your@email.com"
+                        required
                       />
                     </div>
                     <div className="space-y-2">
@@ -510,7 +511,10 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => setDeliveryMode("home")}
+                          onClick={() => {
+                            setDeliveryMode("home");
+                            setDeliveryModeTouched(true);
+                          }}
                           aria-pressed={deliveryMode === "home"}
                           className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
                             deliveryMode === "home"
@@ -522,7 +526,10 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setDeliveryMode("desk")}
+                          onClick={() => {
+                            setDeliveryMode("desk");
+                            setDeliveryModeTouched(true);
+                          }}
                           aria-pressed={deliveryMode === "desk"}
                           className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
                             deliveryMode === "desk"

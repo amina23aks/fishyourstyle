@@ -89,7 +89,7 @@
   "common.cancel": "Annuler",
   "delivery.mode": "Mode de livraison",
   "delivery.home": "À domicile",
-  "delivery.desk": "Stop Desk",
+  "delivery.desk": "Point relais",
   "payment.cod": "Paiement à la livraison",
   "payment.codShort": "COD",
   "payment.codWithAbbrev": "Paiement à la livraison (COD)",
@@ -248,5 +248,10 @@
   "orders.cancelFailed": "Échec de l’annulation de la commande",
   "orders.cancelNotPending": "Cette commande n’est plus en attente et ne peut pas être annulée.",
   "orders.cancelConfirming": "Annulation...",
-  "common.unexpectedError": "Une erreur inattendue est survenue."
+  "common.unexpectedError": "Une erreur inattendue est survenue.",
+  "shop.headerEyebrow": "BOUTIQUE",
+  "shop.headerTitle": "Découvrez notre collection",
+  "shop.headerDescriptionLine1": "Découvrez du streetwear moderne conçu pour le confort, la coupe et le quotidien.",
+  "shop.headerDescriptionLine2": "De nouvelles pièces sont ajoutées régulièrement pour renouveler votre style.",
+  "cart.deliveryModePrompt": "Choisissez le mode de livraison"
 }

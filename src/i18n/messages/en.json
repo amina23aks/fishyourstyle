@@ -248,5 +248,10 @@
   "orders.cancelFailed": "Failed to cancel order",
   "orders.cancelNotPending": "This order is no longer pending and cannot be cancelled.",
   "orders.cancelConfirming": "Cancelling...",
-  "common.unexpectedError": "An unexpected error occurred."
+  "common.unexpectedError": "An unexpected error occurred.",
+  "shop.headerEyebrow": "SHOP",
+  "shop.headerTitle": "Explore Our Collection",
+  "shop.headerDescriptionLine1": "Discover modern streetwear designed for comfort, fit, and everyday wear.",
+  "shop.headerDescriptionLine2": "New pieces are added regularly to keep your style fresh.",
+  "cart.deliveryModePrompt": "Choose delivery method"
 }

@@ -110,12 +110,12 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
         <section className="space-y-4" id="shop-search">
           <div className="flex flex-col gap-2 md:max-w-2xl">
-            <p className="text-sm uppercase tracking-[0.28em] text-white/90">SHOP</p>
-            <h2 className="text-2xl font-semibold text-white">Explore Our Collection</h2>
+            <p className="text-sm uppercase tracking-[0.28em] text-white/90">{t("shop.headerEyebrow")}</p>
+            <h2 className="text-2xl font-semibold text-white">{t("shop.headerTitle")}</h2>
             <p className="text-white/80">
-              Discover modern streetwear designed for comfort, fit, and everyday wear.
+              {t("shop.headerDescriptionLine1")}
               <br />
-              New pieces are added regularly to keep your style fresh.
+              {t("shop.headerDescriptionLine2")}
             </p>
           </div>
 

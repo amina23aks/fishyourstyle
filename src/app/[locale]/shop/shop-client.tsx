@@ -5,6 +5,7 @@ import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
+import { useTranslations } from "@/i18n/I18nProvider";
 
 type ShopClientProps = {
   products: (Product & {
@@ -26,6 +27,7 @@ function capitalizeLabel(value: string | undefined | null): string {
 }
 
 export default function ShopClient({ products, errorMessage, categories, designThemes }: ShopClientProps) {
+  const t = useTranslations();
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -71,12 +73,12 @@ export default function ShopClient({ products, errorMessage, categories, designT
     <>
       <div className="mb-6 flex flex-col gap-4">
         <div className="flex flex-col gap-2 md:max-w-2xl">
-          <p className="text-sm uppercase tracking-[0.25em] text-white/90">SHOP</p>
-          <h1 className="text-4xl font-semibold text-white">Explore Our Collection</h1>
+          <p className="text-sm uppercase tracking-[0.25em] text-white/90">{t("shop.headerEyebrow")}</p>
+          <h1 className="text-4xl font-semibold text-white">{t("shop.headerTitle")}</h1>
           <p className="text-sm text-white/80">
-            Discover modern streetwear designed for comfort, fit, and everyday wear.
+            {t("shop.headerDescriptionLine1")}
             <br />
-            New pieces are added regularly to keep your style fresh.
+            {t("shop.headerDescriptionLine2")}
           </p>
         </div>
 

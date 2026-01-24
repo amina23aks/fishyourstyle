@@ -32,7 +32,7 @@
   "cart.shipping": "التوصيل",
   "cart.payment": "الدفع",
   "cart.total": "الإجمالي",
-  "cart.checkoutCta": "الانتقال إلى صفحة الدفع",
+  "cart.checkoutCta": "أكمل معلومات الطلب",
   "cart.quickDeliveryInfo": "معلومات التوصيل السريع",
   "cart.quickDeliveryHelper": "يتم احتساب رسوم الشحن عند الدفع. اختر إلى المنزل أو Stop Desk للتوصيل.",
   "cart.empty": "سلتك فارغة.",
@@ -89,7 +89,7 @@
   "common.cancel": "إلغاء",
   "delivery.mode": "طريقة التوصيل",
   "delivery.home": "التوصيل للمنزل",
-  "delivery.desk": "ستوب ديسك",
+  "delivery.desk": "نقطة استلام",
   "payment.cod": "الدفع عند الاستلام",
   "payment.codShort": "COD",
   "payment.codWithAbbrev": "الدفع عند الاستلام (COD)",
@@ -248,5 +248,10 @@
   "orders.cancelFailed": "تعذر إلغاء الطلب",
   "orders.cancelNotPending": "لم يعد هذا الطلب قيد الانتظار ولا يمكن إلغاؤه.",
   "orders.cancelConfirming": "جارٍ الإلغاء...",
-  "common.unexpectedError": "حدث خطأ غير متوقع."
+  "common.unexpectedError": "حدث خطأ غير متوقع.",
+  "shop.headerEyebrow": "تسوّق",
+  "shop.headerTitle": "اكتشف مجموعتنا",
+  "shop.headerDescriptionLine1": "اكتشف ستريت وير عصري مصمم للراحة والملاءمة والاستخدام اليومي.",
+  "shop.headerDescriptionLine2": "نضيف قطعًا جديدة باستمرار لتبقى إطلالتك متجددة.",
+  "cart.deliveryModePrompt": "اختر طريقة التوصيل"
 }
