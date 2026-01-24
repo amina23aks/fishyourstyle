@@ -363,11 +363,11 @@ export function Navbar() {
                     <div className="h-px bg-white/10" aria-hidden />
                     <div className="space-y-2">
                       <p className="px-2 text-[11px] uppercase tracking-[0.3em] text-sky-200/70">
-                        Preferences
+                        {t("profile.preferences")}
                       </p>
                       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                         <span className="text-xs font-semibold text-sky-100">
-                          Theme
+                          {t("profile.theme")}
                         </span>
                         <div className="flex items-center gap-1 rounded-full bg-slate-900/40 p-1 text-[11px] font-semibold">
                           <button
@@ -380,7 +380,7 @@ export function Navbar() {
                             }`}
                             aria-pressed={theme === "light"}
                           >
-                            Light
+                            {t("profile.light")}
                           </button>
                           <button
                             type="button"
@@ -392,7 +392,7 @@ export function Navbar() {
                             }`}
                             aria-pressed={theme === "dark"}
                           >
-                            Dark
+                            {t("profile.dark")}
                           </button>
                         </div>
                       </div>

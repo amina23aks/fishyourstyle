@@ -139,7 +139,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
         <section className="space-y-8 rounded-3xl bg-sky-900/90 px-6 py-14 text-sky-50 shadow-lg shadow-sky-200/60 md:px-10">
           <div className="flex flex-col gap-3">
-            <p className="text-sm uppercase tracking-[0.28em] text-sky-200">WHY US</p>
+            <p className="text-sm uppercase tracking-[0.28em] text-sky-200">{t("whyUs.eyebrow")}</p>
             <h2 className="text-2xl font-semibold">{t("whyUs.title")}</h2>
             <p className="text-sky-100">
               {t("whyUs.subtitle")}

@@ -143,7 +143,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
     // Validate required fields (email is optional)
     if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
-      setError("Please fill in all required fields.");
+      setError(t("cart.errorRequiredFields"));
       return;
     }
 
@@ -151,13 +151,13 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     if (form.email && form.email.trim() !== "") {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(form.email)) {
-        setError("Please enter a valid email address or leave it blank.");
+        setError(t("cart.errorInvalidEmail"));
         return;
       }
     }
 
     if (shippingPrice == null) {
-      setError("Please select a valid wilaya.");
+      setError(t("cart.errorSelectWilaya"));
       return;
     }
 
@@ -205,7 +205,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to create order. Please try again.");
+        throw new Error(errorData.error || t("cart.errorCreateOrder"));
       }
 
       const data = await response.json();
@@ -223,7 +223,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
         router.push(`${localizePathname(locale, "/orders")}?status=success&orderId=${orderId}`);
       }, 1500);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       setError(errorMessage);
       setIsSubmitting(false);
     }
@@ -271,10 +271,10 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
         label: t("cart.shipping"),
         value:
           deliveryMode === "home"
-            ? "A domicile (checkout)"
-            : "Stop Desk (checkout)",
+            ? t("cart.deliveryHomeCheckout")
+            : t("cart.deliveryDeskCheckout"),
       },
-      { label: t("cart.payment"), value: "Cash on delivery" },
+      { label: t("cart.payment"), value: t("payment.cod") },
     ],
     [deliveryMode, t, totals.subtotal],
   );
@@ -293,7 +293,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
         >
           <motion.button
             type="button"
-            aria-label="Close cart"
+            aria-label={t("cart.close")}
             onClick={onClose}
             className="absolute inset-0 z-0 h-full w-full bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
@@ -314,7 +314,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             <div className="flex h-full w-full flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-slate-950 via-slate-950/95 to-slate-950/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]">
               <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Cart</p>
+                  <p className="text-xs uppercase tracking-[0.28em] text-sky-200">{t("cart.title")}</p>
                   <h2 className="text-lg font-semibold text-white">{t("cart.yourCart")}</h2>
                 </div>
                 <button
@@ -335,7 +335,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       onClick={onClose}
                       className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                     >
-                      Back to shop
+                      {t("cart.backToShop")}
                     </Link>
                   </div>
                   ) : (
@@ -379,7 +379,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                                   onClick={() => handleDecrease(item)}
                                   whileTap={{ scale: 0.9 }}
                                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                  aria-label="Decrease quantity"
+                                  aria-label={t("cart.decreaseQuantity")}
                                 >
                                   −
                                 </motion.button>
@@ -390,7 +390,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                                   disabled={typeof item.maxQuantity === "number" && item.maxQuantity > 0 && item.quantity >= item.maxQuantity}
                                   whileTap={{ scale: 0.9 }}
                                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:cursor-not-allowed disabled:opacity-60"
-                                  aria-label="Increase quantity"
+                                  aria-label={t("cart.increaseQuantity")}
                                 >
                                   +
                                 </motion.button>
@@ -398,7 +398,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                               <div className="text-sm font-semibold">{formatCurrency(item.price * item.quantity)}</div>
                             </div>
                             {typeof item.maxQuantity === "number" && item.maxQuantity > 0 && item.quantity >= item.maxQuantity && (
-                              <p className="text-[11px] text-amber-200">Max stock reached</p>
+                              <p className="text-[11px] text-amber-200">{t("cart.maxStockReached")}</p>
                             )}
                           </div>
                         </li>
@@ -438,11 +438,11 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                   <form className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4" onSubmit={handleSubmit}>
                     <div className="flex items-center justify-between text-sm font-semibold text-white">
                       <span>{t("cart.quickDeliveryInfo")}</span>
-                      <span className="text-xs text-sky-200">COD</span>
+                      <span className="text-xs text-sky-200">{t("payment.codShort")}</span>
                     </div>
                     {loyaltyRewardAvailable ? (
                       <p className="text-xs text-sky-200">
-                        Your order is now discounted by 8%.
+                        {t("cart.loyaltyDiscountInfo").replace("{percent}", String(loyaltyRewardPercent))}
                       </p>
                     ) : null}
                     <p className="text-xs text-sky-200">
@@ -450,7 +450,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </p>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-full-name">
-                        Full name<span className="text-rose-200"> *</span>
+                        {t("cart.fullNameLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <input
                         id="drawer-full-name"
@@ -462,7 +462,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-email">
-                        Email<span className="text-sky-300 text-xs"> (optional)</span>
+                        {t("cart.emailLabel")}<span className="text-sky-300 text-xs"> {t("cart.emailOptional")}</span>
                       </label>
                       <input
                         id="drawer-email"
@@ -475,7 +475,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-phone">
-                        Phone<span className="text-rose-200"> *</span>
+                        {t("cart.phoneLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <input
                         id="drawer-phone"
@@ -488,7 +488,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-wilaya">
-                        Wilaya<span className="text-rose-200"> *</span>
+                        {t("cart.wilayaLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <select
                         id="drawer-wilaya"
@@ -497,7 +497,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         required
                       >
-                        <option value="">Select wilaya…</option>
+                        <option value="">{t("cart.selectWilaya")}</option>
                         {ECONOMIC_SHIPPING.map((entry: WilayaShipping) => (
                           <option key={entry.wilaya} value={entry.wilaya}>
                             {entry.wilaya}
@@ -506,7 +506,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <span className="text-xs text-sky-100">Delivery mode</span>
+                      <span className="text-xs text-sky-100">{t("cart.deliveryModeLabel")}</span>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -518,7 +518,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                               : "border-white/20 bg-slate-950/70 text-white hover:border-white/40"
                           }`}
                         >
-                          A domicile
+                          {t("delivery.home")}
                         </button>
                         <button
                           type="button"
@@ -530,13 +530,13 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                               : "border-white/20 bg-slate-950/70 text-white hover:border-white/40"
                           }`}
                         >
-                          Stop Desk
+                          {t("delivery.desk")}
                         </button>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-address">
-                        Address<span className="text-rose-200"> *</span>
+                        {t("cart.addressLabel")}<span className="text-rose-200"> *</span>
                       </label>
                       <textarea
                         id="drawer-address"
@@ -548,14 +548,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-notes">
-                        Notes (optional)
+                        {t("cart.notesLabel")} <span className="text-sky-300 text-xs">{t("cart.notesOptional")}</span>
                       </label>
                       <textarea
                         id="drawer-notes"
                         value={form.notes}
                         onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
                         className="min-h-[64px] w-full resize-none rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                        placeholder="Floor, apartment, delivery notes..."
+                        placeholder={t("cart.notesPlaceholder")}
                       />
                     </div>
 
@@ -568,12 +568,12 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <div className="flex items-center justify-between text-xs text-sky-100">
                         <span>{t("cart.shipping")}</span>
                         <span className="tabular-nums text-white">
-                          {shippingPrice != null ? formatCurrency(shippingPrice) : "Select wilaya"}
+                          {shippingPrice != null ? formatCurrency(shippingPrice) : t("cart.summaryShippingPlaceholder")}
                         </span>
                       </div>
                       {loyaltyRewardAvailable && loyaltyDiscountAmount > 0 ? (
                         <div className="flex items-center justify-between text-xs text-emerald-200">
-                          <span>Loyalty discount ({loyaltyRewardPercent}%)</span>
+                          <span>{t("cart.loyaltyDiscountLabel").replace("{percent}", String(loyaltyRewardPercent))}</span>
                           <span className="tabular-nums text-emerald-100">
                             -{formatCurrency(loyaltyDiscountAmount)}
                           </span>
@@ -587,16 +587,16 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
                     {error && (
                       <div className="rounded-lg border border-rose-200/60 bg-rose-500/15 px-3 py-2 text-xs text-rose-50 shadow-inner shadow-rose-900/30">
-                        <p className="font-medium">Error</p>
+                        <p className="font-medium">{t("common.error")}</p>
                         <p className="mt-1">{error}</p>
                       </div>
                     )}
 
                     {success && (
                       <div className="rounded-lg border border-emerald-200/60 bg-emerald-500/15 px-3 py-2 text-xs text-emerald-50 shadow-inner shadow-emerald-900/30">
-                        <p className="font-medium">Order placed successfully!</p>
-                        <p className="mt-1">Order ID: {success.orderId}</p>
-                        <p className="mt-2 text-[10px]">Redirecting to orders page...</p>
+                        <p className="font-medium">{t("cart.orderPlacedSuccess")}</p>
+                        <p className="mt-1">{t("cart.orderIdLabel").replace("{id}", success.orderId)}</p>
+                        <p className="mt-2 text-[10px]">{t("cart.redirecting")}</p>
                       </div>
                     )}
 
@@ -606,7 +606,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       whileTap={{ scale: 0.97 }}
                       className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-sky-100 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isSubmitting ? "Submitting..." : success ? "Order Placed!" : "Confirm order"}
+                      {isSubmitting ? t("cart.submitting") : success ? t("cart.orderPlaced") : t("cart.confirmOrder")}
                     </motion.button>
                   </form>
                 )}

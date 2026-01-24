@@ -17,7 +17,7 @@ import { isAdminUser } from "@/lib/admin";
 import { Swatch } from "../../shop/swatch";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { buildProductColorOptions, buildProductSizeOptions, resolveSwatchHex } from "@/lib/product-variants";
-import { useLocale } from "@/i18n/I18nProvider";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
 function toDateSafe(value: unknown): Date | null {
@@ -55,6 +55,7 @@ type EditOrderModalProps = {
 };
 
 function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderModalProps) {
+  const t = useTranslations();
   const [shipping, setShipping] = useState<ShippingInfo>(order.shipping);
   const [notes, setNotes] = useState<string>(order.notes ?? "");
   const [items, setItems] = useState<OrderItem[]>(order.items);
@@ -100,7 +101,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
 
   const handleSave = async () => {
     if (disabled) {
-      setLocalError("Order can no longer be edited.");
+      setLocalError(t("orders.editModalDisabledNote"));
       return;
     }
 
@@ -136,7 +137,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
       onUpdated(updatedOrder);
       onClose();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       setLocalError(errorMessage);
       onError(errorMessage);
     } finally {
@@ -152,30 +153,32 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
       <div className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur-xl max-h-[82vh]">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Edit Order</p>
-            <h3 className="text-xl font-semibold text-white">Order #{order.id.slice(-8)}</h3>
+            <p className="text-xs uppercase tracking-[0.24em] text-sky-200">{t("orders.editModalTitle")}</p>
+            <h3 className="text-xl font-semibold text-white">
+              {t("orders.orderNumber").replace("{id}", order.id.slice(-8))}
+            </h3>
           </div>
           <button
             onClick={onClose}
             className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
-            Close
+            {t("orders.editModalClose")}
           </button>
         </div>
 
         {disabled && (
           <div className="border-b border-white/10 bg-rose-500/15 px-5 py-3 text-sm text-rose-50">
-            Order can no longer be edited.
+            {t("orders.editModalDisabledNote")}
           </div>
         )}
 
         <div className="grid flex-1 gap-4 overflow-y-auto px-4 py-4 lg:grid-cols-[1.15fr_0.95fr]">
           <div className="space-y-4">
             <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
-              <h4 className="text-sm font-semibold text-white mb-3">Shipping</h4>
+              <h4 className="text-sm font-semibold text-white mb-3">{t("orders.editModalShippingTitle")}</h4>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="flex flex-col text-sm text-sky-100 gap-1">
-                  Name
+                  {t("orders.editModalNameLabel")}
                   <input
                     value={shipping.customerName}
                     onChange={(e) => setShipping({ ...shipping, customerName: e.target.value })}
@@ -185,7 +188,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                   />
                 </label>
                 <label className="flex flex-col text-sm text-sky-100 gap-1">
-                  Phone
+                  {t("orders.editModalPhoneLabel")}
                   <input
                     value={shipping.phone}
                     onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
@@ -195,7 +198,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                   />
                 </label>
                 <label className="flex flex-col text-sm text-sky-100 gap-1">
-                  Wilaya
+                  {t("orders.editModalWilayaLabel")}
                   <select
                     value={shipping.wilaya}
                     onChange={(e) => {
@@ -219,7 +222,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                   </select>
                 </label>
                 <label className="flex flex-col text-sm text-sky-100 gap-1">
-                  Address
+                  {t("orders.editModalAddressLabel")}
                   <input
                     value={shipping.address}
                     onChange={(e) => setShipping({ ...shipping, address: e.target.value })}
@@ -229,7 +232,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                   />
                 </label>
                 <label className="flex flex-col text-sm text-sky-100 gap-1 md:col-span-2">
-                  Delivery mode
+                  {t("orders.editModalDeliveryModeLabel")}
                   <select
                     value={shipping.mode}
                     onChange={(e) => {
@@ -241,15 +244,15 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                     disabled={disabled}
                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white placeholder:text-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/60 disabled:opacity-60 bg-slate-900/40"
                   >
-                    <option value="home">À domicile</option>
-                    <option value="desk">Stop Desk</option>
+                    <option value="home">{t("delivery.home")}</option>
+                    <option value="desk">{t("delivery.desk")}</option>
                   </select>
                 </label>
               </div>
             </section>
 
             <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
-              <h4 className="text-sm font-semibold text-white mb-3">Notes</h4>
+              <h4 className="text-sm font-semibold text-white mb-3">{t("orders.editModalNotesTitle")}</h4>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -261,7 +264,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
 
           <div className="space-y-3 pb-1">
             <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
-              <h4 className="text-sm font-semibold text-white mb-3">Items</h4>
+              <h4 className="text-sm font-semibold text-white mb-3">{t("orders.editModalItemsTitle")}</h4>
               <div className="space-y-3">
                 {items.map((item, index) => {
                   const productDefinition = getProductBySlug(item.slug);
@@ -302,17 +305,17 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                             <span className="text-white/80">{item.size}</span>
                           </div>
                           <p className="text-xs text-sky-100">
-                            {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
+                            {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} {t("orders.eachLabel")}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 self-start sm:self-auto">
-                          <span className="text-sm font-semibold text-white">Qty:</span>
+                          <span className="text-sm font-semibold text-white">{t("orders.editModalQuantityLabel")}</span>
                           <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
                         </div>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <label className="flex flex-col text-xs text-sky-100 gap-1">
-                          Color
+                          {t("orders.editModalColorLabel")}
                           {(() => {
                             const selectedLabel =
                               colorOptions.find((candidate) => candidate.hex === item.colorCode)?.label ??
@@ -358,7 +361,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                           })()}
                         </label>
                         <label className="flex flex-col text-xs text-sky-100 gap-1">
-                          Size
+                          {t("orders.editModalSizeLabel")}
                           <div className="flex flex-wrap gap-2">
                             {sizeOptions.map((sizeOption) => {
                               const isSoldOut = sizeOption.soldOut;
@@ -405,22 +408,22 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
             </section>
 
             <section className="rounded-2xl border border-white/15 bg-white/5 p-3 shadow-sm shadow-sky-900/30">
-              <h4 className="text-sm font-semibold text-white mb-3">Summary</h4>
+              <h4 className="text-sm font-semibold text-white mb-3">{t("orders.editModalSummaryTitle")}</h4>
               <dl className="space-y-2 text-sm text-sky-100">
                 <div className="flex items-center justify-between">
-                  <dt>Subtotal</dt>
+                  <dt>{t("orders.editModalSubtotalLabel")}</dt>
                   <dd className="font-semibold text-white">
                     {new Intl.NumberFormat("fr-DZ").format(subtotal)} DZD
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt>Shipping</dt>
+                  <dt>{t("orders.editModalShippingLabel")}</dt>
                   <dd className="font-semibold text-white">
                     {new Intl.NumberFormat("fr-DZ").format(shippingCost)} DZD
                   </dd>
                 </div>
                 <div className="flex items-center justify-between border-t border-white/10 pt-2 text-base">
-                  <dt className="font-semibold text-white">Total</dt>
+                  <dt className="font-semibold text-white">{t("orders.editModalTotalLabel")}</dt>
                   <dd className="font-semibold text-white">
                     {new Intl.NumberFormat("fr-DZ").format(total)} DZD
                   </dd>
@@ -439,14 +442,14 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
                 onClick={onClose}
                 className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                Cancel
+                {t("orders.editModalCancel")}
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving || disabled}
                 className="inline-flex items-center justify-center rounded-xl border border-violet-200/40 bg-violet-500/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSaving ? "Saving..." : "Save changes"}
+                {isSaving ? t("orders.editModalSaving") : t("orders.editModalSave")}
               </button>
             </div>
           </div>
@@ -458,6 +461,7 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
 
 export default function OrderDetailsPage() {
   const locale = useLocale();
+  const t = useTranslations();
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -490,14 +494,14 @@ export default function OrderDetailsPage() {
       try {
         const db = getDb();
         if (!db) {
-          throw new Error("Unable to connect to orders. Please try again.");
+          throw new Error(t("orders.errorFetch"));
         }
 
         const orderRef = doc(db, "orders", orderId);
         const snapshot = await getDoc(orderRef);
 
         if (!snapshot.exists()) {
-          setError("Order not found");
+          setError(t("orders.orderNotFoundTitle"));
           return;
         }
 
@@ -517,14 +521,14 @@ export default function OrderDetailsPage() {
         const authorized = isOwner || isAdmin;
 
         if (!authorized) {
-          setError("Not authorized");
+          setError(t("orders.errorNotAuthorized"));
           setOrder(null);
           return;
         }
 
         setOrder(fetchedOrder);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+        const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
         setError(errorMessage);
         console.error("Failed to fetch order:", err);
       } finally {
@@ -535,7 +539,7 @@ export default function OrderDetailsPage() {
     if (orderId && user && !authLoading) {
       fetchOrder();
     }
-  }, [authLoading, isAdmin, orderId, user]);
+  }, [authLoading, isAdmin, orderId, t, user]);
 
   useEffect(() => {
     const wantsEdit = searchParams.get("edit") === "true";
@@ -559,20 +563,20 @@ export default function OrderDetailsPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const message = errorData.error || "Failed to cancel order";
+        const message = errorData.error || t("orders.cancelFailed");
         const friendlyMessage =
           message === "Only pending orders can be cancelled."
-            ? "This order is no longer pending and cannot be cancelled."
+            ? t("orders.cancelNotPending")
             : message;
         throw new Error(friendlyMessage);
       }
 
       const updatedOrder = await response.json();
       setOrder(updatedOrder);
-      setToastMessage("Order cancelled successfully.");
+      setToastMessage(t("orders.toastCancelled"));
       setShowCancelConfirm(false);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       setCancelError(errorMessage);
     } finally {
       setIsCancelling(false);
@@ -582,7 +586,7 @@ export default function OrderDetailsPage() {
   const handleOrderUpdated = (updated: Order) => {
     setOrder(updated);
     setEditError(null);
-    setToastMessage("Order updated successfully.");
+    setToastMessage(t("orders.toastUpdated"));
     router.push(`${localizePathname(locale, "/orders")}?status=updated&orderId=${updated.id}`);
   };
 
@@ -601,6 +605,22 @@ export default function OrderDetailsPage() {
         return "bg-rose-500/20 text-rose-200 border-rose-500/40";
       default:
         return "bg-sky-500/20 text-sky-200 border-sky-500/40";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "delivered":
+        return t("orders.status.delivered");
+      case "shipped":
+        return t("orders.status.shipped");
+      case "cancelled":
+        return t("orders.status.cancelled");
+      case "pending":
+      case "confirmed":
+        return t("orders.status.processing");
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
     }
   };
 
@@ -627,13 +647,13 @@ export default function OrderDetailsPage() {
       <PageShell>
         <main className="space-y-6 lg:space-y-8">
           <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-8 text-rose-50 shadow-inner shadow-rose-900/30">
-            <p className="font-medium text-lg mb-2">Order not found</p>
-            <p className="text-sm mb-6">{error || "The order you are looking for does not exist."}</p>
+            <p className="font-medium text-lg mb-2">{t("orders.orderNotFoundTitle")}</p>
+            <p className="text-sm mb-6">{error || t("orders.orderNotFoundSubtitle")}</p>
             <Link
               href={localizePathname(locale, "/orders")}
               className="inline-flex items-center rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
             >
-              Back to orders
+              {t("orders.backToOrders")}
             </Link>
           </div>
         </main>
@@ -664,8 +684,10 @@ export default function OrderDetailsPage() {
         <header className="space-y-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Order Details</p>
-              <h1 className="text-3xl font-semibold text-white">Order #{order.id.slice(-8)}</h1>
+              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">{t("orders.orderDetailsTitle")}</p>
+              <h1 className="text-3xl font-semibold text-white">
+                {t("orders.orderNumber").replace("{id}", order.id.slice(-8))}
+              </h1>
             </div>
             {canEdit && (
               <button
@@ -676,12 +698,12 @@ export default function OrderDetailsPage() {
                 }}
                 className="inline-flex items-center justify-center self-start rounded-xl border border-violet-200/50 bg-violet-500/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
               >
-                Edit order
+                {t("orders.editOrderButton")}
               </button>
             )}
           </div>
           {!canEdit && (
-            <p className="text-sm text-sky-200">This order can no longer be modified.</p>
+            <p className="text-sm text-sky-200">{t("orders.editOrderLockedNote")}</p>
           )}
         </header>
 
@@ -698,15 +720,18 @@ export default function OrderDetailsPage() {
                         order.status
                       )}`}
                     >
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      {getStatusLabel(order.status)}
                     </span>
                   </div>
                   <p className="text-sm text-sky-200">
-                    Placed on {createdAtDate ? createdAtDate.toLocaleString() : "—"}
+                    {t("orders.placedOn").replace(
+                      "{date}",
+                      createdAtDate ? createdAtDate.toLocaleString() : "—",
+                    )}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-sky-200">Total</p>
+                  <p className="text-sm text-sky-200">{t("orders.totalLabel")}</p>
                   <p className="text-2xl font-semibold text-white mt-1">
                     {new Intl.NumberFormat("fr-DZ").format(order.total)} DZD
                   </p>
@@ -716,7 +741,7 @@ export default function OrderDetailsPage() {
 
             {/* Items list */}
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
-              <h2 className="text-lg font-semibold text-white mb-4">Items</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">{t("orders.itemsTitle")}</h2>
                 <div className="space-y-4">
                   {order.items.map((item, index) => (
                     <div
@@ -741,13 +766,15 @@ export default function OrderDetailsPage() {
                         <span>{item.size}</span>
                       </div>
                       <div className="flex items-center justify-between mt-2">
-                        <p className="text-sm text-sky-100">Quantity: {item.quantity}</p>
+                        <p className="text-sm text-sky-100">
+                          {t("orders.quantityLabel")}: {item.quantity}
+                        </p>
                         <p className="text-sm font-semibold text-white">
                           {new Intl.NumberFormat("fr-DZ").format(item.price * item.quantity)} {item.currency}
                         </p>
                       </div>
                       <p className="text-xs text-sky-300 mt-1">
-                        {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} each
+                        {new Intl.NumberFormat("fr-DZ").format(item.price)} {item.currency} {t("orders.eachLabel")}
                       </p>
                     </div>
                   </div>
@@ -757,20 +784,20 @@ export default function OrderDetailsPage() {
 
             {/* Customer info */}
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
-              <h2 className="text-lg font-semibold text-white mb-4">Customer Information</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">{t("orders.customerInfoTitle")}</h2>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Name</dt>
+                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.editModalNameLabel")}</dt>
                   <dd className="text-sm font-medium text-white mt-1">{order.shipping.customerName}</dd>
                 </div>
                 {order.customerEmail && (
                   <div>
-                    <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Email</dt>
+                    <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("checkout.emailLabel")}</dt>
                     <dd className="text-sm text-sky-100 mt-1">{order.customerEmail}</dd>
                   </div>
                 )}
                 <div>
-                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Phone</dt>
+                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.editModalPhoneLabel")}</dt>
                   <dd className="text-sm text-sky-100 mt-1">{order.shipping.phone}</dd>
                 </div>
               </dl>
@@ -778,24 +805,24 @@ export default function OrderDetailsPage() {
 
             {/* Shipping info */}
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
-              <h2 className="text-lg font-semibold text-white mb-4">Shipping Information</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">{t("orders.shippingInfoTitle")}</h2>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Wilaya</dt>
+                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.editModalWilayaLabel")}</dt>
                   <dd className="text-sm font-medium text-white mt-1">{order.shipping.wilaya}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Address</dt>
+                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.editModalAddressLabel")}</dt>
                   <dd className="text-sm text-sky-100 mt-1 whitespace-pre-wrap">{order.shipping.address}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Delivery Mode</dt>
+                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.deliveryModeLabel")}</dt>
                   <dd className="text-sm text-sky-100 mt-1">
-                    {order.shipping.mode === "home" ? "À domicile" : "Stop Desk"}
+                    {order.shipping.mode === "home" ? t("delivery.home") : t("delivery.desk")}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">Shipping Cost</dt>
+                  <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.shippingCostLabel")}</dt>
                   <dd className="text-sm font-semibold text-white mt-1">
                     {new Intl.NumberFormat("fr-DZ").format(order.shippingCost)} DZD
                   </dd>
@@ -806,7 +833,7 @@ export default function OrderDetailsPage() {
             {/* Notes */}
             {order.notes && (
               <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
-                <h2 className="text-lg font-semibold text-white mb-4">Notes</h2>
+                <h2 className="text-lg font-semibold text-white mb-4">{t("orders.notesLabel")}</h2>
                 <p className="text-sm text-sky-100 whitespace-pre-wrap">{order.notes}</p>
               </section>
             )}
@@ -815,17 +842,17 @@ export default function OrderDetailsPage() {
             <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">
-                  <h2 className="text-lg font-semibold text-white">Cancel Order</h2>
+                  <h2 className="text-lg font-semibold text-white">{t("orders.cancelOrderTitle")}</h2>
                   {order.status === "pending" && (
                     <p className="text-sm text-sky-100">
-                      You can cancel this order as long as it is pending.
+                      {t("orders.cancelPendingNote")}
                     </p>
                   )}
                   {order.status === "cancelled" && (
-                    <p className="text-sm text-rose-100">This order has been cancelled.</p>
+                    <p className="text-sm text-rose-100">{t("orders.cancelledNote")}</p>
                   )}
                   {order.status !== "pending" && order.status !== "cancelled" && (
-                    <p className="text-sm text-sky-100">This order can no longer be cancelled.</p>
+                    <p className="text-sm text-sky-100">{t("orders.cannotCancelNote")}</p>
                   )}
                   {cancelError && (
                     <div className="mt-2 rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
@@ -844,25 +871,25 @@ export default function OrderDetailsPage() {
                         }}
                         className="inline-flex items-center justify-center rounded-xl border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        Cancel order
+                        {t("orders.cancelOrderButton")}
                       </button>
                     ) : (
                       <div className="space-y-3 text-right">
-                        <p className="text-sm text-rose-100">Are you sure? This cannot be undone.</p>
+                        <p className="text-sm text-rose-100">{t("orders.cancelConfirmPrompt")}</p>
                         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                           <button
                             onClick={handleCancelOrder}
                             disabled={isCancelling}
                             className="inline-flex items-center justify-center rounded-xl border border-rose-200/50 bg-rose-500/30 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {isCancelling ? "Cancelling..." : "Yes, cancel order"}
+                            {isCancelling ? t("orders.cancelConfirming") : t("orders.cancelConfirmYes")}
                           </button>
                           <button
                             onClick={() => setShowCancelConfirm(false)}
                             disabled={isCancelling}
                             className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            Keep order
+                            {t("orders.keepOrder")}
                           </button>
                         </div>
                       </div>
@@ -875,14 +902,14 @@ export default function OrderDetailsPage() {
             {/* Edit order */}
             <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm shadow-sky-900/30 backdrop-blur">
               <div className="space-y-3">
-                <h2 className="text-lg font-semibold text-white">Edit Order</h2>
+                <h2 className="text-lg font-semibold text-white">{t("orders.editOrderSectionTitle")}</h2>
                 {order.status === "pending" && (
                   <p className="text-sm text-sky-100">
-                    You can update your shipping info, notes, or items before the order is confirmed. Use the Edit Order button at the top of the page to make changes.
+                    {t("orders.editOrderPendingNote")}
                   </p>
                 )}
                 {order.status !== "pending" && (
-                  <p className="text-sm text-sky-100">This order can no longer be modified.</p>
+                  <p className="text-sm text-sky-100">{t("orders.editOrderLockedNote")}</p>
                 )}
                 {editError && (
                   <div className="mt-2 rounded-xl border border-rose-200/50 bg-rose-500/20 px-3 py-2 text-sm text-rose-50">
@@ -897,22 +924,22 @@ export default function OrderDetailsPage() {
           {/* Sidebar - Order summary */}
           <aside className="space-y-6">
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur lg:sticky lg:top-8">
-              <h2 className="text-lg font-semibold text-white mb-4">Order Summary</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">{t("orders.orderSummaryTitle")}</h2>
               <dl className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <dt className="text-sky-100">Subtotal</dt>
+                  <dt className="text-sky-100">{t("orders.editModalSubtotalLabel")}</dt>
                   <dd className="font-semibold text-white">
                     {new Intl.NumberFormat("fr-DZ").format(order.subtotal)} DZD
                   </dd>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <dt className="text-sky-100">Shipping</dt>
+                  <dt className="text-sky-100">{t("orders.editModalShippingLabel")}</dt>
                   <dd className="font-semibold text-white">
                     {new Intl.NumberFormat("fr-DZ").format(order.shippingCost)} DZD
                   </dd>
                 </div>
                 <div className="border-t border-white/10 pt-3 flex items-center justify-between">
-                  <dt className="text-base font-semibold text-white">Total</dt>
+                  <dt className="text-base font-semibold text-white">{t("orders.totalLabel")}</dt>
                   <dd className="text-lg font-semibold text-white">
                     {new Intl.NumberFormat("fr-DZ").format(order.total)} DZD
                   </dd>
@@ -920,7 +947,8 @@ export default function OrderDetailsPage() {
               </dl>
               <div className="mt-4 pt-4 border-t border-white/10">
                 <p className="text-xs text-sky-200">
-                  Payment method: <span className="font-semibold text-white">Cash on Delivery (COD)</span>
+                  {t("orders.paymentMethodLabel")}{" "}
+                  <span className="font-semibold text-white">{t("payment.codWithAbbrev")}</span>
                 </p>
               </div>
             </section>
@@ -929,7 +957,7 @@ export default function OrderDetailsPage() {
               href={localizePathname(locale, "/orders")}
               className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              Back to orders
+              {t("orders.backToOrders")}
             </Link>
           </aside>
         </div>

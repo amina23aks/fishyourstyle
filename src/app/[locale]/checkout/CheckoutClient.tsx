@@ -151,43 +151,40 @@ export default function CheckoutClient() {
     setError(null);
     setSuccess(null);
 
-    // Validate required fields (email is optional)
+    // Validate required fields (email required)
     console.log("[CheckoutClient] Validating required fields...");
     console.log("[CheckoutClient] Field validation check:", {
       fullName: !!form.fullName,
       phone: !!form.phone,
       wilaya: !!form.wilaya,
       address: !!form.address,
-      email: form.email || "(optional, empty is OK)",
+      email: !!form.email,
     });
-    
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
+
+    if (!form.fullName || !form.phone || !form.wilaya || !form.address || !form.email) {
       console.error("[CheckoutClient] Validation Failed: Missing required fields", {
         fullName: !!form.fullName,
         phone: !!form.phone,
         wilaya: !!form.wilaya,
         address: !!form.address,
-        email: form.email || "(optional, not checked)",
+        email: !!form.email,
       });
-      setError("Please fill in all required fields.");
+      setError(t("checkout.errorRequiredFields"));
       return;
     }
-    
-    // Email is optional - validate format only if provided
-    if (form.email && form.email.trim() !== "") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(form.email)) {
-        console.error("[CheckoutClient] Validation Failed: Invalid email format");
-        setError("Please enter a valid email address or leave it blank.");
-        return;
-      }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      console.error("[CheckoutClient] Validation Failed: Invalid email format");
+      setError(t("checkout.errorInvalidEmail"));
+      return;
     }
-    
-    console.log("[CheckoutClient] Required fields validation passed. Email is optional and OK.");
+
+    console.log("[CheckoutClient] Required fields validation passed.");
 
     if (shippingPrice == null) {
       console.error("[CheckoutClient] Validation Failed: Invalid shipping price (null)");
-      setError("Please select a valid wilaya.");
+      setError(t("checkout.errorSelectWilaya"));
       return;
     }
 
@@ -203,7 +200,7 @@ export default function CheckoutClient() {
       return stockState.stockMode === "limited" && !stockState.isAvailable;
     });
     if (hasOutOfStock) {
-      setError("Some items are out of stock. Please refresh your cart.");
+      setError(t("checkout.errorOutOfStock"));
       setIsSubmitting(false);
       return;
     }
@@ -302,12 +299,12 @@ export default function CheckoutClient() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 400 && errorData?.error && errorData.error.includes("Some items are no longer available")) {
-          setError("Please refresh your cart.");
+          setError(t("checkout.errorRefreshCart"));
           setIsSubmitting(false);
           return;
         }
         // For all other errors, show error but do not throw stack in dev for expected 400
-        setError(errorData.error || "Failed to create order. Please try again.");
+        setError(errorData.error || t("checkout.errorCreateOrder"));
         setIsSubmitting(false);
         return;
       }
@@ -353,7 +350,7 @@ export default function CheckoutClient() {
       }, 2000);
     } catch (err) {
       console.error("[CheckoutClient] Error in handleSubmit:", err);
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       console.error("[CheckoutClient] Error message:", errorMessage);
       setError(errorMessage);
       setIsSubmitting(false);
@@ -367,9 +364,9 @@ export default function CheckoutClient() {
           <p className="text-xs uppercase tracking-[0.28em] text-sky-200">{t("checkout.title")}</p>
           <h1 className="text-3xl font-semibold text-white">{t("checkout.confirmTitle")}</h1>
           <p className="max-w-2xl text-sm text-sky-100">
-            Delivery across all wilayas with
-            <span className="font-semibold text-white"> Economic shipping </span>
-            and cash on delivery (COD).
+            {t("checkout.subtitlePrefix")}
+            <span className="font-semibold text-white"> {t("checkout.economicShipping")} </span>
+            {t("checkout.subtitleSuffix")}
           </p>
         </header>
 
@@ -377,21 +374,19 @@ export default function CheckoutClient() {
           {user ? (
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100">
               <div>
-                <p className="text-white">Logged in</p>
-                <p className="text-xs text-sky-200">
-                  Orders placed while signed in will be linked to your account.
-                </p>
+                <p className="text-white">{t("checkout.loggedInTitle")}</p>
+                <p className="text-xs text-sky-200">{t("checkout.loggedInNote")}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white">
-                  {user.email || "Authenticated user"}
+                  {user.email || t("checkout.authenticatedUser")}
                 </span>
                 <button
                   type="button"
                   onClick={signOut}
                   className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
                 >
-                  Sign out
+                  {t("profile.signOut")}
                 </button>
               </div>
             </div>
@@ -399,9 +394,7 @@ export default function CheckoutClient() {
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100">
               <div>
                 <p className="text-white">{t("checkout.guestTitle")}</p>
-                <p className="text-xs text-sky-200">
-                  You can complete your order without an account or log in to save it under your profile.
-                </p>
+                <p className="text-xs text-sky-200">{t("checkout.guestNote")}</p>
               </div>
               <Link
                 href={{
@@ -431,7 +424,7 @@ export default function CheckoutClient() {
               <div className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="fullName">
-                    Full name<span className="text-rose-200"> *</span>
+                    {t("checkout.fullNameLabel")}<span className="text-rose-200"> *</span>
                   </label>
                   <input
                     id="fullName"
@@ -445,7 +438,7 @@ export default function CheckoutClient() {
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="email">
-                    Email<span className="text-sky-300 text-xs"> (optional)</span>
+                    {t("checkout.emailLabel")}<span className="text-rose-200"> *</span>
                   </label>
                   <input
                     id="email"
@@ -453,13 +446,14 @@ export default function CheckoutClient() {
                     value={form.email}
                     onChange={(event) => handleChange("email", event.target.value)}
                     className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    placeholder="your@email.com"
+                    placeholder={t("checkout.emailPlaceholder")}
+                    required
                   />
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="phone">
-                    Phone number<span className="text-rose-200"> *</span>
+                    {t("checkout.phoneLabel")}<span className="text-rose-200"> *</span>
                   </label>
                   <input
                     id="phone"
@@ -473,7 +467,7 @@ export default function CheckoutClient() {
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="wilaya">
-                    Wilaya<span className="text-rose-200"> *</span>
+                    {t("checkout.wilayaLabel")}<span className="text-rose-200"> *</span>
                   </label>
                   <select
                     id="wilaya"
@@ -483,7 +477,7 @@ export default function CheckoutClient() {
                     required
                   >
                     <option value="" className="bg-slate-900 text-sky-900">
-                      Select wilaya…
+                      {t("checkout.wilayaPlaceholder")}
                     </option>
                     {ECONOMIC_SHIPPING.map((wilaya) => (
                       <option
@@ -498,7 +492,7 @@ export default function CheckoutClient() {
                 </div>
 
                 <div className="space-y-1">
-                  <span className="text-xs font-medium text-sky-100">Delivery mode</span>
+                  <span className="text-xs font-medium text-sky-100">{t("delivery.mode")}</span>
                   <div className="mt-1 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -510,7 +504,7 @@ export default function CheckoutClient() {
                       }`}
                       aria-pressed={deliveryMode === "home"}
                     >
-                      A domicile
+                      {t("delivery.home")}
                     </button>
                     <button
                       type="button"
@@ -522,14 +516,14 @@ export default function CheckoutClient() {
                       }`}
                       aria-pressed={deliveryMode === "desk"}
                     >
-                      Stop Desk
+                      {t("delivery.desk")}
                     </button>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="address">
-                    Address<span className="text-rose-200"> *</span>
+                    {t("checkout.addressLabel")}<span className="text-rose-200"> *</span>
                   </label>
                   <textarea
                     id="address"
@@ -542,38 +536,34 @@ export default function CheckoutClient() {
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="notes">
-                    Notes (optional)
+                    {t("checkout.notesLabel")} <span className="text-sky-300 text-xs">{t("checkout.notesOptional")}</span>
                   </label>
                   <textarea
                     id="notes"
                     value={form.notes}
                     onChange={(event) => handleChange("notes", event.target.value)}
                     className="min-h-[64px] w-full resize-none rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    placeholder="Floor, apartment, preferred time..."
+                    placeholder={t("checkout.notesPlaceholder")}
                   />
                 </div>
               </div>
 
               {error && (
                 <div className="rounded-lg border border-rose-200/60 bg-rose-500/15 px-4 py-3 text-sm text-rose-50 shadow-inner shadow-rose-900/30">
-                  <p className="font-medium">Error</p>
+                  <p className="font-medium">{t("common.error")}</p>
                   <p className="mt-1">{error}</p>
                 </div>
               )}
 
               {success && (
                 <div className="rounded-lg border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-sm text-emerald-50 shadow-inner shadow-emerald-900/30">
-                  <p className="font-medium">Order placed successfully!</p>
-                  <p className="mt-1">Order ID: {success.orderId}</p>
+                  <p className="font-medium">{t("checkout.successTitle")}</p>
+                  <p className="mt-1">{t("checkout.successOrderId").replace("{id}", success.orderId)}</p>
                   <div className="mt-4 rounded-xl bg-white/5 p-4 text-sm sm:text-base">
-                    <p className="font-medium text-white">
-                      If you later log in with this same email, you’ll see your orders under the Orders page.
-                    </p>
-                    <p className="mt-1 text-white/60">
-                      إذا سجّلت دخول لاحقًا بنفس هذا الإيميل، تقدري تشوفي طلباتك في صفحة Orders.
-                    </p>
+                    <p className="font-medium text-white">{t("checkout.successNotePrimary")}</p>
+                    <p className="mt-1 text-white/60">{t("checkout.successNoteSecondary")}</p>
                   </div>
-                  <p className="mt-2 text-xs">Redirecting to orders page...</p>
+                  <p className="mt-2 text-xs">{t("checkout.successRedirecting")}</p>
                 </div>
               )}
 
@@ -582,12 +572,12 @@ export default function CheckoutClient() {
                 disabled={isSubmitting || success !== null}
                 className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Submitting..." : success ? "Order Placed!" : "Confirm order"}
+                {isSubmitting ? t("checkout.submitSubmitting") : success ? t("checkout.submitSuccess") : t("checkout.submitDefault")}
               </button>
             </section>
 
             <aside className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:sticky lg:top-8">
-              <h2 className="text-sm font-semibold text-white">Order summary</h2>
+              <h2 className="text-sm font-semibold text-white">{t("checkout.orderSummaryTitle")}</h2>
 
               <ul className="space-y-3 text-xs text-sky-100">
                 {items.map((item) => (
@@ -625,29 +615,30 @@ export default function CheckoutClient() {
 
               <div className="mt-3 space-y-1 border-t border-white/10 pt-3 text-sm">
                 <div className="flex items-center justify-between text-sky-100">
-                  <span>Subtotal</span>
+                  <span>{t("cart.subtotal")}</span>
                   <span className="tabular-nums">{totals.subtotal} DZD</span>
                 </div>
                 <div className="flex items-center justify-between text-sky-100">
-                  <span>Shipping</span>
+                  <span>{t("cart.shipping")}</span>
                   <span className="tabular-nums">
-                    {shippingPrice != null ? `${shippingPrice} DZD` : "Select wilaya"}
+                    {shippingPrice != null ? `${shippingPrice} DZD` : t("checkout.shippingSelectWilaya")}
                   </span>
                 </div>
                 {loyaltyRewardAvailable && loyaltyDiscountAmount > 0 ? (
                   <div className="flex items-center justify-between text-emerald-200">
-                    <span>Loyalty discount ({loyaltyRewardPercent}%)</span>
+                    <span>{t("checkout.loyaltyDiscountLabel").replace("{percent}", String(loyaltyRewardPercent))}</span>
                     <span className="tabular-nums">-{loyaltyDiscountAmount} DZD</span>
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between text-white font-semibold">
-                  <span>Total</span>
+                  <span>{t("cart.total")}</span>
                   <span className="tabular-nums">{grandTotal} DZD</span>
                 </div>
                 <p className="pt-1 text-xs text-sky-200">
-                  Shipping prices based on Economic delivery (
-                  {deliveryMode === "home" ? "A domicile" : "Stop Desk"}). Payment is
-                  cash on delivery.
+                  {t("checkout.shippingPaymentNote").replace(
+                    "{mode}",
+                    deliveryMode === "home" ? t("delivery.home") : t("delivery.desk"),
+                  )}
                 </p>
               </div>
             </aside>
