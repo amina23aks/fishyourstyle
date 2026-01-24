@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import PageShell from "@/components/PageShell";
@@ -40,6 +41,9 @@ function StarIcon() {
 }
 
 function AccountContent() {
+  const pathname = usePathname();
+  const seg = pathname.split("/").filter(Boolean)[0];
+  const locale = seg === "en" || seg === "fr" || seg === "ar" ? seg : "en";
   const { user, loading } = useAuth();
   const { openModal } = useAuthModal();
   const displayName = user?.displayName || "Customer";
