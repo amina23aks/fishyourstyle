@@ -1,9 +1,49 @@
+import type { Metadata } from "next";
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import ShopClient from "./shop-client";
 import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
+import { resolveLocale, type Locale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl } from "@/lib/seo";
 
 export const revalidate = 0;
+
+const shopMetadataByLocale: Record<Locale, { title: string; description: string }> = {
+  en: {
+    title: "Shop | Fish Your Style",
+    description: "Browse Fish Your Style streetwear drops, colors, and fits designed for every mood.",
+  },
+  fr: {
+    title: "Boutique | Fish Your Style",
+    description: "Parcourez les collections, couleurs et coupes Fish Your Style conçues pour chaque humeur.",
+  },
+  ar: {
+    title: "المتجر | Fish Your Style",
+    description: "تسوّق تشكيلات ستريت وير Fish Your Style والألوان والقصّات المصممة لكل مزاج.",
+  },
+};
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const { title, description } = shopMetadataByLocale[locale];
+  const url = buildLocalizedUrl(locale, "/shop");
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/shop"),
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+    },
+  };
+}
 
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const mainImage = sp.images?.main || "/placeholder.png";
