@@ -11,8 +11,10 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname === "/") {
+    const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+    const preferredLocale = cookieLocale && isLocale(cookieLocale) ? cookieLocale : defaultLocale;
     const url = request.nextUrl.clone();
-    url.pathname = `/${defaultLocale}`;
+    url.pathname = `/${preferredLocale}`;
     return NextResponse.redirect(url);
   }
 

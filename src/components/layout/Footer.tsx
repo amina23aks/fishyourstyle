@@ -180,9 +180,9 @@ export default function Footer() {
             </div>
           </div>
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">Wishlist</h3>
+            <h3 className="text-sm font-semibold text-white">{t("wishlist.title")}</h3>
             <p className="text-sky-200">
-              Drop your email to be the first to know when new drops hit your wishlist.
+              {t("wishlist.description")}
             </p>
             <form className="space-y-2" onSubmit={handleWishlistSubmit}>
               <label className="sr-only" htmlFor="wishlist-email">
@@ -202,7 +202,7 @@ export default function Footer() {
                 disabled={wishlistStatus === "loading"}
                 className="w-full rounded-md bg-gradient-to-r from-sky-400 to-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {wishlistStatus === "loading" ? "Submitting..." : "Join wishlist"}
+                {wishlistStatus === "loading" ? "Submitting..." : t("wishlist.cta")}
               </button>
               {wishlistStatus === "success" && (
                 <p className="text-[11px] text-emerald-100">Thanks! You&apos;re on the list.</p>

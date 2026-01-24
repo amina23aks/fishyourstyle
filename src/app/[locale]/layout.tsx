@@ -4,7 +4,7 @@ import CookiesBanner from "@/components/CookiesBanner";
 import AuthModal from "@/components/AuthModal";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { getMessages } from "@/i18n/get-messages";
-import { resolveLocale } from "@/i18n/config";
+import { getLocaleDirection, resolveLocale } from "@/i18n/config";
 
 export default async function LocaleLayout({
   children,
@@ -16,10 +16,11 @@ export default async function LocaleLayout({
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
+  const direction = getLocaleDirection(locale);
 
   return (
     <I18nProvider locale={locale} messages={messages}>
-      <div className="relative z-10 flex min-h-screen flex-col overflow-x-hidden pt-20">
+      <div className="relative z-10 flex min-h-screen flex-col overflow-x-hidden pt-20" lang={locale} dir={direction}>
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

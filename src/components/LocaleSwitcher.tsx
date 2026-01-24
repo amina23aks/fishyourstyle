@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { defaultLocale, locales, isLocale, type Locale } from "@/i18n/config";
+import { localizePathname } from "@/i18n/paths";
 
 const localeLabels: Record<Locale, string> = {
   en: "English",
@@ -14,10 +15,12 @@ function getLocaleFromPathname(pathname: string): Locale {
   return isLocale(segment) ? segment : defaultLocale;
 }
 
-function buildLocalePathname(pathname: string, nextLocale: Locale): string {
+function stripLocale(pathname: string): string {
   const segments = pathname.split("/").filter(Boolean);
-  const rest = segments.length > 0 ? segments.slice(1).join("/") : "";
-  return rest ? `/${nextLocale}/${rest}` : `/${nextLocale}`;
+  if (segments.length === 0) return "/";
+  if (!isLocale(segments[0])) return pathname;
+  const rest = segments.slice(1).join("/");
+  return rest ? `/${rest}` : "/";
 }
 
 export default function LocaleSwitcher() {
@@ -35,7 +38,11 @@ export default function LocaleSwitcher() {
             <button
               key={locale}
               type="button"
-              onClick={() => router.push(buildLocalePathname(pathname, locale))}
+              onClick={() => {
+                const nextPath = localizePathname(locale, stripLocale(pathname));
+                document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
+                router.push(nextPath);
+              }}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                 isActive
                   ? "bg-white text-slate-900"

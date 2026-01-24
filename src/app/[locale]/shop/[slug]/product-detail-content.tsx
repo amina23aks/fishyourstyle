@@ -71,6 +71,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
   });
   const isOutOfStock = !stockState.isAvailable;
   const availableStock = stockState.stockMode === "limited" ? stockState.stockQty : undefined;
+  const hasColorSelection = !requiresColorSelection || Boolean(activeColor);
+  const hasSizeSelection = !requiresSizeSelection || Boolean(selectedSize);
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -160,12 +162,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
     }
 
     if (!activeColor && requiresColorSelection) {
-      setSelectionError(t("shop.selectColorSize"));
+      setSelectionError(t("shop.selectColorSizeHelper"));
       return false;
     }
 
     if (!selectedSize && requiresSizeSelection) {
-      setSelectionError(t("shop.selectColorSize"));
+      setSelectionError(t("shop.selectColorSizeHelper"));
       return false;
     }
 
@@ -213,8 +215,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   // Only show gender if it's explicitly set (not empty string)
   const infoRows = product.gender && product.gender.trim() !== "" ? [{ label: "Genre", value: product.gender }] : [];
 
-  const isSelectionMissing =
-    (!activeColor && requiresColorSelection) || (!selectedSize && requiresSizeSelection);
+  const isSelectionPartial = hasColorSelection !== hasSizeSelection;
   const availabilityLine =
     stockState.stockMode === "limited"
       ? isOutOfStock
@@ -223,8 +224,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
           ? t("shop.availableCount").replace("{count}", String(availableStock))
           : null
       : t("shop.inStock");
-  const selectionMessage = isSelectionMissing
-    ? t("shop.selectColorSize")
+  const selectionMessage = isSelectionPartial
+    ? t("shop.selectColorSizeHelper")
     : null;
   const displayMessage = isOutOfStock
     ? t("shop.outOfStock")
@@ -457,7 +458,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                   onClick={handleAddToCart}
                   disabled={isOutOfStock || !hasVariantAvailable}
                   className={`w-full justify-center sm:w-auto ${
-                    isSelectionMissing || isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
+                    isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
                   }`.trim()}
                 />
                 <FavoriteButton

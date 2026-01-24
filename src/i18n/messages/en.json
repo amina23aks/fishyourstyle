@@ -88,7 +88,7 @@
   "common.close": "Close",
   "common.cancel": "Cancel",
   "delivery.mode": "Delivery mode",
-  "delivery.home": "Home delivery",
+  "delivery.home": "Home Delivery",
   "delivery.desk": "Stop Desk",
   "payment.cod": "Cash on delivery",
   "payment.codShort": "COD",
@@ -253,5 +253,11 @@
   "shop.headerTitle": "Explore Our Collection",
   "shop.headerDescriptionLine1": "Discover modern streetwear designed for comfort, fit, and everyday wear.",
   "shop.headerDescriptionLine2": "New pieces are added regularly to keep your style fresh.",
-  "cart.deliveryModePrompt": "Choose delivery method"
+  "cart.deliveryModePrompt": "Choose delivery method",
+  "shop.selectColorSizeHelper": "Select a color or size to proceed.",
+  "shop.exploreMoreCta": "View all products",
+  "wishlist.title": "Wishlist",
+  "wishlist.description": "Leave your email to be notified when wishlist drops are back.",
+  "wishlist.cta": "Join the wishlist",
+  "orders.guestCheckoutNote": "You can complete your order without logging in. Later, if you log in with the same email, it will show up under My Orders."
 }

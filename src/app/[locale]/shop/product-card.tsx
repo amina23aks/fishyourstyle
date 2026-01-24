@@ -95,11 +95,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const isOutOfStock = !stockIsAvailable || !hasVariantAvailable;
   const availableStock = isLimited ? stockQty : undefined;
   const selectedSizeOption = selectedSize ? sizeOptions.find((size) => size.value === selectedSize) : null;
+  const hasColorSelection = !requiresColorSelection || Boolean(selectedColor);
+  const hasSizeSelection = !requiresSizeSelection || Boolean(selectedSize);
+  const isSelectionIncomplete = !hasColorSelection || !hasSizeSelection;
   const isSelectionInvalid =
     isOutOfStock ||
     !hasVariantAvailable ||
-    (!selectedColor && requiresColorSelection) ||
-    (!selectedSize && requiresSizeSelection) ||
     Boolean(selectedColor?.soldOut) ||
     Boolean(selectedSizeOption?.soldOut);
 
@@ -115,8 +116,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const productDesignTheme = product.designTheme ?? "";
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
-  const isSelectionMissing =
-    (!selectedColor && requiresColorSelection) || (!selectedSize && requiresSizeSelection);
+  const isSelectionPartial = hasColorSelection !== hasSizeSelection;
+  const selectionHelper = isSelectionPartial ? t("shop.selectColorSizeHelper") : null;
 
   useEffect(() => {
     setActiveIndex(0);
@@ -205,10 +206,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   };
 
   const handleAddToCart = useCallback(() => {
-    if (isSelectionInvalid) {
+    if (isSelectionIncomplete || isSelectionInvalid) {
       const fallbackMessage = !hasVariantAvailable
         ? t("shop.selectedOptionsSoldOut")
-        : t("shop.selectColorSize");
+        : t("shop.selectColorSizeHelper");
       const message = isOutOfStock ? t("shop.outOfStock") : fallbackMessage;
       setSelectionWarning(message);
       return false;
@@ -548,14 +549,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           )}
 
           <p className="min-h-[20px] text-xs text-rose-200" aria-live="polite">
-            {selectionWarning ?? "\u00a0"}
+            {selectionWarning ?? selectionHelper ?? "\u00a0"}
           </p>
 
           <AnimatedAddToCartButton
             onClick={handleAddToCart}
             disabled={isSelectionInvalid}
             className={`w-full justify-center ${
-              isSelectionMissing || isSelectionInvalid ? "opacity-60 cursor-not-allowed" : ""
+              isSelectionInvalid ? "opacity-60 cursor-not-allowed" : ""
             }`.trim()}
           />
         </div>

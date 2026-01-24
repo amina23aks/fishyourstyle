@@ -88,8 +88,8 @@
   "common.close": "إغلاق",
   "common.cancel": "إلغاء",
   "delivery.mode": "طريقة التوصيل",
-  "delivery.home": "التوصيل للمنزل",
-  "delivery.desk": "نقطة استلام",
+  "delivery.home": "التوصيل إلى المنزل",
+  "delivery.desk": "ستوب ديسك",
   "payment.cod": "الدفع عند الاستلام",
   "payment.codShort": "COD",
   "payment.codWithAbbrev": "الدفع عند الاستلام (COD)",
@@ -238,7 +238,7 @@
   "contact.errorFallback": "تعذر إرسال الرسالة.",
   "contact.errorSend": "فشل إرسال الرسالة.",
   "profile.preferences": "التفضيلات",
-  "profile.theme": "السمة",
+  "profile.theme": "المظهر",
   "profile.light": "فاتح",
   "profile.dark": "داكن",
   "whyUs.eyebrow": "لماذا نحن",
@@ -253,5 +253,11 @@
   "shop.headerTitle": "اكتشف مجموعتنا",
   "shop.headerDescriptionLine1": "اكتشف ستريت وير عصري مصمم للراحة والملاءمة والاستخدام اليومي.",
   "shop.headerDescriptionLine2": "نضيف قطعًا جديدة باستمرار لتبقى إطلالتك متجددة.",
-  "cart.deliveryModePrompt": "اختر طريقة التوصيل"
+  "cart.deliveryModePrompt": "اختر طريقة التوصيل",
+  "shop.selectColorSizeHelper": "اختر اللون أو المقاس للمتابعة.",
+  "shop.exploreMoreCta": "عرض كل المنتجات",
+  "wishlist.title": "قائمة الرغبات",
+  "wishlist.description": "اترك بريدك الإلكتروني ليصلك إشعار عند عودة منتجات قائمة الرغبات.",
+  "wishlist.cta": "انضم إلى قائمة الرغبات",
+  "orders.guestCheckoutNote": "يمكنك إنهاء طلبك دون تسجيل الدخول. لاحقًا إذا سجّلت بنفس البريد، سيظهر ضمن طلباتي."
 }

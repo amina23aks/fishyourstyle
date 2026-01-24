@@ -88,8 +88,8 @@
   "common.close": "Fermer",
   "common.cancel": "Annuler",
   "delivery.mode": "Mode de livraison",
-  "delivery.home": "À domicile",
-  "delivery.desk": "Point relais",
+  "delivery.home": "Livraison à domicile",
+  "delivery.desk": "Stop Desk",
   "payment.cod": "Paiement à la livraison",
   "payment.codShort": "COD",
   "payment.codWithAbbrev": "Paiement à la livraison (COD)",
@@ -253,5 +253,11 @@
   "shop.headerTitle": "Découvrez notre collection",
   "shop.headerDescriptionLine1": "Découvrez du streetwear moderne conçu pour le confort, la coupe et le quotidien.",
   "shop.headerDescriptionLine2": "De nouvelles pièces sont ajoutées régulièrement pour renouveler votre style.",
-  "cart.deliveryModePrompt": "Choisissez le mode de livraison"
+  "cart.deliveryModePrompt": "Choisissez le mode de livraison",
+  "shop.selectColorSizeHelper": "Sélectionnez une couleur ou une taille pour continuer.",
+  "shop.exploreMoreCta": "Voir tous les produits",
+  "wishlist.title": "Liste de souhaits",
+  "wishlist.description": "Laissez votre email pour être averti quand les nouveautés de la liste reviennent.",
+  "wishlist.cta": "Rejoindre la liste",
+  "orders.guestCheckoutNote": "Vous pouvez finaliser votre commande sans vous connecter. Plus tard, si vous vous connectez avec le même email, elle apparaîtra dans Mes commandes."
 }

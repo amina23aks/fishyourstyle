@@ -238,6 +238,7 @@ export default function OrdersList() {
             <Image src="/myorder.png" alt="My orders" width={96} height={96} className="object-contain" />
           </div>
           <p className="mb-2 font-medium text-white">{t("orders.guestPrompt")}</p>
+          <p className="text-sm text-sky-100">{t("orders.guestCheckoutNote")}</p>
           <div className="mt-6 flex justify-center">
             <button
               type="button"
