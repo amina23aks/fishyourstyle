@@ -14,6 +14,7 @@ import { getDb } from "@/lib/firebaseClient";
 
 import CartDrawer from "./cart/cart-drawer";
 import ModelViewerLogo from "./ModelViewerLogo";
+import LocaleSwitcher from "./LocaleSwitcher";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
@@ -395,6 +396,7 @@ export function Navbar() {
                           </button>
                         </div>
                       </div>
+                      <LocaleSwitcher />
                     </div>
 
                     {user ? (
