@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import Hero from "@/components/Hero";
@@ -6,11 +7,49 @@ import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
 import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
 import { localizePathname } from "@/i18n/paths";
-import { resolveLocale } from "@/i18n/config";
+import { resolveLocale, type Locale } from "@/i18n/config";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
+import { buildAlternateLanguages, buildLocalizedUrl } from "@/lib/seo";
 
 export const revalidate = 0;
+
+const homeMetadataByLocale: Record<Locale, { title: string; description: string }> = {
+  en: {
+    title: "Fish Your Style — Streetwear for every mood",
+    description: "Discover streetwear for every style, every mood, and every moment with Fish Your Style.",
+  },
+  fr: {
+    title: "Fish Your Style — Streetwear pour chaque humeur",
+    description: "Découvrez le streetwear Fish Your Style pour chaque style, chaque humeur et chaque moment.",
+  },
+  ar: {
+    title: "Fish Your Style — ستريت وير لكل مزاج",
+    description: "اكتشف ستريت وير Fish Your Style لكل أسلوب وكل مزاج وكل لحظة.",
+  },
+};
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const { title, description } = homeMetadataByLocale[locale];
+  const url = buildLocalizedUrl(locale, "/");
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/"),
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+    },
+  };
+}
 
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const mainImage = sp.images?.main || "/placeholder.png";

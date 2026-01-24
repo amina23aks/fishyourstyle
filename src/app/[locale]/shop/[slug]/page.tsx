@@ -1,10 +1,66 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { fetchStorefrontProductBySlug, type StorefrontProduct } from "@/lib/storefront-products";
 import { ProductDetailContent } from "./product-detail-content";
 import type { Product } from "@/types/product";
+import { resolveLocale, type Locale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+const productDescriptionByLocale: Record<Locale, (name: string) => string> = {
+  en: (name) => `Discover ${name} from Fish Your Style. Premium streetwear made for everyday comfort.`,
+  fr: (name) => `Découvrez ${name} chez Fish Your Style. Du streetwear premium pensé pour le confort au quotidien.`,
+  ar: (name) => `اكتشف ${name} من Fish Your Style. ستريت وير فاخر مصمم للراحة اليومية.`,
+};
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale: localeParam, slug } = await params;
+  const locale = resolveLocale(localeParam);
+  const storefrontProduct = await fetchStorefrontProductBySlug(slug);
+
+  if (!storefrontProduct) {
+    const url = buildLocalizedUrl(locale, `/shop/${slug}`);
+    return {
+      title: "Product | Fish Your Style",
+      alternates: {
+        canonical: url,
+        languages: buildAlternateLanguages(`/shop/${slug}`),
+      },
+    };
+  }
+
+  const [mainImage] = normalizeImages(storefrontProduct.images);
+  const productName = storefrontProduct.name ?? "Fish Your Style";
+  const title = `${productName} | Fish Your Style`;
+  const description = productDescriptionByLocale[locale](productName);
+  const url = buildLocalizedUrl(locale, `/shop/${slug}`);
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages(`/shop/${slug}`),
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "product",
+      images: [
+        {
+          url: resolveOgImageUrl(mainImage),
+        },
+      ],
+    },
+  };
+}
 
 function normalizeImages(images: StorefrontProduct["images"] | unknown): string[] {
   const collected: string[] = [];
