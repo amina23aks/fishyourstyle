@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   icons: {
     icon: "/logoF.png",
   },
+  verification: {
+    google: "xhWDfYVWM4wYlyC0N8spspJoYrgmPcLaliR833kIz6c",
+  },
 };
 
 export default async function RootLayout({

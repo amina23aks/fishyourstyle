@@ -17,6 +17,7 @@ export default async function LocaleLayout({
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
   const direction = getLocaleDirection(locale);
+  
 
   return (
     <I18nProvider locale={locale} messages={messages}>
