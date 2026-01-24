@@ -396,7 +396,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-              <div className="absolute left-2.5 right-2.5 top-2.5 flex items-start justify-between text-[10px] font-semibold uppercase tracking-wide text-white">
+              <div className="absolute left-2.5 right-2.5 top-2.5 flex items-start justify-between text-[10px] font-semibold uppercase tracking-wide text-white rtl:left-2.5 rtl:right-auto rtl:w-auto rtl:max-w-[70%]">
                 <div className="flex flex-col gap-1">
                   {(() => {
                     const isOutOfStock = !stockState.isAvailable;
