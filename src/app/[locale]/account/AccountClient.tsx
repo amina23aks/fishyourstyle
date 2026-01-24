@@ -8,7 +8,6 @@ import { useAuthModal } from "@/context/auth-modal";
 import PageShell from "@/components/PageShell";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDb } from "@/lib/firebaseClient";
-import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
 function ShoppingCartIcon() {
@@ -266,7 +265,6 @@ function AccountContent() {
 }
 
 export default function AccountClient() {
-  const locale = useLocale();
   return (
     <Suspense fallback={null}>
       <AccountContent />
