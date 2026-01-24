@@ -1,0 +1,22 @@
+{
+  "nav.home": "Home",
+  "nav.shop": "Shop",
+  "nav.contact": "Contact",
+  "nav.orders": "Orders",
+  "hero.subtitleLine1": "Streetwear made for every style, every mood, and every moment.",
+  "hero.subtitleLine2": "From everyday essentials to statement pieces — your style starts here.",
+  "footer.headline": "Streetwear built for everyday life.",
+  "footer.description": "Versatile designs and comfortable fits made to match your lifestyle — whatever you’re into.",
+  "footer.navigate": "Navigate",
+  "footer.support": "Support",
+  "checkout.title": "Checkout",
+  "checkout.confirmTitle": "Confirm your order",
+  "checkout.guestTitle": "Guest checkout",
+  "checkout.loginCta": "Log in or create account",
+  "checkout.deliveryDetails": "Delivery details",
+  "checkout.emptyCart": "Your cart is empty. Add items before checking out.",
+  "profile.myProfile": "My Profile",
+  "profile.myOrders": "My Orders",
+  "profile.signIn": "Sign in",
+  "profile.signOut": "Sign out"
+}

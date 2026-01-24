@@ -1,0 +1,22 @@
+{
+  "nav.home": "الرئيسية",
+  "nav.shop": "تسوّق",
+  "nav.contact": "تواصل",
+  "nav.orders": "الطلبات",
+  "hero.subtitleLine1": "أزياء ستريتوير لكل أسلوب وكل مزاج وكل لحظة.",
+  "hero.subtitleLine2": "من القطع اليومية إلى القطع اللافتة — أسلوبك يبدأ هنا.",
+  "footer.headline": "ستريتوير مصمم للحياة اليومية.",
+  "footer.description": "تصاميم متعددة الاستخدامات وقصّات مريحة تناسب أسلوب حياتك — أيًا كان ذوقك.",
+  "footer.navigate": "تصفّح",
+  "footer.support": "الدعم",
+  "checkout.title": "الدفع",
+  "checkout.confirmTitle": "أكد طلبك",
+  "checkout.guestTitle": "الدفع كضيف",
+  "checkout.loginCta": "سجّل الدخول أو أنشئ حسابًا",
+  "checkout.deliveryDetails": "تفاصيل التوصيل",
+  "checkout.emptyCart": "سلة التسوق فارغة. أضف منتجات قبل إكمال الدفع.",
+  "profile.myProfile": "ملفي الشخصي",
+  "profile.myOrders": "طلباتي",
+  "profile.signIn": "تسجيل الدخول",
+  "profile.signOut": "تسجيل الخروج"
+}

@@ -2,11 +2,14 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useLocale } from "@/i18n/I18nProvider";
+import { localizePathname } from "@/i18n/paths";
 
 const CONSENT_KEY = "fishyourstyle_cookie_consent_v1";
 const CONSENT_EVENT = "fishyourstyle:cookie-consent-accepted";
 
 export default function CookiesBanner() {
+  const locale = useLocale();
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
@@ -52,7 +55,7 @@ export default function CookiesBanner() {
             They help us remember your preferences and improve your experience.
           </p>
           <a
-            href="/privacy-policy"
+            href={localizePathname(locale, "/privacy-policy")}
             className="text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
           >
             Learn more

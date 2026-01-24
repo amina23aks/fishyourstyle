@@ -9,6 +9,8 @@ import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { getDb } from "@/lib/firebaseClient";
+import { useLocale } from "@/i18n/I18nProvider";
+import { localizePathname } from "@/i18n/paths";
 
 function toDateSafe(value: unknown): Date | null {
   if (!value) return null;
@@ -37,6 +39,7 @@ function toDateSafe(value: unknown): Date | null {
 }
 
 export default function OrdersList() {
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { openModal } = useAuthModal();
@@ -145,7 +148,7 @@ export default function OrdersList() {
   }, [authLoading, fetchOrders, user]);
 
   const handleCardClick = (orderId: string) => {
-    router.push(`/orders/${orderId}`);
+    router.push(localizePathname(locale, `/orders/${orderId}`));
   };
 
   // Helpers
@@ -237,7 +240,7 @@ export default function OrdersList() {
           <div className="mt-6 flex justify-center">
             <button
               type="button"
-              onClick={() => openModal({ returnTo: "/orders" })}
+              onClick={() => openModal({ returnTo: localizePathname(locale, "/orders") })}
               className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
             >
               Sign in to view orders
@@ -288,7 +291,7 @@ export default function OrdersList() {
             Discover modern streetwear designed for comfort, fit, and everyday wear.
           </p>
           <Link
-            href="/shop"
+            href={localizePathname(locale, "/shop")}
             className="mt-4 inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
           >
             Start shopping
@@ -344,7 +347,7 @@ export default function OrdersList() {
                           <button
                             onClick={event => {
                               event.stopPropagation();
-                              router.push(`/orders/${order.id}?edit=true`);
+                              router.push(localizePathname(locale, `/orders/${order.id}?edit=true`));
                             }}
                             className="inline-flex items-center rounded-full border border-violet-200/40 bg-violet-500/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60"
                           >

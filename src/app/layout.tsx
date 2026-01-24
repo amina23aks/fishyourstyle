@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/layout/Footer";
 import OceanBackdrop from "@/components/OceanBackdrop";
 import MetaPixelPageView from "@/components/MetaPixelPageView";
 import CookiesBanner from "@/components/CookiesBanner";
@@ -12,6 +10,10 @@ import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
 import { AuthModalProvider } from "@/context/auth-modal";
 import { FavoritesProvider } from "@/hooks/use-favorites";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { getLocaleFromHeaders } from "@/i18n/locale";
+import { getLocaleDirection } from "@/i18n/config";
+import { getMessages } from "@/i18n/get-messages";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,15 +30,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
+  const locale = await getLocaleFromHeaders();
+  const direction = getLocaleDirection(locale);
+  const messages = await getMessages(locale);
 
   return (
-    <html lang="en">
+    <html lang={locale} dir={direction}>
       <head>
         <Script id="theme-init" strategy="beforeInteractive">
           {`(() => {
@@ -91,14 +96,12 @@ fbq('track', 'PageView');`}
               <AuthModalProvider>
                 <FavoritesProvider>
                   <CartProvider>
-                    <OceanBackdrop />
-                    <div className="relative z-10 flex min-h-screen flex-col overflow-x-hidden pt-20">
-                      <Navbar />
-                      <main className="flex-1">{children}</main>
-                      <Footer />
-                    </div>
-                    <CookiesBanner />
-                    <AuthModal />
+                    <I18nProvider locale={locale} messages={messages}>
+                      <OceanBackdrop />
+                      {children}
+                      <CookiesBanner />
+                      <AuthModal />
+                    </I18nProvider>
                   </CartProvider>
                 </FavoritesProvider>
               </AuthModalProvider>

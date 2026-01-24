@@ -1,0 +1,22 @@
+{
+  "nav.home": "Accueil",
+  "nav.shop": "Boutique",
+  "nav.contact": "Contact",
+  "nav.orders": "Commandes",
+  "hero.subtitleLine1": "Streetwear pensée pour chaque style, chaque humeur et chaque moment.",
+  "hero.subtitleLine2": "Des essentiels du quotidien aux pièces fortes — ton style commence ici.",
+  "footer.headline": "Streetwear conçu pour la vie de tous les jours.",
+  "footer.description": "Des designs polyvalents et des coupes confortables pensées pour s’adapter à ton style de vie — quoi que tu aimes.",
+  "footer.navigate": "Navigation",
+  "footer.support": "Support",
+  "checkout.title": "Paiement",
+  "checkout.confirmTitle": "Confirmez votre commande",
+  "checkout.guestTitle": "Paiement invité",
+  "checkout.loginCta": "Se connecter ou créer un compte",
+  "checkout.deliveryDetails": "Détails de livraison",
+  "checkout.emptyCart": "Votre panier est vide. Ajoutez des articles avant de valider votre commande.",
+  "profile.myProfile": "Mon profil",
+  "profile.myOrders": "Mes commandes",
+  "profile.signIn": "Se connecter",
+  "profile.signOut": "Se déconnecter"
+}

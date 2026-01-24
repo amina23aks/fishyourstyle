@@ -22,6 +22,8 @@ import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { getDb } from "@/lib/firebaseClient";
 import { submitOrder } from "@/lib/ordersClient";
+import { useLocale } from "@/i18n/I18nProvider";
+import { localizePathname } from "@/i18n/paths";
 
 type CartDrawerProps = {
   open: boolean;
@@ -33,6 +35,7 @@ const formatCurrency = (value: number) =>
 
 export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const router = useRouter();
+  const locale = useLocale();
   const { items, totals, totalQuantity, removeItem, updateQty, clearCart } =
     useCart();
   const { user } = useAuth();
@@ -216,7 +219,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       // Close drawer and redirect after a short delay
       setTimeout(() => {
         onClose();
-        router.push(`/orders?status=success&orderId=${orderId}`);
+        router.push(`${localizePathname(locale, "/orders")}?status=success&orderId=${orderId}`);
       }, 1500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -327,7 +330,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                   <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
                     <p className="text-sm text-sky-100">Your cart is empty.</p>
                     <Link
-                      href="/shop"
+                      href={localizePathname(locale, "/shop")}
                       onClick={onClose}
                       className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                     >
@@ -420,7 +423,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
                 {hasItems && (
                   <Link
-                    href="/checkout"
+                    href={localizePathname(locale, "/checkout")}
                     onClick={onClose}
                     className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                   >
