@@ -3,17 +3,13 @@ import Script from "next/script";
 import { Suspense } from "react";
 import OceanBackdrop from "@/components/OceanBackdrop";
 import MetaPixelPageView from "@/components/MetaPixelPageView";
-import CookiesBanner from "@/components/CookiesBanner";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
-import AuthModal from "@/components/AuthModal";
 import { CartProvider } from "@/context/cart";
 import { AuthProvider } from "@/context/auth";
 import { AuthModalProvider } from "@/context/auth-modal";
 import { FavoritesProvider } from "@/hooks/use-favorites";
-import { I18nProvider } from "@/i18n/I18nProvider";
 import { getLocaleFromHeaders } from "@/i18n/locale";
 import { getLocaleDirection } from "@/i18n/config";
-import { getMessages } from "@/i18n/get-messages";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -38,7 +34,6 @@ export default async function RootLayout({
   const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
   const locale = await getLocaleFromHeaders();
   const direction = getLocaleDirection(locale);
-  const messages = await getMessages(locale);
 
   return (
     <html lang={locale} dir={direction}>
@@ -96,12 +91,8 @@ fbq('track', 'PageView');`}
               <AuthModalProvider>
                 <FavoritesProvider>
                   <CartProvider>
-                    <I18nProvider locale={locale} messages={messages}>
-                      <OceanBackdrop />
-                      {children}
-                      <CookiesBanner />
-                      <AuthModal />
-                    </I18nProvider>
+                    <OceanBackdrop />
+                    {children}
                   </CartProvider>
                 </FavoritesProvider>
               </AuthModalProvider>
