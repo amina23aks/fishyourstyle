@@ -1,7 +1,7 @@
 import { locales, type Locale } from "@/i18n/config";
 import { localizePathname } from "@/i18n/paths";
 
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://fishyourstyle.pages.dev";
+export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://fishyourstyle.vercel.app";
 export const metadataBase = new URL(siteUrl);
 
 export function buildLocalizedUrl(locale: Locale, pathname: string): string {
