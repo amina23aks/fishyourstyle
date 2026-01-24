@@ -21,6 +21,7 @@ import { useCart } from "@/context/cart";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
+import { useTranslations } from "@/i18n/I18nProvider";
 
 import { Product } from "@/types/product";
 import { Swatch } from "./swatch";
@@ -49,6 +50,7 @@ export type ProductCardProps = {
 
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const locale = useLocale();
+  const t = useTranslations();
   const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
   const colorOptions = useMemo(() => buildProductColorOptions(product), [product]);
   const sizeOptions = useMemo(() => buildProductSizeOptions(product), [product]);
@@ -205,16 +207,16 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const handleAddToCart = useCallback(() => {
     if (isSelectionInvalid) {
       const fallbackMessage = !hasVariantAvailable
-        ? "Selected options are sold out"
-        : "Please choose a color and size before adding to cart.";
-      const message = isOutOfStock ? "OUT OF STOCK" : fallbackMessage;
+        ? t("shop.selectedOptionsSoldOut")
+        : t("shop.selectColorSize");
+      const message = isOutOfStock ? t("shop.outOfStock") : fallbackMessage;
       setSelectionWarning(message);
       return false;
     }
 
     const color = selectedColor ?? availableColors[0];
     if (!color) {
-      setSelectionWarning("Selected options are sold out");
+      setSelectionWarning(t("shop.selectedOptionsSoldOut"));
       return false;
     }
     const sizeChoice = selectedSize ?? availableSizes[0]?.value ?? sizeOptions[0]?.value ?? "Taille unique";
@@ -225,12 +227,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     const existing = items.find((item) => item.variantKey === variantKey);
     const maxQty = existing?.maxQuantity ?? availableStock;
     if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
-      setSelectionWarning("OUT OF STOCK");
+      setSelectionWarning(t("shop.outOfStock"));
       return false;
     }
 
     if (!stockIsAvailable) {
-      setSelectionWarning("OUT OF STOCK");
+      setSelectionWarning(t("shop.outOfStock"));
       return false;
     }
 
@@ -406,7 +408,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                         <span className={`h-1.5 w-1.5 rounded-full ${
                           isOutOfStock ? "bg-white" : "bg-emerald-500"
                         }`} />
-                        {isOutOfStock ? "OUT OF STOCK" : "IN STOCK"}
+                        {isOutOfStock ? t("shop.outOfStock") : t("shop.inStock")}
                       </span>
                     );
                   })()}
@@ -464,15 +466,15 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           {colorOptions.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-neutral-300">
-                <span>Color</span>
+                <span>{t("shop.color")}</span>
                 {!selectedColor && colorOptions.length > 1 && (
-                  <span className="text-rose-200">Pick a color</span>
+                  <span className="text-rose-200">{t("shop.pickColor")}</span>
                 )}
               </div>
               <div className="flex flex-wrap gap-1">
                 {colorOptions.slice(0, 3).map((color, index) => {
                   const hexValue = resolveSwatchHex(color);
-                  const label = color.label ?? color.hex ?? "Color";
+                  const label = color.label ?? color.hex ?? t("shop.color");
                   const isSoldOut = color.soldOut;
                   return (
                     <Swatch
@@ -498,9 +500,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           {sizeOptions.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px] text-neutral-300">
-                <span>Size</span>
+                <span>{t("shop.size")}</span>
                 {!selectedSize && requiresSizeSelection && (
-                  <span className="text-rose-200">Pick a size</span>
+                  <span className="text-rose-200">{t("shop.pickSize")}</span>
                 )}
               </div>
               <div className="flex gap-1 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">

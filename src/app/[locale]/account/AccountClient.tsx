@@ -10,6 +10,7 @@ import PageShell from "@/components/PageShell";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDb } from "@/lib/firebaseClient";
 import { localizePathname } from "@/i18n/paths";
+import { useTranslations } from "@/i18n/I18nProvider";
 
 function ShoppingCartIcon() {
   return (
@@ -44,6 +45,7 @@ function AccountContent() {
   const pathname = usePathname();
   const seg = pathname.split("/").filter(Boolean)[0];
   const locale = seg === "en" || seg === "fr" || seg === "ar" ? seg : "en";
+  const t = useTranslations();
   const { user, loading } = useAuth();
   const { openModal } = useAuthModal();
   const displayName = user?.displayName || "Customer";
@@ -137,9 +139,9 @@ function AccountContent() {
     <PageShell>
       <section className="w-full space-y-6 rounded-3xl bg-white/10 p-6 text-sky-50 shadow-lg shadow-sky-900/30 backdrop-blur">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-white">My Profile</h1>
+          <h1 className="text-3xl font-semibold text-white">{t("account.title")}</h1>
           <p className="text-sm text-sky-100">
-            Manage your orders, favorites, and rewards in one place.
+            {t("account.subtitle")}
           </p>
         </div>
 
@@ -149,28 +151,32 @@ function AccountContent() {
               👋
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-              <p className="text-sm text-sky-200">Sign in to see your account dashboard.</p>
+              <h2 className="text-xl font-semibold text-white">{t("account.welcomeBack")}</h2>
+              <p className="text-sm text-sky-200">{t("account.signInPrompt")}</p>
             </div>
             <button
               type="button"
               onClick={() => openModal({ returnTo: localizePathname(locale, "/account") })}
               className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-400 to-cyan-300 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-cyan-500/30 transition hover:from-sky-300 hover:to-cyan-200"
             >
-              Sign in
+              {t("profile.signIn")}
             </button>
           </div>
         ) : (
           <section className="space-y-6 rounded-2xl border border-white/15 bg-slate-900/40 p-6 shadow-inner shadow-sky-900/30">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.3em] text-sky-200">MY PROFILE</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-sky-200">{t("account.profileLabel")}</p>
               <h2 className="text-2xl font-semibold text-white">{displayName}</h2>
               <p className="text-sm text-sky-200">{user.email}</p>
             </div>
 
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center justify-between text-sm font-semibold text-white">
-                <span>Loyalty: {progress} / {loyaltyCycleSize} orders</span>
+                <span>
+                  {t("account.loyaltyProgress")
+                    .replace("{current}", String(progress))
+                    .replace("{total}", String(loyaltyCycleSize))}
+                </span>
               </div>
               {process.env.NODE_ENV !== "production" && user ? (
                 <p className="text-[11px] text-sky-200/80">
@@ -185,9 +191,9 @@ function AccountContent() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">
-                      Unlocked: Your next order gets {loyaltyRewardPercent}% off.
+                      {t("account.rewardUnlockedTitle").replace("{percent}", String(loyaltyRewardPercent))}
                     </p>
-                    <p className="text-xs text-emerald-100/80">Use it on your next checkout.</p>
+                    <p className="text-xs text-emerald-100/80">{t("account.rewardUnlockedSubtitle")}</p>
                   </div>
                 </div>
               ) : (
@@ -215,20 +221,28 @@ function AccountContent() {
                     })}
                   </div>
                   <p className="text-xs text-sky-200">
-                    Reward: {loyaltyRewardPercent}% after {loyaltyCycleSize} orders
+                    {t("account.rewardSummary")
+                      .replace("{percent}", String(loyaltyRewardPercent))
+                      .replace("{count}", String(loyaltyCycleSize))}
                   </p>
                   <div className="space-y-2 text-xs text-sky-100">
                     <div className="flex items-center gap-2">
                       <ShoppingCartIcon />
-                      <span>Place {loyaltyCycleSize} orders to unlock rewards.</span>
+                      <span>
+                        {t("account.unlockRewards").replace("{count}", String(loyaltyCycleSize))}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <BadgePercentIcon />
-                      <span>After your {loyaltyCycleSize}th order, you get {loyaltyRewardPercent}% off.</span>
+                      <span>
+                        {t("account.rewardInfo")
+                          .replace("{count}", String(loyaltyCycleSize))
+                          .replace("{percent}", String(loyaltyRewardPercent))}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <StarIcon />
-                      <span>Discount applies automatically when available.</span>
+                      <span>{t("account.discountApplies")}</span>
                     </div>
                   </div>
                 </>
@@ -244,8 +258,8 @@ function AccountContent() {
                   <Image src="/myorder.png" alt="My orders" fill className="object-contain p-2" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">My orders</h3>
-                  <p className="text-xs text-sky-200">Track your latest purchases.</p>
+                  <h3 className="text-lg font-semibold">{t("account.myOrders")}</h3>
+                  <p className="text-xs text-sky-200">{t("account.myOrdersHint")}</p>
                 </div>
               </Link>
               <Link
@@ -256,8 +270,8 @@ function AccountContent() {
                   <Image src="/favorite.png" alt="My favorites" fill className="object-contain p-2" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">My favorites</h3>
-                  <p className="text-xs text-sky-200">See the items you saved.</p>
+                  <h3 className="text-lg font-semibold">{t("account.myFavorites")}</h3>
+                  <p className="text-xs text-sky-200">{t("account.myFavoritesHint")}</p>
                 </div>
               </Link>
             </div>

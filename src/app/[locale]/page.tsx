@@ -7,6 +7,8 @@ import HomeClient from "./home-client";
 import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
 import { localizePathname } from "@/i18n/paths";
 import { resolveLocale } from "@/i18n/config";
+import { getMessages } from "@/i18n/get-messages";
+import { createTranslator } from "@/i18n/translator";
 
 export const revalidate = 0;
 
@@ -56,27 +58,11 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   };
 }
 
-const reasons = [
-  {
-    title: "Delivery to 69 Wilayas",
-    description: "We deliver across the country with reliable service and clear follow-up.",
-    icon: "/delivery.gif",
-  },
-  {
-    title: "Quality & Comfort",
-    description: "Carefully selected fabrics, clean printing, and relaxed fits made to last.",
-    icon: "/quality.gif",
-  },
-  {
-    title: "Easy Ordering",
-    description: "Choose your item, place your order, and let us handle the rest.",
-    icon: "/order.gif",
-  },
-];
-
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
+  const messages = await getMessages(locale);
+  const t = createTranslator(messages);
   let errorMessage: string | null = null;
   let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
@@ -99,6 +85,23 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   }
   const allProducts = storefrontProducts.map(mapStorefrontToProduct);
   const products = allProducts.slice(0, 8);
+  const reasons = [
+    {
+      title: t("whyUs.deliveryTitle"),
+      description: t("whyUs.deliveryDescription"),
+      icon: "/delivery.gif",
+    },
+    {
+      title: t("whyUs.qualityTitle"),
+      description: t("whyUs.qualityDescription"),
+      icon: "/quality.gif",
+    },
+    {
+      title: t("whyUs.orderingTitle"),
+      description: t("whyUs.orderingDescription"),
+      icon: "/order.gif",
+    },
+  ];
 
   return (
     <div className="flex w-full flex-col gap-12">
@@ -137,9 +140,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         <section className="space-y-8 rounded-3xl bg-sky-900/90 px-6 py-14 text-sky-50 shadow-lg shadow-sky-200/60 md:px-10">
           <div className="flex flex-col gap-3">
             <p className="text-sm uppercase tracking-[0.28em] text-sky-200">WHY US</p>
-            <h2 className="text-2xl font-semibold">Why Choose Fish Your Style?</h2>
+            <h2 className="text-2xl font-semibold">{t("whyUs.title")}</h2>
             <p className="text-sky-100">
-              Comfort, quality, and a smooth experience — built into every order.
+              {t("whyUs.subtitle")}
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">

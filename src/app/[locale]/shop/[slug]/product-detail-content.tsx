@@ -21,6 +21,7 @@ import {
 } from "@/lib/product-variants";
 import { useFavorites } from "@/hooks/use-favorites";
 import { viewContent } from "@/lib/metaPixel";
+import { useTranslations } from "@/i18n/I18nProvider";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -32,6 +33,7 @@ const capitalizeLabel = (value: string | undefined | null): string => {
 };
 
 export function ProductDetailContent({ product }: { product: Product }) {
+  const t = useTranslations();
   const collectionName =
     product.designTheme && product.designTheme !== "simple"
       ? capitalizeLabel(product.designTheme)
@@ -148,22 +150,22 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const handleAddToCart = () => {
     // Prevent any action if the item is out of stock.
     if (isOutOfStock) {
-      setSelectionError("OUT OF STOCK");
+      setSelectionError(t("shop.outOfStock"));
       return false;
     }
 
     if (!hasVariantAvailable) {
-      setSelectionError("Selected options are sold out");
+      setSelectionError(t("shop.selectedOptionsSoldOut"));
       return false;
     }
 
     if (!activeColor && requiresColorSelection) {
-      setSelectionError("Please choose a color and size before adding to cart.");
+      setSelectionError(t("shop.selectColorSize"));
       return false;
     }
 
     if (!selectedSize && requiresSizeSelection) {
-      setSelectionError("Please choose a color and size before adding to cart.");
+      setSelectionError(t("shop.selectColorSize"));
       return false;
     }
 
@@ -175,12 +177,12 @@ export function ProductDetailContent({ product }: { product: Product }) {
     const existing = items.find((item) => item.variantKey === variantKey);
     const maxQty = existing?.maxQuantity ?? availableStock;
     if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
-      setSelectionError("OUT OF STOCK");
+      setSelectionError(t("shop.outOfStock"));
       return false;
     }
 
     if (!stockState.isAvailable) {
-      setSelectionError("OUT OF STOCK");
+      setSelectionError(t("shop.outOfStock"));
       return false;
     }
 
@@ -216,17 +218,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const availabilityLine =
     stockState.stockMode === "limited"
       ? isOutOfStock
-        ? "OUT OF STOCK"
+        ? t("shop.outOfStock")
         : typeof availableStock === "number"
-          ? `Available: ${availableStock} item${availableStock === 1 ? "" : "s"}`
+          ? t("shop.availableCount").replace("{count}", String(availableStock))
           : null
-      : "IN STOCK";
+      : t("shop.inStock");
   const selectionMessage = isSelectionMissing
-    ? "Please choose a color and size before adding to cart."
+    ? t("shop.selectColorSize")
     : null;
   const displayMessage = isOutOfStock
-    ? "OUT OF STOCK"
-    : selectionError ?? (!hasVariantAvailable ? "Selected options are sold out" : selectionMessage);
+    ? t("shop.outOfStock")
+    : selectionError ?? (!hasVariantAvailable ? t("shop.selectedOptionsSoldOut") : selectionMessage);
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
@@ -336,11 +338,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Coloris</h2>
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.color")}</h2>
             <div className="flex flex-wrap gap-2">
               {colorOptions.map((color, index) => {
                 const hexValue = resolveSwatchHex(color);
-                const label = color.label ?? color.hex ?? "Color";
+                const label = color.label ?? color.hex ?? t("shop.color");
                 const isSoldOut = color.soldOut;
                 return (
                   <Swatch
@@ -365,7 +367,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Tailles</h2>
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.size")}</h2>
             <div className="flex flex-wrap gap-2">
               {sizeOptions.map((size) => {
                 const isSelected = selectedSize === size.value;
@@ -403,7 +405,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                         ) : null}
                       </span>
                       {isSoldOut ? (
-                        <span className="ml-1 text-[10px] uppercase tracking-wide text-rose-100">Sold out</span>
+                        <span className="ml-1 text-[10px] uppercase tracking-wide text-rose-100">{t("shop.outOfStock")}</span>
                       ) : null}
                     </motion.button>
                   </SoldOutTooltipWrapper>

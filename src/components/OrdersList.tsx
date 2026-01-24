@@ -9,7 +9,7 @@ import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { getDb } from "@/lib/firebaseClient";
-import { useLocale } from "@/i18n/I18nProvider";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
 function toDateSafe(value: unknown): Date | null {
@@ -40,6 +40,7 @@ function toDateSafe(value: unknown): Date | null {
 
 export default function OrdersList() {
   const locale = useLocale();
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { openModal } = useAuthModal();
@@ -236,14 +237,14 @@ export default function OrdersList() {
           <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/10">
             <Image src="/myorder.png" alt="My orders" width={96} height={96} className="object-contain" />
           </div>
-          <p className="mb-2 font-medium text-white">Sign in to view your orders.</p>
+          <p className="mb-2 font-medium text-white">{t("orders.guestPrompt")}</p>
           <div className="mt-6 flex justify-center">
             <button
               type="button"
               onClick={() => openModal({ returnTo: localizePathname(locale, "/orders") })}
               className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
             >
-              Sign in to view orders
+              {t("orders.guestCta")}
             </button>
           </div>
         </div>
@@ -286,15 +287,13 @@ export default function OrdersList() {
       <div className="space-y-4">
         {successBanner}
         <div className="rounded-2xl border border-white/20 bg-white/10 p-6 text-center text-sky-50 shadow-sm shadow-sky-900/30 backdrop-blur">
-          <p className="font-medium text-lg mb-2">You don’t have any orders yet.</p>
-          <p className="text-sm text-sky-100 mb-2">
-            Discover modern streetwear designed for comfort, fit, and everyday wear.
-          </p>
+          <p className="font-medium text-lg mb-2">{t("orders.emptyTitle")}</p>
+          <p className="text-sm text-sky-100 mb-2">{t("orders.emptySubtitle")}</p>
           <Link
             href={localizePathname(locale, "/shop")}
             className="mt-4 inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
           >
-            Start shopping
+            {t("orders.emptyCta")}
           </Link>
         </div>
       </div>

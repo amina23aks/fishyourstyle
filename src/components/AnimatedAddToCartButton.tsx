@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useTranslations } from "@/i18n/I18nProvider";
 
 type ButtonState = "idle" | "loading" | "added";
 
@@ -44,6 +45,7 @@ const CheckIcon = () => (
 );
 
 export function AnimatedAddToCartButton({ onClick, className, disabled }: AnimatedAddToCartButtonProps) {
+  const t = useTranslations();
   const [state, setState] = useState<ButtonState>("idle");
 
   const handleClick = useCallback(() => {
@@ -96,7 +98,7 @@ export function AnimatedAddToCartButton({ onClick, className, disabled }: Animat
     return (
       <>
         <CartIcon />
-        <span className="text-sm">Add to cart</span>
+        <span className="text-sm">{t("shop.addToCart")}</span>
       </>
     );
   }, [state]);

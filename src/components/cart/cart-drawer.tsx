@@ -22,7 +22,7 @@ import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { getDb } from "@/lib/firebaseClient";
 import { submitOrder } from "@/lib/ordersClient";
-import { useLocale } from "@/i18n/I18nProvider";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
 type CartDrawerProps = {
@@ -36,6 +36,7 @@ const formatCurrency = (value: number) =>
 export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations();
   const { items, totals, totalQuantity, removeItem, updateQty, clearCart } =
     useCart();
   const { user } = useAuth();
@@ -265,17 +266,17 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
   const summaryLines = useMemo(
     () => [
-      { label: "Subtotal", value: formatCurrency(totals.subtotal) },
+      { label: t("cart.subtotal"), value: formatCurrency(totals.subtotal) },
       {
-        label: "Shipping",
+        label: t("cart.shipping"),
         value:
           deliveryMode === "home"
             ? "A domicile (checkout)"
             : "Stop Desk (checkout)",
       },
-      { label: "Payment", value: "Cash on delivery" },
+      { label: t("cart.payment"), value: "Cash on delivery" },
     ],
-    [deliveryMode, totals.subtotal],
+    [deliveryMode, t, totals.subtotal],
   );
 
   if (!mounted) return null;
@@ -314,21 +315,21 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
               <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.28em] text-sky-200">Cart</p>
-                  <h2 className="text-lg font-semibold text-white">Your cart</h2>
+                  <h2 className="text-lg font-semibold text-white">{t("cart.yourCart")}</h2>
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
                   className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-sky-50 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 >
-                  Close
+                  {t("cart.close")}
                 </button>
               </header>
 
               <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4 pb-6">
                 {!hasItems ? (
                   <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-                    <p className="text-sm text-sky-100">Your cart is empty.</p>
+                    <p className="text-sm text-sky-100">{t("cart.empty")}</p>
                     <Link
                       href={localizePathname(locale, "/shop")}
                       onClick={onClose}
@@ -367,7 +368,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                                 onClick={() => removeItem(item.id, item.variantKey)}
                                 className="text-xs text-sky-300 underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:underline"
                               >
-                                Remove
+                                {t("cart.remove")}
                               </button>
                             </div>
 
@@ -407,8 +408,10 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
                 <div className="space-y-4 rounded-xl border border-white/10 bg-slate-950/60 p-4">
                   <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-sky-200">
-                    <span>{totalQuantity} item{totalQuantity === 1 ? "" : "s"}</span>
-                    <span>Total</span>
+                    <span>
+                      {totalQuantity} {totalQuantity === 1 ? t("cart.item") : t("cart.items")}
+                    </span>
+                    <span>{t("cart.total")}</span>
                   </div>
                   {summaryLines.map((line) => (
                     <div
@@ -427,14 +430,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     onClick={onClose}
                     className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                   >
-                    Go to checkout page
+                    {t("cart.checkoutCta")}
                   </Link>
                 )}
 
                 {hasItems && (
                   <form className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4" onSubmit={handleSubmit}>
                     <div className="flex items-center justify-between text-sm font-semibold text-white">
-                      <span>Quick delivery info</span>
+                      <span>{t("cart.quickDeliveryInfo")}</span>
                       <span className="text-xs text-sky-200">COD</span>
                     </div>
                     {loyaltyRewardAvailable ? (
@@ -443,7 +446,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       </p>
                     ) : null}
                     <p className="text-xs text-sky-200">
-                      Shipping calculated at checkout. Choose A domicile or Stop Desk for delivery.
+                      {t("cart.quickDeliveryHelper")}
                     </p>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-full-name">
@@ -559,11 +562,11 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     {/* Order Summary - Display costs above button */}
                     <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
                       <div className="flex items-center justify-between text-xs text-sky-100">
-                        <span>Subtotal</span>
+                        <span>{t("cart.subtotal")}</span>
                         <span className="tabular-nums text-white">{formatCurrency(totals.subtotal)}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-sky-100">
-                        <span>Shipping</span>
+                        <span>{t("cart.shipping")}</span>
                         <span className="tabular-nums text-white">
                           {shippingPrice != null ? formatCurrency(shippingPrice) : "Select wilaya"}
                         </span>
@@ -577,7 +580,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         </div>
                       ) : null}
                       <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm font-semibold text-white">
-                        <span>Total</span>
+                        <span>{t("cart.total")}</span>
                         <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
                       </div>
                     </div>
