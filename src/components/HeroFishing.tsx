@@ -116,7 +116,7 @@ export default function HeroFishing() {
                 href={localizePathname(locale, "/shop")}
                 className="rounded-full bg-white/20 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/30"
               >
-                Shop Now
+                {t("hero.shopNow")}
               </Link>
             </div>
           </div>

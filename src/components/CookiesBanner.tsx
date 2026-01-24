@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useLocale } from "@/i18n/I18nProvider";
+import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
 const CONSENT_KEY = "fishyourstyle_cookie_consent_v1";
@@ -10,6 +10,7 @@ const CONSENT_EVENT = "fishyourstyle:cookie-consent-accepted";
 
 export default function CookiesBanner() {
   const locale = useLocale();
+  const t = useTranslations();
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
@@ -50,15 +51,15 @@ export default function CookiesBanner() {
           />
         </div>
         <div className="space-y-0.5">
-          <p className="text-sm font-semibold text-slate-900">We use cookies</p>
+          <p className="text-sm font-semibold text-slate-900">{t("cookie.title")}</p>
           <p className="text-xs text-slate-600">
-            They help us remember your preferences and improve your experience.
+            {t("cookie.description")}
           </p>
           <a
             href={localizePathname(locale, "/privacy-policy")}
             className="text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
           >
-            Learn more
+            {t("cookie.learnMore")}
           </a>
         </div>
         <button
@@ -66,7 +67,7 @@ export default function CookiesBanner() {
           onClick={handleAccept}
           className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         >
-          Got it
+          {t("cookie.accept")}
         </button>
       </div>
       <style jsx>{`
