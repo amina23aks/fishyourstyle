@@ -21,7 +21,9 @@ export default async function LocaleLayout({
   return (
     <I18nProvider locale={locale} messages={messages}>
       <div className="relative z-10 flex min-h-screen flex-col overflow-x-hidden pt-20" lang={locale} dir={direction}>
-        <Navbar />
+        <div dir="ltr" className="text-left">
+          <Navbar />
+        </div>
         <main className="flex-1">{children}</main>
         <Footer />
       </div>

@@ -105,7 +105,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
   return (
     <div className="flex w-full flex-col gap-12">
-      <Hero />
+      <div dir="ltr" className="text-left">
+        <Hero />
+      </div>
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
         <section className="space-y-4" id="shop-search">

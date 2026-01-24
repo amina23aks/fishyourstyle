@@ -127,7 +127,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href={localizePathname(locale, "/account")} className="hover:text-white">
-                  My account
+                  {t("footer.myAccount")}
                 </Link>
               </li>
             </ul>

@@ -9,6 +9,7 @@
   "footer.description": "Des designs polyvalents et des coupes confortables pensées pour s’adapter à ton style de vie — quoi que tu aimes.",
   "footer.navigate": "Navigation",
   "footer.support": "Support",
+  "footer.myAccount": "Mon compte",
   "checkout.title": "Paiement",
   "checkout.confirmTitle": "Confirmez votre commande",
   "checkout.guestTitle": "Paiement invité",
@@ -257,7 +258,7 @@
   "shop.selectColorSizeHelper": "Sélectionnez une couleur ou une taille pour continuer.",
   "shop.exploreMoreCta": "Voir tous les produits",
   "wishlist.title": "Liste de souhaits",
-  "wishlist.description": "Laissez votre email pour être averti quand les nouveautés de la liste reviennent.",
-  "wishlist.cta": "Rejoindre la liste",
+  "wishlist.description": "Laissez votre email pour être informé(e) des promotions et des nouveautés sur vos favoris.",
+  "wishlist.cta": "S’inscrire",
   "orders.guestCheckoutNote": "Vous pouvez finaliser votre commande sans vous connecter. Plus tard, si vous vous connectez avec le même email, elle apparaîtra dans Mes commandes."
 }

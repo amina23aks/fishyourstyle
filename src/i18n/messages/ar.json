@@ -9,6 +9,7 @@
   "footer.description": "تصاميم متعددة الاستخدامات وقصّات مريحة تناسب أسلوب حياتك — أيًا كان ذوقك.",
   "footer.navigate": "تصفّح",
   "footer.support": "الدعم",
+  "footer.myAccount": "حسابي",
   "checkout.title": "الدفع",
   "checkout.confirmTitle": "أكد طلبك",
   "checkout.guestTitle": "الدفع كضيف",
@@ -257,7 +258,7 @@
   "shop.selectColorSizeHelper": "اختر اللون أو المقاس للمتابعة.",
   "shop.exploreMoreCta": "عرض كل المنتجات",
   "wishlist.title": "قائمة الرغبات",
-  "wishlist.description": "اترك بريدك الإلكتروني ليصلك إشعار عند عودة منتجات قائمة الرغبات.",
-  "wishlist.cta": "انضم إلى قائمة الرغبات",
+  "wishlist.description": "اترك بريدك الإلكتروني لنُعلمك بالعروض والتحديثات على المنتجات المفضلة لديك.",
+  "wishlist.cta": "اشترك",
   "orders.guestCheckoutNote": "يمكنك إنهاء طلبك دون تسجيل الدخول. لاحقًا إذا سجّلت بنفس البريد، سيظهر ضمن طلباتي."
 }

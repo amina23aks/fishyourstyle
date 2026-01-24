@@ -9,6 +9,7 @@
   "footer.description": "Versatile designs and comfortable fits made to match your lifestyle — whatever you’re into.",
   "footer.navigate": "Navigate",
   "footer.support": "Support",
+  "footer.myAccount": "My account",
   "checkout.title": "Checkout",
   "checkout.confirmTitle": "Confirm your order",
   "checkout.guestTitle": "Guest checkout",
@@ -257,7 +258,7 @@
   "shop.selectColorSizeHelper": "Select a color or size to proceed.",
   "shop.exploreMoreCta": "View all products",
   "wishlist.title": "Wishlist",
-  "wishlist.description": "Leave your email to be notified when wishlist drops are back.",
-  "wishlist.cta": "Join the wishlist",
+  "wishlist.description": "Leave your email to get notified about discounts and updates on your favorites.",
+  "wishlist.cta": "Join wishlist",
   "orders.guestCheckoutNote": "You can complete your order without logging in. Later, if you log in with the same email, it will show up under My Orders."
 }
