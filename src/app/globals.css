@@ -28,15 +28,13 @@ body {
   font-family: var(--font-sans);
 }
 
+.custom-cursor-active,
 .custom-cursor-active body {
   cursor: none;
 }
 
-.custom-cursor-active input,
-.custom-cursor-active textarea,
-.custom-cursor-active select,
-.custom-cursor-active [contenteditable="true"] {
-  cursor: text;
+.custom-cursor-active * {
+  cursor: none;
 }
 
 .custom-cursor {

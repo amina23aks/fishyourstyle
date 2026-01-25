@@ -40,12 +40,11 @@ export default function CustomCursor() {
       positionRef.current = { x: event.clientX, y: event.clientY };
 
       const target = event.target as HTMLElement | null;
-      const isTextField = !!target?.closest("input, textarea, select, option, [contenteditable='true']");
       const isInteractive = !!target?.closest(INTERACTIVE_SELECTOR);
 
       const cursorEl = cursorRef.current;
       if (cursorEl) {
-        cursorEl.style.opacity = isTextField ? "0" : "1";
+        cursorEl.style.opacity = "1";
         cursorEl.dataset.state = isInteractive ? "pointer" : "default";
         cursorEl.style.setProperty("--cursor-scale", isInteractive ? String(POINTER_SCALE) : "1");
       }
