@@ -32,12 +32,9 @@ export default function CustomCursor() {
         rafRef.current = null;
         return;
       }
-      const current = currentRef.current;
       const target = targetRef.current;
-      const nextX = current.x + (target.x - current.x) * 0.3;
-      const nextY = current.y + (target.y - current.y) * 0.3;
-      currentRef.current = { x: nextX, y: nextY };
-      cursorEl.style.transform = `translate3d(${nextX - CURSOR_SIZE / 2}px, ${nextY - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
+      currentRef.current = { x: target.x, y: target.y };
+      cursorEl.style.transform = `translate3d(${target.x - CURSOR_SIZE / 2}px, ${target.y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
       cursorEl.style.opacity = "1";
       rafRef.current = window.requestAnimationFrame(updatePosition);
     };
