@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
+import Loader from "@/components/ui/Loader";
 
 const socialLinks = [
   {
@@ -156,7 +157,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href={localizePathname(locale, "/faq")} className="hover:text-white">
+                <Link href={localizePathname(locale, "/#faq")} className="hover:text-white">
                   FAQ
                 </Link>
               </li>
@@ -200,9 +201,16 @@ export default function Footer() {
               <button
                 type="submit"
                 disabled={wishlistStatus === "loading"}
-                className="w-full rounded-md bg-gradient-to-r from-sky-400 to-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-shine flex w-full items-center justify-center gap-2 rounded-md bg-gradient-to-r from-sky-400 to-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(125,211,252,0.35)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {wishlistStatus === "loading" ? "Submitting..." : t("wishlist.cta")}
+                {wishlistStatus === "loading" ? (
+                  <>
+                    <Loader size={16} className="text-white" />
+                    Submitting...
+                  </>
+                ) : (
+                  t("wishlist.cta")
+                )}
               </button>
               {wishlistStatus === "success" && (
                 <p className="text-[11px] text-emerald-100">Thanks! You&apos;re on the list.</p>

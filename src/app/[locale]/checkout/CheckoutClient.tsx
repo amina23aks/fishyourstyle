@@ -570,7 +570,7 @@ export default function CheckoutClient() {
               <button
                 type="submit"
                 disabled={isSubmitting || success !== null}
-                className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/20 transition hover:-translate-y-0.5 hover:border-slate-200/80 hover:shadow-[0_10px_24px_rgba(125,211,252,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? t("checkout.submitSubmitting") : success ? t("checkout.submitSuccess") : t("checkout.submitDefault")}
               </button>

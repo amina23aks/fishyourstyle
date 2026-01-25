@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import Hero from "@/components/Hero";
+import FAQAccordion from "@/components/FAQAccordion";
+import { faqItems } from "@/data/faqItems";
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
@@ -208,6 +210,23 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             ))}
           </div>
         </section>
+
+        <div className="flex flex-col gap-6">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-sky-200/40 to-transparent" />
+          <section
+            id="faq"
+            className="rounded-3xl border border-white/15 bg-sky-950/40 px-6 py-12 text-sky-50 shadow-[0_12px_30px_rgba(15,23,42,0.45)] backdrop-blur md:px-10"
+          >
+            <div className="space-y-2 text-center">
+              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">FAQ</p>
+              <h3 className="text-xl font-semibold text-white">أسئلة متكررة</h3>
+              <p className="text-sm text-sky-100">إجابات مختصرة لأكثر الأسئلة شيوعًا.</p>
+            </div>
+            <div className="mt-6">
+              <FAQAccordion items={faqItems} />
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

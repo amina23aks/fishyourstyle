@@ -70,7 +70,7 @@ export default function CartPage() {
           <div className="flex justify-center">
             <Link
               href={localizePathname(locale, "/shop")}
-              className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/20 transition hover:-translate-y-0.5 hover:border-slate-200/80 hover:shadow-[0_10px_24px_rgba(125,211,252,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               Continue Shopping
             </Link>
@@ -188,7 +188,7 @@ export default function CartPage() {
 
             <Link
               href={localizePathname(locale, "/checkout")}
-              className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/20 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/20 transition hover:-translate-y-0.5 hover:border-slate-200/80 hover:shadow-[0_10px_24px_rgba(125,211,252,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               Proceed to Checkout
             </Link>

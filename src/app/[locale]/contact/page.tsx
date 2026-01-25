@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import PageShell from "@/components/PageShell";
+import Loader from "@/components/ui/Loader";
 import { useTranslations } from "@/i18n/I18nProvider";
 
 export default function ContactPage() {
@@ -99,9 +100,16 @@ export default function ContactPage() {
           <button
             type="submit"
             disabled={status === "loading"}
-            className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white px-5 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/30 transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-shine inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white px-5 py-2 text-sm font-semibold text-slate-900 shadow-sm shadow-sky-900/30 transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-[0_12px_26px_rgba(125,211,252,0.35)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {status === "loading" ? t("contact.submitting") : t("contact.submit")}
+            {status === "loading" ? (
+              <>
+                <Loader size={16} className="text-slate-900" />
+                {t("contact.submitting")}
+              </>
+            ) : (
+              t("contact.submit")
+            )}
           </button>
         </form>
       </main>
