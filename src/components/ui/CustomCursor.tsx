@@ -9,8 +9,10 @@ const INTERACTIVE_SELECTOR =
 
 export default function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement | null>(null);
-  const positionRef = useRef({ x: 0, y: 0 });
+  const currentRef = useRef({ x: 0, y: 0 });
+  const targetRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number | null>(null);
+  const isRunningRef = useRef(false);
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
@@ -25,19 +27,23 @@ export default function CustomCursor() {
     document.documentElement.classList.add("custom-cursor-active");
 
     const updatePosition = () => {
-      const { x, y } = positionRef.current;
       const cursorEl = cursorRef.current;
       if (!cursorEl) {
         rafRef.current = null;
         return;
       }
-      cursorEl.style.transform = `translate3d(${x - CURSOR_SIZE / 2}px, ${y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
+      const current = currentRef.current;
+      const target = targetRef.current;
+      const nextX = current.x + (target.x - current.x) * 0.3;
+      const nextY = current.y + (target.y - current.y) * 0.3;
+      currentRef.current = { x: nextX, y: nextY };
+      cursorEl.style.transform = `translate3d(${nextX - CURSOR_SIZE / 2}px, ${nextY - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
       cursorEl.style.opacity = "1";
-      rafRef.current = null;
+      rafRef.current = window.requestAnimationFrame(updatePosition);
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      positionRef.current = { x: event.clientX, y: event.clientY };
+      targetRef.current = { x: event.clientX, y: event.clientY };
 
       const target = event.target as HTMLElement | null;
       const isInteractive = !!target?.closest(INTERACTIVE_SELECTOR);
@@ -49,7 +55,9 @@ export default function CustomCursor() {
         cursorEl.style.setProperty("--cursor-scale", isInteractive ? String(POINTER_SCALE) : "1");
       }
 
-      if (rafRef.current === null) {
+      if (!isRunningRef.current) {
+        currentRef.current = { x: targetRef.current.x, y: targetRef.current.y };
+        isRunningRef.current = true;
         rafRef.current = window.requestAnimationFrame(updatePosition);
       }
     };
@@ -59,12 +67,21 @@ export default function CustomCursor() {
       if (cursorEl) {
         cursorEl.style.opacity = "0";
       }
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = null;
+      isRunningRef.current = false;
     };
 
     const handlePointerEnter = () => {
       const cursorEl = cursorRef.current;
       if (cursorEl) {
         cursorEl.style.opacity = "1";
+      }
+      if (!isRunningRef.current) {
+        isRunningRef.current = true;
+        rafRef.current = window.requestAnimationFrame(updatePosition);
       }
     };
 
@@ -80,6 +97,8 @@ export default function CustomCursor() {
       if (rafRef.current !== null) {
         window.cancelAnimationFrame(rafRef.current);
       }
+      rafRef.current = null;
+      isRunningRef.current = false;
     };
   }, []);
 
