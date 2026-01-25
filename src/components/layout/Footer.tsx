@@ -157,7 +157,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href={localizePathname(locale, "/faq")} className="hover:text-white">
+                <Link href={localizePathname(locale, "/#faq")} className="hover:text-white">
                   FAQ
                 </Link>
               </li>

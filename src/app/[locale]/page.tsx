@@ -209,18 +209,24 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               </div>
             ))}
           </div>
-          <div className="mt-10 flex flex-col gap-6">
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-sky-200/40 to-transparent" />
-            <div className="rounded-3xl border border-white/20 bg-sky-950/40 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.45)] backdrop-blur sm:p-8">
+        </section>
+
+        <div className="flex flex-col gap-6">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-sky-200/40 to-transparent" />
+          <section
+            id="faq"
+            className="rounded-3xl border border-white/15 bg-sky-950/40 px-6 py-12 text-sky-50 shadow-[0_12px_30px_rgba(15,23,42,0.45)] backdrop-blur md:px-10"
+          >
             <div className="space-y-2 text-center">
               <p className="text-xs uppercase tracking-[0.28em] text-sky-200">FAQ</p>
               <h3 className="text-xl font-semibold text-white">أسئلة متكررة</h3>
               <p className="text-sm text-sky-100">إجابات مختصرة لأكثر الأسئلة شيوعًا.</p>
             </div>
-            <FAQAccordion items={faqItems} />
+            <div className="mt-6">
+              <FAQAccordion items={faqItems} />
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   );

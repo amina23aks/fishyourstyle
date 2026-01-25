@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 const CURSOR_SIZE = 34;
+const POINTER_SCALE = 1.18;
+const INTERACTIVE_SELECTOR =
+  "button, a, input, textarea, select, [role='button'], [data-cursor='pointer']";
 
 export default function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement | null>(null);
@@ -28,7 +31,7 @@ export default function CustomCursor() {
         rafRef.current = null;
         return;
       }
-      cursorEl.style.transform = `translate3d(${x - CURSOR_SIZE / 2}px, ${y - CURSOR_SIZE / 2}px, 0)`;
+      cursorEl.style.transform = `translate3d(${x - CURSOR_SIZE / 2}px, ${y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
       cursorEl.style.opacity = "1";
       rafRef.current = null;
     };
@@ -37,13 +40,14 @@ export default function CustomCursor() {
       positionRef.current = { x: event.clientX, y: event.clientY };
 
       const target = event.target as HTMLElement | null;
-      const isTextField = !!target?.closest(
-        "input, textarea, select, option, [contenteditable='true']",
-      );
+      const isTextField = !!target?.closest("input, textarea, select, option, [contenteditable='true']");
+      const isInteractive = !!target?.closest(INTERACTIVE_SELECTOR);
 
       const cursorEl = cursorRef.current;
       if (cursorEl) {
         cursorEl.style.opacity = isTextField ? "0" : "1";
+        cursorEl.dataset.state = isInteractive ? "pointer" : "default";
+        cursorEl.style.setProperty("--cursor-scale", isInteractive ? String(POINTER_SCALE) : "1");
       }
 
       if (rafRef.current === null) {
