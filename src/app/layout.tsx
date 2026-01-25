@@ -10,6 +10,7 @@ import { AuthModalProvider } from "@/context/auth-modal";
 import { FavoritesProvider } from "@/hooks/use-favorites";
 import { getLocaleFromHeaders } from "@/i18n/locale";
 import { getLocaleDirection } from "@/i18n/config";
+import { metadataBase, resolveOgImageUrl } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,6 +24,14 @@ export const metadata: Metadata = {
   ],
   icons: {
     icon: "/logoF.png",
+  },
+  metadataBase,
+  openGraph: {
+    type: "website",
+    images: [resolveOgImageUrl("/outphoto.PNG")],
+  },
+  twitter: {
+    images: [resolveOgImageUrl("/outphoto.PNG")],
   },
   verification: {
     google: "xhWDfYVWM4wYlyC0N8spspJoYrgmPcLaliR833kIz6c",
