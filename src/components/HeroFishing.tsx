@@ -114,7 +114,7 @@ export default function HeroFishing() {
             <div className="flex flex-wrap justify-start gap-4 pt-3">
               <Link
                 href={localizePathname(locale, "/shop")}
-                className="rounded-full bg-white/20 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/30"
+                className="btn-shine rounded-full bg-white/20 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/30 hover:shadow-[0_14px_30px_rgba(125,211,252,0.35)] active:scale-[0.98]"
               >
                 {t("hero.shopNow")}
               </Link>

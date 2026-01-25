@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import Hero from "@/components/Hero";
+import FAQAccordion from "@/components/FAQAccordion";
+import { faqItems } from "@/data/faqItems";
 import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
@@ -206,6 +208,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 <p className="mt-3 text-sm text-sky-100/90">{reason.description}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-10 space-y-6 rounded-3xl border border-white/20 bg-white/10 p-6 shadow-[0_12px_30px_rgba(15,23,42,0.35)] backdrop-blur sm:p-8">
+            <div className="space-y-2 text-center">
+              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">FAQ</p>
+              <h3 className="text-xl font-semibold text-white">أسئلة متكررة</h3>
+              <p className="text-sm text-sky-100">إجابات مختصرة لأكثر الأسئلة شيوعًا.</p>
+            </div>
+            <FAQAccordion items={faqItems} />
           </div>
         </section>
       </div>

@@ -100,10 +100,10 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
               type="button"
               onClick={handleAddToCart}
               disabled={isOutOfStock}
-              className={`inline-flex flex-1 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition ${
+              className={`btn-shine inline-flex flex-1 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold transition active:scale-[0.98] ${
                 isOutOfStock
                   ? "cursor-not-allowed bg-white/10 text-white/50"
-                  : "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-900 hover:from-sky-300 hover:to-cyan-200"
+                  : "bg-gradient-to-r from-sky-400 to-cyan-300 text-slate-900 hover:from-sky-300 hover:to-cyan-200 hover:shadow-[0_12px_26px_rgba(125,211,252,0.35)]"
               }`}
             >
               {isOutOfStock ? t("shop.outOfStock") : t("shop.addToCart")}
