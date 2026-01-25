@@ -21,14 +21,15 @@ export default function CustomCursor() {
     setEnabled(true);
     document.documentElement.classList.add("custom-cursor-active");
 
-    const cursorEl = cursorRef.current;
-
     const updatePosition = () => {
       const { x, y } = positionRef.current;
-      if (cursorEl) {
-        cursorEl.style.transform = `translate3d(${x - CURSOR_SIZE / 2}px, ${y - CURSOR_SIZE / 2}px, 0)`;
-        cursorEl.style.opacity = "1";
+      const cursorEl = cursorRef.current;
+      if (!cursorEl) {
+        rafRef.current = null;
+        return;
       }
+      cursorEl.style.transform = `translate3d(${x - CURSOR_SIZE / 2}px, ${y - CURSOR_SIZE / 2}px, 0)`;
+      cursorEl.style.opacity = "1";
       rafRef.current = null;
     };
 
@@ -40,6 +41,7 @@ export default function CustomCursor() {
         "input, textarea, select, option, [contenteditable='true']",
       );
 
+      const cursorEl = cursorRef.current;
       if (cursorEl) {
         cursorEl.style.opacity = isTextField ? "0" : "1";
       }
@@ -50,12 +52,14 @@ export default function CustomCursor() {
     };
 
     const handlePointerLeave = () => {
+      const cursorEl = cursorRef.current;
       if (cursorEl) {
         cursorEl.style.opacity = "0";
       }
     };
 
     const handlePointerEnter = () => {
+      const cursorEl = cursorRef.current;
       if (cursorEl) {
         cursorEl.style.opacity = "1";
       }

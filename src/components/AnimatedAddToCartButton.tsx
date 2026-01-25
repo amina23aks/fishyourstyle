@@ -12,7 +12,7 @@ type AnimatedAddToCartButtonProps = {
 };
 
 const baseClasses =
-  "btn-shine relative inline-flex items-center justify-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-black/15 backdrop-blur transition-transform duration-200 hover:bg-white hover:shadow-[0_12px_26px_rgba(125,211,252,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
+  "btn-shine relative inline-flex items-center justify-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-black/15 backdrop-blur transition-transform duration-200 hover:shadow-[0_12px_26px_rgba(125,211,252,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
 
 const CartIcon = () => (
   <svg
