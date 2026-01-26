@@ -12,7 +12,7 @@ import {
   type AdminProduct,
   type AdminProductInput,
 } from "@/lib/admin-products";
-import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { uploadImageToCloudinary, uploadImageToCloudinaryWithMetadata } from "@/lib/cloudinary";
 import type { SelectableItem } from "@/lib/categories-shared";
 import type { SelectableOption } from "@/types/selectable";
 
@@ -47,6 +47,9 @@ const defaultForm: ProductFormValues = {
   soldOutColorCodes: [],
   gender: "",
   images: [],
+  sizeGuideEnabled: false,
+  sizeGuideImageUrl: "",
+  sizeGuideImagePublicId: "",
 };
 
 function slugify(value: string) {
@@ -92,6 +95,7 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingSizeGuide, setUploadingSizeGuide] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [formInitial, setFormInitial] = useState<ProductFormValues>(defaultForm);
@@ -204,6 +208,29 @@ export default function AdminProductsPage() {
     [showToast],
   );
 
+  const handleUploadSizeGuide = useCallback(
+    async (file: File) => {
+      if (!cloudinaryConfigured) {
+        throw new Error("Cloudinary is not configured. Save without an image or add credentials.");
+      }
+
+      setUploadingSizeGuide(true);
+      setError(null);
+      try {
+        const result = await uploadImageToCloudinaryWithMetadata(file);
+        showToast({ type: "success", message: "Size guide uploaded to Cloudinary" });
+        return result;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to upload size guide";
+        showToast({ type: "error", message });
+        throw err;
+      } finally {
+        setUploadingSizeGuide(false);
+      }
+    },
+    [showToast],
+  );
+
   const resetForm = useCallback(() => {
     setFormInitial(defaultForm);
     setFormKey(Date.now());
@@ -219,6 +246,7 @@ export default function AdminProductsPage() {
       const normalizedStockMode = values.stockMode === "limited" ? "limited" : "unlimited";
       const parsedStockQty =
         normalizedStockMode === "limited" ? Math.max(Number(values.stockQty || 0), 0) : undefined;
+      const sizeGuideEnabled = Boolean(values.sizeGuideEnabled);
       const payload: AdminProductInput = {
         name: values.name.trim(),
         slug: slugify(values.name),
@@ -229,6 +257,10 @@ export default function AdminProductsPage() {
         designTheme,
         sizes: values.sizes,
         colors: values.colors,
+        sizeGuideEnabled,
+        sizeGuideImageUrl: sizeGuideEnabled && values.sizeGuideImageUrl ? values.sizeGuideImageUrl : null,
+        sizeGuideImagePublicId:
+          sizeGuideEnabled && values.sizeGuideImagePublicId ? values.sizeGuideImagePublicId : null,
         soldOutSizes: values.soldOutSizes,
         soldOutColorCodes: values.soldOutColorCodes,
         images,
@@ -313,6 +345,9 @@ export default function AdminProductsPage() {
         .map((size) => size.toUpperCase())
         .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
       colors: product.colors,
+      sizeGuideEnabled: product.sizeGuideEnabled ?? false,
+      sizeGuideImageUrl: product.sizeGuideImageUrl ?? "",
+      sizeGuideImagePublicId: product.sizeGuideImagePublicId ?? "",
       soldOutSizes: product.soldOutSizes ?? [],
       soldOutColorCodes: product.soldOutColorCodes ?? [],
       images: Array.from(new Set([product.images.main, ...(product.images.gallery ?? [])].filter(Boolean))),
@@ -513,10 +548,12 @@ export default function AdminProductsPage() {
             initialValues={formInitial}
             loading={saving}
             uploading={uploadingImage}
+            uploadingSizeGuide={uploadingSizeGuide}
             cloudinaryConfigured={cloudinaryConfigured}
             cloudinaryMissing={cloudinaryMissing}
             onSubmit={handleSubmit}
             onUploadImage={handleUploadImage}
+            onUploadSizeGuide={handleUploadSizeGuide}
             onCancelEdit={resetForm}
             categories={categories}
             designThemes={designThemes}

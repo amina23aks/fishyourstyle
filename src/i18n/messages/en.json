@@ -22,6 +22,7 @@
   "shop.outOfStock": "Out of stock",
   "shop.color": "Color",
   "shop.size": "Size",
+  "shop.sizeGuide": "Size guide",
   "shop.pickColor": "Pick a color",
   "shop.pickSize": "Pick a size",
   "shop.selectColorSize": "Please choose a color and size before adding to cart.",

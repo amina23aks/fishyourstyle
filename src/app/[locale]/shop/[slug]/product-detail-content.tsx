@@ -64,6 +64,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const viewItemTrackedRef = useRef<string | null>(null);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const stockState = normalizeProductStock({
     stockMode: product.stockMode,
     stockQty: product.stockQty,
@@ -73,6 +74,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const availableStock = stockState.stockMode === "limited" ? stockState.stockQty : undefined;
   const hasColorSelection = !requiresColorSelection || Boolean(activeColor);
   const hasSizeSelection = !requiresSizeSelection || Boolean(selectedSize);
+  const sizeGuideImageUrl = product.sizeGuideImageUrl ?? null;
+  const showSizeGuide = Boolean(product.sizeGuideEnabled && sizeGuideImageUrl);
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -140,6 +143,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
       currency: product.currency ?? "DZD",
     });
   }, [product.currency, product.id, product.nameFr, product.priceDzd]);
+
+  useEffect(() => {
+    if (!isSizeGuideOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSizeGuideOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isSizeGuideOpen]);
 
   // Ensure currentImage always defaults to the first image or placeholder
   const currentImage =
@@ -368,7 +382,18 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.size")}</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.size")}</h2>
+              {showSizeGuide ? (
+                <button
+                  type="button"
+                  onClick={() => setIsSizeGuideOpen(true)}
+                  className="text-[11px] font-semibold text-white/70 underline-offset-4 transition hover:text-white/90 hover:underline"
+                >
+                  {t("shop.sizeGuide")}
+                </button>
+              ) : null}
+            </div>
             <div className="flex flex-wrap gap-2">
               {sizeOptions.map((size) => {
                 const isSelected = selectedSize === size.value;
@@ -487,6 +512,37 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
         </div>
       </div>
+
+      {isSizeGuideOpen && showSizeGuide ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setIsSizeGuideOpen(false)}
+            aria-label={t("common.close")}
+          />
+          <div className="relative z-10 w-full max-w-[900px] max-h-[80vh] overflow-hidden rounded-[32px] border border-white/10 bg-black/90 p-5 text-white shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-neutral-300">{t("shop.sizeGuide")}</p>
+              <button
+                type="button"
+                onClick={() => setIsSizeGuideOpen(false)}
+                className="inline-flex items-center justify-center rounded-full border border-white/20 px-4 py-1 text-xs font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
+              >
+                {t("common.close")}
+              </button>
+            </div>
+            <div className="mt-4 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={sizeGuideImageUrl ?? ""}
+                alt={t("shop.sizeGuide")}
+                className="max-h-[70vh] w-auto max-w-full object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

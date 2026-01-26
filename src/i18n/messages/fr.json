@@ -22,6 +22,7 @@
   "shop.outOfStock": "Rupture de stock",
   "shop.color": "Couleur",
   "shop.size": "Taille",
+  "shop.sizeGuide": "Guide des tailles",
   "shop.pickColor": "Choisir une couleur",
   "shop.pickSize": "Choisir une taille",
   "shop.selectColorSize": "Veuillez choisir une couleur et une taille avant d’ajouter au panier.",

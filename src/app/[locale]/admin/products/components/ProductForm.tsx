@@ -23,6 +23,9 @@ export type ProductFormValues = {
   soldOutColorCodes: string[];
   gender?: "unisex" | "men" | "women" | "";
   images: string[];
+  sizeGuideEnabled: boolean;
+  sizeGuideImageUrl: string;
+  sizeGuideImagePublicId: string;
 };
 
 type ProductFormProps = {
@@ -33,10 +36,12 @@ type ProductFormProps = {
   initialValues?: Partial<ProductFormValues>;
   loading?: boolean;
   uploading?: boolean;
+  uploadingSizeGuide?: boolean;
   cloudinaryConfigured: boolean;
   cloudinaryMissing: boolean;
   onSubmit: (values: ProductFormValues) => Promise<void>;
   onUploadImage: (file: File) => Promise<string>;
+  onUploadSizeGuide: (file: File) => Promise<{ url: string; publicId: string | null }>;
   onCancelEdit?: () => void;
   categories: SelectableOption[];
   designThemes: SelectableOption[];
@@ -123,6 +128,9 @@ const defaultValues: ProductFormValues = {
   soldOutColorCodes: [],
   gender: "",
   images: [],
+  sizeGuideEnabled: false,
+  sizeGuideImageUrl: "",
+  sizeGuideImagePublicId: "",
 };
 
 const currencyFormatter = new Intl.NumberFormat("fr-DZ", {
@@ -198,10 +206,12 @@ export function ProductForm({
   initialValues,
   loading,
   uploading,
+  uploadingSizeGuide,
   cloudinaryConfigured,
   cloudinaryMissing,
   onSubmit,
   onUploadImage,
+  onUploadSizeGuide,
   onCancelEdit,
   categories,
   designThemes,
@@ -295,6 +305,11 @@ export function ProductForm({
     setError(null);
     setIsSubmitting(true);
     try {
+      if (values.sizeGuideEnabled && !values.sizeGuideImageUrl) {
+        setError("Upload a size guide image before saving.");
+        setIsSubmitting(false);
+        return;
+      }
       const normalizedColors = values.colors
         .map((color) => ({ hex: color.hex.trim() }))
         .filter((color) => Boolean(color.hex));
@@ -335,6 +350,29 @@ export function ProductForm({
       setValues((prev) => ({ ...prev, images: normalizeImages([...prev.images, imageUrl]) }));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Image upload failed";
+      setError(message);
+    }
+  };
+
+  const handleSizeGuideChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (cloudinaryMissing) {
+      setError("Cloudinary is not configured. Save without images or add config.");
+      return;
+    }
+
+    setError(null);
+    try {
+      const result = await onUploadSizeGuide(file);
+      setValues((prev) => ({
+        ...prev,
+        sizeGuideEnabled: true,
+        sizeGuideImageUrl: result.url,
+        sizeGuideImagePublicId: result.publicId ?? "",
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Size guide upload failed";
       setError(message);
     }
   };
@@ -849,6 +887,72 @@ export function ProductForm({
               </div>
             </div>
           ) : null}
+        </div>
+
+        <div className="space-y-2 text-sm text-sky-100/90 md:col-span-2">
+          <label className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-white/40 bg-white/5 text-emerald-400 focus:ring-2 focus:ring-white/40"
+              checked={values.sizeGuideEnabled}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                setValues((prev) => ({
+                  ...prev,
+                  sizeGuideEnabled: enabled,
+                  sizeGuideImageUrl: enabled ? prev.sizeGuideImageUrl : "",
+                  sizeGuideImagePublicId: enabled ? prev.sizeGuideImagePublicId : "",
+                }));
+              }}
+            />
+            Size guide (Guide des tailles)
+          </label>
+          {values.sizeGuideEnabled ? (
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-sky-900/30">
+              {values.sizeGuideImageUrl ? (
+                <div className="flex flex-wrap items-start gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={values.sizeGuideImageUrl}
+                    alt="Size guide preview"
+                    className="h-32 w-auto max-w-full rounded-xl border border-white/15 object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValues((prev) => ({
+                        ...prev,
+                        sizeGuideImageUrl: "",
+                        sizeGuideImagePublicId: "",
+                      }))
+                    }
+                    className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <span className="text-xs text-sky-100/70">No size guide uploaded yet.</span>
+              )}
+
+              <label
+                className={`inline-flex w-fit cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-white shadow shadow-sky-900/40 transition ${
+                  cloudinaryMissing ? "cursor-not-allowed bg-white/10 opacity-60" : "bg-white/10 hover:bg-white/15"
+                }`}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleSizeGuideChange}
+                  disabled={!cloudinaryConfigured}
+                />
+                {uploadingSizeGuide ? "Uploading..." : "Upload size guide image"}
+              </label>
+            </div>
+          ) : (
+            <p className="text-xs text-sky-100/70">Enable to upload a size guide image for this product.</p>
+          )}
         </div>
 
         <div className="space-y-2 text-sm text-sky-100/90 md:col-span-2">

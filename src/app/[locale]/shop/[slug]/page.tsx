@@ -111,6 +111,9 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     gender: sp.gender ?? "", // Don't default to "unisex" - empty string means not set
     sizes: sp.sizes ?? [],
     colors,
+    sizeGuideEnabled: sp.sizeGuideEnabled ?? false,
+    sizeGuideImageUrl: sp.sizeGuideImageUrl ?? null,
+    sizeGuideImagePublicId: sp.sizeGuideImagePublicId ?? null,
     images: { main: mainImage, gallery },
     descriptionFr: sp.description ?? "",
     descriptionAr: sp.description ?? "",
