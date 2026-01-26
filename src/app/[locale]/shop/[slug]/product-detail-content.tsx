@@ -388,8 +388,26 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 <button
                   type="button"
                   onClick={() => setIsSizeGuideOpen(true)}
-                  className="cursor-pointer text-base font-semibold text-white/70 underline underline-offset-4 transition hover:text-white/90"
+                  className="inline-flex cursor-pointer items-center gap-2 text-base font-semibold text-white/70 underline underline-offset-4 transition hover:text-white/90 hover:opacity-90 hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4 text-white/80"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M3 12h18" />
+                    <path d="M3 18h18" />
+                    <path d="M7 6v2" />
+                    <path d="M11 12v2" />
+                    <path d="M15 6v2" />
+                    <path d="M19 12v2" />
+                  </svg>
                   {t("shop.sizeGuide")}
                 </button>
               ) : null}

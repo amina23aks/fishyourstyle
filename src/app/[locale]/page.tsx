@@ -166,7 +166,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             </p>
           </div>
 
-          <HomeClient products={products} categories={categories} designThemes={designThemes} />
+          <HomeClient products={products} allProducts={allProducts} categories={categories} designThemes={designThemes} />
           {errorMessage ? (
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
               {errorMessage}

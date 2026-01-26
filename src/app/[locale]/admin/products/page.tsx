@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
@@ -13,7 +13,7 @@ import {
   type AdminProductInput,
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary, uploadImageToCloudinaryWithMetadata } from "@/lib/cloudinary";
-import type { SelectableItem } from "@/lib/categories-shared";
+import { CANONICAL_CATEGORY_SLUGS, CANONICAL_DESIGN_SLUGS, type SelectableItem } from "@/lib/categories-shared";
 import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
@@ -22,12 +22,27 @@ const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 const cloudinaryConfigured = Boolean(cloudName && uploadPreset);
 const cloudinaryMissing = !cloudName && !uploadPreset;
-const toSelectableOption = (item: SelectableItem): SelectableOption => ({
-  id: item.id,
-  name: item.label,
-  slug: item.slug,
-  isDefault: item.isDefault,
-});
+const normalizeSlug = (value: string) => value.trim().toLowerCase();
+
+const toSelectableCategoryOption = (item: SelectableItem): SelectableOption => {
+  const slug = normalizeSlug(item.slug);
+  return {
+    id: item.id,
+    name: item.label,
+    slug,
+    isDefault: CANONICAL_CATEGORY_SLUGS.includes(slug as (typeof CANONICAL_CATEGORY_SLUGS)[number]),
+  };
+};
+
+const toSelectableDesignOption = (item: SelectableItem): SelectableOption => {
+  const slug = normalizeSlug(item.slug);
+  return {
+    id: item.id,
+    name: item.label,
+    slug,
+    isDefault: CANONICAL_DESIGN_SLUGS.includes(slug as (typeof CANONICAL_DESIGN_SLUGS)[number]),
+  };
+};
 
 const allowedSizes = ["S", "M", "L", "XL", "XXL"] as const;
 
@@ -106,6 +121,32 @@ export default function AdminProductsPage() {
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>([]);
   const [designThemes, setDesignThemes] = useState<SelectableOption[]>([]);
+  const derivedDesignThemes = useMemo(() => {
+    const map = new Map<string, SelectableOption>();
+    designThemes.forEach((theme) => {
+      const slug = theme.slug.trim().toLowerCase();
+      if (!slug) return;
+      map.set(slug, { ...theme, slug });
+    });
+    products.forEach((product) => {
+      const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
+      if (!rawTheme) return;
+      const slug = rawTheme.toLowerCase();
+      if (!map.has(slug)) {
+        map.set(slug, { id: slug, slug, name: rawTheme, isDefault: slug === "simple" });
+      }
+    });
+    if (!map.has("simple")) {
+      map.set("simple", { id: "simple", slug: "simple", name: "Simple", isDefault: true });
+    }
+    const sorted = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const simpleIndex = sorted.findIndex((theme) => theme.slug === "simple");
+    if (simpleIndex > 0) {
+      const [simpleTheme] = sorted.splice(simpleIndex, 1);
+      sorted.unshift(simpleTheme);
+    }
+    return sorted;
+  }, [designThemes, products]);
 
   const coerceCollectionsAndDesigns = useCallback(
     (payload: { collections: SelectableItem[]; designs: SelectableItem[] }) => payload,
@@ -122,8 +163,8 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch categories");
       const data = coerceCollectionsAndDesigns(await res.json());
-      setCategories(data.collections.map(toSelectableOption));
-      setDesignThemes(data.designs.map(toSelectableOption));
+      setCategories(data.collections.map(toSelectableCategoryOption));
+      setDesignThemes(data.designs.map(toSelectableDesignOption));
     } catch (err) {
       console.error("Failed to load categories and designs", err);
     }
@@ -134,7 +175,7 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories?type=category", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch categories");
       const fetched = (await res.json()) as SelectableItem[];
-      setCategories(fetched.map(toSelectableOption));
+      setCategories(fetched.map(toSelectableCategoryOption));
     } catch (err) {
       console.error("Failed to load categories", err);
     }
@@ -145,7 +186,7 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/categories?type=design", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch design themes");
       const fetched = (await res.json()) as SelectableItem[];
-      setDesignThemes(fetched.map(toSelectableOption));
+      setDesignThemes(fetched.map(toSelectableDesignOption));
     } catch (err) {
       console.error("Failed to load design themes", err);
     }
@@ -556,7 +597,7 @@ export default function AdminProductsPage() {
             onUploadSizeGuide={handleUploadSizeGuide}
             onCancelEdit={resetForm}
             categories={categories}
-            designThemes={designThemes}
+            designThemes={derivedDesignThemes}
             onCategoriesChange={setCategories}
             onDesignThemesChange={setDesignThemes}
             onReloadCategories={loadCategories}
