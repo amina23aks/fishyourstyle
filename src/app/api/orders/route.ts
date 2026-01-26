@@ -339,11 +339,16 @@ export async function POST(request: NextRequest) {
         typeof dailyData.topCategories === "object" && dailyData.topCategories
           ? (dailyData.topCategories as Record<string, number>)
           : {};
+      const existingDesignTotals =
+        typeof dailyData.topDesignThemes === "object" && dailyData.topDesignThemes
+          ? (dailyData.topDesignThemes as Record<string, number>)
+          : {};
       const existingProductTotals =
         typeof dailyData.topProducts === "object" && dailyData.topProducts
           ? (dailyData.topProducts as Record<string, { name: string; qty: number; revenue: number }>)
           : {};
       const nextCategoryTotals = { ...existingCategoryTotals };
+      const nextDesignTotals = { ...existingDesignTotals };
       const nextProductTotals = { ...existingProductTotals };
 
       // Snapshot category/design on the order items to avoid extra reads during exports.
@@ -370,8 +375,11 @@ export async function POST(request: NextRequest) {
           typeof productData?.category === "string" && productData.category.trim()
             ? productData.category
             : "uncategorized";
+        const design =
+          typeof item.design === "string" && item.design.trim() ? item.design.trim() : "Unknown";
         const revenue = item.price * item.quantity;
         nextCategoryTotals[category] = (nextCategoryTotals[category] ?? 0) + revenue;
+        nextDesignTotals[design] = (nextDesignTotals[design] ?? 0) + revenue;
         const existingProduct = nextProductTotals[item.id] ?? {
           name: item.name,
           qty: 0,
@@ -425,6 +433,7 @@ export async function POST(request: NextRequest) {
           orders: Number(dailyData.orders ?? 0) + 1,
           revenue: Number(dailyData.revenue ?? 0) + orderTotal,
           topCategories: nextCategoryTotals,
+          topDesignThemes: nextDesignTotals,
           topProducts: nextProductTotals,
           updatedAt: FieldValue.serverTimestamp(),
         },

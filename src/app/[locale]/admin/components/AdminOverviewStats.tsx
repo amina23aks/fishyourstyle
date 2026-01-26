@@ -30,6 +30,9 @@ const COLOR_BY_CATEGORY: Record<string, string> = {
   ensembles: "#6D28D9",
   tshirts: "#FACC15",
 };
+const COLOR_BY_DESIGN_THEME: Record<string, string> = {
+  simple: "#ffffff",
+};
 const AUTO_PALETTE = [
   "#22C55E",
   "#06B6D4",
@@ -52,6 +55,7 @@ type DailyStat = {
   orders: number;
   revenue: number;
   topCategories: Record<string, number>;
+  topDesignThemes: Record<string, number>;
   topProducts: Record<string, { name: string; qty: number; revenue: number }>;
 };
 
@@ -203,10 +207,21 @@ function normalizeCategory(name: string) {
   return name.trim().toLowerCase();
 }
 
+function normalizeDesignTheme(name: string) {
+  return name.trim().toLowerCase();
+}
+
 function getCategoryColor(categoryName: string, overrideColor?: string) {
   if (overrideColor) return overrideColor;
   const key = normalizeCategory(categoryName);
   if (COLOR_BY_CATEGORY[key]) return COLOR_BY_CATEGORY[key];
+  const idx = hashToIndex(key, AUTO_PALETTE.length);
+  return AUTO_PALETTE[idx];
+}
+
+function getDesignThemeColor(themeName: string) {
+  const key = normalizeDesignTheme(themeName);
+  if (COLOR_BY_DESIGN_THEME[key]) return COLOR_BY_DESIGN_THEME[key];
   const idx = hashToIndex(key, AUTO_PALETTE.length);
   return AUTO_PALETTE[idx];
 }
@@ -362,6 +377,10 @@ export function AdminOverviewStats() {
               topCategories:
                 typeof dailyData.topCategories === "object" && dailyData.topCategories
                   ? (dailyData.topCategories as Record<string, number>)
+                  : {},
+              topDesignThemes:
+                typeof dailyData.topDesignThemes === "object" && dailyData.topDesignThemes
+                  ? (dailyData.topDesignThemes as Record<string, number>)
                   : {},
               topProducts:
                 typeof dailyData.topProducts === "object" && dailyData.topProducts
@@ -594,6 +613,21 @@ export function AdminOverviewStats() {
       .slice(0, 5);
   }, [dailyStats, rangeKeys]);
 
+  const topDesignData = useMemo(() => {
+    const totals: Record<string, number> = {};
+    dailyStats.forEach((stat) => {
+      if (!rangeKeys.has(stat.dateKey)) return;
+      Object.entries(stat.topDesignThemes ?? {}).forEach(([theme, revenue]) => {
+        const key = theme.trim() || "Unknown";
+        totals[key] = (totals[key] ?? 0) + revenue;
+      });
+    });
+    return Object.entries(totals)
+      .map(([name, revenue]) => ({ name, revenue }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  }, [dailyStats, rangeKeys]);
+
   const topProducts = useMemo(() => {
     const totals: Record<string, { name: string; qty: number; revenue: number }> = {};
     dailyStats.forEach((stat) => {
@@ -631,6 +665,20 @@ export function AdminOverviewStats() {
   const donutTotal = useMemo(
     () => donutData.reduce((sum, item) => sum + (item.value || 0), 0),
     [donutData]
+  );
+
+  const designDonutData = useMemo(
+    () =>
+      topDesignData.map((theme) => ({
+        name: theme.name,
+        value: theme.revenue,
+        color: getDesignThemeColor(theme.name),
+      })),
+    [topDesignData]
+  );
+  const designDonutTotal = useMemo(
+    () => designDonutData.reduce((sum, item) => sum + (item.value || 0), 0),
+    [designDonutData]
   );
 
   return (
@@ -898,6 +946,92 @@ export function AdminOverviewStats() {
                   .slice(0, 5)
                   .map((item) => {
                     const pct = donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0;
+                    return (
+                      <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
+                          <span className="truncate text-sm text-white/90">{item.name}</span>
+                        </div>
+                        <div className="text-sm text-white/80 tabular-nums">
+                          {pct}% • {formatCount(item.value || 0)} DA
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs tracking-[0.2em] text-white/60">TOP DESIGNS</div>
+              <div className="text-lg font-semibold text-white">{rangeLabel}</div>
+            </div>
+            <div className="text-xs text-white/60">Revenue share</div>
+          </div>
+          {designDonutData.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-sky-100/80">
+              No design theme data yet.
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 flex items-center justify-center">
+                <div className="h-[200px] w-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={designDonutData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={70}
+                        outerRadius={95}
+                        paddingAngle={2}
+                        stroke="rgba(255,255,255,0.12)"
+                        strokeWidth={1}
+                      >
+                        {designDonutData.map((entry, index) => (
+                          <Cell key={`design-cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <text
+                        x="50%"
+                        y="48%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-white text-sm font-semibold"
+                      >
+                        {formatCount(designDonutTotal)} DA
+                      </text>
+                      <text
+                        x="50%"
+                        y="60%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-white/60 text-xs"
+                      >
+                        Total ({rangeLabelShort})
+                      </text>
+                      <Tooltip
+                        formatter={(value: number, _name: string, props: { payload?: { name?: string } }) => {
+                          const numeric = Number(value || 0);
+                          const pct = designDonutTotal > 0 ? Math.round((numeric / designDonutTotal) * 100) : 0;
+                          return [`${formatCount(numeric)} DA (${pct}%)`, props?.payload?.name ?? "Design"];
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {designDonutData
+                  .slice()
+                  .sort((a, b) => (b.value || 0) - (a.value || 0))
+                  .slice(0, 5)
+                  .map((item) => {
+                    const pct = designDonutTotal > 0 ? Math.round(((item.value || 0) / designDonutTotal) * 100) : 0;
                     return (
                       <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
