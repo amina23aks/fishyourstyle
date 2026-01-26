@@ -388,7 +388,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                 <button
                   type="button"
                   onClick={() => setIsSizeGuideOpen(true)}
-                  className="text-[11px] font-semibold text-white/70 underline-offset-4 transition hover:text-white/90 hover:underline"
+                  className="cursor-pointer text-base font-semibold text-white/70 underline underline-offset-4 transition hover:text-white/90"
                 >
                   {t("shop.sizeGuide")}
                 </button>
@@ -521,7 +521,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
             onClick={() => setIsSizeGuideOpen(false)}
             aria-label={t("common.close")}
           />
-          <div className="relative z-10 w-full max-w-[900px] max-h-[80vh] overflow-hidden rounded-[32px] border border-white/10 bg-black/90 p-5 text-white shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+          <div className="relative z-10 w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-[32px] border border-white/10 bg-black/90 p-4 text-white shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
             <div className="flex items-center justify-between gap-4">
               <p className="text-xs uppercase tracking-[0.3em] text-neutral-300">{t("shop.sizeGuide")}</p>
               <button
@@ -537,7 +537,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
               <img
                 src={sizeGuideImageUrl ?? ""}
                 alt={t("shop.sizeGuide")}
-                className="max-h-[70vh] w-auto max-w-full object-contain"
+                className="max-h-[78vh] h-auto w-full object-contain"
               />
             </div>
           </div>
