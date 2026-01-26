@@ -38,6 +38,8 @@ export type AdminProduct = {
   inStock: boolean;
   images: { main: string; gallery: string[] };
   gender?: "unisex" | "men" | "women";
+  sizeGuideEnabled?: boolean;
+  sizeGuideImagePath?: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -217,6 +219,13 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     inStock: resolvedInStock,
     images: normalizeImages(data.images),
     gender: typeof data.gender === "string" ? (data.gender as AdminProduct["gender"]) : undefined,
+    sizeGuideEnabled: typeof data.sizeGuideEnabled === "boolean" ? data.sizeGuideEnabled : false,
+    sizeGuideImagePath:
+      typeof data.sizeGuideImagePath === "string" && data.sizeGuideImagePath.trim()
+        ? data.sizeGuideImagePath.trim()
+        : typeof data.sizeGuideImage === "string" && data.sizeGuideImage.trim()
+          ? data.sizeGuideImage.trim()
+          : null,
     createdAt: (data.createdAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
     updatedAt: (data.updatedAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
   };
@@ -246,6 +255,11 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: input.images ?? { main: "", gallery: [] },
     gender: input.gender ?? null,
+    sizeGuideEnabled: Boolean(input.sizeGuideEnabled),
+    sizeGuideImagePath:
+      input.sizeGuideEnabled && typeof input.sizeGuideImagePath === "string" && input.sizeGuideImagePath.trim()
+        ? input.sizeGuideImagePath.trim()
+        : null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -310,6 +324,16 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   }
   if (patch.images !== undefined) payload.images = patch.images;
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
+  if (patch.sizeGuideEnabled !== undefined) {
+    payload.sizeGuideEnabled = Boolean(patch.sizeGuideEnabled);
+    if (!patch.sizeGuideEnabled) {
+      payload.sizeGuideImagePath = null;
+    }
+  }
+  if (patch.sizeGuideImagePath !== undefined) {
+    const trimmed = typeof patch.sizeGuideImagePath === "string" ? patch.sizeGuideImagePath.trim() : "";
+    payload.sizeGuideImagePath = trimmed || null;
+  }
 
   return removeUndefinedDeep(payload) as WithFieldValue<Partial<AdminProductWrite>>;
 }

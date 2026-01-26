@@ -90,6 +90,8 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     stockMode: sp.stockMode,
     stockQty: sp.stockQty,
     inStock: sp.inStock ?? true,
+    sizeGuideEnabled: sp.sizeGuideEnabled ?? false,
+    sizeGuideImagePath: sp.sizeGuideImagePath ?? null,
   } as Product & {
     designTheme?: string;
     tags?: string[];

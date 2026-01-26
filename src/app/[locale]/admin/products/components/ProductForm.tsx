@@ -23,6 +23,8 @@ export type ProductFormValues = {
   soldOutColorCodes: string[];
   gender?: "unisex" | "men" | "women" | "";
   images: string[];
+  sizeGuideEnabled: boolean;
+  sizeGuideImagePath: string;
 };
 
 type ProductFormProps = {
@@ -40,6 +42,7 @@ type ProductFormProps = {
   onCancelEdit?: () => void;
   categories: SelectableOption[];
   designThemes: SelectableOption[];
+  collectionImages: string[];
   onCategoriesChange: (next: SelectableOption[]) => void;
   onDesignThemesChange: (next: SelectableOption[]) => void;
   onReloadCategories: () => Promise<void>;
@@ -123,6 +126,8 @@ const defaultValues: ProductFormValues = {
   soldOutColorCodes: [],
   gender: "",
   images: [],
+  sizeGuideEnabled: false,
+  sizeGuideImagePath: "",
 };
 
 const currencyFormatter = new Intl.NumberFormat("fr-DZ", {
@@ -205,6 +210,7 @@ export function ProductForm({
   onCancelEdit,
   categories,
   designThemes,
+  collectionImages,
   onCategoriesChange,
   onDesignThemesChange,
   onReloadCategories,
@@ -295,6 +301,17 @@ export function ProductForm({
     setError(null);
     setIsSubmitting(true);
     try {
+      const trimmedGuideImage = values.sizeGuideImagePath.trim();
+      if (values.sizeGuideEnabled) {
+        if (!trimmedGuideImage) {
+          setError("Size guide image is required when the guide is enabled.");
+          return;
+        }
+        if (!trimmedGuideImage.startsWith("/collections/")) {
+          setError("Size guide image must start with /collections/.");
+          return;
+        }
+      }
       const normalizedColors = values.colors
         .map((color) => ({ hex: color.hex.trim() }))
         .filter((color) => Boolean(color.hex));
@@ -309,6 +326,7 @@ export function ProductForm({
 
       await onSubmit({
         ...values,
+        sizeGuideImagePath: values.sizeGuideEnabled ? trimmedGuideImage : "",
         colors: normalizedColors,
         soldOutSizes: normalizedSoldOutSizes,
         soldOutColorCodes: normalizedSoldOutColorCodes,
@@ -363,6 +381,9 @@ export function ProductForm({
       };
     });
   };
+
+  const sizeGuideImageValid =
+    !values.sizeGuideEnabled || values.sizeGuideImagePath.trim().startsWith("/collections/");
 
   const computedSlug = useMemo(
     () =>
@@ -847,6 +868,76 @@ export function ProductForm({
                   );
                 })}
               </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="space-y-2 text-sm text-sky-100/90">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="font-semibold text-white">Size guide (Guide des tailles)</span>
+            <label className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-white/40 bg-white/5 text-emerald-400 focus:ring-2 focus:ring-white/40"
+                checked={values.sizeGuideEnabled}
+                onChange={(e) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    sizeGuideEnabled: e.target.checked,
+                    sizeGuideImagePath: e.target.checked ? prev.sizeGuideImagePath : "",
+                  }))
+                }
+              />
+              {values.sizeGuideEnabled ? "On" : "Off"}
+            </label>
+          </div>
+          <p className="text-xs text-sky-100/70">
+            Enable to show a size guide link on the product page. Image paths must start with{" "}
+            <span className="font-semibold text-white">/collections/</span>.
+          </p>
+          {values.sizeGuideEnabled ? (
+            <div className="space-y-2">
+              <label className="text-xs text-sky-100/80">Pick from /collections</label>
+              <select
+                value={
+                  collectionImages.includes(values.sizeGuideImagePath)
+                    ? values.sizeGuideImagePath
+                    : ""
+                }
+                onChange={(e) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    sizeGuideImagePath: e.target.value,
+                  }))
+                }
+                className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+              >
+                <option value="">Select an image</option>
+                {collectionImages.length === 0 ? (
+                  <option value="" disabled>
+                    No images found in /public/collections
+                  </option>
+                ) : (
+                  collectionImages.map((path) => (
+                    <option key={path} value={path}>
+                      {path}
+                    </option>
+                  ))
+                )}
+              </select>
+              <label className="text-xs text-sky-100/80">Size guide image path</label>
+              <input
+                type="text"
+                value={values.sizeGuideImagePath}
+                onChange={(e) => setValues((prev) => ({ ...prev, sizeGuideImagePath: e.target.value }))}
+                className={`w-full rounded-2xl border px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:outline-none focus:ring-2 focus:ring-white/40 ${
+                  sizeGuideImageValid ? "border-white/10 bg-white/10 focus:border-white/30" : "border-rose-400/60 bg-rose-500/10"
+                }`}
+                placeholder="/collections/Hoodie-OverSized.png"
+              />
+              {!sizeGuideImageValid ? (
+                <p className="text-xs text-rose-200">Image path must start with /collections/.</p>
+              ) : null}
             </div>
           ) : null}
         </div>
