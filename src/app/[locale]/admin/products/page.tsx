@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
@@ -106,6 +106,32 @@ export default function AdminProductsPage() {
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>([]);
   const [designThemes, setDesignThemes] = useState<SelectableOption[]>([]);
+  const derivedDesignThemes = useMemo(() => {
+    const map = new Map<string, SelectableOption>();
+    designThemes.forEach((theme) => {
+      const slug = theme.slug.trim().toLowerCase();
+      if (!slug) return;
+      map.set(slug, { ...theme, slug });
+    });
+    products.forEach((product) => {
+      const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
+      if (!rawTheme) return;
+      const slug = rawTheme.toLowerCase();
+      if (!map.has(slug)) {
+        map.set(slug, { id: slug, slug, name: rawTheme, isDefault: slug === "simple" });
+      }
+    });
+    if (!map.has("simple")) {
+      map.set("simple", { id: "simple", slug: "simple", name: "Simple", isDefault: true });
+    }
+    const sorted = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const simpleIndex = sorted.findIndex((theme) => theme.slug === "simple");
+    if (simpleIndex > 0) {
+      const [simpleTheme] = sorted.splice(simpleIndex, 1);
+      sorted.unshift(simpleTheme);
+    }
+    return sorted;
+  }, [designThemes, products]);
 
   const coerceCollectionsAndDesigns = useCallback(
     (payload: { collections: SelectableItem[]; designs: SelectableItem[] }) => payload,
@@ -556,7 +582,7 @@ export default function AdminProductsPage() {
             onUploadSizeGuide={handleUploadSizeGuide}
             onCancelEdit={resetForm}
             categories={categories}
-            designThemes={designThemes}
+            designThemes={derivedDesignThemes}
             onCategoriesChange={setCategories}
             onDesignThemesChange={setDesignThemes}
             onReloadCategories={loadCategories}
