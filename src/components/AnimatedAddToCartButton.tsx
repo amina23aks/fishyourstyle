@@ -101,7 +101,7 @@ export function AnimatedAddToCartButton({ onClick, className, disabled }: Animat
         <span className="text-sm">{t("shop.addToCart")}</span>
       </>
     );
-  }, [state]);
+  }, [state, t]);
 
   const scaleClass = state === "loading" ? "scale-[0.97]" : state === "added" ? "scale-[0.99]" : "hover:scale-[1.01] active:scale-[0.98]";
 
