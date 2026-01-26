@@ -113,4 +113,8 @@ export type Product = {
   stock?: number;
   /** Whether the product is available for purchase */
   inStock?: boolean;
+  /** Whether a size guide is available */
+  sizeGuideEnabled?: boolean;
+  /** Size guide image path */
+  sizeGuideImage?: string | null;
 };

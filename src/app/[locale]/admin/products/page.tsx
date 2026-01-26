@@ -47,6 +47,8 @@ const defaultForm: ProductFormValues = {
   soldOutColorCodes: [],
   gender: "",
   images: [],
+  sizeGuideEnabled: false,
+  sizeGuideImage: "",
 };
 
 function slugify(value: string) {
@@ -235,6 +237,8 @@ export default function AdminProductsPage() {
         stockMode: normalizedStockMode,
         stockQty: parsedStockQty,
         inStock: normalizedStockMode === "limited" ? (parsedStockQty ?? 0) > 0 : true,
+        sizeGuideEnabled: values.sizeGuideEnabled,
+        sizeGuideImage: values.sizeGuideEnabled ? values.sizeGuideImage.trim() : null,
       };
       
       // Only include description if it's explicitly set (not empty string)
@@ -317,6 +321,8 @@ export default function AdminProductsPage() {
       soldOutColorCodes: product.soldOutColorCodes ?? [],
       images: Array.from(new Set([product.images.main, ...(product.images.gallery ?? [])].filter(Boolean))),
       gender: product.gender ?? "",
+      sizeGuideEnabled: product.sizeGuideEnabled ?? false,
+      sizeGuideImage: product.sizeGuideImage ?? "",
     });
     setFormKey(Date.now());
   }, []);

@@ -121,6 +121,8 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     stockMode: sp.stockMode,
     stockQty: sp.stockQty,
     inStock: sp.inStock ?? true,
+    sizeGuideEnabled: sp.sizeGuideEnabled ?? false,
+    sizeGuideImage: sp.sizeGuideImage ?? null,
     soldOutSizes: sp.soldOutSizes,
     soldOutColorCodes: sp.soldOutColorCodes,
   };

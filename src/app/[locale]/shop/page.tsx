@@ -85,6 +85,8 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     stockMode: sp.stockMode,
     stockQty: sp.stockQty,
     inStock: sp.inStock ?? true,
+    sizeGuideEnabled: sp.sizeGuideEnabled ?? false,
+    sizeGuideImage: sp.sizeGuideImage ?? null,
   } as Product & {
     designTheme?: string;
     tags?: string[];

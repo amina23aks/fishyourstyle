@@ -56,6 +56,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string | undefined>(() =>
     availableSizes.length === 1 ? availableSizes[0].value : undefined,
   );
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const requiresColorSelection = availableColors.length > 1;
   const requiresSizeSelection = availableSizes.length > 1;
   const hasVariantAvailable = hasAvailableVariants(product);
@@ -73,6 +74,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const availableStock = stockState.stockMode === "limited" ? stockState.stockQty : undefined;
   const hasColorSelection = !requiresColorSelection || Boolean(activeColor);
   const hasSizeSelection = !requiresSizeSelection || Boolean(selectedSize);
+  const sizeGuideImage = product.sizeGuideImage?.trim();
+  const hasSizeGuide = Boolean(product.sizeGuideEnabled && sizeGuideImage);
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -140,6 +143,17 @@ export function ProductDetailContent({ product }: { product: Product }) {
       currency: product.currency ?? "DZD",
     });
   }, [product.currency, product.id, product.nameFr, product.priceDzd]);
+
+  useEffect(() => {
+    if (!isSizeGuideOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSizeGuideOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isSizeGuideOpen]);
 
   // Ensure currentImage always defaults to the first image or placeholder
   const currentImage =
@@ -368,7 +382,33 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.size")}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.size")}</h2>
+              {hasSizeGuide ? (
+                <button
+                  type="button"
+                  onClick={() => setIsSizeGuideOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition hover:border-white/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  aria-haspopup="dialog"
+                  aria-controls="size-guide-modal"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 7h18v10H3z" />
+                    <path d="M7 7v4M11 7v3M15 7v4M19 7v3" />
+                  </svg>
+                  Guide des tailles
+                </button>
+              ) : null}
+            </div>
             <div className="flex flex-wrap gap-2">
               {sizeOptions.map((size) => {
                 const isSelected = selectedSize === size.value;
@@ -452,11 +492,11 @@ export function ProductDetailContent({ product }: { product: Product }) {
               </p>
             )}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <AnimatedAddToCartButton
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock || !hasVariantAvailable}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <AnimatedAddToCartButton
+                onClick={handleAddToCart}
+                disabled={isOutOfStock || !hasVariantAvailable}
                   className={`w-full justify-center sm:w-auto ${
                     isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
                   }`.trim()}
@@ -487,6 +527,44 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
         </div>
       </div>
+
+      {isSizeGuideOpen && hasSizeGuide ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm"
+            onClick={() => setIsSizeGuideOpen(false)}
+            aria-label="Close size guide"
+          />
+          <div
+            id="size-guide-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Guide des tailles"
+            className="relative z-10 w-full max-w-4xl rounded-[28px] border border-white/10 bg-slate-950/95 p-4 text-white shadow-[0_30px_70px_rgba(0,0,0,0.6)] sm:p-6"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Guide des tailles</p>
+              <button
+                type="button"
+                onClick={() => setIsSizeGuideOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-sm text-white transition hover:border-white/40 hover:bg-white/10"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-4 max-h-[80vh] max-w-[90vw] overflow-auto rounded-2xl border border-white/10 bg-black/30 p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={sizeGuideImage}
+                alt="Guide des tailles"
+                className="h-auto w-auto max-h-[80vh] max-w-[90vw] object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

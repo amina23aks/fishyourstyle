@@ -47,6 +47,8 @@ export type StorefrontProduct = {
   images: StorefrontProductImages;
   tags?: string[];
   status: "active" | "inactive";
+  sizeGuideEnabled?: boolean;
+  sizeGuideImage?: string | null;
 };
 
 function normalizeImagesField(images: unknown): StorefrontProductImages {
@@ -181,6 +183,11 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     images: imagesValue,
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
     status: data.status === "inactive" ? "inactive" : "active",
+    sizeGuideEnabled: typeof data.sizeGuideEnabled === "boolean" ? data.sizeGuideEnabled : false,
+    sizeGuideImage:
+      typeof data.sizeGuideImage === "string" && data.sizeGuideImage.trim()
+        ? data.sizeGuideImage.trim()
+        : null,
   };
 }
 
