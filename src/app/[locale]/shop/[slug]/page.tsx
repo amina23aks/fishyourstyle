@@ -35,7 +35,6 @@ export async function generateMetadata({
     };
   }
 
-  const [mainImage] = normalizeImages(storefrontProduct.images);
   const productName = storefrontProduct.name ?? "Fish Your Style";
   const title = `${productName} | Fish Your Style`;
   const description = productDescriptionByLocale[locale](productName);
@@ -53,11 +52,7 @@ export async function generateMetadata({
       description,
       url,
       type: "website",
-      images: [
-        {
-          url: resolveOgImageUrl(mainImage),
-        },
-      ],
+      images: [resolveOgImageUrl("/outphoto.PNG")],
     },
   };
 }
