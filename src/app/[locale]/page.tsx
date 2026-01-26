@@ -12,7 +12,7 @@ import { localizePathname } from "@/i18n/paths";
 import { resolveLocale, type Locale } from "@/i18n/config";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
-import { buildAlternateLanguages, buildLocalizedUrl } from "@/lib/seo";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 
 export const revalidate = 0;
 
@@ -49,6 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       description,
       url,
       type: "website",
+      images: [resolveOgImageUrl("/outphoto.PNG")],
     },
   };
 }
