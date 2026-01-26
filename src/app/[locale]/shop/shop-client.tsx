@@ -40,11 +40,42 @@ export default function ShopClient({ products, errorMessage, categories, designT
   }, [categories]);
 
   const designValues = useMemo(() => {
-    const source = designThemes && designThemes.length > 0 ? designThemes : CANONICAL_DESIGNS;
     const allPill = { label: "All", value: "all" as const };
-    const fetchedPills = source.map((item) => ({ label: item.label ?? capitalizeLabel(item.slug), value: item.slug }));
-    return [allPill, ...fetchedPills];
-  }, [designThemes]);
+    const designMap = new Map<string, string>();
+    products.forEach((product) => {
+      const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
+      if (!rawTheme) return;
+      const normalized = rawTheme.toLowerCase();
+      if (!designMap.has(normalized)) {
+        designMap.set(normalized, capitalizeLabel(rawTheme));
+      }
+    });
+
+    const baseDesigns = Array.from(designMap.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    const hasSimple = baseDesigns.some((item) => item.value === "simple");
+    const simpleInDesigns = designThemes?.some((item) => {
+      const slug = typeof item.slug === "string" ? item.slug.toLowerCase() : "";
+      const label = typeof item.label === "string" ? item.label.toLowerCase() : "";
+      return slug === "simple" || label === "simple";
+    });
+
+    if (!hasSimple && simpleInDesigns) {
+      baseDesigns.unshift({ label: "Simple", value: "simple" });
+    }
+
+    if (baseDesigns.length === 0) {
+      const fallback = (designThemes && designThemes.length > 0 ? designThemes : CANONICAL_DESIGNS).map((item) => ({
+        label: item.label ?? capitalizeLabel(item.slug),
+        value: item.slug.toLowerCase(),
+      }));
+      return [allPill, ...fallback];
+    }
+
+    return [allPill, ...baseDesigns];
+  }, [designThemes, products]);
 
   const collectionPills = useMemo(() => {
     return collectionValues;
