@@ -87,6 +87,12 @@ export type Product = {
   sizes: string[];
   /** Available color variants */
   colors: ProductColor[];
+  /** Whether the size guide should be displayed */
+  sizeGuideEnabled?: boolean;
+  /** Size guide image URL (Cloudinary secure_url) */
+  sizeGuideImageUrl?: string | null;
+  /** Size guide image public ID (Cloudinary public_id) */
+  sizeGuideImagePublicId?: string | null;
   /** Sizes that should be treated as sold out (manual flag) */
   soldOutSizes?: string[];
   /** Color codes that should be treated as sold out (manual flag) */

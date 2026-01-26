@@ -38,6 +38,9 @@ export type StorefrontProduct = {
   designTheme: string;
   sizes: string[];
   colors: StorefrontProductColor[];
+  sizeGuideEnabled: boolean;
+  sizeGuideImageUrl?: string | null;
+  sizeGuideImagePublicId?: string | null;
   soldOutSizes?: string[];
   soldOutColorCodes?: string[];
   gender?: "unisex" | "men" | "women";
@@ -172,6 +175,15 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     designTheme: typeof data.designTheme === "string" ? data.designTheme : "simple",
     sizes: Array.isArray(data.sizes) ? (data.sizes as string[]) : [],
     colors: colorsArray,
+    sizeGuideEnabled: typeof data.sizeGuideEnabled === "boolean" ? data.sizeGuideEnabled : false,
+    sizeGuideImageUrl:
+      typeof data.sizeGuideImageUrl === "string" && data.sizeGuideImageUrl.trim()
+        ? data.sizeGuideImageUrl.trim()
+        : null,
+    sizeGuideImagePublicId:
+      typeof data.sizeGuideImagePublicId === "string" && data.sizeGuideImagePublicId.trim()
+        ? data.sizeGuideImagePublicId.trim()
+        : null,
     gender,
     soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
     soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,

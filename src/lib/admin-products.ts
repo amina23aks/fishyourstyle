@@ -30,6 +30,9 @@ export type AdminProduct = {
   designTheme: string;
   sizes: string[];
   colors: { hex: string; image?: string }[];
+  sizeGuideEnabled: boolean;
+  sizeGuideImageUrl?: string | null;
+  sizeGuideImagePublicId?: string | null;
   soldOutSizes?: string[];
   soldOutColorCodes?: string[];
   stockMode?: "unlimited" | "limited";
@@ -209,6 +212,15 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     designTheme: typeof data.designTheme === "string" ? data.designTheme : "simple",
     sizes: parseStringArray(data.sizes),
     colors: parseColorObjects(data.colors),
+    sizeGuideEnabled: typeof data.sizeGuideEnabled === "boolean" ? data.sizeGuideEnabled : false,
+    sizeGuideImageUrl:
+      typeof data.sizeGuideImageUrl === "string" && data.sizeGuideImageUrl.trim()
+        ? data.sizeGuideImageUrl.trim()
+        : null,
+    sizeGuideImagePublicId:
+      typeof data.sizeGuideImagePublicId === "string" && data.sizeGuideImagePublicId.trim()
+        ? data.sizeGuideImagePublicId.trim()
+        : null,
     soldOutSizes: parseStringArray(data.soldOutSizes),
     soldOutColorCodes: parseStringArray(data.soldOutColorCodes),
     stockMode,
@@ -228,6 +240,7 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
   const soldOutColorCodes = parseStringArray(input.soldOutColorCodes);
   const stockMode = input.stockMode === "limited" ? "limited" : "unlimited";
   const stockQty = stockMode === "limited" ? Math.max(Number(input.stockQty ?? 0), 0) : undefined;
+  const sizeGuideEnabled = Boolean(input.sizeGuideEnabled);
   const payload: Record<string, unknown> = {
     name: input.name.trim(),
     slug: input.slug || slugifyName(input.name),
@@ -238,6 +251,9 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     designTheme: input.designTheme,
     sizes: input.sizes ?? [],
     colors: normalizedColors,
+    sizeGuideEnabled,
+    sizeGuideImageUrl: sizeGuideEnabled ? (input.sizeGuideImageUrl ?? null) : null,
+    sizeGuideImagePublicId: sizeGuideEnabled ? (input.sizeGuideImagePublicId ?? null) : null,
     soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
     soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
     stockMode,
@@ -287,6 +303,19 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   if (patch.designTheme !== undefined) payload.designTheme = patch.designTheme;
   if (patch.sizes !== undefined) payload.sizes = patch.sizes;
   if (patch.colors !== undefined) payload.colors = parseColorObjects(patch.colors);
+  if (patch.sizeGuideEnabled !== undefined) {
+    payload.sizeGuideEnabled = patch.sizeGuideEnabled;
+    if (!patch.sizeGuideEnabled) {
+      payload.sizeGuideImageUrl = null;
+      payload.sizeGuideImagePublicId = null;
+    }
+  }
+  if (patch.sizeGuideImageUrl !== undefined) {
+    payload.sizeGuideImageUrl = patch.sizeGuideImageUrl ? patch.sizeGuideImageUrl : null;
+  }
+  if (patch.sizeGuideImagePublicId !== undefined) {
+    payload.sizeGuideImagePublicId = patch.sizeGuideImagePublicId ? patch.sizeGuideImagePublicId : null;
+  }
   if (patch.soldOutSizes !== undefined) {
     const parsed = parseStringArray(patch.soldOutSizes);
     payload.soldOutSizes = parsed.length > 0 ? parsed : null;

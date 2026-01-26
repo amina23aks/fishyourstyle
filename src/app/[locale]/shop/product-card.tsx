@@ -117,7 +117,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
   const isSelectionPartial = hasColorSelection !== hasSizeSelection;
-  const selectionHelper = isSelectionPartial ? t("shop.selectColorSizeHelper") : null;
+  const selectionHelper = useMemo(
+    () => (isSelectionPartial ? t("shop.selectColorSizeHelper") : null),
+    [isSelectionPartial, t],
+  );
 
   useEffect(() => {
     setActiveIndex(0);
@@ -267,6 +270,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     availableStock,
     hasVariantAvailable,
     isOutOfStock,
+    isSelectionIncomplete,
     isSelectionInvalid,
     items,
     productCategory,
@@ -284,6 +288,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     stockIsAvailable,
     stockMode,
     stockQty,
+    t,
   ]);
 
   if (loading) {

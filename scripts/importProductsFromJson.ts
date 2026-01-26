@@ -204,6 +204,9 @@ async function importProducts() {
             ["S", "M", "L", "XL", "XXL"].includes(s.toUpperCase())
           ) as ("S" | "M" | "L" | "XL" | "XXL")[],
           colors,
+          sizeGuideEnabled: false,
+          sizeGuideImageUrl: null,
+          sizeGuideImagePublicId: null,
           stock,
           inStock,
           images: imagePayload,
@@ -243,4 +246,3 @@ async function importProducts() {
 
 // Run the import
 importProducts();
-
