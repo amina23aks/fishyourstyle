@@ -74,8 +74,8 @@ export function ProductDetailContent({ product }: { product: Product }) {
   const availableStock = stockState.stockMode === "limited" ? stockState.stockQty : undefined;
   const hasColorSelection = !requiresColorSelection || Boolean(activeColor);
   const hasSizeSelection = !requiresSizeSelection || Boolean(selectedSize);
-  const sizeGuideImage = product.sizeGuideImage?.trim();
-  const hasSizeGuide = Boolean(product.sizeGuideEnabled && sizeGuideImage);
+  const sizeGuideImagePath = product.sizeGuideImagePath?.trim();
+  const hasSizeGuide = Boolean(product.sizeGuideEnabled && sizeGuideImagePath);
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -405,6 +405,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
                     <path d="M3 7h18v10H3z" />
                     <path d="M7 7v4M11 7v3M15 7v4M19 7v3" />
                   </svg>
+                  <span aria-hidden="true">📏</span>
                   Guide des tailles
                 </button>
               ) : null}
@@ -541,7 +542,7 @@ export function ProductDetailContent({ product }: { product: Product }) {
             role="dialog"
             aria-modal="true"
             aria-label="Guide des tailles"
-            className="relative z-10 w-full max-w-4xl rounded-[28px] border border-white/10 bg-slate-950/95 p-4 text-white shadow-[0_30px_70px_rgba(0,0,0,0.6)] sm:p-6"
+            className="relative z-10 w-full max-w-[720px] rounded-[28px] border border-white/10 bg-slate-950/95 p-4 text-white shadow-[0_30px_70px_rgba(0,0,0,0.6)] sm:p-6"
           >
             <div className="flex items-center justify-between gap-4">
               <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Guide des tailles</p>
@@ -557,9 +558,9 @@ export function ProductDetailContent({ product }: { product: Product }) {
             <div className="mt-4 max-h-[80vh] max-w-[90vw] overflow-auto rounded-2xl border border-white/10 bg-black/30 p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={sizeGuideImage}
+                src={sizeGuideImagePath}
                 alt="Guide des tailles"
-                className="h-auto w-auto max-h-[80vh] max-w-[90vw] object-contain"
+                className="h-auto w-auto max-h-[80vh] max-w-[720px] object-contain"
               />
             </div>
           </div>

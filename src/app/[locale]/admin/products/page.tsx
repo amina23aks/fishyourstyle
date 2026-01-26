@@ -48,7 +48,7 @@ const defaultForm: ProductFormValues = {
   gender: "",
   images: [],
   sizeGuideEnabled: false,
-  sizeGuideImage: "",
+  sizeGuideImagePath: "",
 };
 
 function slugify(value: string) {
@@ -104,6 +104,7 @@ export default function AdminProductsPage() {
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>([]);
   const [designThemes, setDesignThemes] = useState<SelectableOption[]>([]);
+  const [collectionImages, setCollectionImages] = useState<string[]>([]);
 
   const coerceCollectionsAndDesigns = useCallback(
     (payload: { collections: SelectableItem[]; designs: SelectableItem[] }) => payload,
@@ -149,6 +150,18 @@ export default function AdminProductsPage() {
     }
   }, []);
 
+  const loadCollectionImages = useCallback(async () => {
+    try {
+      const res = await fetch("/api/collections", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch collection images");
+      const data = (await res.json()) as { images: string[] };
+      setCollectionImages(Array.isArray(data.images) ? data.images : []);
+    } catch (err) {
+      console.error("Failed to load collection images", err);
+      setCollectionImages([]);
+    }
+  }, []);
+
   const loadProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -170,6 +183,10 @@ export default function AdminProductsPage() {
   useEffect(() => {
     loadCollectionsAndDesigns();
   }, [loadCollectionsAndDesigns]);
+
+  useEffect(() => {
+    loadCollectionImages();
+  }, [loadCollectionImages]);
 
   useEffect(() => {
     if (!pendingDelete) return;
@@ -238,7 +255,7 @@ export default function AdminProductsPage() {
         stockQty: parsedStockQty,
         inStock: normalizedStockMode === "limited" ? (parsedStockQty ?? 0) > 0 : true,
         sizeGuideEnabled: values.sizeGuideEnabled,
-        sizeGuideImage: values.sizeGuideEnabled ? values.sizeGuideImage.trim() : null,
+        sizeGuideImagePath: values.sizeGuideEnabled ? values.sizeGuideImagePath.trim() : null,
       };
       
       // Only include description if it's explicitly set (not empty string)
@@ -322,7 +339,7 @@ export default function AdminProductsPage() {
       images: Array.from(new Set([product.images.main, ...(product.images.gallery ?? [])].filter(Boolean))),
       gender: product.gender ?? "",
       sizeGuideEnabled: product.sizeGuideEnabled ?? false,
-      sizeGuideImage: product.sizeGuideImage ?? "",
+      sizeGuideImagePath: product.sizeGuideImagePath ?? "",
     });
     setFormKey(Date.now());
   }, []);
@@ -526,6 +543,7 @@ export default function AdminProductsPage() {
             onCancelEdit={resetForm}
             categories={categories}
             designThemes={designThemes}
+            collectionImages={collectionImages}
             onCategoriesChange={setCategories}
             onDesignThemesChange={setDesignThemes}
             onReloadCategories={loadCategories}

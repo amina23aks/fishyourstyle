@@ -39,7 +39,7 @@ export type AdminProduct = {
   images: { main: string; gallery: string[] };
   gender?: "unisex" | "men" | "women";
   sizeGuideEnabled?: boolean;
-  sizeGuideImage?: string | null;
+  sizeGuideImagePath?: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -220,10 +220,12 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     images: normalizeImages(data.images),
     gender: typeof data.gender === "string" ? (data.gender as AdminProduct["gender"]) : undefined,
     sizeGuideEnabled: typeof data.sizeGuideEnabled === "boolean" ? data.sizeGuideEnabled : false,
-    sizeGuideImage:
-      typeof data.sizeGuideImage === "string" && data.sizeGuideImage.trim()
-        ? data.sizeGuideImage.trim()
-        : null,
+    sizeGuideImagePath:
+      typeof data.sizeGuideImagePath === "string" && data.sizeGuideImagePath.trim()
+        ? data.sizeGuideImagePath.trim()
+        : typeof data.sizeGuideImage === "string" && data.sizeGuideImage.trim()
+          ? data.sizeGuideImage.trim()
+          : null,
     createdAt: (data.createdAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
     updatedAt: (data.updatedAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
   };
@@ -254,9 +256,9 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     images: input.images ?? { main: "", gallery: [] },
     gender: input.gender ?? null,
     sizeGuideEnabled: Boolean(input.sizeGuideEnabled),
-    sizeGuideImage:
-      input.sizeGuideEnabled && typeof input.sizeGuideImage === "string" && input.sizeGuideImage.trim()
-        ? input.sizeGuideImage.trim()
+    sizeGuideImagePath:
+      input.sizeGuideEnabled && typeof input.sizeGuideImagePath === "string" && input.sizeGuideImagePath.trim()
+        ? input.sizeGuideImagePath.trim()
         : null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -325,12 +327,12 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   if (patch.sizeGuideEnabled !== undefined) {
     payload.sizeGuideEnabled = Boolean(patch.sizeGuideEnabled);
     if (!patch.sizeGuideEnabled) {
-      payload.sizeGuideImage = null;
+      payload.sizeGuideImagePath = null;
     }
   }
-  if (patch.sizeGuideImage !== undefined) {
-    const trimmed = typeof patch.sizeGuideImage === "string" ? patch.sizeGuideImage.trim() : "";
-    payload.sizeGuideImage = trimmed || null;
+  if (patch.sizeGuideImagePath !== undefined) {
+    const trimmed = typeof patch.sizeGuideImagePath === "string" ? patch.sizeGuideImagePath.trim() : "";
+    payload.sizeGuideImagePath = trimmed || null;
   }
 
   return removeUndefinedDeep(payload) as WithFieldValue<Partial<AdminProductWrite>>;

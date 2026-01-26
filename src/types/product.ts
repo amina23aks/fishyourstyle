@@ -116,5 +116,5 @@ export type Product = {
   /** Whether a size guide is available */
   sizeGuideEnabled?: boolean;
   /** Size guide image path */
-  sizeGuideImage?: string | null;
+  sizeGuideImagePath?: string | null;
 };
