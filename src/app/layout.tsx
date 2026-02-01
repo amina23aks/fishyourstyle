@@ -24,6 +24,8 @@ export const metadata: Metadata = {
   ],
   icons: {
     icon: "/logoF.png",
+    shortcut: "/logoF.png",
+    apple: "/logoF.png",
   },
   metadataBase,
   openGraph: {
@@ -31,6 +33,7 @@ export const metadata: Metadata = {
     images: [resolveOgImageUrl("/outphoto.PNG")],
   },
   twitter: {
+    card: "summary_large_image",
     images: [resolveOgImageUrl("/outphoto.PNG")],
   },
   verification: {

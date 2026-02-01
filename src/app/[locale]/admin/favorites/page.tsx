@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 import type { Timestamp } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { resolveLocale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 import type {
   FavoriteItem,
   FavoriteItemClient,
@@ -12,10 +14,30 @@ import { FavoritesAdminClient } from "./FavoritesAdminClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const metadataContent = {
   title: "Favorites | Admin | Fish Your Style",
   description: "Monitor user favorites and popular products.",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const url = buildLocalizedUrl(locale, "/admin/favorites");
+
+  return {
+    ...metadataContent,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/admin/favorites"),
+    },
+    openGraph: {
+      ...metadataContent,
+      url,
+      type: "website",
+      images: [resolveOgImageUrl("/outphoto.PNG")],
+    },
+  };
+}
 
 function normalizeDate(value: string | Timestamp | undefined | null): string | null {
   if (!value) return null;

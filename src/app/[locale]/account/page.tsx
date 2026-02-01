@@ -1,11 +1,33 @@
 import type { Metadata } from "next";
+import { resolveLocale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 
 import AccountClient from "./AccountClient";
 
-export const metadata: Metadata = {
+const metadataContent = {
   title: "Account | Fish Your Style",
   description: "Access your Fish Your Style account and order history.",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const url = buildLocalizedUrl(locale, "/account");
+
+  return {
+    ...metadataContent,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/account"),
+    },
+    openGraph: {
+      ...metadataContent,
+      url,
+      type: "website",
+      images: [resolveOgImageUrl("/outphoto.PNG")],
+    },
+  };
+}
 
 export default function AccountPage() {
   return <AccountClient />;

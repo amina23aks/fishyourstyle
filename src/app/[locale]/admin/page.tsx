@@ -1,11 +1,33 @@
 import type { Metadata } from "next";
+import { resolveLocale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 
 import { AdminOverviewStats } from "./components/AdminOverviewStats";
 
-export const metadata: Metadata = {
+const metadataContent = {
   title: "Admin | Fish Your Style",
   description: "Manage orders and products for Fish Your Style.",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const url = buildLocalizedUrl(locale, "/admin");
+
+  return {
+    ...metadataContent,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/admin"),
+    },
+    openGraph: {
+      ...metadataContent,
+      url,
+      type: "website",
+      images: [resolveOgImageUrl("/outphoto.PNG")],
+    },
+  };
+}
 
 export default function AdminPage() {
   return (

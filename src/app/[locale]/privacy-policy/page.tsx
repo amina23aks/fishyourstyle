@@ -1,9 +1,31 @@
 import type { Metadata } from "next";
+import { resolveLocale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 
-export const metadata: Metadata = {
+const metadataContent = {
   title: "Privacy Policy | Fish Your Style",
   description: "Learn what data Fish Your Style collects and how it is used.",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const url = buildLocalizedUrl(locale, "/privacy-policy");
+
+  return {
+    ...metadataContent,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/privacy-policy"),
+    },
+    openGraph: {
+      ...metadataContent,
+      url,
+      type: "website",
+      images: [resolveOgImageUrl("/outphoto.PNG")],
+    },
+  };
+}
 
 export default function PrivacyPolicyPage() {
   const currentYear = 2025;
