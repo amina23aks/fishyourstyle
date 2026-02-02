@@ -1,9 +1,31 @@
 import type { Metadata } from "next";
+import { resolveLocale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 
-export const metadata: Metadata = {
+const metadataContent = {
   title: "Shipping & Returns | Fish Your Style",
   description: "Shipping and returns information for Fish Your Style orders.",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const url = buildLocalizedUrl(locale, "/shipping");
+
+  return {
+    ...metadataContent,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/shipping"),
+    },
+    openGraph: {
+      ...metadataContent,
+      url,
+      type: "website",
+      images: [resolveOgImageUrl("/outphoto.PNG")],
+    },
+  };
+}
 
 export default function ShippingPage() {
   return (

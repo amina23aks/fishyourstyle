@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 import type { Timestamp } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { resolveLocale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 
 export type AdminWishlistEntry = {
   id: string;
@@ -9,10 +11,30 @@ export type AdminWishlistEntry = {
   createdAt: string;
 };
 
-export const metadata: Metadata = {
+const metadataContent = {
   title: "Wishlist | Admin | Fish Your Style",
   description: "View recent wishlist signups.",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const url = buildLocalizedUrl(locale, "/admin/wishlist");
+
+  return {
+    ...metadataContent,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/admin/wishlist"),
+    },
+    openGraph: {
+      ...metadataContent,
+      url,
+      type: "website",
+      images: [resolveOgImageUrl("/outphoto.PNG")],
+    },
+  };
+}
 
 function formatDateTime(isoString: string) {
   if (!isoString) return "—";

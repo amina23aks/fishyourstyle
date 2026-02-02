@@ -2,12 +2,34 @@ import type { Metadata } from "next";
 import FAQAccordion from "@/components/FAQAccordion";
 import PageShell from "@/components/PageShell";
 import { faqItems } from "@/data/faqItems";
+import { resolveLocale } from "@/i18n/config";
+import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
 
-export const metadata: Metadata = {
+const metadataContent = {
   title: "الأسئلة المتكررة | Fish Your Style",
   description:
     "إجابات عن أكثر الأسئلة شيوعًا حول الطلبات، الشحن، والدفع عند الاستلام.",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: localeParam } = await params;
+  const locale = resolveLocale(localeParam);
+  const url = buildLocalizedUrl(locale, "/faq");
+
+  return {
+    ...metadataContent,
+    alternates: {
+      canonical: url,
+      languages: buildAlternateLanguages("/faq"),
+    },
+    openGraph: {
+      ...metadataContent,
+      url,
+      type: "website",
+      images: [resolveOgImageUrl("/outphoto.PNG")],
+    },
+  };
+}
 
 export default function FAQPage() {
   return (
