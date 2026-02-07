@@ -39,7 +39,7 @@ export async function generateMetadata({
   const title = `${productName} | Fish Your Style`;
   const description = productDescriptionByLocale[locale](productName);
   const url = buildLocalizedUrl(locale, `/shop/${slug}`);
-  const ogImages = [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")];
+  const ogImages = [resolveOgImageUrl("/outphoto.webp")];
 
   return {
     title,

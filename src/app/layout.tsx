@@ -24,24 +24,16 @@ export const metadata: Metadata = {
     "style",
   ],
   icons: {
-    icon: [
-      { url: "/logoF.webp", type: "image/webp" },
-      { url: "/logoF.png", type: "image/png" },
-    ],
-    shortcut: [
-      { url: "/logoF.webp", type: "image/webp" },
-      { url: "/logoF.png", type: "image/png" },
-    ],
-    apple: "/logoF.png",
+    icon: "/logoF.png",
   },
   metadataBase,
   openGraph: {
     type: "website",
-    images: [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")],
+    images: [resolveOgImageUrl("/outphoto.webp")],
   },
   twitter: {
     card: "summary_large_image",
-    images: [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")],
+    images: [resolveOgImageUrl("/outphoto.webp")],
   },
   verification: {
     google: "xhWDfYVWM4wYlyC0N8spspJoYrgmPcLaliR833kIz6c",
