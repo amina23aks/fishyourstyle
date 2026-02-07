@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Script from "next/script";
 import { Suspense } from "react";
 import OceanBackdrop from "@/components/OceanBackdrop";
@@ -95,16 +96,16 @@ fbq('track', 'PageView');`}
       </head>
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">
         {metaPixelId ? (
-          <noscript>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              height="1"
-              width="1"
-              style={{ display: "none" }}
-              src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
-              alt=""
-            />
-          </noscript>
+          <Image
+            src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
+            alt=""
+            width={1}
+            height={1}
+            unoptimized
+            priority
+            style={{ display: "none" }}
+            aria-hidden="true"
+          />
         ) : null}
         <Suspense fallback={null}>
           {metaPixelId ? <MetaPixelPageView /> : null}

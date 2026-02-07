@@ -7,6 +7,11 @@ const nextConfig = {
         hostname: "res.cloudinary.com",
         pathname: "/dpapsfabg/**",
       },
+      {
+        protocol: "https",
+        hostname: "www.facebook.com",
+        pathname: "/tr",
+      },
     ],
   },
 };

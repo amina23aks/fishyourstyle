@@ -911,11 +911,13 @@ export function ProductForm({
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-sky-900/30">
               {values.sizeGuideImageUrl ? (
                 <div className="flex flex-wrap items-start gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={values.sizeGuideImageUrl}
                     alt="Size guide preview"
+                    width={320}
+                    height={320}
                     className="h-32 w-auto max-w-full rounded-xl border border-white/15 object-contain"
+                    sizes="320px"
                   />
                   <button
                     type="button"

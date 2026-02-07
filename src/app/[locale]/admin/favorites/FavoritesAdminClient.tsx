@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { FavoriteProductStat, FavoritesAdminRow } from "@/types/favorites";
 import { useLocale } from "@/i18n/I18nProvider";
@@ -142,12 +143,13 @@ export function FavoritesAdminClient({
                     #{index + 1}
                   </span>
                   {product.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={product.image}
                       alt={product.name}
+                      width={56}
+                      height={56}
                       className="h-14 w-14 rounded-xl object-cover"
-                      loading="lazy"
+                      sizes="56px"
                     />
                   ) : (
                     <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 text-[10px] text-white/70">
@@ -208,12 +210,13 @@ export function FavoritesAdminClient({
                     className="flex items-center gap-4 rounded-2xl border border-white/10 bg-slate-900/70 p-3"
                   >
                     {item.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={item.image}
                         alt={item.name}
+                        width={56}
+                        height={56}
                         className="h-14 w-14 rounded-xl object-cover"
-                        loading="lazy"
+                        sizes="56px"
                       />
                     ) : (
                       <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 text-[10px] text-white/70">

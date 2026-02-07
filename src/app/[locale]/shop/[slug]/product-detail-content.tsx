@@ -551,12 +551,15 @@ export function ProductDetailContent({ product }: { product: Product }) {
               </button>
             </div>
             <div className="mt-4 flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={sizeGuideImageUrl ?? ""}
-                alt={t("shop.sizeGuide")}
-                className="max-h-[78vh] h-auto w-full object-contain"
-              />
+              <div className="relative h-[78vh] w-full">
+                <Image
+                  src={sizeGuideImageUrl ?? ""}
+                  alt={t("shop.sizeGuide")}
+                  fill
+                  sizes="100vw"
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>
