@@ -1,18 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
 
-const CookiesBanner = dynamic(() => import("@/components/CookiesBanner"), {
-  ssr: false,
-});
-
-const AuthModal = dynamic(() => import("@/components/AuthModal"), {
-  ssr: false,
-});
+type OverlayComponents = {
+  CookiesBanner: ComponentType;
+  AuthModal: ComponentType;
+};
 
 export default function ClientOverlays() {
-  const [shouldRender, setShouldRender] = useState(false);
+  const [overlays, setOverlays] = useState<OverlayComponents | null>(null);
 
   useEffect(() => {
     const browserWindow = globalThis as Window &
@@ -25,16 +22,35 @@ export default function ClientOverlays() {
       };
     let timeoutId: number | null = null;
     let idleId: number | null = null;
+    let isCancelled = false;
+
+    const loadOverlays = () => {
+      Promise.all([
+        import("@/components/CookiesBanner"),
+        import("@/components/AuthModal"),
+      ])
+        .then(([cookiesModule, authModule]) => {
+          if (isCancelled) return;
+          setOverlays({
+            CookiesBanner: cookiesModule.default,
+            AuthModal: authModule.default,
+          });
+        })
+        .catch((error) => {
+          console.error("Failed to load overlay components", error);
+        });
+    };
 
     if (browserWindow.requestIdleCallback) {
-      idleId = browserWindow.requestIdleCallback(() => setShouldRender(true), {
+      idleId = browserWindow.requestIdleCallback(loadOverlays, {
         timeout: 1200,
       });
     } else {
-      timeoutId = browserWindow.setTimeout(() => setShouldRender(true), 200);
+      timeoutId = browserWindow.setTimeout(loadOverlays, 200);
     }
 
     return () => {
+      isCancelled = true;
       if (idleId !== null) {
         browserWindow.cancelIdleCallback?.(idleId);
       }
@@ -44,9 +60,11 @@ export default function ClientOverlays() {
     };
   }, []);
 
-  if (!shouldRender) {
+  if (!overlays) {
     return null;
   }
+
+  const { CookiesBanner, AuthModal } = overlays;
 
   return (
     <>

@@ -123,8 +123,8 @@ export default function HeroFishing() {
           <div className="relative order-1 aspect-[16/9] w-full max-w-2xl lg:order-2 lg:max-w-[640px]">
             <div className="absolute inset-0 float-slow">
               <Image
-                src="/hero/cat.png"
-                alt="Cat on a wooden boat"
+                src="/outphoto.webp"
+                alt="Fish Your Style streetwear hero look"
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 640px"
