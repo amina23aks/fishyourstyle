@@ -96,6 +96,7 @@ fbq('track', 'PageView');`}
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">
         {metaPixelId ? (
           <noscript>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               height="1"
               width="1"

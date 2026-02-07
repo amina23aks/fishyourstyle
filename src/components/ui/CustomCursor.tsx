@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 
 const CURSOR_SIZE = 34;
-const POINTER_SCALE = 1.18;
-const SMOOTHING = 0.3;
+const POINTER_SCALE = 1.12;
 const INTERACTIVE_SELECTOR =
   "button, a, input, textarea, select, [role='button'], [data-cursor='pointer']";
 
 export default function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement | null>(null);
-  const currentRef = useRef({ x: 0, y: 0 });
   const targetRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number | null>(null);
   const isRunningRef = useRef(false);
@@ -34,10 +32,7 @@ export default function CustomCursor() {
         return;
       }
       const target = targetRef.current;
-      const current = currentRef.current;
-      current.x += (target.x - current.x) * SMOOTHING;
-      current.y += (target.y - current.y) * SMOOTHING;
-      cursorEl.style.transform = `translate3d(${current.x - CURSOR_SIZE / 2}px, ${current.y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
+      cursorEl.style.transform = `translate3d(${target.x - CURSOR_SIZE / 2}px, ${target.y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
       rafRef.current = window.requestAnimationFrame(updatePosition);
     };
 
@@ -45,7 +40,6 @@ export default function CustomCursor() {
       targetRef.current = { x: event.clientX, y: event.clientY };
 
       if (!isRunningRef.current) {
-        currentRef.current = { x: event.clientX, y: event.clientY };
         isRunningRef.current = true;
         rafRef.current = window.requestAnimationFrame(updatePosition);
       }
