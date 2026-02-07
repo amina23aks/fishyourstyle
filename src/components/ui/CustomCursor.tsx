@@ -9,7 +9,6 @@ const INTERACTIVE_SELECTOR =
 
 export default function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement | null>(null);
-  const currentRef = useRef({ x: 0, y: 0 });
   const targetRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number | null>(null);
   const isRunningRef = useRef(false);
@@ -32,10 +31,8 @@ export default function CustomCursor() {
         rafRef.current = null;
         return;
       }
-      const target = targetRef.current;
-      currentRef.current = { x: target.x, y: target.y };
-      cursorEl.style.transform = `translate3d(${target.x - CURSOR_SIZE / 2}px, ${target.y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
-      cursorEl.style.opacity = "1";
+      const { x, y } = targetRef.current;
+      cursorEl.style.transform = `translate3d(${x - CURSOR_SIZE / 2}px, ${y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
       rafRef.current = window.requestAnimationFrame(updatePosition);
     };
 
@@ -47,13 +44,12 @@ export default function CustomCursor() {
 
       const cursorEl = cursorRef.current;
       if (cursorEl) {
-        cursorEl.style.opacity = "1";
+        cursorEl.style.opacity = isInteractive ? "0" : "1";
         cursorEl.dataset.state = isInteractive ? "pointer" : "default";
         cursorEl.style.setProperty("--cursor-scale", isInteractive ? String(POINTER_SCALE) : "1");
       }
 
       if (!isRunningRef.current) {
-        currentRef.current = { x: targetRef.current.x, y: targetRef.current.y };
         isRunningRef.current = true;
         rafRef.current = window.requestAnimationFrame(updatePosition);
       }
