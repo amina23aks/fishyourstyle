@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const locale = resolveLocale(localeParam);
   const { title, description } = homeMetadataByLocale[locale];
   const url = buildLocalizedUrl(locale, "/");
-  const ogImages = [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")];
+  const ogImages = [resolveOgImageUrl("/outphoto.webp")];
 
   return {
     title,
