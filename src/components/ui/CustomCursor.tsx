@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 const CURSOR_SIZE = 34;
 const POINTER_SCALE = 1.12;
@@ -12,17 +12,13 @@ export default function CustomCursor() {
   const targetRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number | null>(null);
   const isRunningRef = useRef(false);
-  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    const canHover = window.matchMedia("(hover: hover)").matches;
-    const finePointer = window.matchMedia("(pointer: fine)").matches;
-
-    if (!canHover || !finePointer) {
+    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (!canHover) {
       return;
     }
 
-    setEnabled(true);
     document.documentElement.classList.add("custom-cursor-active");
 
     const updatePosition = () => {
@@ -31,13 +27,14 @@ export default function CustomCursor() {
         rafRef.current = null;
         return;
       }
-      const target = targetRef.current;
-      cursorEl.style.transform = `translate3d(${target.x - CURSOR_SIZE / 2}px, ${target.y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
+      const { x, y } = targetRef.current;
+      cursorEl.style.transform = `translate3d(${x - CURSOR_SIZE / 2}px, ${y - CURSOR_SIZE / 2}px, 0) scale(var(--cursor-scale, 1))`;
       rafRef.current = window.requestAnimationFrame(updatePosition);
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      targetRef.current = { x: event.clientX, y: event.clientY };
+      targetRef.current.x = event.clientX;
+      targetRef.current.y = event.clientY;
 
       if (!isRunningRef.current) {
         isRunningRef.current = true;
@@ -108,10 +105,6 @@ export default function CustomCursor() {
       isRunningRef.current = false;
     };
   }, []);
-
-  if (!enabled) {
-    return null;
-  }
 
   return (
     <div
