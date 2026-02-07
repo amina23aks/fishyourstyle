@@ -1,18 +1,16 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import type { ComponentType } from "react";
 
-const CookiesBanner = dynamic(() => import("@/components/CookiesBanner"), {
-  ssr: false,
-});
-
-const AuthModal = dynamic(() => import("@/components/AuthModal"), {
-  ssr: false,
-});
+type OverlayComponents = {
+  CookiesBanner: ComponentType;
+  AuthModal: ComponentType;
+};
 
 export default function ClientOverlays() {
   const [shouldRender, setShouldRender] = useState(false);
+  const [overlays, setOverlays] = useState<OverlayComponents | null>(null);
 
   useEffect(() => {
     const browserWindow = globalThis as Window &
@@ -44,9 +42,33 @@ export default function ClientOverlays() {
     };
   }, []);
 
-  if (!shouldRender) {
+  useEffect(() => {
+    if (!shouldRender) return;
+    let isActive = true;
+    Promise.all([
+      import("@/components/CookiesBanner"),
+      import("@/components/AuthModal"),
+    ])
+      .then(([cookiesModule, authModule]) => {
+        if (!isActive) return;
+        setOverlays({
+          CookiesBanner: cookiesModule.default,
+          AuthModal: authModule.default,
+        });
+      })
+      .catch((error) => {
+        console.error("[client-overlays] failed to load overlays", error);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [shouldRender]);
+
+  if (!shouldRender || !overlays) {
     return null;
   }
+
+  const { CookiesBanner, AuthModal } = overlays;
 
   return (
     <>
