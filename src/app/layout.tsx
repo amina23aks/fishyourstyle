@@ -77,7 +77,7 @@ export default async function RootLayout({
         <Script
           src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
           type="module"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         {metaPixelId ? (
           <Script id="meta-pixel" strategy="afterInteractive">

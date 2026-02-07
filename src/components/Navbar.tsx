@@ -150,6 +150,7 @@ export function Navbar() {
   }, [user]);
 
   useEffect(() => {
+    if (!isAccountMenuOpen) return;
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (
         isAccountMenuOpen &&
