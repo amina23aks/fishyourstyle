@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 
 const CustomCursor = dynamic(() => import("@/components/ui/CustomCursor"), {
   ssr: false,
@@ -15,6 +16,42 @@ const AuthModal = dynamic(() => import("@/components/AuthModal"), {
 });
 
 export default function ClientOverlays() {
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    const browserWindow = globalThis as Window &
+      typeof globalThis & {
+        requestIdleCallback?: (
+          callback: IdleRequestCallback,
+          options?: IdleRequestOptions
+        ) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      };
+    let timeoutId: number | null = null;
+    let idleId: number | null = null;
+
+    if (browserWindow.requestIdleCallback) {
+      idleId = browserWindow.requestIdleCallback(() => setShouldRender(true), {
+        timeout: 1200,
+      });
+    } else {
+      timeoutId = browserWindow.setTimeout(() => setShouldRender(true), 200);
+    }
+
+    return () => {
+      if (idleId !== null) {
+        browserWindow.cancelIdleCallback?.(idleId);
+      }
+      if (timeoutId !== null) {
+        browserWindow.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  if (!shouldRender) {
+    return null;
+  }
+
   return (
     <>
       <CustomCursor />
