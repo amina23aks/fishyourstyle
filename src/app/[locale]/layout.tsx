@@ -1,8 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/layout/Footer";
-import CookiesBanner from "@/components/CookiesBanner";
-import AuthModal from "@/components/AuthModal";
-import CustomCursor from "@/components/ui/CustomCursor";
+import ClientOverlays from "@/components/ClientOverlays";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { getMessages } from "@/i18n/get-messages";
 import { getLocaleDirection, resolveLocale } from "@/i18n/config";
@@ -29,9 +27,7 @@ export default async function LocaleLayout({
         <main className="flex-1">{children}</main>
         <Footer />
       </div>
-      <CustomCursor />
-      <CookiesBanner />
-      <AuthModal />
+      <ClientOverlays />
     </I18nProvider>
   );
 }

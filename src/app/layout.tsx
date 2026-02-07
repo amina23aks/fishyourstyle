@@ -23,18 +23,24 @@ export const metadata: Metadata = {
     "style",
   ],
   icons: {
-    icon: "/logoF.png",
-    shortcut: "/logoF.png",
+    icon: [
+      { url: "/logoF.webp", type: "image/webp" },
+      { url: "/logoF.png", type: "image/png" },
+    ],
+    shortcut: [
+      { url: "/logoF.webp", type: "image/webp" },
+      { url: "/logoF.png", type: "image/png" },
+    ],
     apple: "/logoF.png",
   },
   metadataBase,
   openGraph: {
     type: "website",
-    images: [resolveOgImageUrl("/outphoto.PNG")],
+    images: [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")],
   },
   twitter: {
     card: "summary_large_image",
-    images: [resolveOgImageUrl("/outphoto.PNG")],
+    images: [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")],
   },
   verification: {
     google: "xhWDfYVWM4wYlyC0N8spspJoYrgmPcLaliR833kIz6c",
@@ -70,7 +76,7 @@ export default async function RootLayout({
         <Script
           src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
           type="module"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
         {metaPixelId ? (
           <Script id="meta-pixel" strategy="afterInteractive">

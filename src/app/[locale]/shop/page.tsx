@@ -28,6 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const locale = resolveLocale(localeParam);
   const { title, description } = shopMetadataByLocale[locale];
   const url = buildLocalizedUrl(locale, "/shop");
+  const ogImages = [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")];
 
   return {
     title,
@@ -41,7 +42,13 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       description,
       url,
       type: "website",
-      images: [resolveOgImageUrl("/outphoto.PNG")],
+      images: ogImages,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ogImages,
     },
   };
 }
