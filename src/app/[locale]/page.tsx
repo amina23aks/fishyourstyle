@@ -12,7 +12,7 @@ import { localizePathname } from "@/i18n/paths";
 import { resolveLocale, type Locale } from "@/i18n/config";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
-import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
+import { buildAlternateLanguages, buildLocalizedUrl, brandLogoUrl, defaultOgImageUrl, siteName, siteUrl } from "@/lib/seo";
 
 export const revalidate = 0;
 
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const locale = resolveLocale(localeParam);
   const { title, description } = homeMetadataByLocale[locale];
   const url = buildLocalizedUrl(locale, "/");
-  const ogImages = [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")];
+  const ogImages = [defaultOgImageUrl];
 
   return {
     title,
@@ -50,6 +50,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       description,
       url,
       type: "website",
+      siteName,
       images: ogImages,
     },
     twitter: {
@@ -137,6 +138,21 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   }
   const allProducts = storefrontProducts.map(mapStorefrontToProduct);
   const products = allProducts.slice(0, 8);
+
+  const websiteStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteName,
+    url: siteUrl,
+  };
+
+  const organizationStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: siteName,
+    url: siteUrl,
+    logo: brandLogoUrl,
+  };
   const reasons = [
     {
       title: t("whyUs.deliveryTitle"),
@@ -157,6 +173,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
   return (
     <div className="flex w-full flex-col gap-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationStructuredData) }}
+      />
       <div dir="ltr" className="text-left">
         <Hero />
       </div>

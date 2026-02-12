@@ -1,15 +1,25 @@
 import { locales, type Locale } from "@/i18n/config";
 import { localizePathname } from "@/i18n/paths";
 
+export const siteName = "Fish Your Style";
 export const siteUrl = "https://fishyourstyle.vercel.app";
-export const metadataBase = new URL("https://fishyourstyle.vercel.app");
+export const metadataBase = new URL(siteUrl);
+export const defaultOgImagePath = "/outphoto.PNG";
+export const defaultOgImageUrl = new URL(defaultOgImagePath, metadataBase).toString();
+export const brandLogoPath = "/logoF.png";
+export const brandLogoUrl = new URL(brandLogoPath, metadataBase).toString();
 
 export function buildLocalizedUrl(locale: Locale, pathname: string): string {
   return new URL(localizePathname(locale, pathname), metadataBase).toString();
 }
 
 export function buildAlternateLanguages(pathname: string): Record<string, string> {
-  return Object.fromEntries(locales.map((locale) => [locale, buildLocalizedUrl(locale, pathname)]));
+  const languages = Object.fromEntries(locales.map((locale) => [locale, buildLocalizedUrl(locale, pathname)]));
+
+  return {
+    ...languages,
+    "x-default": buildLocalizedUrl("en", pathname),
+  };
 }
 
 export function resolveOgImageUrl(imageUrl: string): string {
@@ -18,4 +28,8 @@ export function resolveOgImageUrl(imageUrl: string): string {
   }
   const normalized = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
   return new URL(normalized, metadataBase).toString();
+}
+
+export function getDefaultSocialImages(): string[] {
+  return [defaultOgImageUrl];
 }
