@@ -11,7 +11,7 @@ import { AuthModalProvider } from "@/context/auth-modal";
 import { FavoritesProvider } from "@/hooks/use-favorites";
 import { getLocaleFromHeaders } from "@/i18n/locale";
 import { getLocaleDirection } from "@/i18n/config";
-import { metadataBase, resolveOgImageUrl } from "@/lib/seo";
+import { metadataBase, defaultOgImageUrl, siteName, siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -35,13 +35,24 @@ export const metadata: Metadata = {
     apple: "/logoF.png",
   },
   metadataBase,
+  alternates: {
+    canonical: siteUrl,
+    languages: {
+      en: `${siteUrl}/en`,
+      fr: `${siteUrl}/fr`,
+      ar: `${siteUrl}/ar`,
+      "x-default": `${siteUrl}/en`,
+    },
+  },
   openGraph: {
     type: "website",
-    images: [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")],
+    siteName,
+    url: siteUrl,
+    images: [defaultOgImageUrl],
   },
   twitter: {
     card: "summary_large_image",
-    images: [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")],
+    images: [defaultOgImageUrl],
   },
   verification: {
     google: "xhWDfYVWM4wYlyC0N8spspJoYrgmPcLaliR833kIz6c",

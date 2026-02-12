@@ -5,7 +5,7 @@ import { fetchStorefrontProductBySlug, type StorefrontProduct } from "@/lib/stor
 import { ProductDetailContent } from "./product-detail-content";
 import type { Product } from "@/types/product";
 import { resolveLocale, type Locale } from "@/i18n/config";
-import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
+import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +39,7 @@ export async function generateMetadata({
   const title = `${productName} | Fish Your Style`;
   const description = productDescriptionByLocale[locale](productName);
   const url = buildLocalizedUrl(locale, `/shop/${slug}`);
-  const ogImages = [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")];
+  const ogImages = [defaultOgImageUrl];
 
   return {
     title,

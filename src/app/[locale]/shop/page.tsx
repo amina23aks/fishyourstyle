@@ -4,7 +4,7 @@ import type { Product } from "@/types/product";
 import ShopClient from "./shop-client";
 import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
 import { resolveLocale, type Locale } from "@/i18n/config";
-import { buildAlternateLanguages, buildLocalizedUrl, resolveOgImageUrl } from "@/lib/seo";
+import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl } from "@/lib/seo";
 
 export const revalidate = 0;
 
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const locale = resolveLocale(localeParam);
   const { title, description } = shopMetadataByLocale[locale];
   const url = buildLocalizedUrl(locale, "/shop");
-  const ogImages = [resolveOgImageUrl("/outphoto.webp"), resolveOgImageUrl("/outphoto.PNG")];
+  const ogImages = [defaultOgImageUrl];
 
   return {
     title,
