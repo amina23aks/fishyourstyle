@@ -254,7 +254,7 @@ export function ProductDetailContent({
 
   return (
     <main className="mx-auto max-w-6xl px-4 lg:px-8 py-6">
-      <div className="grid gap-8 md:grid-cols-[96px_minmax(0,440px)_minmax(0,440px)] items-start">
+      <div className="grid gap-6 md:gap-8 md:grid-cols-[96px_minmax(0,440px)_minmax(0,440px)] items-start">
         {imageList.length > 1 ? (
           <div className="hidden md:flex flex-col gap-4">
             {imageList.map((url, index) => {
@@ -284,7 +284,7 @@ export function ProductDetailContent({
           <div className="hidden md:block" aria-hidden="true" />
         )}
 
-        <div className="flex flex-col gap-4">
+        <div className="flex w-full max-w-[480px] mx-auto md:mx-0 flex-col gap-3 md:gap-4">
           <div className="relative w-full max-w-[480px] aspect-[4/5] rounded-[36px] overflow-hidden border border-white/15 shadow-lg">
             <AnimatePresence mode="wait">
               <motion.div
@@ -308,7 +308,7 @@ export function ProductDetailContent({
           </div>
 
           {imageList.length > 1 && (
-            <div className="gallery-thumbnails-scroll md:hidden flex w-full min-w-0 max-w-[480px] gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] snap-x snap-mandatory touch-pan-x">
+            <div className="gallery-thumbnails-scroll md:hidden flex w-full min-w-0 gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] snap-x snap-mandatory touch-pan-x">
               {imageList.map((url, index) => {
                 const isActive = index === activeImage;
                 return (
@@ -335,7 +335,7 @@ export function ProductDetailContent({
           )}
         </div>
 
-        <div className="w-full max-w-[480px] flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)]">
+        <div className="w-full max-w-[480px] mx-auto md:mx-0 flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)]">
           <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
@@ -359,9 +359,9 @@ export function ProductDetailContent({
             )}
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.color")}</h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="color-chips-scroll flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] md:flex-wrap md:overflow-visible md:pb-0">
               {colorOptions.map((color, index) => {
                 const hexValue = resolveSwatchHex(color);
                 const label = color.label ?? color.hex ?? t("shop.color");
@@ -395,7 +395,7 @@ export function ProductDetailContent({
                 <button
                   type="button"
                   onClick={() => setIsSizeGuideOpen(true)}
-                  className="inline-flex cursor-pointer items-center gap-2 text-base font-semibold text-white/70 underline underline-offset-4 transition hover:text-white/90 hover:opacity-90 hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  className="ml-auto inline-flex shrink-0 cursor-pointer items-center justify-end gap-2 text-right text-base font-semibold text-white/70 underline underline-offset-4 transition hover:text-white/90 hover:opacity-90 hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 >
                   <svg
                     aria-hidden="true"
@@ -465,7 +465,7 @@ export function ProductDetailContent({
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5 md:space-y-3">
             {(infoRows.length > 0 || (product.descriptionFr && product.descriptionFr.trim())) && (
               <div className="space-y-1">
                 <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Détails</h2>
