@@ -196,6 +196,32 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
   };
 }
 
+
+
+async function fetchStorefrontProductsByConstraints(
+  constraints: QueryConstraint[],
+): Promise<StorefrontProduct[]> {
+  if (!isFirebaseConfigured()) {
+    return [];
+  }
+
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const snapshot = await getDocs(query(productsRef, ...constraints));
+    return snapshot.docs
+      .map((doc) => normalizeProduct(doc.data(), doc.id))
+      .filter((product) => product.status === "active");
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      console.warn("Firestore permission denied while reading filtered storefront products; returning empty list.");
+    } else {
+      console.error("Failed to fetch filtered storefront products from Firestore:", error);
+    }
+    return [];
+  }
+}
+
 function isPermissionDenied(error: unknown): boolean {
   return error instanceof FirebaseError && error.code === "permission-denied";
 }
@@ -242,4 +268,44 @@ export async function fetchStorefrontProductBySlug(slug: string): Promise<Storef
     console.error(`Failed to fetch product by slug "${slug}" from Firestore:`, error);
     return null;
   }
+}
+
+
+export async function fetchSuggestedStorefrontProducts(params: {
+  currentSlug: string;
+  category?: string;
+  designTheme?: string;
+  limitCount?: number;
+}): Promise<StorefrontProduct[]> {
+  const { currentSlug, category, designTheme, limitCount = 8 } = params;
+  const target = Math.min(Math.max(limitCount, 4), 8);
+
+  const seen = new Set<string>([currentSlug]);
+  const suggestions: StorefrontProduct[] = [];
+
+  const appendUnique = (items: StorefrontProduct[]) => {
+    for (const item of items) {
+      if (seen.has(item.slug)) continue;
+      seen.add(item.slug);
+      suggestions.push(item);
+      if (suggestions.length >= target) break;
+    }
+  };
+
+  if (category) {
+    const byCategory = await fetchStorefrontProductsByConstraints([where("category", "==", category), limit(target + 1)]);
+    appendUnique(byCategory);
+  }
+
+  if (suggestions.length < target && designTheme) {
+    const byTheme = await fetchStorefrontProductsByConstraints([where("designTheme", "==", designTheme), limit(target + 1)]);
+    appendUnique(byTheme);
+  }
+
+  if (suggestions.length < target) {
+    const fallback = await fetchStorefrontProductsByConstraints([limit(target * 2)]);
+    appendUnique(fallback);
+  }
+
+  return suggestions.slice(0, target);
 }

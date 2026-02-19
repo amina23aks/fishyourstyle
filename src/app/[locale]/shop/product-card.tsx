@@ -478,7 +478,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 )}
               </div>
               <div className="flex flex-wrap gap-1">
-                {colorOptions.slice(0, 3).map((color, index) => {
+                {colorOptions.map((color, index) => {
                   const hexValue = resolveSwatchHex(color);
                   const label = color.label ?? color.hex ?? t("shop.color");
                   const isSoldOut = color.soldOut;

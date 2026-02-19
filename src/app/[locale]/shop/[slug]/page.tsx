@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { fetchStorefrontProductBySlug, type StorefrontProduct } from "@/lib/storefront-products";
+import {
+  fetchStorefrontProductBySlug,
+  fetchSuggestedStorefrontProducts,
+  type StorefrontProduct,
+} from "@/lib/storefront-products";
 import { ProductDetailContent } from "./product-detail-content";
 import type { Product } from "@/types/product";
 import { resolveLocale, type Locale } from "@/i18n/config";
@@ -137,7 +141,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
 }
 
 type ProductDetailPageParams = {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 };
 
 export default async function ProductDetailPage({ params }: ProductDetailPageParams) {
@@ -149,6 +153,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePar
   }
 
   const product = mapStorefrontToProduct(storefrontProduct);
+  const suggestedStorefrontProducts = await fetchSuggestedStorefrontProducts({
+    currentSlug: storefrontProduct.slug,
+    category: storefrontProduct.category,
+    designTheme: storefrontProduct.designTheme,
+    limitCount: 8,
+  });
+  const suggestedProducts = suggestedStorefrontProducts.map(mapStorefrontToProduct);
 
-  return <ProductDetailContent product={product} />;
+  return <ProductDetailContent product={product} suggestedProducts={suggestedProducts} />;
 }

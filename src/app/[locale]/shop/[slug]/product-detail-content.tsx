@@ -5,6 +5,7 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "@/lib/motion";
 
 import { Swatch } from "../swatch";
+import { ProductCard } from "../product-card";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
@@ -32,7 +33,13 @@ const capitalizeLabel = (value: string | undefined | null): string => {
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
-export function ProductDetailContent({ product }: { product: Product }) {
+export function ProductDetailContent({
+  product,
+  suggestedProducts = [],
+}: {
+  product: Product;
+  suggestedProducts?: Product[];
+}) {
   const t = useTranslations();
   const collectionName =
     product.designTheme && product.designTheme !== "simple"
@@ -530,6 +537,18 @@ export function ProductDetailContent({ product }: { product: Product }) {
           </div>
         </div>
       </div>
+
+
+      {suggestedProducts.length > 0 ? (
+        <section className="mt-10 space-y-4">
+          <h2 className="text-xl font-semibold text-white sm:text-2xl">Suggested Products</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {suggestedProducts.map((suggestedProduct) => (
+              <ProductCard key={suggestedProduct.id} product={suggestedProduct} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {isSizeGuideOpen && showSizeGuide ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
