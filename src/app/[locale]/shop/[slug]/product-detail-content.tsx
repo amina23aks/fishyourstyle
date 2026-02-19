@@ -308,7 +308,7 @@ export function ProductDetailContent({
           </div>
 
           {imageList.length > 1 && (
-            <div className="md:hidden flex gap-3 overflow-x-auto pb-2">
+            <div className="gallery-thumbnails-scroll md:hidden flex w-full min-w-0 max-w-[480px] gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] snap-x snap-mandatory touch-pan-x">
               {imageList.map((url, index) => {
                 const isActive = index === activeImage;
                 return (
@@ -316,7 +316,7 @@ export function ProductDetailContent({
                     key={`${url}-${index}`}
                     type="button"
                     onClick={() => setActiveImage(index)}
-                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+                    className={`relative h-20 w-20 shrink-0 snap-start overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
                       isActive ? "ring-2 ring-white/60" : "hover:border-white/40"
                     }`}
                     aria-label={`Afficher l'image ${index + 1}`}

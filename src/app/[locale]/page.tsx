@@ -207,7 +207,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           <div className="flex w-full justify-center pt-2">
             <Link
               href={localizePathname(locale, "/shop")}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition hover:-translate-y-0.5 hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-black/30 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
             >
               {t("shop.exploreMoreCta")}
               <span aria-hidden>→</span>
