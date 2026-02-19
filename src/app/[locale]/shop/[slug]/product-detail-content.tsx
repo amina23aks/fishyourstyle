@@ -285,7 +285,7 @@ export function ProductDetailContent({
         )}
 
         <div className="flex flex-col gap-4">
-          <div className="relative w-full max-w-[480px] aspect-[4/5] rounded-[36px] overflow-hidden border border-white/15 shadow-lg">
+          <div className="relative w-full max-w-[480px] aspect-[4/5] rounded-[36px] overflow-hidden border border-white/15 bg-black/30 shadow-lg">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentImage}
@@ -300,7 +300,7 @@ export function ProductDetailContent({
                   alt={product.nameFr}
                   fill
                   ref={imageRef}
-                  className="object-cover"
+                  className="object-contain"
                   sizes="(min-width: 1024px) 50vw, 100vw"
                 />
               </motion.div>
@@ -308,7 +308,7 @@ export function ProductDetailContent({
           </div>
 
           {imageList.length > 1 && (
-            <div className="md:hidden flex gap-3 overflow-x-auto pb-2">
+            <div className="md:hidden flex gap-3 overflow-x-auto pb-2 pr-1 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] touch-pan-x [&::-webkit-scrollbar]:hidden">
               {imageList.map((url, index) => {
                 const isActive = index === activeImage;
                 return (
@@ -316,7 +316,7 @@ export function ProductDetailContent({
                     key={`${url}-${index}`}
                     type="button"
                     onClick={() => setActiveImage(index)}
-                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+                    className={`relative h-20 w-20 flex-shrink-0 snap-start overflow-hidden rounded-2xl border border-white/15 bg-black/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
                       isActive ? "ring-2 ring-white/60" : "hover:border-white/40"
                     }`}
                     aria-label={`Afficher l'image ${index + 1}`}
@@ -325,7 +325,7 @@ export function ProductDetailContent({
                       src={url}
                       alt={`${product.nameFr} vignette ${index + 1}`}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       sizes="120px"
                     />
                   </button>
