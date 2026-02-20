@@ -65,6 +65,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
+
+  // Run Meta Pixel only on Vercel production deployments.
+  const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV;
+  const isVercelProduction = vercelEnv === "production";
+  const enableMetaPixel = Boolean(metaPixelId && isVercelProduction);
+
   const locale = await getLocaleFromHeaders();
   const direction = getLocaleDirection(locale);
 
@@ -90,7 +96,7 @@ export default async function RootLayout({
           type="module"
           strategy="lazyOnload"
         />
-        {metaPixelId ? (
+        {enableMetaPixel ? (
           <Script id="meta-pixel" strategy="afterInteractive">
             {`!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -106,7 +112,7 @@ fbq('track', 'PageView');`}
         ) : null}
       </head>
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">
-        {metaPixelId ? (
+        {enableMetaPixel ? (
           <Image
             src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
             alt=""
@@ -119,7 +125,7 @@ fbq('track', 'PageView');`}
           />
         ) : null}
         <Suspense fallback={null}>
-          {metaPixelId ? <MetaPixelPageView /> : null}
+          {enableMetaPixel ? <MetaPixelPageView /> : null}
           <AnalyticsProvider>
             <AuthProvider>
               <AuthModalProvider>
