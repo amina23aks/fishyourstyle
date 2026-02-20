@@ -436,3 +436,11 @@ html[data-theme="aurora"] .aurora-overlay::before {
   opacity: 1;
   transform: translate3d(-4%, -6%, 0) scale(1.12);
 }
+
+.gallery-thumbnails-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.color-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
