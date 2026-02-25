@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
 import { getAdminResources } from "@/lib/firebaseAdmin";
+import { getDecodedToken, isAdminAuthorized } from "@/lib/adminAuth.server";
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 500;
@@ -68,25 +69,57 @@ function toIsoString(value: unknown): string {
   return new Date(0).toISOString();
 }
 
-function parseBearerToken(request: NextRequest): string | null {
+function parseBearerHeader(value: string | null): string | null {
+  if (!value) return null;
+  const [scheme, token] = value.split(" ");
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !token) return null;
+  return token.trim();
+}
+
+function getExportToken(request: NextRequest): string | null {
+  const explicitHeader = request.headers.get("x-admin-export-token");
+  if (explicitHeader && explicitHeader.trim()) return explicitHeader.trim();
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
-  if (!authHeader) return null;
-  const [scheme, value] = authHeader.split(" ");
-  if (!scheme || scheme.toLowerCase() !== "bearer" || !value) return null;
-  return value.trim();
+  return parseBearerHeader(authHeader);
 }
 
 export async function GET(request: NextRequest) {
-  const expectedToken = process.env.ADMIN_EXPORT_TOKEN;
-  const providedToken = parseBearerToken(request);
-  if (!expectedToken || !providedToken || providedToken !== expectedToken) {
+  let decoded;
+  try {
+    decoded = await getDecodedToken(request);
+  } catch (error) {
     return NextResponse.json(
       {
         error: "unauthorized",
-        message: "Missing Authorization header.",
+        message: error instanceof Error ? error.message : "Unable to verify token.",
       },
       { status: 401 },
     );
+  }
+
+  if (!isAdminAuthorized(decoded)) {
+    return NextResponse.json(
+      {
+        error: "forbidden",
+        message: "Admin access required.",
+      },
+      { status: 403 },
+    );
+  }
+
+  const requireExportToken = (process.env.REQUIRE_EXPORT_TOKEN ?? "true").toLowerCase() !== "false";
+  if (requireExportToken) {
+    const expectedToken = process.env.ADMIN_EXPORT_TOKEN;
+    const providedToken = getExportToken(request);
+    if (!expectedToken || !providedToken || providedToken !== expectedToken) {
+      return NextResponse.json(
+        {
+          error: "unauthorized",
+          message: "Missing export token.",
+        },
+        { status: 401 },
+      );
+    }
   }
 
   const sinceParam = request.nextUrl.searchParams.get("since");
