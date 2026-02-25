@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
-import { getAdminResources, isAdmin, verifyIdTokenFromRequest } from "@/lib/firebaseAdmin";
+import { getAdminResources } from "@/lib/firebaseAdmin";
+import { getDecodedToken, isAdminAuthorized } from "@/lib/adminAuth.server";
 
 const PAGE_LIMIT = 100;
 
@@ -74,7 +75,7 @@ function toIsoString(value: unknown): string {
 export async function GET(request: NextRequest) {
   let decoded;
   try {
-    decoded = await verifyIdTokenFromRequest(request);
+    decoded = await getDecodedToken(request);
   } catch (error) {
     return NextResponse.json(
       {
@@ -85,10 +86,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!isAdmin(decoded)) {
+  if (!isAdminAuthorized(decoded)) {
     return NextResponse.json(
-      { error: "unauthorized", message: "Admin access required." },
-      { status: 401 },
+      { error: "forbidden", message: "Admin access required." },
+      { status: 403 },
     );
   }
 

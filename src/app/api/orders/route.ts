@@ -5,15 +5,15 @@ import {
   type DocumentData,
   type Query,
 } from "firebase-admin/firestore";
-import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
+import type { DecodedIdToken } from "firebase-admin/auth";
 
 import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
 import { getAdminResources } from "@/lib/firebaseAdmin";
+import { getDecodedToken, isAdminAuthorized } from "@/lib/adminAuth.server";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
 import { dateKeyInTZ, weekKeyInTZ } from "@/lib/dateKeys";
 import { normalizeProductStock } from "@/lib/stock";
 
-const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
 const ADMIN_STATS_DOC = "adminStats/summary";
 
 function parseBearerToken(request: NextRequest): string | null {
@@ -24,27 +24,14 @@ function parseBearerToken(request: NextRequest): string | null {
   return value.trim();
 }
 
-function isAdminUser(decoded: DecodedIdToken | null): boolean {
-  if (!decoded?.email) return false;
-  const email = decoded.email.toLowerCase();
-  return ADMIN_EMAILS.includes(email as (typeof ADMIN_EMAILS)[number]);
-}
-
 async function requireAuth(
   request: NextRequest,
-  auth: ReturnType<typeof getAuth>,
 ): Promise<NextResponse<{ error: string }> | DecodedIdToken> {
-  const bearerToken = parseBearerToken(request);
-  if (!bearerToken) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-  }
-
   try {
-    const decoded = await auth.verifyIdToken(bearerToken);
-    return decoded;
+    return await getDecodedToken(request);
   } catch (error) {
-    console.error("[api/orders] Token verification failed", error);
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    const message = error instanceof Error ? error.message : "Unable to verify token.";
+    return NextResponse.json({ error: message }, { status: 401 });
   }
 }
 
@@ -188,13 +175,13 @@ export async function POST(request: NextRequest) {
         { status: 503 },
       );
     }
-    const { db, auth } = adminResources;
+    const { db } = adminResources;
 
     const bearerToken = parseBearerToken(request);
     let decoded: DecodedIdToken | null = null;
     if (bearerToken) {
       try {
-        decoded = await auth.verifyIdToken(bearerToken);
+        decoded = await getDecodedToken(request);
       } catch (error) {
         console.warn("[api/orders] Invalid auth token provided, proceeding as guest.", error);
       }
@@ -576,23 +563,15 @@ export async function GET(request: NextRequest) {
         { status: 503 },
       );
     }
-    const { db, auth } = adminResources;
+    const { db } = adminResources;
     const ordersCollection = db.collection("orders");
 
-    const bearerToken = parseBearerToken(request);
-    const requiresAuth = Boolean(orderId || userId || (!orderId && !userId));
-    if (requiresAuth && !bearerToken) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
     let decoded: DecodedIdToken | null = null;
-    if (bearerToken) {
-      try {
-        decoded = await auth.verifyIdToken(bearerToken);
-      } catch (error) {
-        console.error("[api/orders] Token verification failed", error);
-        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-      }
+    try {
+      decoded = await getDecodedToken(request);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to verify token.";
+      return NextResponse.json({ error: message }, { status: 401 });
     }
 
     if (orderId) {
@@ -609,7 +588,7 @@ export async function GET(request: NextRequest) {
       }
 
       const ownerId = typeof data.userId === "string" ? data.userId : undefined;
-      const authorized = isAdminUser(decoded) || (!!decoded?.uid && ownerId === decoded.uid);
+      const authorized = isAdminAuthorized(decoded) || (!!decoded?.uid && ownerId === decoded.uid);
       if (!authorized) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -621,7 +600,7 @@ export async function GET(request: NextRequest) {
     const orders: Order[] = [];
 
     if (userId && userId.trim()) {
-      const authorized = isAdminUser(decoded) || (!!decoded?.uid && decoded.uid === userId);
+      const authorized = isAdminAuthorized(decoded) || (!!decoded?.uid && decoded.uid === userId);
       if (!authorized) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -641,7 +620,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(orders);
     }
 
-    if (!isAdminUser(decoded)) {
+    if (!isAdminAuthorized(decoded)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -691,9 +670,9 @@ export async function PATCH(request: NextRequest) {
         { status: 503 },
       );
     }
-    const { db, auth } = adminResources;
+    const { db } = adminResources;
 
-    const decoded = await requireAuth(request, auth);
+    const decoded = await requireAuth(request);
     if (decoded instanceof NextResponse) {
       return decoded;
     }
@@ -712,7 +691,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const isOwner = typeof orderData.userId === "string" ? orderData.userId === decoded.uid : false;
-    if (!isOwner && !isAdminUser(decoded)) {
+    if (!isOwner && !isAdminAuthorized(decoded)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

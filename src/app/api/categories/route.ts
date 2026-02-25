@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { getDecodedToken, isAdminAuthorized } from "@/lib/adminAuth.server";
 import {
   addCategory,
   addDesign,
@@ -10,6 +11,22 @@ import {
   getSelectableCollectionsAndDesigns,
   getSelectableDesigns,
 } from "@/lib/categories";
+
+async function requireAdmin(request: Request): Promise<NextResponse | null> {
+  let decoded;
+  try {
+    decoded = await getDecodedToken(request);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to verify token.";
+    return NextResponse.json({ error: message }, { status: 401 });
+  }
+
+  if (!isAdminAuthorized(decoded)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  return null;
+}
 
 export async function GET(request: Request) {
   try {
@@ -34,6 +51,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const authError = await requireAdmin(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { name, type } = body;
@@ -55,6 +75,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const authError = await requireAdmin(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("slug");
@@ -78,3 +101,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: message }, { status });
   }
 }
+
