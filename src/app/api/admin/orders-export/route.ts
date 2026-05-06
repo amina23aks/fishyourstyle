@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
-import { getAdminResources } from "@/lib/firebaseAdmin";
+import { AdminAuthError, getAdminResources, requireAdmin } from "@/lib/firebaseAdmin";
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 500;
@@ -68,24 +68,18 @@ function toIsoString(value: unknown): string {
   return new Date(0).toISOString();
 }
 
-function parseBearerToken(request: NextRequest): string | null {
-  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
-  if (!authHeader) return null;
-  const [scheme, value] = authHeader.split(" ");
-  if (!scheme || scheme.toLowerCase() !== "bearer" || !value) return null;
-  return value.trim();
-}
-
 export async function GET(request: NextRequest) {
-  const expectedToken = process.env.ADMIN_EXPORT_TOKEN;
-  const providedToken = parseBearerToken(request);
-  if (!expectedToken || !providedToken || providedToken !== expectedToken) {
+  try {
+    await requireAdmin(request);
+  } catch (error) {
+    const status = error instanceof AdminAuthError ? error.status : 401;
+    const code = status === 403 ? "forbidden" : "unauthorized";
     return NextResponse.json(
       {
-        error: "unauthorized",
-        message: "Missing Authorization header.",
+        error: code,
+        message: error instanceof Error ? error.message : "Unable to verify admin access.",
       },
-      { status: 401 },
+      { status },
     );
   }
 

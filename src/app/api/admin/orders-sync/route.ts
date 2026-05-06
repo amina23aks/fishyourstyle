@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
-import { getAdminResources, isAdmin, verifyIdTokenFromRequest } from "@/lib/firebaseAdmin";
+import { AdminAuthError, getAdminResources, requireAdmin } from "@/lib/firebaseAdmin";
 
 const PAGE_LIMIT = 100;
 
@@ -72,23 +72,17 @@ function toIsoString(value: unknown): string {
 }
 
 export async function GET(request: NextRequest) {
-  let decoded;
   try {
-    decoded = await verifyIdTokenFromRequest(request);
+    await requireAdmin(request);
   } catch (error) {
+    const status = error instanceof AdminAuthError ? error.status : 401;
+    const code = status === 403 ? "forbidden" : "unauthorized";
     return NextResponse.json(
       {
-        error: "unauthorized",
-        message: error instanceof Error ? error.message : "Unable to verify token.",
+        error: code,
+        message: error instanceof Error ? error.message : "Unable to verify admin access.",
       },
-      { status: 401 },
-    );
-  }
-
-  if (!isAdmin(decoded)) {
-    return NextResponse.json(
-      { error: "unauthorized", message: "Admin access required." },
-      { status: 401 },
+      { status },
     );
   }
 

@@ -8,12 +8,11 @@ import {
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 
 import type { NewOrder, Order, OrderStatus, ShippingInfo } from "@/types/order";
-import { getAdminResources } from "@/lib/firebaseAdmin";
+import { getAdminResources, isAdmin } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
 import { dateKeyInTZ, weekKeyInTZ } from "@/lib/dateKeys";
 import { normalizeProductStock } from "@/lib/stock";
 
-const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
 const ADMIN_STATS_DOC = "adminStats/summary";
 
 function parseBearerToken(request: NextRequest): string | null {
@@ -22,12 +21,6 @@ function parseBearerToken(request: NextRequest): string | null {
   const [scheme, value] = authHeader.split(" ");
   if (!scheme || scheme.toLowerCase() !== "bearer" || !value) return null;
   return value.trim();
-}
-
-function isAdminUser(decoded: DecodedIdToken | null): boolean {
-  if (!decoded?.email) return false;
-  const email = decoded.email.toLowerCase();
-  return ADMIN_EMAILS.includes(email as (typeof ADMIN_EMAILS)[number]);
 }
 
 async function requireAuth(
@@ -609,7 +602,7 @@ export async function GET(request: NextRequest) {
       }
 
       const ownerId = typeof data.userId === "string" ? data.userId : undefined;
-      const authorized = isAdminUser(decoded) || (!!decoded?.uid && ownerId === decoded.uid);
+      const authorized = isAdmin(decoded) || (!!decoded?.uid && ownerId === decoded.uid);
       if (!authorized) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -621,7 +614,7 @@ export async function GET(request: NextRequest) {
     const orders: Order[] = [];
 
     if (userId && userId.trim()) {
-      const authorized = isAdminUser(decoded) || (!!decoded?.uid && decoded.uid === userId);
+      const authorized = isAdmin(decoded) || (!!decoded?.uid && decoded.uid === userId);
       if (!authorized) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -641,7 +634,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(orders);
     }
 
-    if (!isAdminUser(decoded)) {
+    if (!isAdmin(decoded)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -712,7 +705,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const isOwner = typeof orderData.userId === "string" ? orderData.userId === decoded.uid : false;
-    if (!isOwner && !isAdminUser(decoded)) {
+    if (!isOwner && !isAdmin(decoded)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
