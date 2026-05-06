@@ -61,31 +61,7 @@ If a preview URL works but the main `*.pages.dev` domain is blank or times out, 
 
 ## Firebase Admin access and rules
 
-- Server-side Firebase Admin uses `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` (with `\n` preserved) for initialization, plus `SUPER_ADMIN_EMAIL` for bootstrap.
+- Server-side Firebase Admin uses `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` (with `\n` preserved) for initialization, plus `SUPER_ADMIN_EMAIL` for protected admin-claim tooling.
 - Admin-only endpoints/pages expect an ID token in the `Authorization: Bearer <idToken>` header or in one of the cookies `__session`, `session`, or `idToken`.
-- Bootstrap admin claim: set `SUPER_ADMIN_EMAIL` in the environment, sign in as that exact email, then open the temporary developer-only bootstrap page at `/en/admin-bootstrap` (or the matching locale path). The page gets your Firebase ID token internally, calls `POST /api/admin/claim` only for your current signed-in UID, and never shows or logs the token. Only the email matching `SUPER_ADMIN_EMAIL` can bootstrap itself.
+- `POST /api/admin/claim` remains a protected backend admin-claim tool restricted to the configured `SUPER_ADMIN_EMAIL`; there is no temporary bootstrap UI.
 - Firestore security rules live in `firestore.rules`; deploy them to the project to enforce public reads for catalog data, admin-only writes and order access, locked-down contact messages, and owner-only wishlists.
-
-### Temporary developer-only admin bootstrap page
-
-This is a temporary Phase 1 helper for bootstrapping the first admin only. Remove it after the super admin account has the `admin` custom claim.
-
-1. Set `SUPER_ADMIN_EMAIL` on the server/Vercel environment.
-2. Sign in to the storefront with that exact Firebase Auth email.
-3. Open `/en/admin-bootstrap` (or `/fr/admin-bootstrap` / `/ar/admin-bootstrap`).
-4. Click **Bootstrap my admin claim**. The page sends your current signed-in UID only; it does not allow typing or choosing another UID.
-5. On success, refresh your session or sign out and back in before opening `/admin`.
-
-Windows PowerShell example for manually calling the same bootstrap route if needed after obtaining an ID token by another trusted local method:
-
-```powershell
-$baseUrl = "https://<your-vercel-domain>" # or "http://localhost:3000" for local testing
-$idToken = "<fresh Firebase ID token for SUPER_ADMIN_EMAIL>"
-$targetUid = "<same signed-in user's uid>"
-$body = @{ uid = $targetUid } | ConvertTo-Json -Compress
-
-curl.exe -X POST "$baseUrl/api/admin/claim" `
-  -H "Authorization: Bearer $idToken" `
-  -H "Content-Type: application/json" `
-  --data $body
-```
