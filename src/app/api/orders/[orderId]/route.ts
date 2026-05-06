@@ -3,6 +3,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { Order, OrderItem, OrderStatus, ShippingInfo } from "@/types/order";
 import { AdminAuthError, getAdminResources, isAdminConfigured, requireAdmin } from "@/lib/firebaseAdmin";
+import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
 import {
   checkRateLimit,
   getOptionalTrimmedString,
@@ -102,6 +103,7 @@ function normalizeShippingPatch(shipping: unknown): PartialShipping | undefined 
   if (
     customerName === null ||
     phone === null ||
+    (phone !== undefined && !isValidAlgeriaPhone(phone)) ||
     wilaya === null ||
     address === null ||
     mode === null ||

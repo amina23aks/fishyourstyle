@@ -24,6 +24,7 @@ import { getDb } from "@/lib/firebaseClient";
 import { submitOrder } from "@/lib/ordersClient";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
+import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
 
 type CartDrawerProps = {
   open: boolean;
@@ -43,11 +44,11 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
-    email: "",
     phone: "",
     wilaya: "",
     address: "",
     notes: "",
+    company: "",
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
   const [deliveryModeTouched, setDeliveryModeTouched] = useState(false);
@@ -78,22 +79,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     return Math.max(0, totals.subtotal + shippingTotal - loyaltyDiscountAmount);
   }, [loyaltyDiscountAmount, shippingPrice, totals.subtotal]);
 
-  const authenticatedEmail = user?.email?.trim() ?? "";
-  const shouldAskForEmail = !authenticatedEmail;
-  const customerEmail = authenticatedEmail || form.email.trim();
-
-  useEffect(() => {
-    if (user?.email) {
-      setForm((previous) =>
-        previous.email
-          ? previous
-          : {
-              ...previous,
-              email: user.email ?? "",
-            },
-      );
-    }
-  }, [user]);
+  const customerEmail = user?.email?.trim() || undefined;
 
   useEffect(() => {
     if (!user) {
@@ -146,15 +132,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     setError(null);
     setSuccess(null);
 
-    // Validate required fields. Signed-in customers use their account email; guests provide it here.
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address || !customerEmail) {
+    // Validate required delivery fields. Email is only taken from authenticated users.
+    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
       setError(t("cart.errorRequiredFields"));
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(customerEmail)) {
-      setError(t("cart.errorInvalidEmail"));
+    if (!isValidAlgeriaPhone(form.phone.trim())) {
+      setError(t("cart.errorInvalidPhone"));
       return;
     }
 
@@ -188,7 +173,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
         items: orderItems,
         shipping: {
           customerName: form.fullName,
-          phone: form.phone,
+          phone: form.phone.trim(),
           wilaya: form.wilaya,
           address: form.address,
           mode: deliveryMode,
@@ -203,7 +188,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
       };
 
       // Send to API
-      const response = await submitOrder(newOrder, user ?? null);
+      const response = await submitOrder(newOrder, user ?? null, { company: form.company.trim() });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -452,6 +437,16 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     <p className="text-xs text-sky-200">
                       {t("cart.quickDeliveryHelper")}
                     </p>
+                    <input
+                      type="text"
+                      name="company"
+                      value={form.company}
+                      onChange={(event) => setForm((prev) => ({ ...prev, company: event.target.value }))}
+                      className="hidden"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      aria-hidden="true"
+                    />
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-full-name">
                         {t("cart.fullNameLabel")}<span className="text-rose-200"> *</span>
@@ -464,22 +459,6 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         required
                       />
                     </div>
-                    {shouldAskForEmail ? (
-                      <div className="space-y-2">
-                        <label className="text-xs text-sky-100" htmlFor="drawer-email">
-                          {t("cart.emailLabel")}<span className="text-rose-200"> *</span>
-                        </label>
-                        <input
-                          id="drawer-email"
-                          type="email"
-                          value={form.email}
-                          onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-                          className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                          placeholder="your@email.com"
-                          required
-                        />
-                      </div>
-                    ) : null}
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-phone">
                         {t("cart.phoneLabel")}<span className="text-rose-200"> *</span>

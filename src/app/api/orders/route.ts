@@ -12,6 +12,7 @@ import { getAdminResources, isAdmin } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
 import { dateKeyInTZ, weekKeyInTZ } from "@/lib/dateKeys";
 import { normalizeProductStock } from "@/lib/stock";
+import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
 import {
   checkRateLimit,
   getOptionalTrimmedString,
@@ -141,6 +142,7 @@ function normalizeOrderPayload(data: unknown): NewOrder | null {
     !wilaya ||
     !address ||
     !mode ||
+    !isValidAlgeriaPhone(phone) ||
     !ALLOWED_SHIPPING_MODES.includes(mode as (typeof ALLOWED_SHIPPING_MODES)[number]) ||
     !isPositiveSafeNumber(shippingPayload.price, 100_000)
   ) {
@@ -188,6 +190,12 @@ function normalizeOrderPayload(data: unknown): NewOrder | null {
   };
 }
 
+function hasInvalidOrderPhone(data: unknown): boolean {
+  if (!isPlainObject(data) || !isPlainObject(data.shipping)) return false;
+  const phone = data.shipping.phone;
+  return typeof phone === "string" && phone.trim().length > 0 && !isValidAlgeriaPhone(phone.trim());
+}
+
 function resolveStockState(data: DocumentData): { stockMode: "unlimited" | "limited"; stockQty: number | null } {
   const stockState = normalizeProductStock({
     stockMode: data.stockMode,
@@ -229,6 +237,7 @@ export async function POST(request: NextRequest) {
       discountType: _ignoredDiscountType,
       discountPercent: _ignoredDiscountPercent,
       discountAmount: _ignoredDiscountAmount,
+      customerEmail: _ignoredCustomerEmail,
       website: _ignoredWebsite,
       company: _ignoredCompany,
       ...rest
@@ -241,11 +250,19 @@ export async function POST(request: NextRequest) {
     void _ignoredDiscountType;
     void _ignoredDiscountPercent;
     void _ignoredDiscountAmount;
+    void _ignoredCustomerEmail;
     void _ignoredWebsite;
     void _ignoredCompany;
 
     const normalizedOrder = normalizeOrderPayload(rest);
     if (!normalizedOrder) {
+      if (hasInvalidOrderPhone(rest)) {
+        return NextResponse.json(
+          { error: "Please enter a valid Algerian phone number." },
+          { status: 400 },
+        );
+      }
+
       return NextResponse.json(
         { error: "Invalid order data. Please check all required fields." },
         { status: 400 },
@@ -273,8 +290,11 @@ export async function POST(request: NextRequest) {
 
     const orderData = normalizedOrder;
 
+    const authenticatedCustomerEmail = typeof decoded?.email === "string" ? decoded.email.trim() : "";
+
     const orderToSave: NewOrder = {
       ...orderData,
+      customerEmail: authenticatedCustomerEmail || undefined,
       userId: typeof decoded?.uid === "string" && decoded.uid.trim() ? decoded.uid : undefined,
       status: "pending",
     };
