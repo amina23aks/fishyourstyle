@@ -75,6 +75,10 @@ export default function CheckoutClient() {
     return Math.max(0, totals.subtotal + shippingTotal - loyaltyDiscountAmount);
   }, [loyaltyDiscountAmount, shippingPrice, totals.subtotal]);
 
+  const authenticatedEmail = user?.email?.trim() ?? "";
+  const shouldAskForEmail = !authenticatedEmail;
+  const customerEmail = authenticatedEmail || form.email.trim();
+
   useEffect(() => {
     if (!hasItems) {
       initiateCheckoutTrackedRef.current = false;
@@ -151,30 +155,30 @@ export default function CheckoutClient() {
     setError(null);
     setSuccess(null);
 
-    // Validate required fields (email required)
+    // Validate required fields. Signed-in customers use their account email; guests provide it here.
     console.log("[CheckoutClient] Validating required fields...");
     console.log("[CheckoutClient] Field validation check:", {
       fullName: !!form.fullName,
       phone: !!form.phone,
       wilaya: !!form.wilaya,
       address: !!form.address,
-      email: !!form.email,
+      email: !!customerEmail,
     });
 
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address || !form.email) {
+    if (!form.fullName || !form.phone || !form.wilaya || !form.address || !customerEmail) {
       console.error("[CheckoutClient] Validation Failed: Missing required fields", {
         fullName: !!form.fullName,
         phone: !!form.phone,
         wilaya: !!form.wilaya,
         address: !!form.address,
-        email: !!form.email,
+        email: !!customerEmail,
       });
       setError(t("checkout.errorRequiredFields"));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
+    if (!emailRegex.test(customerEmail)) {
       console.error("[CheckoutClient] Validation Failed: Invalid email format");
       setError(t("checkout.errorInvalidEmail"));
       return;
@@ -251,7 +255,7 @@ export default function CheckoutClient() {
       // Build NewOrder object
       const newOrder: NewOrder = {
         userId: user?.uid,
-        customerEmail: form.email || user?.email || undefined,
+        customerEmail: customerEmail || undefined,
         items: orderItems,
         shipping: {
           customerName: form.fullName,
@@ -436,20 +440,22 @@ export default function CheckoutClient() {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-sky-100" htmlFor="email">
-                    {t("checkout.emailLabel")}<span className="text-rose-200"> *</span>
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={form.email}
-                    onChange={(event) => handleChange("email", event.target.value)}
-                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    placeholder={t("checkout.emailPlaceholder")}
-                    required
-                  />
-                </div>
+                {shouldAskForEmail ? (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-sky-100" htmlFor="email">
+                      {t("checkout.emailLabel")}<span className="text-rose-200"> *</span>
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={form.email}
+                      onChange={(event) => handleChange("email", event.target.value)}
+                      className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                      placeholder={t("checkout.emailPlaceholder")}
+                      required
+                    />
+                  </div>
+                ) : null}
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="phone">

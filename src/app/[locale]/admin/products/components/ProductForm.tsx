@@ -1099,12 +1099,12 @@ export function ProductForm({
           <select
             value={values.gender}
             onChange={(e) => setValues((prev) => ({ ...prev, gender: e.target.value as ProductFormValues["gender"] }))}
-            className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+            className="w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm text-slate-900 shadow-inner shadow-sky-900/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40 dark:bg-slate-950 dark:text-white"
           >
-            <option value="">Not set</option>
-            <option value="unisex">Unisex</option>
-            <option value="men">Men</option>
-            <option value="women">Women</option>
+            <option className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white" value="">Not set</option>
+            <option className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white" value="unisex">Unisex</option>
+            <option className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white" value="men">Men</option>
+            <option className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white" value="women">Women</option>
           </select>
         </label>
 
