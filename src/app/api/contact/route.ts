@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { getServerDb } from "@/lib/firestore";
-import { isFirebaseConfigured } from "@/lib/firebaseConfig";
+import { FieldValue } from "firebase-admin/firestore";
+
+import { getAdminResources } from "@/lib/firebaseAdmin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,19 +19,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Please provide a valid email." }, { status: 400 });
     }
 
-    if (!isFirebaseConfigured()) {
+    const adminResources = getAdminResources();
+    if (!adminResources) {
       return NextResponse.json(
-        { error: "Firebase is not configured. Please add your Firebase environment variables." },
+        { error: "Firebase Admin is not configured. Please add your Firebase environment variables." },
         { status: 503 },
       );
     }
 
-    const db = getServerDb();
-    await addDoc(collection(db, "contactMessages"), {
+    await adminResources.db.collection("contactMessages").add({
       name,
       email,
       message,
-      createdAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     return NextResponse.json({ ok: true });

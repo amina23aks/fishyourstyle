@@ -235,7 +235,7 @@ export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]>
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
-    const snapshot = await getDocs(query(productsRef));
+    const snapshot = await getDocs(query(productsRef, where("status", "==", "active")));
     return snapshot.docs
       .map((doc) => normalizeProduct(doc.data(), doc.id))
       .filter((product) => product.status === "active");
@@ -258,7 +258,11 @@ export async function fetchStorefrontProductBySlug(slug: string): Promise<Storef
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
-    const constraints: QueryConstraint[] = [where("slug", "==", slug), limit(1)];
+    const constraints: QueryConstraint[] = [
+      where("slug", "==", slug),
+      where("status", "==", "active"),
+      limit(1),
+    ];
     const snapshot = await getDocs(query(productsRef, ...constraints));
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
@@ -293,17 +297,28 @@ export async function fetchSuggestedStorefrontProducts(params: {
   };
 
   if (category) {
-    const byCategory = await fetchStorefrontProductsByConstraints([where("category", "==", category), limit(target + 1)]);
+    const byCategory = await fetchStorefrontProductsByConstraints([
+      where("category", "==", category),
+      where("status", "==", "active"),
+      limit(target + 1),
+    ]);
     appendUnique(byCategory);
   }
 
   if (suggestions.length < target && designTheme) {
-    const byTheme = await fetchStorefrontProductsByConstraints([where("designTheme", "==", designTheme), limit(target + 1)]);
+    const byTheme = await fetchStorefrontProductsByConstraints([
+      where("designTheme", "==", designTheme),
+      where("status", "==", "active"),
+      limit(target + 1),
+    ]);
     appendUnique(byTheme);
   }
 
   if (suggestions.length < target) {
-    const fallback = await fetchStorefrontProductsByConstraints([limit(target * 2)]);
+    const fallback = await fetchStorefrontProductsByConstraints([
+      where("status", "==", "active"),
+      limit(target * 2),
+    ]);
     appendUnique(fallback);
   }
 

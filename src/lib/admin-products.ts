@@ -41,6 +41,7 @@ export type AdminProduct = {
   inStock: boolean;
   images: { main: string; gallery: string[] };
   gender?: "unisex" | "men" | "women";
+  status?: "active" | "inactive";
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -229,6 +230,7 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     inStock: resolvedInStock,
     images: normalizeImages(data.images),
     gender: typeof data.gender === "string" ? (data.gender as AdminProduct["gender"]) : undefined,
+    status: data.status === "inactive" ? "inactive" : "active",
     createdAt: (data.createdAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
     updatedAt: (data.updatedAt as Timestamp) ?? (serverTimestamp() as unknown as Timestamp),
   };
@@ -262,6 +264,7 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: input.images ?? { main: "", gallery: [] },
     gender: input.gender ?? null,
+    status: input.status === "inactive" ? "inactive" : "active",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -339,6 +342,7 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   }
   if (patch.images !== undefined) payload.images = patch.images;
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
+  if (patch.status !== undefined) payload.status = patch.status === "inactive" ? "inactive" : "active";
 
   return removeUndefinedDeep(payload) as WithFieldValue<Partial<AdminProductWrite>>;
 }
