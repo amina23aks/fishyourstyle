@@ -61,7 +61,7 @@ If a preview URL works but the main `*.pages.dev` domain is blank or times out, 
 
 ## Firebase Admin access and rules
 
-- Server-side Firebase Admin uses `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` (with `\n` preserved) for initialization, plus `SUPER_ADMIN_EMAIL` for bootstrap.
+- Server-side Firebase Admin uses `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` (with `\n` preserved) for initialization, plus `SUPER_ADMIN_EMAIL` for protected admin-claim tooling.
 - Admin-only endpoints/pages expect an ID token in the `Authorization: Bearer <idToken>` header or in one of the cookies `__session`, `session`, or `idToken`.
-- Bootstrap admin claim: set `SUPER_ADMIN_EMAIL` in the environment, sign in that user in the browser, grab their ID token via the Firebase Auth client (`getAuth().currentUser?.getIdToken()`), then call `POST /api/admin/claim` with JSON `{ "uid": "<targetUid>" }` and `Authorization: Bearer <idToken>`. Only the email matching `SUPER_ADMIN_EMAIL` can perform this once to seed admins.
+- `POST /api/admin/claim` remains a protected backend admin-claim tool restricted to the configured `SUPER_ADMIN_EMAIL`; there is no temporary bootstrap UI.
 - Firestore security rules live in `firestore.rules`; deploy them to the project to enforce public reads for catalog data, admin-only writes and order access, locked-down contact messages, and owner-only wishlists.
