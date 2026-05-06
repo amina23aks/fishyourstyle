@@ -62,6 +62,7 @@ export default function Footer() {
   const t = useTranslations();
   const locale = useLocale();
   const [wishlistEmail, setWishlistEmail] = useState("");
+  const [wishlistCompany, setWishlistCompany] = useState("");
   const [wishlistStatus, setWishlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [wishlistError, setWishlistError] = useState<string | null>(null);
   const currentYear = 2026;
@@ -75,7 +76,7 @@ export default function Footer() {
       const response = await fetch("/api/wishlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: wishlistEmail.trim() }),
+        body: JSON.stringify({ email: wishlistEmail.trim(), company: wishlistCompany.trim() }),
       });
 
       if (!response.ok) {
@@ -85,6 +86,7 @@ export default function Footer() {
 
       setWishlistStatus("success");
       setWishlistEmail("");
+      setWishlistCompany("");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to join wishlist.";
       setWishlistError(message);
@@ -197,6 +199,17 @@ export default function Footer() {
                 value={wishlistEmail}
                 onChange={(event) => setWishlistEmail(event.target.value)}
                 className="w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-sky-200 focus:border-white/40 focus:outline-none"
+              />
+
+              <input
+                type="text"
+                name="company"
+                value={wishlistCompany}
+                onChange={(event) => setWishlistCompany(event.target.value)}
+                className="hidden"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
               />
               <button
                 type="submit"

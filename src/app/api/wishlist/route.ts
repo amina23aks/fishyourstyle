@@ -1,19 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 
+import {
+  checkRateLimit,
+  getTrimmedString,
+  hasHoneypotValue,
+  isPlainObject,
+  isValidEmail,
+} from "@/lib/apiProtection";
 import { getAdminResources } from "@/lib/firebaseAdmin";
 
+const WISHLIST_RATE_LIMIT = {
+  keyPrefix: "wishlist-post",
+  limit: 3,
+  windowMs: 10 * 60 * 1000,
+};
+
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = checkRateLimit(request, WISHLIST_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const body = await request.json();
-    const email = typeof body.email === "string" ? body.email.trim() : "";
+    const body = (await request.json().catch(() => null)) as unknown;
+    if (!isPlainObject(body)) {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+
+    if (hasHoneypotValue(body)) {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+
+    const email = getTrimmedString(body, "email", 254);
 
     if (!email) {
       return NextResponse.json({ error: "Email is required." }, { status: 400 });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return NextResponse.json({ error: "Please provide a valid email." }, { status: 400 });
     }
 
@@ -32,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to join wishlist.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[api/wishlist] POST error", error);
+    return NextResponse.json({ error: "Failed to join wishlist." }, { status: 500 });
   }
 }

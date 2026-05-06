@@ -7,7 +7,7 @@ import { useTranslations } from "@/i18n/I18nProvider";
 
 export default function ContactPage() {
   const t = useTranslations();
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", message: "", company: "" });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +24,7 @@ export default function ContactPage() {
           name: form.name.trim(),
           email: form.email.trim(),
           message: form.message.trim(),
+          company: form.company.trim(),
         }),
       });
 
@@ -33,7 +34,7 @@ export default function ContactPage() {
       }
 
       setStatus("success");
-      setForm({ name: "", email: "", message: "" });
+      setForm({ name: "", email: "", message: "", company: "" });
     } catch (err) {
       const message = err instanceof Error ? err.message : t("contact.errorFallback");
       setError(message);
@@ -51,6 +52,16 @@ export default function ContactPage() {
         </header>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            name="company"
+            value={form.company}
+            onChange={(event) => setForm((prev) => ({ ...prev, company: event.target.value }))}
+            className="hidden"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+          />
           <label className="block space-y-1 text-sm text-sky-100">
             <span className="font-semibold text-white">{t("contact.nameLabel")}</span>
             <input

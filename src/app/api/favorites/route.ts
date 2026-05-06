@@ -2,7 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 import { getAdminResources } from "@/lib/firebaseAdmin";
+import { checkRateLimit, getTrimmedString, isPlainObject } from "@/lib/apiProtection";
 import type { FavoriteDocument, FavoriteItem } from "@/types/favorites";
+
+const FAVORITES_WRITE_RATE_LIMIT = {
+  keyPrefix: "favorites-write",
+  limit: 60,
+  windowMs: 60 * 60 * 1000,
+};
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -46,16 +53,16 @@ type NormalizedFavoritePayload = {
 };
 
 function normalizeFavoritePayload(payload: Record<string, unknown>): NormalizedFavoritePayload | null {
-  const productId = typeof payload?.productId === "string" ? payload.productId.trim() : "";
-  const slug = typeof payload?.slug === "string" ? payload.slug.trim() : "";
-  const name = typeof payload?.name === "string" ? payload.name.trim() : "";
-  const image = typeof payload?.image === "string" ? payload.image : "";
+  const productId = getTrimmedString(payload, "productId", 80);
+  const slug = getTrimmedString(payload, "slug", 120);
+  const name = getTrimmedString(payload, "name", 160);
+  const image = typeof payload?.image === "string" && payload.image.length <= 500 ? payload.image : "";
   const price = typeof payload?.price === "number" ? payload.price : Number(payload?.price ?? 0);
-  const currency = typeof payload?.currency === "string" ? payload.currency : "";
+  const currency = getTrimmedString(payload, "currency", 10);
   const inStock = typeof payload?.inStock === "boolean" ? payload.inStock : false;
-  const addedAt = typeof payload?.addedAt === "string" ? payload.addedAt : null;
+  const addedAt = typeof payload?.addedAt === "string" && payload.addedAt.length <= 40 ? payload.addedAt : null;
 
-  if (!productId || !slug || !name || !currency) return null;
+  if (!productId || !slug || !name || !currency || !Number.isFinite(price) || price < 0 || price > 1_000_000) return null;
 
   const nowIso = Timestamp.now().toDate().toISOString();
   return {
@@ -100,6 +107,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = checkRateLimit(request, FAVORITES_WRITE_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const resources = getAdminResources();
   if (!resources) {
     return jsonError("Server misconfiguration.", 500);
@@ -111,8 +121,8 @@ export async function POST(request: NextRequest) {
     return buildAuthError();
   }
 
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  const normalized = body ? normalizeFavoritePayload(body) : null;
+  const body = (await request.json().catch(() => null)) as unknown;
+  const normalized = isPlainObject(body) ? normalizeFavoritePayload(body) : null;
 
   if (!normalized) {
     return jsonError("Invalid payload.", 400);
@@ -167,6 +177,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const rateLimitResponse = checkRateLimit(request, FAVORITES_WRITE_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const resources = getAdminResources();
   if (!resources) {
     return jsonError("Server misconfiguration.", 500);
@@ -178,12 +191,15 @@ export async function PUT(request: NextRequest) {
     return buildAuthError();
   }
 
-  const body = (await request.json().catch(() => null)) as { items?: unknown } | null;
-  const incoming = Array.isArray(body?.items) ? body?.items : [];
+  const body = (await request.json().catch(() => null)) as unknown;
+  if (!isPlainObject(body)) {
+    return jsonError("Invalid payload.", 400);
+  }
+  const incoming = Array.isArray(body.items) ? body.items.slice(0, 100) : [];
   const normalizedItems = incoming
     .map((entry) =>
-      entry && typeof entry === "object"
-        ? normalizeFavoritePayload(entry as Record<string, unknown>)
+      isPlainObject(entry)
+        ? normalizeFavoritePayload(entry)
         : null,
     )
     .filter((entry): entry is NormalizedFavoritePayload => Boolean(entry));

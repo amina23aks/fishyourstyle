@@ -12,8 +12,21 @@ import { getAdminResources, isAdmin } from "@/lib/firebaseAdmin";
 import { sendOrderTelegramNotification } from "@/lib/telegram";
 import { dateKeyInTZ, weekKeyInTZ } from "@/lib/dateKeys";
 import { normalizeProductStock } from "@/lib/stock";
+import {
+  checkRateLimit,
+  getOptionalTrimmedString,
+  getTrimmedString,
+  hasHoneypotValue,
+  isPlainObject,
+  isValidEmail,
+} from "@/lib/apiProtection";
 
 const ADMIN_STATS_DOC = "adminStats/summary";
+const ORDER_RATE_LIMIT = {
+  keyPrefix: "orders-post",
+  limit: 10,
+  windowMs: 60 * 60 * 1000,
+};
 
 function parseBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
@@ -41,88 +54,138 @@ async function requireAuth(
   }
 }
 
+const ALLOWED_SHIPPING_MODES = ["home", "desk"] as const;
+
+function isPositiveSafeNumber(value: unknown, max: number): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= max;
+}
+
+function isPositiveInteger(value: unknown, max: number): value is number {
+  return Number.isInteger(value) && typeof value === "number" && value > 0 && value <= max;
+}
+
 /**
- * Validate NewOrder payload
+ * Validate NewOrder payload and normalize customer-controlled strings.
  */
-function validateOrder(data: unknown): data is NewOrder {
-  if (!data || typeof data !== "object") return false;
+function normalizeOrderPayload(data: unknown): NewOrder | null {
+  if (!isPlainObject(data)) return null;
 
-  const order = data as Partial<NewOrder>;
+  const itemsPayload = data.items;
+  if (!Array.isArray(itemsPayload) || itemsPayload.length === 0 || itemsPayload.length > 25) return null;
 
-  // Validate items array
-  if (!Array.isArray(order.items) || order.items.length === 0) return false;
-  for (const item of order.items) {
+  const items = itemsPayload.map((item) => {
+    if (!isPlainObject(item)) return null;
+
+    const id = getTrimmedString(item, "id", 80);
+    const slug = getTrimmedString(item, "slug", 120);
+    const name = getTrimmedString(item, "name", 160);
+    const currency = getTrimmedString(item, "currency", 10);
+    const image = getTrimmedString(item, "image", 500);
+    const colorName = getTrimmedString(item, "colorName", 80);
+    const colorCode = getTrimmedString(item, "colorCode", 80);
+    const size = getTrimmedString(item, "size", 30);
+    const variantKey = getTrimmedString(item, "variantKey", 220);
+    const category = getOptionalTrimmedString(item, "category", 80);
+    const design = getOptionalTrimmedString(item, "design", 80);
+
     if (
-      !item.id ||
-      !item.slug ||
-      !item.name ||
-      typeof item.price !== "number" ||
+      !id ||
+      !slug ||
+      !name ||
+      !currency ||
+      !image ||
+      !colorName ||
+      !colorCode ||
+      !size ||
+      !variantKey ||
+      category === null ||
+      design === null ||
+      !isPositiveSafeNumber(item.price, 1_000_000) ||
       item.price <= 0 ||
-      !item.currency ||
-      !item.image ||
-      !item.colorName ||
-      !item.colorCode ||
-      !item.size ||
-      typeof item.quantity !== "number" ||
-      item.quantity <= 0 ||
-      !item.variantKey
+      !isPositiveInteger(item.quantity, 20)
     ) {
-      return false;
+      return null;
     }
-  }
 
-  // Validate shipping info
-  if (!order.shipping || typeof order.shipping !== "object") return false;
-  const shipping = order.shipping as Partial<ShippingInfo>;
+    return {
+      id,
+      slug,
+      name,
+      ...(category ? { category } : {}),
+      ...(design ? { design } : {}),
+      price: item.price,
+      currency,
+      image,
+      colorName,
+      colorCode,
+      size,
+      quantity: item.quantity,
+      variantKey,
+    };
+  });
+
+  if (items.some((item) => item === null)) return null;
+
+  const shippingPayload = data.shipping;
+  if (!isPlainObject(shippingPayload)) return null;
+
+  const customerName = getTrimmedString(shippingPayload, "customerName", 100);
+  const phone = getTrimmedString(shippingPayload, "phone", 40);
+  const wilaya = getTrimmedString(shippingPayload, "wilaya", 80);
+  const address = getTrimmedString(shippingPayload, "address", 300);
+  const mode = getTrimmedString(shippingPayload, "mode", 10);
+
   if (
-    !shipping.customerName ||
-    !shipping.phone ||
-    !shipping.wilaya ||
-    !shipping.address ||
-    !shipping.mode ||
-    typeof shipping.price !== "number" ||
-    shipping.price < 0
+    !customerName ||
+    !phone ||
+    !wilaya ||
+    !address ||
+    !mode ||
+    !ALLOWED_SHIPPING_MODES.includes(mode as (typeof ALLOWED_SHIPPING_MODES)[number]) ||
+    !isPositiveSafeNumber(shippingPayload.price, 100_000)
   ) {
-    return false;
+    return null;
   }
 
-  // Validate totals
   if (
-    typeof order.subtotal !== "number" ||
-    order.subtotal < 0 ||
-    typeof order.shippingCost !== "number" ||
-    order.shippingCost < 0 ||
-    typeof order.total !== "number" ||
-    order.total < 0
+    !isPositiveSafeNumber(data.subtotal, 20_000_000) ||
+    !isPositiveSafeNumber(data.shippingCost, 100_000) ||
+    !isPositiveSafeNumber(data.total, 20_100_000)
   ) {
-    return false;
+    return null;
   }
 
-  // Validate payment method
-  if (order.paymentMethod !== "COD") return false;
+  if (data.paymentMethod !== "COD") return null;
+  if (data.status !== "pending") return null;
 
-  // Validate status
-  if (
-    order.status !== "pending" &&
-    order.status !== "confirmed" &&
-    order.status !== "shipped" &&
-    order.status !== "delivered" &&
-    order.status !== "cancelled"
-  ) {
-    return false;
-  }
+  const customerEmail = getOptionalTrimmedString(data, "customerEmail", 254);
+  if (customerEmail === null || (customerEmail && !isValidEmail(customerEmail))) return null;
 
-  // Customer email is optional but if present should be a string
-  if (order.customerEmail !== undefined && typeof order.customerEmail !== "string") {
-    return false;
-  }
+  const userId = getOptionalTrimmedString(data, "userId", 128);
+  if (userId === null) return null;
 
-  // Auth user is optional but if present should be a string
-  if (order.userId !== undefined && typeof order.userId !== "string") {
-    return false;
-  }
+  const notes = getOptionalTrimmedString(data, "notes", 500);
+  if (notes === null) return null;
 
-  return true;
+  return {
+    ...(userId ? { userId } : {}),
+    ...(customerEmail ? { customerEmail } : {}),
+    items: items as NewOrder["items"],
+    shipping: {
+      customerName,
+      phone,
+      wilaya,
+      address,
+      mode: mode as ShippingInfo["mode"],
+      price: shippingPayload.price,
+    },
+    ...(notes ? { notes } : {}),
+    subtotal: data.subtotal,
+    shippingCost: data.shippingCost,
+    total: data.total,
+    paymentMethod: "COD",
+    status: data.status as OrderStatus,
+  };
 }
 
 function resolveStockState(data: DocumentData): { stockMode: "unlimited" | "limited"; stockQty: number | null } {
@@ -144,8 +207,18 @@ function resolveStockState(data: DocumentData): { stockMode: "unlimited" | "limi
  * Create a new order in Firestore
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = checkRateLimit(request, ORDER_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const rawBody = (await request.json()) as Record<string, unknown>;
+    const rawBody = (await request.json().catch(() => null)) as unknown;
+    if (!isPlainObject(rawBody)) {
+      return NextResponse.json({ error: "Invalid order data. Please check all required fields." }, { status: 400 });
+    }
+
+    if (hasHoneypotValue(rawBody)) {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
 
     const {
       userId: _ignoredUserId,
@@ -156,6 +229,8 @@ export async function POST(request: NextRequest) {
       discountType: _ignoredDiscountType,
       discountPercent: _ignoredDiscountPercent,
       discountAmount: _ignoredDiscountAmount,
+      website: _ignoredWebsite,
+      company: _ignoredCompany,
       ...rest
     } = rawBody;
     void _ignoredUserId;
@@ -166,8 +241,11 @@ export async function POST(request: NextRequest) {
     void _ignoredDiscountType;
     void _ignoredDiscountPercent;
     void _ignoredDiscountAmount;
+    void _ignoredWebsite;
+    void _ignoredCompany;
 
-    if (!validateOrder(rest)) {
+    const normalizedOrder = normalizeOrderPayload(rest);
+    if (!normalizedOrder) {
       return NextResponse.json(
         { error: "Invalid order data. Please check all required fields." },
         { status: 400 },
@@ -193,7 +271,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const orderData = rest as NewOrder;
+    const orderData = normalizedOrder;
 
     const orderToSave: NewOrder = {
       ...orderData,

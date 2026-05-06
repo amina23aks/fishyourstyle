@@ -31,6 +31,7 @@ type CheckoutFormState = {
   wilaya: string;
   address: string;
   notes: string;
+  company: string;
 };
 
 export default function CheckoutClient() {
@@ -46,6 +47,7 @@ export default function CheckoutClient() {
     wilaya: "",
     address: "",
     notes: "",
+    company: "",
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -293,7 +295,7 @@ export default function CheckoutClient() {
 
       // Send to API
       console.log("[CheckoutClient] Sending POST request to /api/orders...");
-      const response = await submitOrder(newOrder, user ?? null);
+      const response = await submitOrder(newOrder, user ?? null, { company: form.company.trim() });
       console.log("[CheckoutClient] Response received:", {
         status: response.status,
         statusText: response.statusText,
@@ -424,6 +426,17 @@ export default function CheckoutClient() {
           >
             <section className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
               <h2 className="text-sm font-semibold text-white">{t("checkout.deliveryDetails")}</h2>
+
+              <input
+                type="text"
+                name="company"
+                value={form.company}
+                onChange={(event) => handleChange("company", event.target.value)}
+                className="hidden"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+              />
 
               <div className="space-y-3">
                 <div className="space-y-1">
