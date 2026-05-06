@@ -23,14 +23,15 @@ import { submitOrder } from "@/lib/ordersClient";
 import { initiateCheckout, purchase } from "@/lib/metaPixel";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
+import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
 
 type CheckoutFormState = {
   fullName: string;
-  email: string;
   phone: string;
   wilaya: string;
   address: string;
   notes: string;
+  company: string;
 };
 
 export default function CheckoutClient() {
@@ -41,11 +42,11 @@ export default function CheckoutClient() {
   const { user, signOut } = useAuth();
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
-    email: "",
     phone: "",
     wilaya: "",
     address: "",
     notes: "",
+    company: "",
   });
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,9 +76,7 @@ export default function CheckoutClient() {
     return Math.max(0, totals.subtotal + shippingTotal - loyaltyDiscountAmount);
   }, [loyaltyDiscountAmount, shippingPrice, totals.subtotal]);
 
-  const authenticatedEmail = user?.email?.trim() ?? "";
-  const shouldAskForEmail = !authenticatedEmail;
-  const customerEmail = authenticatedEmail || form.email.trim();
+  const customerEmail = user?.email?.trim() || undefined;
 
   useEffect(() => {
     if (!hasItems) {
@@ -98,19 +97,6 @@ export default function CheckoutClient() {
     });
     initiateCheckoutTrackedRef.current = true;
   }, [grandTotal, hasItems, items]);
-
-  useEffect(() => {
-    if (user?.email) {
-      setForm((previous) =>
-        previous.email
-          ? previous
-          : {
-              ...previous,
-              email: user.email ?? "",
-            },
-      );
-    }
-  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -155,32 +141,29 @@ export default function CheckoutClient() {
     setError(null);
     setSuccess(null);
 
-    // Validate required fields. Signed-in customers use their account email; guests provide it here.
+    // Validate required delivery fields. Email is only taken from authenticated users.
     console.log("[CheckoutClient] Validating required fields...");
     console.log("[CheckoutClient] Field validation check:", {
       fullName: !!form.fullName,
       phone: !!form.phone,
       wilaya: !!form.wilaya,
       address: !!form.address,
-      email: !!customerEmail,
     });
 
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address || !customerEmail) {
+    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
       console.error("[CheckoutClient] Validation Failed: Missing required fields", {
         fullName: !!form.fullName,
         phone: !!form.phone,
         wilaya: !!form.wilaya,
         address: !!form.address,
-        email: !!customerEmail,
       });
       setError(t("checkout.errorRequiredFields"));
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(customerEmail)) {
-      console.error("[CheckoutClient] Validation Failed: Invalid email format");
-      setError(t("checkout.errorInvalidEmail"));
+    if (!isValidAlgeriaPhone(form.phone.trim())) {
+      console.error("[CheckoutClient] Validation Failed: Invalid phone format");
+      setError(t("checkout.errorInvalidPhone"));
       return;
     }
 
@@ -259,7 +242,7 @@ export default function CheckoutClient() {
         items: orderItems,
         shipping: {
           customerName: form.fullName,
-          phone: form.phone,
+          phone: form.phone.trim(),
           wilaya: form.wilaya,
           address: form.address,
           mode: deliveryMode,
@@ -293,7 +276,7 @@ export default function CheckoutClient() {
 
       // Send to API
       console.log("[CheckoutClient] Sending POST request to /api/orders...");
-      const response = await submitOrder(newOrder, user ?? null);
+      const response = await submitOrder(newOrder, user ?? null, { company: form.company.trim() });
       console.log("[CheckoutClient] Response received:", {
         status: response.status,
         statusText: response.statusText,
@@ -425,6 +408,17 @@ export default function CheckoutClient() {
             <section className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
               <h2 className="text-sm font-semibold text-white">{t("checkout.deliveryDetails")}</h2>
 
+              <input
+                type="text"
+                name="company"
+                value={form.company}
+                onChange={(event) => handleChange("company", event.target.value)}
+                className="hidden"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+              />
+
               <div className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="fullName">
@@ -439,23 +433,6 @@ export default function CheckoutClient() {
                     required
                   />
                 </div>
-
-                {shouldAskForEmail ? (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-sky-100" htmlFor="email">
-                      {t("checkout.emailLabel")}<span className="text-rose-200"> *</span>
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={form.email}
-                      onChange={(event) => handleChange("email", event.target.value)}
-                      className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                      placeholder={t("checkout.emailPlaceholder")}
-                      required
-                    />
-                  </div>
-                ) : null}
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-sky-100" htmlFor="phone">

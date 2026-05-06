@@ -3,10 +3,23 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { Order, OrderItem, OrderStatus, ShippingInfo } from "@/types/order";
 import { AdminAuthError, getAdminResources, isAdminConfigured, requireAdmin } from "@/lib/firebaseAdmin";
+import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
+import {
+  checkRateLimit,
+  getOptionalTrimmedString,
+  hasHoneypotValue,
+  isPlainObject,
+} from "@/lib/apiProtection";
 
 function isPendingStatus(status: string | null | undefined): boolean {
   return (status ?? "").toLowerCase() === "pending";
 }
+
+const ORDER_UPDATE_RATE_LIMIT = {
+  keyPrefix: "orders-update",
+  limit: 20,
+  windowMs: 60 * 60 * 1000,
+};
 
 const ALLOWED_STATUSES: OrderStatus[] = [
   "pending",
@@ -72,6 +85,44 @@ type PatchPayload = {
   status?: OrderStatus;
 };
 
+function isSafeNumber(value: unknown, max: number): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= max;
+}
+
+function normalizeShippingPatch(shipping: unknown): PartialShipping | undefined | null {
+  if (shipping === undefined) return undefined;
+  if (!isPlainObject(shipping)) return null;
+
+  const customerName = getOptionalTrimmedString(shipping, "customerName", 100);
+  const phone = getOptionalTrimmedString(shipping, "phone", 40);
+  const wilaya = getOptionalTrimmedString(shipping, "wilaya", 80);
+  const address = getOptionalTrimmedString(shipping, "address", 300);
+  const mode = getOptionalTrimmedString(shipping, "mode", 10);
+  const price = shipping.price;
+
+  if (
+    customerName === null ||
+    phone === null ||
+    (phone !== undefined && !isValidAlgeriaPhone(phone)) ||
+    wilaya === null ||
+    address === null ||
+    mode === null ||
+    (mode !== undefined && mode !== "home" && mode !== "desk") ||
+    (price !== undefined && !isSafeNumber(price, 100_000))
+  ) {
+    return null;
+  }
+
+  return {
+    ...(customerName ? { customerName } : {}),
+    ...(phone ? { phone } : {}),
+    ...(wilaya ? { wilaya } : {}),
+    ...(address ? { address } : {}),
+    ...(mode ? { mode: mode as ShippingInfo["mode"] } : {}),
+    ...(typeof price === "number" ? { price } : {}),
+  };
+}
+
 function isValidOrderItems(items: unknown): items is OrderItem[] {
   if (!Array.isArray(items)) return false;
 
@@ -98,9 +149,12 @@ function calculateSubtotal(items: OrderItem[]): number {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
+  const rateLimitResponse = checkRateLimit(request, ORDER_UPDATE_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { orderId } = await params;
 
-  if (!orderId) {
+  if (!orderId || orderId.length > 128) {
     return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
   }
 
@@ -110,7 +164,14 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
   if (hasBody) {
     try {
-      payload = JSON.parse(rawBody) as PatchPayload;
+      const parsedPayload = JSON.parse(rawBody) as unknown;
+      if (!isPlainObject(parsedPayload)) {
+        return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+      }
+      if (hasHoneypotValue(parsedPayload)) {
+        return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+      }
+      payload = parsedPayload as PatchPayload;
     } catch (error) {
       console.error("[api/orders/[orderId]] PATCH PARSE ERROR:", error);
       return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
@@ -327,15 +388,32 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         );
       }
 
-      const updatedShipping: ShippingInfo = payload?.shipping
+      const normalizedShippingPatch = normalizeShippingPatch(payload?.shipping);
+      if (normalizedShippingPatch === null) {
+        return NextResponse.json(
+          { error: "Invalid shipping payload" },
+          { status: 400 }
+        );
+      }
+
+      const updatedShipping: ShippingInfo = normalizedShippingPatch
         ? {
             ...order.shipping,
-            ...payload.shipping,
+            ...normalizedShippingPatch,
           }
         : order.shipping;
 
       const updatedItems: OrderItem[] = payload?.items ? [...payload.items] : order.items;
-      const updatedNotes = payload?.notes !== undefined ? payload.notes : order.notes;
+      const updatedNotes = payload?.notes !== undefined
+        ? getOptionalTrimmedString(payload as Record<string, unknown>, "notes", 500)
+        : order.notes;
+
+      if (updatedNotes === null) {
+        return NextResponse.json(
+          { error: "Invalid notes payload" },
+          { status: 400 }
+        );
+      }
       const subtotal = calculateSubtotal(updatedItems);
       const shippingCost =
         typeof updatedShipping.price === "number" ? updatedShipping.price : order.shippingCost;
