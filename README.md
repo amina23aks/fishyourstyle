@@ -63,65 +63,25 @@ If a preview URL works but the main `*.pages.dev` domain is blank or times out, 
 
 - Server-side Firebase Admin uses `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` (with `\n` preserved) for initialization, plus `SUPER_ADMIN_EMAIL` for bootstrap.
 - Admin-only endpoints/pages expect an ID token in the `Authorization: Bearer <idToken>` header or in one of the cookies `__session`, `session`, or `idToken`.
-- Bootstrap admin claim: set `SUPER_ADMIN_EMAIL` in the environment, sign in that user in the browser, use the temporary developer-only console snippet below to get a fresh ID token, then call `POST /api/admin/claim` with JSON `{ "uid": "<targetUid>" }` and `Authorization: Bearer <idToken>`. Only the email matching `SUPER_ADMIN_EMAIL` can perform this once to seed admins.
+- Bootstrap admin claim: set `SUPER_ADMIN_EMAIL` in the environment, sign in as that exact email, then open the temporary developer-only bootstrap page at `/en/admin-bootstrap` (or the matching locale path). The page gets your Firebase ID token internally, calls `POST /api/admin/claim` only for your current signed-in UID, and never shows or logs the token. Only the email matching `SUPER_ADMIN_EMAIL` can bootstrap itself.
 - Firestore security rules live in `firestore.rules`; deploy them to the project to enforce public reads for catalog data, admin-only writes and order access, locked-down contact messages, and owner-only wishlists.
 
-### Temporary developer-only ID token snippet
+### Temporary developer-only admin bootstrap page
 
-Use this only from your own signed-in browser session when bootstrapping admin claims. It does not add a debug page and does not expose tokens in the UI; the token is returned only in your browser console. Do not paste the token into screenshots, chat, logs, or committed files, and close the console tab when finished.
+This is a temporary Phase 1 helper for bootstrapping the first admin only. Remove it after the super admin account has the `admin` custom claim.
 
-This project initializes Firebase Auth through the modular client helper in `src/lib/firebaseClient.ts` (`initializeApp` + `getAuth`). Because the bundled app does not expose Firebase globals, the console snippet below loads the same Firebase modular SDK version from Google, initializes the default app with the same public web config, waits for the persisted signed-in user, and then calls `currentUser.getIdToken(true)` for a fresh token. Replace the config values with this app's Firebase web config values from your deployed `NEXT_PUBLIC_FIREBASE_*` environment variables or Firebase console.
+1. Set `SUPER_ADMIN_EMAIL` on the server/Vercel environment.
+2. Sign in to the storefront with that exact Firebase Auth email.
+3. Open `/en/admin-bootstrap` (or `/fr/admin-bootstrap` / `/ar/admin-bootstrap`).
+4. Click **Bootstrap my admin claim**. The page sends your current signed-in UID only; it does not allow typing or choosing another UID.
+5. On success, refresh your session or sign out and back in before opening `/admin`.
 
-```js
-const firebaseConfig = {
-  apiKey: "<NEXT_PUBLIC_FIREBASE_API_KEY>",
-  authDomain: "<NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN>",
-  projectId: "<NEXT_PUBLIC_FIREBASE_PROJECT_ID>",
-  storageBucket: "<NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET>",
-  appId: "<NEXT_PUBLIC_FIREBASE_APP_ID>",
-  measurementId: "<NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID>", // optional; remove if unused
-};
-
-await (async () => {
-  const [{ initializeApp, getApp, getApps }, { getAuth, onAuthStateChanged }] = await Promise.all([
-    import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),
-    import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"),
-  ]);
-
-  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-
-  const user = auth.currentUser ?? await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      unsubscribe();
-      reject(new Error("No signed-in Firebase user found. Sign in, then run this snippet again."));
-    }, 5000);
-
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      clearTimeout(timeout);
-      unsubscribe();
-      resolve(firebaseUser);
-    }, reject);
-  });
-
-  if (!user) {
-    throw new Error("No signed-in Firebase user found. Sign in, then run this snippet again.");
-  }
-
-  return {
-    uid: user.uid,
-    email: user.email,
-    idToken: await user.getIdToken(true),
-  };
-})();
-```
-
-Windows PowerShell example for calling the bootstrap route after copying the returned `idToken` and choosing the target user UID:
+Windows PowerShell example for manually calling the same bootstrap route if needed after obtaining an ID token by another trusted local method:
 
 ```powershell
 $baseUrl = "https://<your-vercel-domain>" # or "http://localhost:3000" for local testing
-$idToken = "<fresh ID token returned by the browser snippet>"
-$targetUid = "<uid to grant admin access>"
+$idToken = "<fresh Firebase ID token for SUPER_ADMIN_EMAIL>"
+$targetUid = "<same signed-in user's uid>"
 $body = @{ uid = $targetUid } | ConvertTo-Json -Compress
 
 curl.exe -X POST "$baseUrl/api/admin/claim" `
