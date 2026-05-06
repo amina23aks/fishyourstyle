@@ -10,6 +10,24 @@ type AdminResources = {
   auth: Auth;
 };
 
+export class AdminAuthError extends Error {
+  status: 401 | 403;
+  code: "unauthenticated" | "forbidden";
+
+  constructor(status: 401 | 403, code: "unauthenticated" | "forbidden", message: string) {
+    super(message);
+    this.name = "AdminAuthError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export type AdminAuthResult = {
+  decodedToken: DecodedIdToken;
+  uid: string;
+  email?: string;
+};
+
 function normalizePrivateKey(value: string): string {
   let key = value.trim();
   if (key.startsWith('"') && key.endsWith('"')) {
@@ -88,30 +106,65 @@ export async function verifyIdToken(idToken: string) {
   return auth.verifyIdToken(idToken);
 }
 
-export async function verifyIdTokenFromRequest(request: Request) {
+export function getBearerTokenFromRequest(request: Request): string | null {
   const authHeader =
     request.headers.get("authorization") ??
     request.headers.get("Authorization");
 
-  if (!authHeader) {
-    throw new Error("Missing Authorization header.");
-  }
+  if (!authHeader) return null;
 
   const [scheme, token] = authHeader.split(" ");
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !token) {
+    return null;
+  }
 
-  if (scheme.toLowerCase() !== "bearer" || !token) {
-    throw new Error(
-      "Invalid Authorization header format. Use Bearer <idToken>."
+  return token.trim();
+}
+
+export async function verifyIdTokenFromRequest(request: Request) {
+  const token = getBearerTokenFromRequest(request);
+
+  if (!token) {
+    throw new AdminAuthError(
+      401,
+      "unauthenticated",
+      "Missing or invalid Authorization header. Use Bearer <idToken>."
     );
   }
 
-  return verifyIdToken(token.trim());
+  try {
+    return await verifyIdToken(token);
+  } catch (error) {
+    throw new AdminAuthError(
+      401,
+      "unauthenticated",
+      error instanceof Error ? error.message : "Unable to verify token."
+    );
+  }
 }
 
 export function isAdmin(
   decodedToken: DecodedIdToken | null | undefined
 ): boolean {
   return decodedToken?.admin === true;
+}
+
+export async function requireAdmin(request: Request): Promise<AdminAuthResult> {
+  const decodedToken = await verifyIdTokenFromRequest(request);
+
+  if (!isAdmin(decodedToken)) {
+    throw new AdminAuthError(
+      403,
+      "forbidden",
+      "Admin access required."
+    );
+  }
+
+  return {
+    decodedToken,
+    uid: decodedToken.uid,
+    email: decodedToken.email,
+  };
 }
 
 export async function setAdminClaim(uid: string) {

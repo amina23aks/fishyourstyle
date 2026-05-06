@@ -12,8 +12,7 @@ import { getProductBySlug } from "@/lib/products";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
 import { getDb } from "@/lib/firebaseClient";
-import { useAuth } from "@/context/auth";
-import { isAdminUser } from "@/lib/admin";
+import { useAdmin } from "@/lib/admin";
 import { Swatch } from "../../shop/swatch";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { buildProductColorOptions, buildProductSizeOptions, resolveSwatchHex } from "@/lib/product-variants";
@@ -466,8 +465,7 @@ export default function OrderDetailsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = params.id as string;
-  const { user, loading: authLoading } = useAuth();
-  const isAdmin = useMemo(() => isAdminUser(user), [user]);
+  const { user, loading: authLoading, isAdmin } = useAdmin();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);

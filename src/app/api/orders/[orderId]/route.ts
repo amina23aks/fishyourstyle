@@ -1,25 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import type { DecodedIdToken } from "firebase-admin/auth";
 import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { Order, OrderItem, OrderStatus, ShippingInfo } from "@/types/order";
-import { getAdminResources, isAdminConfigured } from "@/lib/firebaseAdmin";
-
-const ADMIN_EMAILS = ["fishyourstyle.supp@gmail.com"] as const;
-
-function parseBearerToken(request: NextRequest): string | null {
-  const authHeader =
-    request.headers.get("authorization") ?? request.headers.get("Authorization");
-  if (!authHeader) return null;
-  const [scheme, value] = authHeader.split(" ");
-  if (!scheme || scheme.toLowerCase() !== "bearer" || !value) return null;
-  return value.trim();
-}
-
-function isAdminUser(decoded: DecodedIdToken | null): boolean {
-  if (!decoded?.email) return false;
-  return ADMIN_EMAILS.includes(decoded.email.toLowerCase() as (typeof ADMIN_EMAILS)[number]);
-}
+import { AdminAuthError, getAdminResources, isAdminConfigured, requireAdmin } from "@/lib/firebaseAdmin";
 
 function isPendingStatus(status: string | null | undefined): boolean {
   return (status ?? "").toLowerCase() === "pending";
@@ -149,7 +132,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         { status: 503 },
       );
     }
-    const { db, auth } = adminResources;
+    const { db } = adminResources;
 
     const orderRef = db.collection("orders").doc(orderId);
     const snapshot = await orderRef.get();
@@ -177,21 +160,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         return NextResponse.json({ error: "Invalid order status" }, { status: 400 });
       }
 
-      const bearerToken = parseBearerToken(request);
-      if (!bearerToken) {
-        return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-      }
-
-      let decoded: DecodedIdToken | null = null;
       try {
-        decoded = await auth.verifyIdToken(bearerToken);
+        await requireAdmin(request);
       } catch (error) {
-        console.error("[api/orders/[orderId]] Token verification failed", error);
-        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-      }
-
-      if (!isAdminUser(decoded)) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        const status = error instanceof AdminAuthError ? error.status : 401;
+        const message = error instanceof Error ? error.message : "Unable to verify admin access.";
+        return NextResponse.json({ error: status === 403 ? "Forbidden" : "Authentication required", message }, { status });
       }
 
       if (nextStatus === order.status) {

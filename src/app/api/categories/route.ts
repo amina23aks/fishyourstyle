@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { AdminAuthError, requireAdmin } from "@/lib/firebaseAdmin";
 import {
   addCategory,
   addDesign,
@@ -10,6 +11,18 @@ import {
   getSelectableCollectionsAndDesigns,
   getSelectableDesigns,
 } from "@/lib/categories";
+
+function adminAuthResponse(error: unknown) {
+  const status = error instanceof AdminAuthError ? error.status : 401;
+  const code = status === 403 ? "forbidden" : "unauthorized";
+  return NextResponse.json(
+    {
+      error: code,
+      message: error instanceof Error ? error.message : "Unable to verify admin access.",
+    },
+    { status },
+  );
+}
 
 export async function GET(request: Request) {
   try {
@@ -35,6 +48,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await requireAdmin(request);
+  } catch (error) {
+    return adminAuthResponse(error);
+  }
+
+  try {
     const body = await request.json();
     const { name, type } = body;
     if (!name) {
@@ -55,6 +74,12 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  try {
+    await requireAdmin(request);
+  } catch (error) {
+    return adminAuthResponse(error);
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("slug");
