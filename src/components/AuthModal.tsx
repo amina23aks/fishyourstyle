@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
-import { getAuthInstance } from "@/lib/firebaseClient";
-import { ensureUserDoc } from "@/lib/ensureUserDoc";
 
 // Helper to extract the best auth code
 function extractAuthCode(err: unknown): string {
@@ -100,11 +98,6 @@ export default function AuthModal() {
       } else {
         await register(email, password);
       }
-      const auth = getAuthInstance();
-      const uid = auth?.currentUser?.uid;
-      if (uid) {
-        await ensureUserDoc(uid);
-      }
       closeModal();
       router.push(safeReturnTo);
     } catch (err: unknown) {
@@ -120,11 +113,6 @@ export default function AuthModal() {
     setBusy(true);
     try {
       await signInWithGoogle();
-      const auth = getAuthInstance();
-      const uid = auth?.currentUser?.uid;
-      if (uid) {
-        await ensureUserDoc(uid);
-      }
       closeModal();
       router.push(safeReturnTo);
     } catch (err: unknown) {
