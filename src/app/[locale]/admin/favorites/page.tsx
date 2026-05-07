@@ -74,7 +74,7 @@ async function fetchFavorites(): Promise<{
     throw new Error("Firebase Admin is not configured.");
   }
 
-  const snapshot = await db.collection("favorites").orderBy("updatedAt", "desc").get();
+  const snapshot = await db.collection("favorites").orderBy("updatedAt", "desc").limit(100).get();
 
   const rows: FavoritesAdminRow[] = snapshot.docs
     .map((doc) => {

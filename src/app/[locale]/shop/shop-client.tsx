@@ -1,21 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
 import { useTranslations } from "@/i18n/I18nProvider";
 
+type StorefrontCursor = {
+  createdAtMillis: number;
+  id: string;
+};
+
+type ShopClientProduct = Product & {
+  designTheme?: string;
+  tags?: string[];
+  discountPercent?: number;
+  stockMode?: "unlimited" | "limited";
+  stockQty?: number;
+  inStock?: boolean;
+};
+
+type ShopProductsResponse = {
+  products?: ShopClientProduct[];
+  nextCursor?: StorefrontCursor | null;
+};
+
 type ShopClientProps = {
-  products: (Product & {
-    designTheme?: string;
-    tags?: string[];
-    discountPercent?: number;
-    stockMode?: "unlimited" | "limited";
-    stockQty?: number;
-    inStock?: boolean;
-  })[];
+  products: ShopClientProduct[];
+  initialCursor?: StorefrontCursor | null;
   errorMessage?: string | null;
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
@@ -26,11 +39,43 @@ function capitalizeLabel(value: string | undefined | null): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export default function ShopClient({ products, errorMessage, categories, designThemes }: ShopClientProps) {
+export default function ShopClient({ products, initialCursor = null, errorMessage, categories, designThemes }: ShopClientProps) {
   const t = useTranslations();
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [loadedProducts, setLoadedProducts] = useState<ShopClientProduct[]>(products);
+  const [nextCursor, setNextCursor] = useState<StorefrontCursor | null>(initialCursor);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoadedProducts(products);
+    setNextCursor(initialCursor);
+  }, [initialCursor, products]);
+
+  const loadMoreProducts = useCallback(async () => {
+    if (!nextCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    setLoadMoreError(null);
+    try {
+      const params = new URLSearchParams({
+        pageSize: "24",
+        cursor: JSON.stringify(nextCursor),
+      });
+      if (collectionFilter !== "all") params.set("category", collectionFilter);
+      if (designFilter !== "all") params.set("designTheme", designFilter);
+      const response = await fetch(`/api/products?${params.toString()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load more products");
+      const payload = (await response.json()) as ShopProductsResponse;
+      setLoadedProducts((prev) => [...prev, ...(payload.products ?? [])]);
+      setNextCursor(payload.nextCursor ?? null);
+    } catch (error) {
+      setLoadMoreError(error instanceof Error ? error.message : "Failed to load more products");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [collectionFilter, designFilter, isLoadingMore, nextCursor]);
 
   const collectionValues = useMemo(() => {
     const source = categories && categories.length > 0 ? categories : CANONICAL_CATEGORIES;
@@ -42,7 +87,7 @@ export default function ShopClient({ products, errorMessage, categories, designT
   const designValues = useMemo(() => {
     const allPill = { label: "All", value: "all" as const };
     const designMap = new Map<string, string>();
-    products.forEach((product) => {
+    loadedProducts.forEach((product) => {
       const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
       if (!rawTheme) return;
       const normalized = rawTheme.toLowerCase();
@@ -75,7 +120,7 @@ export default function ShopClient({ products, errorMessage, categories, designT
     }
 
     return [allPill, ...baseDesigns];
-  }, [designThemes, products]);
+  }, [designThemes, loadedProducts]);
 
   const collectionPills = useMemo(() => {
     return collectionValues;
@@ -85,9 +130,42 @@ export default function ShopClient({ products, errorMessage, categories, designT
     return designValues;
   }, [designValues]);
 
+  useEffect(() => {
+    let ignore = false;
+    async function loadFilteredProducts() {
+      if (collectionFilter === "all" && designFilter === "all") {
+        setLoadedProducts(products);
+        setNextCursor(initialCursor);
+        return;
+      }
+      setIsLoadingMore(true);
+      setLoadMoreError(null);
+      try {
+        const params = new URLSearchParams({ pageSize: "24" });
+        if (collectionFilter !== "all") params.set("category", collectionFilter);
+        if (designFilter !== "all") params.set("designTheme", designFilter);
+        const response = await fetch(`/api/products?${params.toString()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error("Failed to load filtered products");
+        const payload = (await response.json()) as ShopProductsResponse;
+        if (!ignore) {
+          setLoadedProducts(payload.products ?? []);
+          setNextCursor(payload.nextCursor ?? null);
+        }
+      } catch (error) {
+        if (!ignore) setLoadMoreError(error instanceof Error ? error.message : "Failed to load filtered products");
+      } finally {
+        if (!ignore) setIsLoadingMore(false);
+      }
+    }
+    void loadFilteredProducts();
+    return () => {
+      ignore = true;
+    };
+  }, [collectionFilter, designFilter, initialCursor, products]);
+
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return products.filter((product) => {
+    return loadedProducts.filter((product) => {
       const category = (product.category as string)?.toLowerCase();
       const design = (product.designTheme ?? "simple").toLowerCase();
       if (collectionFilter !== "all" && category !== collectionFilter) return false;
@@ -98,7 +176,7 @@ export default function ShopClient({ products, errorMessage, categories, designT
       const haystack = `${product.nameFr} ${tags.join(" ")}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [collectionFilter, designFilter, products, search]);
+  }, [collectionFilter, designFilter, loadedProducts, search]);
 
   return (
     <>
@@ -208,6 +286,23 @@ export default function ShopClient({ products, errorMessage, categories, designT
           ))}
         </motion.div>
       )}
+
+      {loadMoreError ? (
+        <p className="mt-4 text-center text-sm text-rose-100">{loadMoreError}</p>
+      ) : null}
+
+      {!errorMessage && nextCursor ? (
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={loadMoreProducts}
+            disabled={isLoadingMore}
+            className="rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoadingMore ? "Loading..." : "Load more"}
+          </button>
+        </div>
+      ) : null}
     </>
   );
 }

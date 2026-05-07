@@ -8,8 +8,11 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  startAfter,
   updateDoc,
+  limit,
   type DocumentData,
+  type QueryDocumentSnapshot,
   type Timestamp,
   type WithFieldValue,
 } from "firebase/firestore";
@@ -356,13 +359,34 @@ function wrapPermission<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
-export async function listAdminProducts(): Promise<AdminProduct[]> {
+export type AdminProductsPageResult = {
+  products: AdminProduct[];
+  nextCursor: QueryDocumentSnapshot<DocumentData> | null;
+};
+
+export async function listAdminProductsPage(
+  limitCount = 25,
+  cursor?: QueryDocumentSnapshot<DocumentData> | null,
+): Promise<AdminProductsPageResult> {
   const db = getDbOrThrow();
-  const productsQuery = query(collection(db, "products"), orderBy("createdAt", "desc"));
+  const safeLimit = Math.min(Math.max(Math.floor(limitCount), 1), 50);
+  const constraints = [orderBy("createdAt", "desc")];
+  const productsQuery = query(
+    collection(db, "products"),
+    ...(cursor ? [...constraints, startAfter(cursor), limit(safeLimit)] : [...constraints, limit(safeLimit)]),
+  );
   return wrapPermission(async () => {
     const snapshot = await getDocs(productsQuery);
-    return snapshot.docs.map((docSnapshot) => normalizeProduct(docSnapshot.data(), docSnapshot.id));
+    return {
+      products: snapshot.docs.map((docSnapshot) => normalizeProduct(docSnapshot.data(), docSnapshot.id)),
+      nextCursor: snapshot.docs.length === safeLimit ? snapshot.docs[snapshot.docs.length - 1] : null,
+    };
   });
+}
+
+export async function listAdminProducts(): Promise<AdminProduct[]> {
+  const page = await listAdminProductsPage();
+  return page.products;
 }
 
 export async function fetchProductById(productId: string): Promise<AdminProduct | null> {

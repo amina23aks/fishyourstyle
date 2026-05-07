@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
   createAdminProduct,
   deleteAdminProduct,
-  listAdminProducts,
+  listAdminProductsPage,
   updateAdminProduct,
   type AdminProduct,
   type AdminProductInput,
@@ -45,6 +46,7 @@ const toSelectableDesignOption = (item: SelectableItem): SelectableOption => {
 };
 
 const allowedSizes = ["S", "M", "L", "XL", "XXL"] as const;
+const ADMIN_PRODUCTS_PAGE_SIZE = 25;
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -107,6 +109,9 @@ function deriveStockState(product: AdminProduct) {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [productsCursor, setProductsCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMoreProducts, setHasMoreProducts] = useState(false);
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -196,8 +201,10 @@ export default function AdminProductsPage() {
     setLoading(true);
     setError(null);
     try {
-      const list = await listAdminProducts();
-      setProducts(list);
+      const page = await listAdminProductsPage(ADMIN_PRODUCTS_PAGE_SIZE);
+      setProducts(page.products);
+      setProductsCursor(page.nextCursor);
+      setHasMoreProducts(Boolean(page.nextCursor));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load products";
       setError(message);
@@ -205,6 +212,23 @@ export default function AdminProductsPage() {
       setLoading(false);
     }
   }, []);
+
+  const loadMoreProducts = useCallback(async () => {
+    if (!productsCursor || loadingMoreProducts) return;
+    setLoadingMoreProducts(true);
+    setError(null);
+    try {
+      const page = await listAdminProductsPage(ADMIN_PRODUCTS_PAGE_SIZE, productsCursor);
+      setProducts((prev) => [...prev, ...page.products]);
+      setProductsCursor(page.nextCursor);
+      setHasMoreProducts(Boolean(page.nextCursor));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load more products";
+      setError(message);
+    } finally {
+      setLoadingMoreProducts(false);
+    }
+  }, [loadingMoreProducts, productsCursor]);
 
   useEffect(() => {
     loadProducts();
@@ -332,7 +356,7 @@ export default function AdminProductsPage() {
           showToast({ type: "success", message: "Product created" });
         }
         resetForm();
-        loadProducts();
+        void loadProducts();
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to save product";
         setError(message);
@@ -574,6 +598,18 @@ export default function AdminProductsPage() {
               </div>
             </div>
           </div>
+          {!loading && hasMoreProducts ? (
+            <div className="flex justify-center pt-4">
+              <button
+                type="button"
+                onClick={loadMoreProducts}
+                disabled={loadingMoreProducts}
+                className="rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingMoreProducts ? "Loading..." : "Load more products"}
+              </button>
+            </div>
+          ) : null}
         </section>
 
         <section

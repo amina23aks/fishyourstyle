@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
 import { OrderStatusSelect } from "./components/OrderStatusSelect";
 import { StatusBadge } from "./components/StatusBadge";
 import { STATUS_FILTER_OPTIONS, statusStyles } from "./statusConfig";
-import { fetchRecentOrders, updateOrderStatus } from "@/lib/admin-orders";
+import { fetchRecentOrders, fetchRecentOrdersPage, updateOrderStatus } from "@/lib/admin-orders";
 import type { Order, OrderStatus } from "@/types/order";
 import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
@@ -31,6 +32,8 @@ function formatCurrency(value: number) {
 }
 
 type Toast = { id: number; type: "success" | "error"; message: string };
+
+const ADMIN_ORDERS_PAGE_SIZE = 25;
 
 const ORDER_EXPORT_HEADERS = [
   "orderId",
@@ -178,6 +181,9 @@ function buildOrderItemsCsv(orders: Order[]) {
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersCursor, setOrdersCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMoreOrders, setHasMoreOrders] = useState(false);
+  const [loadingMoreOrders, setLoadingMoreOrders] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
@@ -199,8 +205,10 @@ export default function AdminOrdersPage() {
     setLoading(true);
     setError(null);
     try {
-      const recentOrders = await fetchRecentOrders(25);
-      setOrders(recentOrders);
+      const page = await fetchRecentOrdersPage(ADMIN_ORDERS_PAGE_SIZE);
+      setOrders(page.orders);
+      setOrdersCursor(page.nextCursor);
+      setHasMoreOrders(Boolean(page.nextCursor));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to fetch orders";
       setError(message);
@@ -208,6 +216,23 @@ export default function AdminOrdersPage() {
       setLoading(false);
     }
   }, []);
+
+  const loadMoreOrders = useCallback(async () => {
+    if (!ordersCursor || loadingMoreOrders) return;
+    setLoadingMoreOrders(true);
+    setError(null);
+    try {
+      const page = await fetchRecentOrdersPage(ADMIN_ORDERS_PAGE_SIZE, ordersCursor);
+      setOrders((prev) => [...prev, ...page.orders]);
+      setOrdersCursor(page.nextCursor);
+      setHasMoreOrders(Boolean(page.nextCursor));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch more orders";
+      setError(message);
+    } finally {
+      setLoadingMoreOrders(false);
+    }
+  }, [loadingMoreOrders, ordersCursor]);
 
   useEffect(() => {
     loadOrders();
@@ -508,6 +533,19 @@ export default function AdminOrdersPage() {
             </>
         )}
       </div>
+
+      {!loading && hasMoreOrders ? (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={loadMoreOrders}
+            disabled={loadingMoreOrders}
+            className="rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loadingMoreOrders ? "Loading..." : "Load more orders"}
+          </button>
+        </div>
+      ) : null}
 
       <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-2">
         {toasts.map((toast) => (
