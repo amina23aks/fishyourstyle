@@ -45,6 +45,12 @@ const AUTO_PALETTE = [
   "#6366F1",
   "#EC4899",
 ];
+const COUNT_FORMATTER = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const CURRENCY_FORMATTER = new Intl.NumberFormat("fr-DZ", {
+  style: "currency",
+  currency: "DZD",
+  maximumFractionDigits: 0,
+});
 
 type AdminSummary = {
   updatedAt?: Timestamp | Date | string | null;
@@ -67,6 +73,13 @@ type TrendPoint = {
 };
 
 type RangeKey = "today" | "7d" | "30d" | "month";
+
+const RANGE_OPTIONS = [
+  { key: "today", label: "Today" },
+  { key: "7d", label: "7 days" },
+  { key: "30d", label: "30 days" },
+  { key: "month", label: "This month" },
+] as const satisfies readonly { key: RangeKey; label: string }[];
 
 type RangeMeta = {
   days: number;
@@ -184,15 +197,11 @@ function toDateSafe(value: unknown): Date | null {
 }
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat("fr-DZ", {
-    style: "currency",
-    currency: "DZD",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return CURRENCY_FORMATTER.format(value);
 }
 
 function formatCount(value: number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
+  return COUNT_FORMATTER.format(value);
 }
 
 function hashToIndex(input: string, mod: number) {
@@ -455,29 +464,32 @@ export function AdminOverviewStats() {
     });
   }, [summary.updatedAt]);
 
+  const dailyStatsByKey = useMemo(
+    () => new Map(dailyStats.map((stat) => [stat.dateKey, stat])),
+    [dailyStats]
+  );
+
   const trendSeries = useMemo(() => {
-    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
     return rangeMeta.points.map((point) => {
-      const match = dailyMap.get(point.dateKey);
+      const match = dailyStatsByKey.get(point.dateKey);
       return {
         ...point,
         orders: match?.orders ?? 0,
         revenue: match?.revenue ?? 0,
       };
     });
-  }, [dailyStats, rangeMeta.points]);
+  }, [dailyStatsByKey, rangeMeta.points]);
 
   const previousTrendSeries = useMemo(() => {
-    const dailyMap = new Map(dailyStats.map((stat) => [stat.dateKey, stat]));
     return previousRangeMeta.points.map((point) => {
-      const match = dailyMap.get(point.dateKey);
+      const match = dailyStatsByKey.get(point.dateKey);
       return {
         ...point,
         orders: match?.orders ?? 0,
         revenue: match?.revenue ?? 0,
       };
     });
-  }, [dailyStats, previousRangeMeta.points]);
+  }, [dailyStatsByKey, previousRangeMeta.points]);
 
   const currentOrdersTotal = useMemo(
     () => trendSeries.reduce((sum, item) => sum + item.orders, 0),
@@ -495,9 +507,18 @@ export function AdminOverviewStats() {
     () => previousTrendSeries.reduce((sum, item) => sum + item.revenue, 0),
     [previousTrendSeries]
   );
-  const deliveryRate = statusCounts.total > 0 ? (statusCounts.delivered / statusCounts.total) * 100 : null;
-  const cancelRate = statusCounts.total > 0 ? (statusCounts.cancelled / statusCounts.total) * 100 : null;
-  const pendingRate = statusCounts.total > 0 ? (statusCounts.pending / statusCounts.total) * 100 : null;
+  const deliveryRate = useMemo(
+    () => (statusCounts.total > 0 ? (statusCounts.delivered / statusCounts.total) * 100 : null),
+    [statusCounts.delivered, statusCounts.total]
+  );
+  const cancelRate = useMemo(
+    () => (statusCounts.total > 0 ? (statusCounts.cancelled / statusCounts.total) * 100 : null),
+    [statusCounts.cancelled, statusCounts.total]
+  );
+  const pendingRate = useMemo(
+    () => (statusCounts.total > 0 ? (statusCounts.pending / statusCounts.total) * 100 : null),
+    [statusCounts.pending, statusCounts.total]
+  );
 
   const cards = useMemo(
     () => [
@@ -647,9 +668,23 @@ export function AdminOverviewStats() {
       .slice(0, 5);
   }, [dailyStats, rangeKeys]);
 
-  const topProductMaxRevenue = topProducts.reduce((max, product) => Math.max(max, product.revenue), 0);
+  const topProductMaxRevenue = useMemo(
+    () => topProducts.reduce((max, product) => Math.max(max, product.revenue), 0),
+    [topProducts]
+  );
 
-  const isChartEmpty = trendSeries.every((point) => point.orders === 0 && point.revenue === 0);
+  const chartSummaryValue = useMemo(
+    () =>
+      trendMetric === "orders"
+        ? `${formatCount(currentOrdersTotal)} orders`
+        : formatCurrency(currentRevenueTotal),
+    [currentOrdersTotal, currentRevenueTotal, trendMetric]
+  );
+
+  const isChartEmpty = useMemo(
+    () => trendSeries.every((point) => point.orders === 0 && point.revenue === 0),
+    [trendSeries]
+  );
   const donutData = useMemo(
     () =>
       topCategoryData.map((category) => {
@@ -666,6 +701,18 @@ export function AdminOverviewStats() {
     () => donutData.reduce((sum, item) => sum + (item.value || 0), 0),
     [donutData]
   );
+  const donutLegendItems = useMemo(
+    () =>
+      donutData
+        .slice()
+        .sort((a, b) => (b.value || 0) - (a.value || 0))
+        .slice(0, 5)
+        .map((item) => ({
+          ...item,
+          percent: donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0,
+        })),
+    [donutData, donutTotal]
+  );
 
   const designDonutData = useMemo(
     () =>
@@ -680,9 +727,21 @@ export function AdminOverviewStats() {
     () => designDonutData.reduce((sum, item) => sum + (item.value || 0), 0),
     [designDonutData]
   );
+  const designDonutLegendItems = useMemo(
+    () =>
+      designDonutData
+        .slice()
+        .sort((a, b) => (b.value || 0) - (a.value || 0))
+        .slice(0, 5)
+        .map((item) => ({
+          ...item,
+          percent: designDonutTotal > 0 ? Math.round(((item.value || 0) / designDonutTotal) * 100) : 0,
+        })),
+    [designDonutData, designDonutTotal]
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="admin-dashboard space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100/80">
         <div className="space-y-1">
           <span>Snapshot of orders, revenue, and performance trends.</span>
@@ -691,16 +750,11 @@ export function AdminOverviewStats() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-[0.18em] text-sky-200">Date range</span>
           <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
-            {[
-              { key: "today", label: "Today" },
-              { key: "7d", label: "7 days" },
-              { key: "30d", label: "30 days" },
-              { key: "month", label: "This month" },
-            ].map((range) => (
+            {RANGE_OPTIONS.map((range) => (
               <button
                 key={range.key}
                 type="button"
-                onClick={() => setRangeKey(range.key as RangeKey)}
+                onClick={() => setRangeKey(range.key)}
                 className={`rounded-full px-3 py-1 transition ${
                   rangeKey === range.key ? "bg-white/20 text-white" : "text-sky-100/70 hover:text-white"
                 }`}
@@ -728,7 +782,7 @@ export function AdminOverviewStats() {
         {cards.map((card) => (
           <div
             key={card.title}
-            className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${card.accent} p-5 shadow-inner shadow-sky-900/30`}
+            className={`admin-dashboard-card relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${card.accent} p-5 shadow-inner shadow-sky-900/30`}
           >
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-[0.18em] text-sky-200">{card.title}</p>
@@ -779,7 +833,7 @@ export function AdminOverviewStats() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:col-span-2">
+        <div className="admin-dashboard-card rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Sales Analytics</p>
@@ -855,12 +909,13 @@ export function AdminOverviewStats() {
                       );
                     }}
                   />
-                  <Bar dataKey="orders" fill="rgba(14, 165, 233, 0.6)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="orders" fill="rgba(14, 165, 233, 0.6)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
                   <Area
                     dataKey="revenue"
                     stroke="rgba(52, 211, 153, 0.8)"
                     fill="rgba(52, 211, 153, 0.15)"
                     strokeWidth={2}
+                    isAnimationActive={false}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -870,14 +925,12 @@ export function AdminOverviewStats() {
           <div className="mt-4 flex flex-wrap items-center justify-between text-sm text-sky-100/80">
             <span className="text-xs uppercase tracking-[0.18em] text-sky-200">{rangeLabel}</span>
             <span>
-              {trendMetric === "orders"
-                ? `${formatCount(trendSeries.reduce((sum, item) => sum + item.orders, 0))} orders`
-                : formatCurrency(trendSeries.reduce((sum, item) => sum + item.revenue, 0))}
+              {chartSummaryValue}
             </span>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+        <div className="admin-dashboard-card rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-xs tracking-[0.2em] text-white/60">TOP CATEGORIES</div>
@@ -904,6 +957,7 @@ export function AdminOverviewStats() {
                         paddingAngle={2}
                         stroke="rgba(255,255,255,0.12)"
                         strokeWidth={1}
+                        isAnimationActive={false}
                       >
                         {donutData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -940,30 +994,23 @@ export function AdminOverviewStats() {
               </div>
 
               <div className="mt-4 space-y-2">
-                {donutData
-                  .slice()
-                  .sort((a, b) => (b.value || 0) - (a.value || 0))
-                  .slice(0, 5)
-                  .map((item) => {
-                    const pct = donutTotal > 0 ? Math.round(((item.value || 0) / donutTotal) * 100) : 0;
-                    return (
-                      <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
-                          <span className="truncate text-sm text-white/90">{item.name}</span>
-                        </div>
-                        <div className="text-sm text-white/80 tabular-nums">
-                          {pct}% • {formatCount(item.value || 0)} DA
-                        </div>
-                      </div>
-                    );
-                  })}
+                {donutLegendItems.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
+                      <span className="truncate text-sm text-white/90">{item.name}</span>
+                    </div>
+                    <div className="text-sm text-white/80 tabular-nums">
+                      {item.percent}% • {formatCount(item.value || 0)} DA
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           )}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+        <div className="admin-dashboard-card rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-xs tracking-[0.2em] text-white/60">TOP DESIGNS</div>
@@ -990,6 +1037,7 @@ export function AdminOverviewStats() {
                         paddingAngle={2}
                         stroke="rgba(255,255,255,0.12)"
                         strokeWidth={1}
+                        isAnimationActive={false}
                       >
                         {designDonutData.map((entry, index) => (
                           <Cell key={`design-cell-${index}`} fill={entry.color} />
@@ -1026,30 +1074,23 @@ export function AdminOverviewStats() {
               </div>
 
               <div className="mt-4 space-y-2">
-                {designDonutData
-                  .slice()
-                  .sort((a, b) => (b.value || 0) - (a.value || 0))
-                  .slice(0, 5)
-                  .map((item) => {
-                    const pct = designDonutTotal > 0 ? Math.round(((item.value || 0) / designDonutTotal) * 100) : 0;
-                    return (
-                      <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
-                          <span className="truncate text-sm text-white/90">{item.name}</span>
-                        </div>
-                        <div className="text-sm text-white/80 tabular-nums">
-                          {pct}% • {formatCount(item.value || 0)} DA
-                        </div>
-                      </div>
-                    );
-                  })}
+                {designDonutLegendItems.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
+                      <span className="truncate text-sm text-white/90">{item.name}</span>
+                    </div>
+                    <div className="text-sm text-white/80 tabular-nums">
+                      {item.percent}% • {formatCount(item.value || 0)} DA
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           )}
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+        <div className="admin-dashboard-card relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Top Products</p>
