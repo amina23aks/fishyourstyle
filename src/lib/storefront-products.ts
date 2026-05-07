@@ -304,7 +304,7 @@ export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]>
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
-    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId()), limit(8)));
+    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId())));
     return snapshot.docs
       .map((doc) => normalizeProduct(doc.data(), doc.id))
       .filter((product) => product.status === "active");
