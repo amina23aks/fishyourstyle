@@ -6,7 +6,9 @@ import {
   limit,
   orderBy,
   query,
+  startAfter,
   type DocumentData,
+  type QueryDocumentSnapshot,
   type Timestamp,
 } from "firebase/firestore";
 
@@ -55,20 +57,37 @@ function normalizeOrder(data: DocumentData, id: string): Order {
   };
 }
 
-export async function fetchRecentOrders(limitCount = 25): Promise<Order[]> {
+export type AdminOrdersPageResult = {
+  orders: Order[];
+  nextCursor: QueryDocumentSnapshot<DocumentData> | null;
+};
+
+export async function fetchRecentOrdersPage(
+  limitCount = 25,
+  cursor?: QueryDocumentSnapshot<DocumentData> | null,
+): Promise<AdminOrdersPageResult> {
   const db = getDb();
   if (!db) {
     throw new Error("Firebase is not configured. Please check environment variables.");
   }
 
+  const safeLimit = Math.min(Math.max(Math.floor(limitCount), 1), 50);
+  const constraints = [orderBy("createdAt", "desc")];
   const ordersQuery = query(
     collection(db, "orders"),
-    orderBy("createdAt", "desc"),
-    limit(limitCount)
+    ...(cursor ? [...constraints, startAfter(cursor), limit(safeLimit)] : [...constraints, limit(safeLimit)]),
   );
 
   const snapshot = await getDocs(ordersQuery);
-  return snapshot.docs.map((doc) => normalizeOrder(doc.data(), doc.id));
+  return {
+    orders: snapshot.docs.map((doc) => normalizeOrder(doc.data(), doc.id)),
+    nextCursor: snapshot.docs.length === safeLimit ? snapshot.docs[snapshot.docs.length - 1] : null,
+  };
+}
+
+export async function fetchRecentOrders(limitCount = 25): Promise<Order[]> {
+  const page = await fetchRecentOrdersPage(limitCount);
+  return page.orders;
 }
 
 export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus): Promise<void> {

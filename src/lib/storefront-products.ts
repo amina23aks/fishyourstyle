@@ -1,8 +1,11 @@
 import { FirebaseError } from "firebase/app";
 import {
   collection,
+  documentId,
   getDocs,
+  orderBy,
   query,
+  startAfter,
   where,
   limit,
   type DocumentData,
@@ -25,6 +28,22 @@ export type StorefrontProductColor =
       labelAr?: string;
       image?: string;
     };
+
+export type StorefrontProductsCursor = {
+  id: string;
+};
+
+export type StorefrontProductsPage = {
+  products: StorefrontProduct[];
+  nextCursor: StorefrontProductsCursor | null;
+};
+
+export type StorefrontProductsPageParams = {
+  pageSize?: number;
+  cursor?: StorefrontProductsCursor | null;
+  category?: string;
+  designTheme?: string;
+};
 
 export type StorefrontProduct = {
   id: string;
@@ -226,6 +245,56 @@ function isPermissionDenied(error: unknown): boolean {
   return error instanceof FirebaseError && error.code === "permission-denied";
 }
 
+function cursorFromDoc(doc: { id: string }): StorefrontProductsCursor {
+  return { id: doc.id };
+}
+
+function clampPageSize(value: number | undefined, fallback = 8): number {
+  const parsed = Number(value ?? fallback);
+  return Math.min(Math.max(Math.floor(Number.isFinite(parsed) ? parsed : fallback), 1), 48);
+}
+
+export async function fetchStorefrontProductsPage({
+  pageSize,
+  cursor,
+  category,
+  designTheme,
+}: StorefrontProductsPageParams = {}): Promise<StorefrontProductsPage> {
+  if (!isFirebaseConfigured()) {
+    console.warn("Firebase env vars are missing; returning an empty product list.");
+    return { products: [], nextCursor: null };
+  }
+
+  const safeLimit = clampPageSize(pageSize);
+  const constraints: QueryConstraint[] = [where("status", "==", "active")];
+  if (category && category !== "all") constraints.push(where("category", "==", category));
+  if (designTheme && designTheme !== "all") constraints.push(where("designTheme", "==", designTheme));
+  constraints.push(orderBy(documentId()));
+  if (cursor) {
+    constraints.push(startAfter(cursor.id));
+  }
+  constraints.push(limit(safeLimit));
+
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const snapshot = await getDocs(query(productsRef, ...constraints));
+    return {
+      products: snapshot.docs
+        .map((doc) => normalizeProduct(doc.data(), doc.id))
+        .filter((product) => product.status === "active"),
+      nextCursor: snapshot.docs.length === safeLimit ? cursorFromDoc(snapshot.docs[snapshot.docs.length - 1]) : null,
+    };
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      console.warn("Firestore permission denied while reading storefront products; returning empty list.");
+    } else {
+      console.error("Failed to fetch storefront products from Firestore, returning empty list:", error);
+    }
+    return { products: [], nextCursor: null };
+  }
+}
+
 export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]> {
   if (!isFirebaseConfigured()) {
     console.warn("Firebase env vars are missing; returning an empty product list.");
@@ -235,7 +304,7 @@ export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]>
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
-    const snapshot = await getDocs(query(productsRef, where("status", "==", "active")));
+    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId()), limit(8)));
     return snapshot.docs
       .map((doc) => normalizeProduct(doc.data(), doc.id))
       .filter((product) => product.status === "active");

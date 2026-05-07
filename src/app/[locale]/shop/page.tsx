@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
+import { fetchStorefrontProductsPage, type StorefrontProduct, type StorefrontProductsCursor } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import ShopClient from "./shop-client";
 import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
@@ -110,8 +110,11 @@ export default async function ShopPage() {
   let errorMessage: string | null = null;
   let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
+  let nextCursor: StorefrontProductsCursor | null = null;
   try {
-    storefrontProducts = await fetchAllStorefrontProducts();
+    const firstPage = await fetchStorefrontProductsPage({ pageSize: 8 });
+    storefrontProducts = firstPage.products;
+    nextCursor = firstPage.nextCursor;
   } catch (error) {
     console.error("Failed to fetch products:", error);
     errorMessage = "Products are temporarily unavailable.";
@@ -135,7 +138,13 @@ export default async function ShopPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 overscroll-y-contain">
-      <ShopClient products={products} errorMessage={errorMessage} categories={categories} designThemes={designThemes} />
+      <ShopClient
+        products={products}
+        initialCursor={nextCursor}
+        errorMessage={errorMessage}
+        categories={categories}
+        designThemes={designThemes}
+      />
     </main>
   );
 }

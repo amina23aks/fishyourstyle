@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
 import { ProductForm, type ProductFormValues } from "./components/ProductForm";
 import {
   createAdminProduct,
   deleteAdminProduct,
-  listAdminProducts,
+  listAdminProductsPage,
   updateAdminProduct,
   type AdminProduct,
   type AdminProductInput,
@@ -45,6 +46,7 @@ const toSelectableDesignOption = (item: SelectableItem): SelectableOption => {
 };
 
 const allowedSizes = ["S", "M", "L", "XL", "XXL"] as const;
+const ADMIN_PRODUCTS_PAGE_SIZE = 5;
 
 const defaultForm: ProductFormValues = {
   name: "",
@@ -107,6 +109,9 @@ function deriveStockState(product: AdminProduct) {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [productsCursor, setProductsCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMoreProducts, setHasMoreProducts] = useState(false);
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -119,6 +124,7 @@ export default function AdminProductsPage() {
   const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const productsInfiniteScrollRef = useRef<HTMLDivElement | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>([]);
   const [designThemes, setDesignThemes] = useState<SelectableOption[]>([]);
   const derivedDesignThemes = useMemo(() => {
@@ -196,8 +202,10 @@ export default function AdminProductsPage() {
     setLoading(true);
     setError(null);
     try {
-      const list = await listAdminProducts();
-      setProducts(list);
+      const page = await listAdminProductsPage(ADMIN_PRODUCTS_PAGE_SIZE);
+      setProducts(page.products);
+      setProductsCursor(page.nextCursor);
+      setHasMoreProducts(Boolean(page.nextCursor));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load products";
       setError(message);
@@ -205,6 +213,40 @@ export default function AdminProductsPage() {
       setLoading(false);
     }
   }, []);
+
+  const loadMoreProducts = useCallback(async () => {
+    if (!productsCursor || loadingMoreProducts || !hasMoreProducts) return;
+    setLoadingMoreProducts(true);
+    setError(null);
+    try {
+      const page = await listAdminProductsPage(ADMIN_PRODUCTS_PAGE_SIZE, productsCursor);
+      setProducts((prev) => [...prev, ...page.products]);
+      setProductsCursor(page.nextCursor);
+      setHasMoreProducts(Boolean(page.nextCursor));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load more products";
+      setError(message);
+    } finally {
+      setLoadingMoreProducts(false);
+    }
+  }, [hasMoreProducts, loadingMoreProducts, productsCursor]);
+
+  useEffect(() => {
+    const sentinel = productsInfiniteScrollRef.current;
+    if (!sentinel || loading || loadingMoreProducts || !hasMoreProducts) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreProducts();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreProducts, loadMoreProducts, loading, loadingMoreProducts]);
 
   useEffect(() => {
     loadProducts();
@@ -332,7 +374,7 @@ export default function AdminProductsPage() {
           showToast({ type: "success", message: "Product created" });
         }
         resetForm();
-        loadProducts();
+        void loadProducts();
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to save product";
         setError(message);
@@ -574,6 +616,10 @@ export default function AdminProductsPage() {
               </div>
             </div>
           </div>
+          <div ref={productsInfiniteScrollRef} className="h-4" aria-hidden="true" />
+          {loadingMoreProducts ? (
+            <p className="pt-4 text-center text-sm text-sky-100/70">Loading more products...</p>
+          ) : null}
         </section>
 
         <section

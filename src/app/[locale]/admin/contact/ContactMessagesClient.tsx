@@ -15,6 +15,9 @@ export type AdminContactMessage = {
   createdAt: string;
 };
 
+const CONTACT_MESSAGES_INITIAL_LIMIT = 10;
+const CONTACT_MESSAGES_SAFETY_CAP = 50;
+
 type FirestoreContact = {
   name?: string;
   email?: string;
@@ -68,7 +71,11 @@ export function ContactMessagesClient() {
 
       const db = getServerDb();
       const snapshot = await getDocs(
-        query(collection(db, "contactMessages"), orderBy("createdAt", "desc"), limit(50)),
+        query(
+          collection(db, "contactMessages"),
+          orderBy("createdAt", "desc"),
+          limit(Math.min(CONTACT_MESSAGES_INITIAL_LIMIT, CONTACT_MESSAGES_SAFETY_CAP)),
+        ),
       );
 
       const mapped = snapshot.docs.map((doc) => {
