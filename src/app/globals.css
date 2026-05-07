@@ -22,10 +22,25 @@
   }
 }
 */
+html {
+  min-height: 100%;
+  background: #020617;
+}
+
 body {
+  min-height: 100%;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+#__next {
+  min-height: 100%;
 }
 
 .btn-shine {
@@ -113,7 +128,8 @@ body {
 
 .ocean-page {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
-  background: linear-gradient(
+  background-color: #020617;
+  background-image: linear-gradient(
     to bottom,
     #7bb0f5 0%,
     #6db3f0 32%,
@@ -121,11 +137,13 @@ body {
     #1e4c82 84%,
     #020617 100%
   );
+  background-repeat: no-repeat;
   color: var(--foreground);
 }
 
 html[data-theme="aurora"] body.ocean-page {
-  background: linear-gradient(
+  background-color: #020617;
+  background-image: linear-gradient(
     to bottom,
     #0a2546 0%,
     #0a2546 36%,
@@ -133,6 +151,7 @@ html[data-theme="aurora"] body.ocean-page {
     #04122a 82%,
     #020617 100%
   );
+  background-repeat: no-repeat;
   color: #e2f3ff;
 }
 
@@ -195,6 +214,8 @@ html[data-theme="aurora"] .aurora-overlay::before {
 
 .bubble {
   position: absolute;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.68);
   animation: bubbleDrift linear infinite;
@@ -233,6 +254,8 @@ html[data-theme="aurora"] .aurora-overlay::before {
 
 .hero-bubble {
   position: absolute;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
   bottom: -16px;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.05) 70%);
   border-radius: 9999px;
@@ -267,6 +290,7 @@ html[data-theme="aurora"] .aurora-overlay::before {
 
 .float-slow {
   animation: float 6s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes waveScroll {
@@ -280,10 +304,14 @@ html[data-theme="aurora"] .aurora-overlay::before {
 
 .animate-wave {
   animation: waveScroll 9s ease-in-out infinite;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .animate-wave-slower {
   animation: waveScroll 14s ease-in-out infinite;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 @keyframes softRay {
@@ -307,6 +335,8 @@ html[data-theme="aurora"] .aurora-overlay::before {
   filter: blur(12px);
   opacity: 0.5;
   animation: softRay 14s ease-in-out infinite;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 @keyframes vortexDrift {
@@ -327,6 +357,8 @@ html[data-theme="aurora"] .aurora-overlay::before {
   filter: blur(22px);
   opacity: 0.7;
   animation: vortexDrift 12s ease-in-out infinite;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 @keyframes shimmer {
@@ -352,6 +384,8 @@ html[data-theme="aurora"] .aurora-overlay::before {
   filter: blur(18px);
   opacity: 0.28;
   animation: beamFloat 16s ease-in-out infinite;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 /* Mobile hero water alignment fix */
@@ -405,6 +439,8 @@ html[data-theme="aurora"] .aurora-overlay::before {
 
 .bubble-field span {
   position: absolute;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
   bottom: -5%;
   display: block;
   border-radius: 9999px;
@@ -418,6 +454,7 @@ html[data-theme="aurora"] .aurora-overlay::before {
 .product-card-shell {
   position: relative;
   overflow: hidden;
+  contain: paint;
 }
 
 .product-card-shell::before {
@@ -443,4 +480,18 @@ html[data-theme="aurora"] .aurora-overlay::before {
 
 .color-chips-scroll::-webkit-scrollbar {
   display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave,
+  .animate-wave-slower,
+  .bubble,
+  .hero-bubble,
+  .bubble-field span,
+  .float-slow,
+  .light-rays,
+  .underwater-vortex,
+  .light-column {
+    animation: none;
+  }
 }
