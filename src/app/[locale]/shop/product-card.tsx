@@ -31,6 +31,7 @@ import {
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
+import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import { normalizeProductStock } from "@/lib/stock";
 import { useFavorites } from "@/hooks/use-favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
@@ -75,6 +76,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     const base = [product.images.main, ...(product.images.gallery ?? [])].filter(Boolean);
     return base.length > 0 ? base : [product.images.main];
   }, [product.images.gallery, product.images.main]);
+  const optimizedImages = useMemo(
+    () => images.map((image) => getCloudinaryDeliveryUrl(image, { width: 900 })),
+    [images],
+  );
   const { addItem, items } = useCart();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
@@ -115,7 +120,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const productCategory = product.category ?? "";
   const productDesignTheme = product.designTheme ?? "";
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
+  const displayCurrentImage = optimizedImages[activeIndex] ?? getCloudinaryDeliveryUrl(currentImage, { width: 900 });
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
+  const displayNextImage = optimizedImages.length > 0
+    ? optimizedImages[(activeIndex + 1) % optimizedImages.length]
+    : getCloudinaryDeliveryUrl(nextImage, { width: 900 });
   const isSelectionPartial = hasColorSelection !== hasSizeSelection;
   const selectionHelper = useMemo(
     () => (isSelectionPartial ? t("shop.selectColorSizeHelper") : null),
@@ -357,7 +366,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             {currentImage ? (
               <AnimatePresence>
                 <motion.div
-                  key={currentImage}
+                  key={displayCurrentImage}
                   initial={{ opacity: 0.4, scale: 1.02 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
@@ -365,7 +374,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   className="absolute inset-0"
                 >
                   <Image
-                    src={currentImage}
+                    src={displayCurrentImage}
                     alt={product.nameFr}
                     ref={imageRef}
                     fill
@@ -376,7 +385,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 </motion.div>
                 {isHovering && images.length > 1 && (
                   <motion.div
-                    key={`${currentImage}-hover`}
+                    key={`${displayNextImage}-hover`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -384,7 +393,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                     className="absolute inset-0"
                   >
                       <Image
-                        src={nextImage}
+                        src={displayNextImage}
                         alt={product.nameFr}
                         ref={imageRef}
                         fill

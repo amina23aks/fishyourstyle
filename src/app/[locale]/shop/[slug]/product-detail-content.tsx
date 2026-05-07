@@ -13,6 +13,7 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { trackViewItem } from "@/lib/analytics";
+import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import { normalizeProductStock } from "@/lib/stock";
 import {
   buildProductColorOptions,
@@ -90,6 +91,14 @@ export function ProductDetailContent({
   );
 
   const imageList = useMemo(() => (allImages.length > 0 ? allImages : [product.images.main]), [allImages, product.images.main]);
+  const displayImageList = useMemo(
+    () => imageList.map((image) => getCloudinaryDeliveryUrl(image, { quality: "auto:good" })),
+    [imageList],
+  );
+  const thumbnailImageList = useMemo(
+    () => imageList.map((image) => getCloudinaryDeliveryUrl(image, { width: 240 })),
+    [imageList],
+  );
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" && product.images.gallery.length > 0) {
@@ -169,6 +178,8 @@ export function ProductDetailContent({
     allImages[0] ??
     product.images.main ??
     "/placeholder.png";
+  const displayCurrentImage =
+    displayImageList[activeImage] ?? getCloudinaryDeliveryUrl(currentImage, { quality: "auto:good" });
   
   const handleAddToCart = () => {
     // Prevent any action if the item is out of stock.
@@ -270,7 +281,7 @@ export function ProductDetailContent({
                   aria-label={`Afficher l'image ${index + 1}`}
                 >
                   <Image
-                    src={url}
+                    src={thumbnailImageList[index] ?? url}
                     alt={`${product.nameFr} vignette ${index + 1}`}
                     fill
                     className="object-cover"
@@ -288,7 +299,7 @@ export function ProductDetailContent({
           <div className="relative aspect-[4/5] w-full max-w-full rounded-[36px] overflow-hidden border border-white/15 shadow-lg">
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentImage}
+                key={displayCurrentImage}
                 initial={{ opacity: 0.5, scale: 1.02 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0.4, scale: 0.98 }}
@@ -296,7 +307,7 @@ export function ProductDetailContent({
                 className="absolute inset-0"
               >
                 <Image
-                  src={currentImage}
+                  src={displayCurrentImage}
                   alt={product.nameFr}
                   fill
                   ref={imageRef}
@@ -322,7 +333,7 @@ export function ProductDetailContent({
                     aria-label={`Afficher l'image ${index + 1}`}
                   >
                     <Image
-                      src={url}
+                      src={thumbnailImageList[index] ?? url}
                       alt={`${product.nameFr} vignette ${index + 1}`}
                       fill
                       className="object-cover"
@@ -572,7 +583,7 @@ export function ProductDetailContent({
             <div className="mt-4 flex items-center justify-center">
               <div className="relative h-[78vh] w-full">
                 <Image
-                  src={sizeGuideImageUrl ?? ""}
+                  src={getCloudinaryDeliveryUrl(sizeGuideImageUrl ?? "", { quality: "auto:best" })}
                   alt={t("shop.sizeGuide")}
                   fill
                   sizes="100vw"
