@@ -444,3 +444,56 @@ html[data-theme="aurora"] .aurora-overlay::before {
 .color-chips-scroll::-webkit-scrollbar {
   display: none;
 }
+
+html {
+  background: #020617;
+  scroll-behavior: smooth;
+}
+
+.ocean-page {
+  min-height: 100dvh;
+}
+
+.product-card-shell,
+.gallery-thumbnails-scroll,
+.color-chips-scroll {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.product-card-shell {
+  contain: layout paint;
+}
+
+@media (max-width: 640px) {
+  .aurora-overlay::before,
+  .light-rays,
+  .underwater-vortex,
+  .light-column {
+    filter: none;
+  }
+
+  .bubble-field span:nth-child(n + 4),
+  .hero-bubble:nth-child(n + 5) {
+    display: none;
+  }
+
+  .light-column {
+    opacity: 0.16;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}

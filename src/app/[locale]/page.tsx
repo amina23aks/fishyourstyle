@@ -4,7 +4,7 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import FAQAccordion from "@/components/FAQAccordion";
 import { faqItems } from "@/data/faqItems";
-import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
+import { fetchStorefrontProductsPage, type StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
 import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
@@ -119,11 +119,13 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   let errorMessage: string | null = null;
   let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
-  const storefrontProducts = await fetchAllStorefrontProducts().catch((error) => {
-    console.error("Failed to fetch products:", error);
-    errorMessage = "Products are temporarily unavailable.";
-    return [];
-  });
+  const storefrontProducts = await fetchStorefrontProductsPage({ pageSize: 8 })
+    .then((page) => page.products)
+    .catch((error) => {
+      console.error("Failed to fetch products:", error);
+      errorMessage = "Products are temporarily unavailable.";
+      return [];
+    });
   try {
     categories = await getSelectableCollections();
   } catch (error) {
@@ -136,8 +138,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     console.error("Failed to fetch design themes:", error);
     designThemes = [];
   }
-  const allProducts = storefrontProducts.map(mapStorefrontToProduct);
-  const products = allProducts.slice(0, 8);
+  const products = storefrontProducts.map(mapStorefrontToProduct);
 
   const websiteStructuredData = {
     "@context": "https://schema.org",
@@ -197,7 +198,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             </p>
           </div>
 
-          <HomeClient products={products} allProducts={allProducts} categories={categories} designThemes={designThemes} />
+          <HomeClient products={products} categories={categories} designThemes={designThemes} />
           {errorMessage ? (
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
               {errorMessage}

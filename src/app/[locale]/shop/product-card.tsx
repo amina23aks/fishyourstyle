@@ -34,6 +34,7 @@ import {
 import { normalizeProductStock } from "@/lib/stock";
 import { useFavorites } from "@/hooks/use-favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { optimizeCloudinaryImageUrl } from "@/lib/cloudinary-image";
 
 type ProductWithInventory = Product & { stockMode?: "unlimited" | "limited"; stockQty?: number; inStock?: boolean };
 
@@ -116,6 +117,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const productDesignTheme = product.designTheme ?? "";
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
+  const optimizedCurrentImage = optimizeCloudinaryImageUrl(currentImage, "thumbnail");
+  const optimizedNextImage = optimizeCloudinaryImageUrl(nextImage, "thumbnail");
   const isSelectionPartial = hasColorSelection !== hasSizeSelection;
   const selectionHelper = useMemo(
     () => (isSelectionPartial ? t("shop.selectColorSizeHelper") : null),
@@ -316,10 +319,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   return (
     <>
       {/* Product card height + controls tightening */}
-      <motion.article
-        whileHover={{ transform: "translateY(-4px)" }}
-        transition={{ duration: 0.2, easing: "ease" }}
-        className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
+      <article
+        className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_8px_22px_rgba(0,0,0,0.28)] transition-transform duration-200 ease-out motion-safe:hover:-translate-y-1"
       >
         <div className="absolute right-2.5 top-2.5 z-10">
           <FavoriteButton
@@ -365,12 +366,12 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   className="absolute inset-0"
                 >
                   <Image
-                    src={currentImage}
+                    src={optimizedCurrentImage}
                     alt={product.nameFr}
                     ref={imageRef}
                     fill
                     priority={false}
-                    sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                    sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 31vw, 50vw"
                     className="h-full w-full object-cover"
                   />
                 </motion.div>
@@ -383,14 +384,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                     transition={{ duration: 0.4, easing: "ease" }}
                     className="absolute inset-0"
                   >
-                      <Image
-                        src={nextImage}
-                        alt={product.nameFr}
-                        ref={imageRef}
-                        fill
-                        priority={false}
-                        sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                        className="h-full w-full object-cover"
+                    <Image
+                      src={optimizedNextImage}
+                      alt={product.nameFr}
+                      ref={imageRef}
+                      fill
+                      priority={false}
+                      sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 31vw, 50vw"
+                      className="h-full w-full object-cover"
                     />
                   </motion.div>
                 )}
@@ -565,7 +566,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             }`.trim()}
           />
         </div>
-      </motion.article>
+      </article>
     </>
   );
   }

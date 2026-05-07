@@ -14,14 +14,6 @@ type Props = {
     stockQty?: number;
     inStock?: boolean;
   })[];
-  allProducts?: (Product & {
-    designTheme?: string;
-    tags?: string[];
-    discountPercent?: number;
-    stockMode?: "unlimited" | "limited";
-    stockQty?: number;
-    inStock?: boolean;
-  })[];
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
 };
@@ -31,12 +23,11 @@ function capitalizeLabel(value: string | undefined | null): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export default function HomeClient({ products, allProducts, categories, designThemes }: Props) {
+export default function HomeClient({ products, categories, designThemes }: Props) {
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const filterSourceProducts = allProducts ?? products;
 
   const collectionPills = useMemo(() => {
     const source = categories && categories.length > 0 ? categories : CANONICAL_CATEGORIES;
@@ -51,7 +42,7 @@ export default function HomeClient({ products, allProducts, categories, designTh
   const designPills = useMemo(() => {
     const allPill = { label: "All", value: "all" as const };
     const designMap = new Map<string, string>();
-    filterSourceProducts.forEach((product) => {
+    products.forEach((product) => {
       const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
       if (!rawTheme) return;
       const normalized = rawTheme.toLowerCase();
@@ -84,14 +75,11 @@ export default function HomeClient({ products, allProducts, categories, designTh
     }
 
     return [allPill, ...baseDesigns];
-  }, [filterSourceProducts, designThemes]);
+  }, [products, designThemes]);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const hasActiveFilter = collectionFilter !== "all" || designFilter !== "all" || Boolean(term);
-    const sourceProducts = hasActiveFilter ? filterSourceProducts : products;
-
-    return sourceProducts.filter((product) => {
+    return products.filter((product) => {
       const category = (product.category as string)?.toLowerCase();
       const design = (product.designTheme ?? "simple").toLowerCase();
       if (collectionFilter !== "all" && category !== collectionFilter.toLowerCase()) return false;
@@ -101,7 +89,7 @@ export default function HomeClient({ products, allProducts, categories, designTh
       const haystack = `${product.nameFr} ${tags.join(" ")}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [collectionFilter, designFilter, filterSourceProducts, products, search]);
+  }, [collectionFilter, designFilter, products, search]);
 
   useEffect(() => {
     const focusSearch = () => {
