@@ -23,6 +23,7 @@ import {
 import { useFavorites } from "@/hooks/use-favorites";
 import { viewContent } from "@/lib/metaPixel";
 import { useTranslations } from "@/i18n/I18nProvider";
+import { optimizeCloudinaryImageUrl } from "@/lib/cloudinary-image";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -83,6 +84,7 @@ export function ProductDetailContent({
   const hasSizeSelection = !requiresSizeSelection || Boolean(selectedSize);
   const sizeGuideImageUrl = product.sizeGuideImageUrl ?? null;
   const showSizeGuide = Boolean(product.sizeGuideEnabled && sizeGuideImageUrl);
+  const optimizedSizeGuideImageUrl = optimizeCloudinaryImageUrl(sizeGuideImageUrl, "detail");
 
   const allImages = useMemo(
     () => [product.images.main, ...product.images.gallery].filter(Boolean),
@@ -169,6 +171,7 @@ export function ProductDetailContent({
     allImages[0] ??
     product.images.main ??
     "/placeholder.png";
+  const optimizedCurrentImage = optimizeCloudinaryImageUrl(currentImage, "detail");
   
   const handleAddToCart = () => {
     // Prevent any action if the item is out of stock.
@@ -270,7 +273,7 @@ export function ProductDetailContent({
                   aria-label={`Afficher l'image ${index + 1}`}
                 >
                   <Image
-                    src={url}
+                    src={optimizeCloudinaryImageUrl(url, "thumbnail")}
                     alt={`${product.nameFr} vignette ${index + 1}`}
                     fill
                     className="object-cover"
@@ -296,12 +299,12 @@ export function ProductDetailContent({
                 className="absolute inset-0"
               >
                 <Image
-                  src={currentImage}
+                  src={optimizedCurrentImage}
                   alt={product.nameFr}
                   fill
                   ref={imageRef}
                   className="object-cover"
-                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  sizes="(min-width: 1024px) 440px, (min-width: 768px) 50vw, 100vw"
                 />
               </motion.div>
             </AnimatePresence>
@@ -322,7 +325,7 @@ export function ProductDetailContent({
                     aria-label={`Afficher l'image ${index + 1}`}
                   >
                     <Image
-                      src={url}
+                      src={optimizeCloudinaryImageUrl(url, "thumbnail")}
                       alt={`${product.nameFr} vignette ${index + 1}`}
                       fill
                       className="object-cover"
@@ -572,7 +575,7 @@ export function ProductDetailContent({
             <div className="mt-4 flex items-center justify-center">
               <div className="relative h-[78vh] w-full">
                 <Image
-                  src={sizeGuideImageUrl ?? ""}
+                  src={optimizedSizeGuideImageUrl}
                   alt={t("shop.sizeGuide")}
                   fill
                   sizes="100vw"

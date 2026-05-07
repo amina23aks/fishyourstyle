@@ -11,6 +11,7 @@ declare namespace JSX {
       "environment-image"?: string;
       poster?: string;
       loading?: "eager" | "lazy";
+      reveal?: "auto" | "interaction" | "manual";
       ar?: boolean | string;
       "shadow-intensity"?: string | number;
     };

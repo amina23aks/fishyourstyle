@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
@@ -282,30 +281,11 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
           No products in this category yet.
         </div>
       ) : (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: {},
-            visible: {
-              transition: { staggerChildren: 0.08 },
-            },
-          }}
-          className="mt-10 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 min-h-[350px]"
-        >
+        <div className="mt-10 grid min-h-[350px] grid-cols-2 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filteredProducts.map((product) => (
-            <motion.div
-              key={product.id}
-              variants={{
-                hidden: { opacity: 0, scale: 0.97, y: 12 },
-                visible: { opacity: 1, scale: 1, y: 0 },
-              }}
-              transition={{ duration: 0.35, easing: "ease" }}
-            >
-              <ProductCard product={product} />
-            </motion.div>
+            <ProductCard key={product.id} product={product} />
           ))}
-        </motion.div>
+        </div>
       )}
 
       {loadMoreError ? (
