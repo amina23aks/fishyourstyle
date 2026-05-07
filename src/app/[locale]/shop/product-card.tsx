@@ -13,8 +13,6 @@ import {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { AnimatePresence, motion } from "@/lib/motion";
-
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { useCart } from "@/context/cart";
@@ -77,7 +75,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     return base.length > 0 ? base : [product.images.main];
   }, [product.images.gallery, product.images.main]);
   const optimizedImages = useMemo(
-    () => images.map((image) => getCloudinaryDeliveryUrl(image, { width: 900 })),
+    () => images.map((image) => getCloudinaryDeliveryUrl(image, { width: 640 })),
     [images],
   );
   const { addItem, items } = useCart();
@@ -120,11 +118,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const productCategory = product.category ?? "";
   const productDesignTheme = product.designTheme ?? "";
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
-  const displayCurrentImage = optimizedImages[activeIndex] ?? getCloudinaryDeliveryUrl(currentImage, { width: 900 });
+  const displayCurrentImage = optimizedImages[activeIndex] ?? getCloudinaryDeliveryUrl(currentImage, { width: 640 });
   const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
   const displayNextImage = optimizedImages.length > 0
     ? optimizedImages[(activeIndex + 1) % optimizedImages.length]
-    : getCloudinaryDeliveryUrl(nextImage, { width: 900 });
+    : getCloudinaryDeliveryUrl(nextImage, { width: 640 });
   const isSelectionPartial = hasColorSelection !== hasSizeSelection;
   const selectionHelper = useMemo(
     () => (isSelectionPartial ? t("shop.selectColorSizeHelper") : null),
@@ -325,10 +323,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   return (
     <>
       {/* Product card height + controls tightening */}
-      <motion.article
-        whileHover={{ transform: "translateY(-4px)" }}
-        transition={{ duration: 0.2, easing: "ease" }}
-        className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)]"
+      <article
+        className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)] transition-transform duration-200 hover:-translate-y-1"
       >
         <div className="absolute right-2.5 top-2.5 z-10">
           <FavoriteButton
@@ -364,15 +360,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         >
           <div className="relative aspect-[3/4] w-full min-h-[270px] overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
             {currentImage ? (
-              <AnimatePresence>
-                <motion.div
-                  key={displayCurrentImage}
-                  initial={{ opacity: 0.4, scale: 1.02 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.35, easing: "ease" }}
-                  className="absolute inset-0"
-                >
+              <>
+                <div className="absolute inset-0">
                   <Image
                     src={displayCurrentImage}
                     alt={product.nameFr}
@@ -382,76 +371,65 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                     sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
                     className="h-full w-full object-cover"
                   />
-                </motion.div>
+                </div>
                 {isHovering && images.length > 1 && (
-                  <motion.div
-                    key={`${displayNextImage}-hover`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, easing: "ease" }}
-                    className="absolute inset-0"
-                  >
-                      <Image
-                        src={displayNextImage}
-                        alt={product.nameFr}
-                        ref={imageRef}
-                        fill
-                        priority={false}
-                        sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                        className="h-full w-full object-cover"
+                  <div className="absolute inset-0 transition-opacity duration-300">
+                    <Image
+                      src={displayNextImage}
+                      alt={product.nameFr}
+                      ref={imageRef}
+                      fill
+                      priority={false}
+                      sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
+                      className="h-full w-full object-cover"
                     />
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </>
             ) : (
               <span className="flex h-full items-center justify-center text-slate-300 bg-white/10 w-full text-sm font-medium">No image</span>
             )}
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-              <div className="absolute left-2.5 right-2.5 top-2.5 flex items-start justify-between text-[10px] font-semibold uppercase tracking-wide text-white rtl:left-2.5 rtl:right-auto rtl:w-auto rtl:max-w-[70%]">
-                <div className="flex flex-col gap-1">
-                  {(() => {
-                    const isOutOfStock = !stockState.isAvailable;
-                    return (
-                      <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] shadow-sm shadow-black/10 ${
-                        isOutOfStock
-                          ? "bg-red-500/90 text-white"
-                          : "bg-white/90 text-emerald-700"
-                      }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          isOutOfStock ? "bg-white" : "bg-emerald-500"
-                        }`} />
-                        {isOutOfStock ? t("shop.outOfStock") : t("shop.inStock")}
-                      </span>
-                    );
-                  })()}
-                </div>
+            <div className="absolute left-2.5 right-2.5 top-2.5 flex items-start justify-between text-[10px] font-semibold uppercase tracking-wide text-white rtl:left-2.5 rtl:right-auto rtl:w-auto rtl:max-w-[70%]">
+              <div className="flex flex-col gap-1">
+                {(() => {
+                  const isOutOfStock = !stockState.isAvailable;
+                  return (
+                    <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] shadow-sm shadow-black/10 ${
+                      isOutOfStock
+                        ? "bg-red-500/90 text-white"
+                        : "bg-white/90 text-emerald-700"
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        isOutOfStock ? "bg-white" : "bg-emerald-500"
+                      }`} />
+                      {isOutOfStock ? t("shop.outOfStock") : t("shop.inStock")}
+                    </span>
+                  );
+                })()}
               </div>
+            </div>
 
             {images.length > 1 && (
               <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1.5">
-                <motion.button
+                <button
                   type="button"
                   onClick={(event) => handleNav("prev", event)}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   aria-label="Voir l'image précédente"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
                   &#8249;
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   type="button"
                   onClick={(event) => handleNav("next", event)}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   aria-label="Voir l'image suivante"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
                   &#8250;
-                </motion.button>
+                </button>
               </div>
             )}
           </div>
@@ -526,7 +504,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   const isSoldOut = size.soldOut;
                   return (
                     <SoldOutTooltipWrapper key={size.value} isSoldOut={isSoldOut} className="inline-flex">
-                      <motion.button
+                      <button
                         type="button"
                         disabled={isSoldOut}
                         onClick={(event) => {
@@ -542,8 +520,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                             ? "border-white bg-white/15 text-white"
                             : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
                         } ${isSoldOut ? "opacity-60 cursor-not-allowed" : ""}`}
-                        whileHover={isSoldOut ? undefined : { y: -1 }}
-                        whileTap={isSoldOut ? undefined : { scale: 0.97 }}
                       >
                         <span className="relative inline-flex items-center justify-center">
                           {size.value.toUpperCase()}
@@ -554,7 +530,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                             </>
                           ) : null}
                         </span>
-                      </motion.button>
+                      </button>
                     </SoldOutTooltipWrapper>
                   );
                 })}
@@ -574,7 +550,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             }`.trim()}
           />
         </div>
-      </motion.article>
+      </article>
     </>
   );
   }

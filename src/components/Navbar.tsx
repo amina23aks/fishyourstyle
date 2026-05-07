@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -12,11 +13,14 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { useFavorites } from "@/hooks/use-favorites";
 import { getDb } from "@/lib/firebaseClient";
 
-import CartDrawer from "./cart/cart-drawer";
 import ModelViewerLogo from "./ModelViewerLogo";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
+
+const CartDrawer = dynamic(() => import("./cart/cart-drawer"), {
+  ssr: false,
+});
 
 const links = [
   { href: "/", labelKey: "nav.home" },
@@ -89,6 +93,7 @@ export function Navbar() {
   const isFavoritesActive = pathname?.startsWith(localizePathname(locale, "/favorites"));
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [hasCartDrawerLoaded, setHasCartDrawerLoaded] = useState(false);
   const [isBumping, setIsBumping] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -183,7 +188,10 @@ export function Navbar() {
     setIsAccountMenuOpen(false);
   };
 
-  const toggleDrawer = () => setIsDrawerOpen((previous) => !previous);
+  const toggleDrawer = () => {
+    setHasCartDrawerLoaded(true);
+    setIsDrawerOpen((previous) => !previous);
+  };
   const toggleMenu = () => setIsMenuOpen((previous) => !previous);
   const toggleAccountMenu = () => {
     if (authLoading) return;
@@ -212,7 +220,7 @@ export function Navbar() {
   }));
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+    <header className="navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href={localizePathname(locale, "/")} className="group flex items-center gap-3">
@@ -487,7 +495,7 @@ export function Navbar() {
         )}
       </AnimatePresence>
 
-      <CartDrawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      {hasCartDrawerLoaded ? <CartDrawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} /> : null}
     </header>
   );
 }
