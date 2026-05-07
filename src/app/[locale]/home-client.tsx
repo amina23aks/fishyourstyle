@@ -36,13 +36,13 @@ export default function HomeClient({ products, allProducts, categories, designTh
   const [designFilter, setDesignFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const designSourceProducts = allProducts ?? products;
+  const filterSourceProducts = allProducts ?? products;
 
   const collectionPills = useMemo(() => {
     const source = categories && categories.length > 0 ? categories : CANONICAL_CATEGORIES;
     const fetchedPills = source.map((item) => ({
       label: item.label ?? capitalizeLabel(item.slug),
-      value: item.slug,
+      value: item.slug.toLowerCase(),
     }));
     const allPill = { label: "All", value: "all" as const };
     return [allPill, ...fetchedPills];
@@ -51,7 +51,7 @@ export default function HomeClient({ products, allProducts, categories, designTh
   const designPills = useMemo(() => {
     const allPill = { label: "All", value: "all" as const };
     const designMap = new Map<string, string>();
-    designSourceProducts.forEach((product) => {
+    filterSourceProducts.forEach((product) => {
       const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
       if (!rawTheme) return;
       const normalized = rawTheme.toLowerCase();
@@ -84,21 +84,24 @@ export default function HomeClient({ products, allProducts, categories, designTh
     }
 
     return [allPill, ...baseDesigns];
-  }, [designSourceProducts, designThemes]);
+  }, [filterSourceProducts, designThemes]);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return products.filter((product) => {
+    const hasActiveFilter = collectionFilter !== "all" || designFilter !== "all" || Boolean(term);
+    const sourceProducts = hasActiveFilter ? filterSourceProducts : products;
+
+    return sourceProducts.filter((product) => {
       const category = (product.category as string)?.toLowerCase();
       const design = (product.designTheme ?? "simple").toLowerCase();
-      if (collectionFilter !== "all" && category !== collectionFilter) return false;
-      if (designFilter !== "all" && design !== designFilter) return false;
+      if (collectionFilter !== "all" && category !== collectionFilter.toLowerCase()) return false;
+      if (designFilter !== "all" && design !== designFilter.toLowerCase()) return false;
       if (!term) return true;
       const tags = (product.tags ?? []) as string[];
       const haystack = `${product.nameFr} ${tags.join(" ")}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [collectionFilter, designFilter, products, search]);
+  }, [collectionFilter, designFilter, filterSourceProducts, products, search]);
 
   useEffect(() => {
     const focusSearch = () => {

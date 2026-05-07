@@ -80,7 +80,10 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
   const collectionValues = useMemo(() => {
     const source = categories && categories.length > 0 ? categories : CANONICAL_CATEGORIES;
     const allPill = { label: "All", value: "all" as const };
-    const fetchedPills = source.map((item) => ({ label: item.label ?? capitalizeLabel(item.slug), value: item.slug }));
+    const fetchedPills = source.map((item) => ({
+      label: item.label ?? capitalizeLabel(item.slug),
+      value: item.slug.toLowerCase(),
+    }));
     return [allPill, ...fetchedPills];
   }, [categories]);
 
@@ -186,8 +189,8 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
     return loadedProducts.filter((product) => {
       const category = (product.category as string)?.toLowerCase();
       const design = (product.designTheme ?? "simple").toLowerCase();
-      if (collectionFilter !== "all" && category !== collectionFilter) return false;
-      if (designFilter !== "all" && design !== designFilter) return false;
+      if (collectionFilter !== "all" && category !== collectionFilter.toLowerCase()) return false;
+      if (designFilter !== "all" && design !== designFilter.toLowerCase()) return false;
 
       if (!term) return true;
       const tags = (product.tags ?? []) as string[];
