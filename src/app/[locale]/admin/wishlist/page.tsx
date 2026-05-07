@@ -16,6 +16,9 @@ const metadataContent = {
   description: "View recent wishlist signups.",
 };
 
+const WISHLIST_INITIAL_LIMIT = 10;
+const WISHLIST_SAFETY_CAP = 200;
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
@@ -64,7 +67,7 @@ async function fetchWishlistEntries(): Promise<AdminWishlistEntry[]> {
   const snapshot = await db
     .collection("wishlist")
     .orderBy("createdAt", "desc")
-    .limit(200)
+    .limit(Math.min(WISHLIST_INITIAL_LIMIT, WISHLIST_SAFETY_CAP))
     .get();
 
   return snapshot.docs.map((doc) => {

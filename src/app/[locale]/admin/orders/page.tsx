@@ -33,7 +33,7 @@ function formatCurrency(value: number) {
 
 type Toast = { id: number; type: "success" | "error"; message: string };
 
-const ADMIN_ORDERS_PAGE_SIZE = 25;
+const ADMIN_ORDERS_PAGE_SIZE = 10;
 
 const ORDER_EXPORT_HEADERS = [
   "orderId",

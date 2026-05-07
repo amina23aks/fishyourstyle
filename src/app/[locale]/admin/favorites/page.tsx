@@ -19,6 +19,9 @@ const metadataContent = {
   description: "Monitor user favorites and popular products.",
 };
 
+const FAVORITES_INITIAL_LIMIT = 5;
+const FAVORITES_SAFETY_CAP = 100;
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
@@ -74,7 +77,11 @@ async function fetchFavorites(): Promise<{
     throw new Error("Firebase Admin is not configured.");
   }
 
-  const snapshot = await db.collection("favorites").orderBy("updatedAt", "desc").limit(100).get();
+  const snapshot = await db
+    .collection("favorites")
+    .orderBy("updatedAt", "desc")
+    .limit(Math.min(FAVORITES_INITIAL_LIMIT, FAVORITES_SAFETY_CAP))
+    .get();
 
   const rows: FavoritesAdminRow[] = snapshot.docs
     .map((doc) => {

@@ -46,7 +46,7 @@ const toSelectableDesignOption = (item: SelectableItem): SelectableOption => {
 };
 
 const allowedSizes = ["S", "M", "L", "XL", "XXL"] as const;
-const ADMIN_PRODUCTS_PAGE_SIZE = 25;
+const ADMIN_PRODUCTS_PAGE_SIZE = 5;
 
 const defaultForm: ProductFormValues = {
   name: "",
