@@ -8,7 +8,6 @@ import {
   startAfter,
   where,
   limit,
-  Timestamp,
   type DocumentData,
   type QueryConstraint
 } from "firebase/firestore";
@@ -31,7 +30,6 @@ export type StorefrontProductColor =
     };
 
 export type StorefrontProductsCursor = {
-  createdAtMillis: number;
   id: string;
 };
 
@@ -247,24 +245,11 @@ function isPermissionDenied(error: unknown): boolean {
   return error instanceof FirebaseError && error.code === "permission-denied";
 }
 
-function timestampToMillis(value: unknown): number | null {
-  if (value instanceof Date) return value.getTime();
-  if (value instanceof Timestamp) return value.toMillis();
-  if (value && typeof value === "object" && "toDate" in value) {
-    const date = (value as { toDate: () => Date }).toDate();
-    const millis = date.getTime();
-    return Number.isFinite(millis) ? millis : null;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  return null;
+function cursorFromDoc(doc: { id: string }): StorefrontProductsCursor {
+  return { id: doc.id };
 }
 
-function cursorFromDoc(doc: { id: string; data: () => DocumentData }): StorefrontProductsCursor | null {
-  const millis = timestampToMillis(doc.data().createdAt);
-  return millis === null ? null : { createdAtMillis: millis, id: doc.id };
-}
-
-function clampPageSize(value: number | undefined, fallback = 24): number {
+function clampPageSize(value: number | undefined, fallback = 10): number {
   const parsed = Number(value ?? fallback);
   return Math.min(Math.max(Math.floor(Number.isFinite(parsed) ? parsed : fallback), 1), 48);
 }
@@ -284,9 +269,9 @@ export async function fetchStorefrontProductsPage({
   const constraints: QueryConstraint[] = [where("status", "==", "active")];
   if (category && category !== "all") constraints.push(where("category", "==", category));
   if (designTheme && designTheme !== "all") constraints.push(where("designTheme", "==", designTheme));
-  constraints.push(orderBy("createdAt", "desc"), orderBy(documentId(), "desc"));
+  constraints.push(orderBy(documentId()));
   if (cursor) {
-    constraints.push(startAfter(Timestamp.fromMillis(cursor.createdAtMillis), cursor.id));
+    constraints.push(startAfter(cursor.id));
   }
   constraints.push(limit(safeLimit));
 
@@ -319,7 +304,7 @@ export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]>
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
-    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy("createdAt", "desc"), limit(24)));
+    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId()), limit(10)));
     return snapshot.docs
       .map((doc) => normalizeProduct(doc.data(), doc.id))
       .filter((product) => product.status === "active");

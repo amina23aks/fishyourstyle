@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "@/lib/motion";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
@@ -8,7 +8,6 @@ import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/
 import { useTranslations } from "@/i18n/I18nProvider";
 
 type StorefrontCursor = {
-  createdAtMillis: number;
   id: string;
 };
 
@@ -48,6 +47,7 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
   const [nextCursor, setNextCursor] = useState<StorefrontCursor | null>(initialCursor);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const infiniteScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setLoadedProducts(products);
@@ -60,7 +60,7 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
     setLoadMoreError(null);
     try {
       const params = new URLSearchParams({
-        pageSize: "24",
+        pageSize: "10",
         cursor: JSON.stringify(nextCursor),
       });
       if (collectionFilter !== "all") params.set("category", collectionFilter);
@@ -141,7 +141,7 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
       setIsLoadingMore(true);
       setLoadMoreError(null);
       try {
-        const params = new URLSearchParams({ pageSize: "24" });
+        const params = new URLSearchParams({ pageSize: "10" });
         if (collectionFilter !== "all") params.set("category", collectionFilter);
         if (designFilter !== "all") params.set("designTheme", designFilter);
         const response = await fetch(`/api/products?${params.toString()}`, { cache: "no-store" });
@@ -162,6 +162,24 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
       ignore = true;
     };
   }, [collectionFilter, designFilter, initialCursor, products]);
+
+
+  useEffect(() => {
+    const sentinel = infiniteScrollRef.current;
+    if (!sentinel || !nextCursor || isLoadingMore || errorMessage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreProducts();
+        }
+      },
+      { rootMargin: "400px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [errorMessage, isLoadingMore, loadMoreProducts, nextCursor]);
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -291,17 +309,10 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
         <p className="mt-4 text-center text-sm text-rose-100">{loadMoreError}</p>
       ) : null}
 
-      {!errorMessage && nextCursor ? (
-        <div className="mt-8 flex justify-center">
-          <button
-            type="button"
-            onClick={loadMoreProducts}
-            disabled={isLoadingMore}
-            className="rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoadingMore ? "Loading..." : "Load more"}
-          </button>
-        </div>
+      {!errorMessage ? <div ref={infiniteScrollRef} className="h-8" aria-hidden="true" /> : null}
+
+      {isLoadingMore ? (
+        <p className="mt-4 text-center text-sm text-white/70">Loading more products...</p>
       ) : null}
     </>
   );

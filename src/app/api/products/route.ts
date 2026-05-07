@@ -62,8 +62,8 @@ function parseCursor(value: string | null): StorefrontProductsCursor | null {
   if (!value) return null;
   try {
     const parsed = JSON.parse(value) as Partial<StorefrontProductsCursor>;
-    if (typeof parsed.createdAtMillis !== "number" || typeof parsed.id !== "string") return null;
-    return { createdAtMillis: parsed.createdAtMillis, id: parsed.id };
+    if (typeof parsed.id !== "string") return null;
+    return { id: parsed.id };
   } catch {
     return null;
   }
@@ -76,7 +76,7 @@ function cleanFilter(value: string | null): string | undefined {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const pageSize = Number(searchParams.get("pageSize") ?? 24);
+  const pageSize = Number(searchParams.get("pageSize") ?? 10);
   const page = await fetchStorefrontProductsPage({
     pageSize,
     cursor: parseCursor(searchParams.get("cursor")),

@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  documentId,
   getDoc,
   getDocs,
   orderBy,
@@ -370,7 +371,7 @@ export async function listAdminProductsPage(
 ): Promise<AdminProductsPageResult> {
   const db = getDbOrThrow();
   const safeLimit = Math.min(Math.max(Math.floor(limitCount), 1), 50);
-  const constraints = [orderBy("createdAt", "desc")];
+  const constraints = [orderBy(documentId())];
   const productsQuery = query(
     collection(db, "products"),
     ...(cursor ? [...constraints, startAfter(cursor), limit(safeLimit)] : [...constraints, limit(safeLimit)]),
