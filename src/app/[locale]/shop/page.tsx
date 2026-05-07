@@ -112,7 +112,7 @@ export default async function ShopPage() {
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
   let nextCursor: StorefrontProductsCursor | null = null;
   try {
-    const firstPage = await fetchStorefrontProductsPage({ pageSize: 10 });
+    const firstPage = await fetchStorefrontProductsPage({ pageSize: 8 });
     storefrontProducts = firstPage.products;
     nextCursor = firstPage.nextCursor;
   } catch (error) {

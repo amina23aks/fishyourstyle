@@ -76,7 +76,7 @@ function cleanFilter(value: string | null): string | undefined {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const pageSize = Number(searchParams.get("pageSize") ?? 10);
+  const pageSize = Number(searchParams.get("pageSize") ?? 8);
   const page = await fetchStorefrontProductsPage({
     pageSize,
     cursor: parseCursor(searchParams.get("cursor")),

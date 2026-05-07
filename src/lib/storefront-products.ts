@@ -249,7 +249,7 @@ function cursorFromDoc(doc: { id: string }): StorefrontProductsCursor {
   return { id: doc.id };
 }
 
-function clampPageSize(value: number | undefined, fallback = 10): number {
+function clampPageSize(value: number | undefined, fallback = 8): number {
   const parsed = Number(value ?? fallback);
   return Math.min(Math.max(Math.floor(Number.isFinite(parsed) ? parsed : fallback), 1), 48);
 }
@@ -304,7 +304,7 @@ export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]>
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
-    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId()), limit(10)));
+    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId()), limit(8)));
     return snapshot.docs
       .map((doc) => normalizeProduct(doc.data(), doc.id))
       .filter((product) => product.status === "active");

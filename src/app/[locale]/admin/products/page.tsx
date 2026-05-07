@@ -124,6 +124,7 @@ export default function AdminProductsPage() {
   const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const productsInfiniteScrollRef = useRef<HTMLDivElement | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>([]);
   const [designThemes, setDesignThemes] = useState<SelectableOption[]>([]);
   const derivedDesignThemes = useMemo(() => {
@@ -214,7 +215,7 @@ export default function AdminProductsPage() {
   }, []);
 
   const loadMoreProducts = useCallback(async () => {
-    if (!productsCursor || loadingMoreProducts) return;
+    if (!productsCursor || loadingMoreProducts || !hasMoreProducts) return;
     setLoadingMoreProducts(true);
     setError(null);
     try {
@@ -228,7 +229,24 @@ export default function AdminProductsPage() {
     } finally {
       setLoadingMoreProducts(false);
     }
-  }, [loadingMoreProducts, productsCursor]);
+  }, [hasMoreProducts, loadingMoreProducts, productsCursor]);
+
+  useEffect(() => {
+    const sentinel = productsInfiniteScrollRef.current;
+    if (!sentinel || loading || loadingMoreProducts || !hasMoreProducts) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreProducts();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreProducts, loadMoreProducts, loading, loadingMoreProducts]);
 
   useEffect(() => {
     loadProducts();
@@ -598,17 +616,9 @@ export default function AdminProductsPage() {
               </div>
             </div>
           </div>
-          {!loading && hasMoreProducts ? (
-            <div className="flex justify-center pt-4">
-              <button
-                type="button"
-                onClick={loadMoreProducts}
-                disabled={loadingMoreProducts}
-                className="rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loadingMoreProducts ? "Loading..." : "Load more products"}
-              </button>
-            </div>
+          <div ref={productsInfiniteScrollRef} className="h-4" aria-hidden="true" />
+          {loadingMoreProducts ? (
+            <p className="pt-4 text-center text-sm text-sky-100/70">Loading more products...</p>
           ) : null}
         </section>
 

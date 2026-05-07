@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
 import { OrderStatusSelect } from "./components/OrderStatusSelect";
@@ -190,6 +190,7 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState("");
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const ordersInfiniteScrollRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const locale = useLocale();
 
@@ -218,7 +219,7 @@ export default function AdminOrdersPage() {
   }, []);
 
   const loadMoreOrders = useCallback(async () => {
-    if (!ordersCursor || loadingMoreOrders) return;
+    if (!ordersCursor || loadingMoreOrders || !hasMoreOrders) return;
     setLoadingMoreOrders(true);
     setError(null);
     try {
@@ -232,7 +233,24 @@ export default function AdminOrdersPage() {
     } finally {
       setLoadingMoreOrders(false);
     }
-  }, [loadingMoreOrders, ordersCursor]);
+  }, [hasMoreOrders, loadingMoreOrders, ordersCursor]);
+
+  useEffect(() => {
+    const sentinel = ordersInfiniteScrollRef.current;
+    if (!sentinel || loading || loadingMoreOrders || !hasMoreOrders) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreOrders();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreOrders, loadMoreOrders, loading, loadingMoreOrders]);
 
   useEffect(() => {
     loadOrders();
@@ -534,17 +552,9 @@ export default function AdminOrdersPage() {
         )}
       </div>
 
-      {!loading && hasMoreOrders ? (
-        <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={loadMoreOrders}
-            disabled={loadingMoreOrders}
-            className="rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loadingMoreOrders ? "Loading..." : "Load more orders"}
-          </button>
-        </div>
+      <div ref={ordersInfiniteScrollRef} className="h-4" aria-hidden="true" />
+      {loadingMoreOrders ? (
+        <p className="text-center text-sm text-sky-100/70">Loading more orders...</p>
       ) : null}
 
       <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-2">

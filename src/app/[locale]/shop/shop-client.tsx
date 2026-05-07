@@ -60,7 +60,7 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
     setLoadMoreError(null);
     try {
       const params = new URLSearchParams({
-        pageSize: "10",
+        pageSize: "8",
         cursor: JSON.stringify(nextCursor),
       });
       if (collectionFilter !== "all") params.set("category", collectionFilter);
@@ -141,7 +141,7 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
       setIsLoadingMore(true);
       setLoadMoreError(null);
       try {
-        const params = new URLSearchParams({ pageSize: "10" });
+        const params = new URLSearchParams({ pageSize: "8" });
         if (collectionFilter !== "all") params.set("category", collectionFilter);
         if (designFilter !== "all") params.set("designTheme", designFilter);
         const response = await fetch(`/api/products?${params.toString()}`, { cache: "no-store" });
