@@ -97,8 +97,12 @@ export function Navbar() {
   const [isBumping, setIsBumping] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  // Phase 5 targeted experiment: only reduce the fixed navbar blur while scrolling.
+  // Remove this state/effect and the header class branch below to revert.
+  const [isNavbarScrollActive, setIsNavbarScrollActive] = useState(false);
   const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const isNavbarScrollActiveRef = useRef(false);
 
   useEffect(() => {
     if (!lastAddedAt) return;
@@ -106,6 +110,36 @@ export function Navbar() {
     const timer = window.setTimeout(() => setIsBumping(false), 450);
     return () => window.clearTimeout(timer);
   }, [lastAddedAt]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let scrollStopTimer: number | undefined;
+
+    const handleScroll = () => {
+      if (!isNavbarScrollActiveRef.current) {
+        isNavbarScrollActiveRef.current = true;
+        setIsNavbarScrollActive(true);
+      }
+      if (scrollStopTimer) {
+        window.clearTimeout(scrollStopTimer);
+      }
+      scrollStopTimer = window.setTimeout(() => {
+        isNavbarScrollActiveRef.current = false;
+        setIsNavbarScrollActive(false);
+      }, 160);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollStopTimer) {
+        window.clearTimeout(scrollStopTimer);
+      }
+      isNavbarScrollActiveRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -220,7 +254,13 @@ export function Navbar() {
   }));
 
   return (
-    <header className="navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+    <header
+      className={`navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 shadow-[0_12px_30px_rgba(0,0,0,0.35)] ${
+        // Phase 5 targeted experiment: drop only the expensive header backdrop blur during active scroll.
+        // Idle keeps the original glass treatment; revert by restoring the previous static className.
+        isNavbarScrollActive ? "bg-white/15 backdrop-blur-none" : "bg-white/10 backdrop-blur-2xl"
+      }`}
+    >
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href={localizePathname(locale, "/")} className="group flex items-center gap-3">
