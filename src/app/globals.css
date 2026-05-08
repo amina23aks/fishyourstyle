@@ -565,3 +565,127 @@ html[data-theme="aurora"] .aurora-overlay::before {
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
 }
+
+/* Phase 5 follow-up: stronger scroll-jank containment without changing business flows. */
+.navbar-shell {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transform: translateZ(0);
+  contain: paint;
+}
+
+.product-card-shell {
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: 360px 560px;
+}
+
+.admin-dashboard,
+.admin-dashboard-card,
+.admin-shell-panel {
+  contain: layout paint style;
+}
+
+.admin-dashboard-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 260px 220px;
+}
+
+.admin-chart-frame {
+  contain: layout paint style;
+  content-visibility: auto;
+  contain-intrinsic-size: 100% 280px;
+  isolation: isolate;
+}
+
+.admin-chart-frame .recharts-wrapper,
+.admin-chart-frame svg {
+  backface-visibility: hidden;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .btn-shine::after,
+  .product-card-shell::before {
+    display: none;
+  }
+
+  .product-card-shell,
+  .product-card-shell *,
+  .admin-dashboard,
+  .admin-dashboard *,
+  .navbar-shell * {
+    transition-duration: 0ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .product-card-shell {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  }
+
+  .product-card-shell:hover {
+    transform: none !important;
+  }
+
+  .favorite-glow-pulse,
+  .cart-bounce {
+    animation-duration: 180ms !important;
+  }
+
+  .admin-chart-frame .recharts-wrapper {
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar-shell {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: rgba(15, 23, 42, 0.82);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  html[data-theme="aurora"] .aurora-overlay::before,
+  .light-rays,
+  .underwater-vortex,
+  .light-column {
+    filter: none;
+    animation: none;
+    opacity: 0.24;
+  }
+
+  .bubble,
+  .hero-bubble,
+  .bubble-field span {
+    animation: none;
+    opacity: 0.22;
+    box-shadow: none;
+  }
+
+  .float-slow,
+  .animate-wave,
+  .animate-wave-slower {
+    animation: none;
+    will-change: auto;
+  }
+
+  .admin-shell-panel,
+  .admin-dashboard-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::after,
+  .product-card-shell::before {
+    display: none;
+  }
+
+  .cart-bounce,
+  .favorite-glow-pulse {
+    animation: none !important;
+  }
+}

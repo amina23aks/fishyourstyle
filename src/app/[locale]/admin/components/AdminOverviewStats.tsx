@@ -875,7 +875,7 @@ export function AdminOverviewStats() {
               <p className="mt-2 text-xs text-sky-100/70">Create a test order to populate analytics.</p>
             </div>
           ) : (
-            <div className="mt-6 h-[280px] w-full">
+            <div className="admin-chart-frame mt-6 h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={trendSeries}>
                   <CartesianGrid stroke="rgba(148, 163, 184, 0.12)" strokeDasharray="3 3" />
