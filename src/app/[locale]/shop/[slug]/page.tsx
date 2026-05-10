@@ -12,7 +12,7 @@ import { resolveLocale, type Locale } from "@/i18n/config";
 import {
   buildAlternateLanguages,
   buildLocalizedUrl,
-  defaultOgImageUrl,
+  defaultSocialImageUrl,
   getAlternateOpenGraphLocales,
   getOpenGraphLocale,
   resolveOgImageUrl,
@@ -35,7 +35,7 @@ function buildProductDescription(product: StorefrontProduct, locale: Locale): st
 
 function getProductSocialImage(product: StorefrontProduct): string {
   const image = product.images?.main || product.images?.gallery?.[0];
-  return image ? resolveOgImageUrl(image) : defaultOgImageUrl;
+  return image ? resolveOgImageUrl(image) : defaultSocialImageUrl;
 }
 
 function buildProductJsonLd(product: StorefrontProduct, locale: Locale) {
@@ -49,7 +49,7 @@ function buildProductJsonLd(product: StorefrontProduct, locale: Locale) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: images.length > 0 ? Array.from(new Set(images)) : [defaultOgImageUrl],
+    image: images.length > 0 ? Array.from(new Set(images)) : [defaultSocialImageUrl],
     description,
     brand: {
       "@type": "Brand",

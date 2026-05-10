@@ -11,7 +11,7 @@ import { AuthModalProvider } from "@/context/auth-modal";
 import { FavoritesProvider } from "@/hooks/use-favorites";
 import { getLocaleFromHeaders } from "@/i18n/locale";
 import { getLocaleDirection } from "@/i18n/config";
-import { metadataBase, defaultOgImageUrl, siteName, siteUrl } from "@/lib/seo";
+import { getDefaultSocialImages, metadataBase, siteName, siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -48,11 +48,11 @@ export const metadata: Metadata = {
     type: "website",
     siteName,
     url: siteUrl,
-    images: [defaultOgImageUrl],
+    images: getDefaultSocialImages(),
   },
   twitter: {
     card: "summary_large_image",
-    images: [defaultOgImageUrl],
+    images: getDefaultSocialImages(),
   },
   verification: {
     google: "xhWDfYVWM4wYlyC0N8spspJoYrgmPcLaliR833kIz6c",
