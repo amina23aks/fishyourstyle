@@ -9,7 +9,15 @@ import {
 import { ProductDetailContent } from "./product-detail-content";
 import type { Product } from "@/types/product";
 import { resolveLocale, type Locale } from "@/i18n/config";
-import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl } from "@/lib/seo";
+import {
+  buildAlternateLanguages,
+  buildLocalizedUrl,
+  defaultOgImageUrl,
+  getAlternateOpenGraphLocales,
+  getOpenGraphLocale,
+  resolveOgImageUrl,
+  siteName,
+} from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +26,45 @@ const productDescriptionByLocale: Record<Locale, (name: string) => string> = {
   fr: (name) => `Découvrez ${name} chez Fish Your Style. Du streetwear premium pensé pour le confort au quotidien.`,
   ar: (name) => `اكتشف ${name} من Fish Your Style. ستريت وير فاخر مصمم للراحة اليومية.`,
 };
+
+function buildProductDescription(product: StorefrontProduct, locale: Locale): string {
+  const description = product.description?.trim();
+  if (description) return description;
+  return productDescriptionByLocale[locale](product.name);
+}
+
+function getProductSocialImage(product: StorefrontProduct): string {
+  const image = product.images?.main || product.images?.gallery?.[0];
+  return image ? resolveOgImageUrl(image) : defaultOgImageUrl;
+}
+
+function buildProductJsonLd(product: StorefrontProduct, locale: Locale) {
+  const url = buildLocalizedUrl(locale, `/shop/${product.slug}`);
+  const description = buildProductDescription(product, locale);
+  const images = [product.images?.main, ...(product.images?.gallery ?? [])]
+    .filter((image): image is string => Boolean(image))
+    .map(resolveOgImageUrl);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    image: images.length > 0 ? Array.from(new Set(images)) : [defaultOgImageUrl],
+    description,
+    brand: {
+      "@type": "Brand",
+      name: siteName,
+    },
+    offers: {
+      "@type": "Offer",
+      url,
+      priceCurrency: "DZD",
+      price: product.finalPrice,
+      availability: product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+    },
+  };
+}
 
 export async function generateMetadata({
   params,
@@ -41,9 +88,9 @@ export async function generateMetadata({
 
   const productName = storefrontProduct.name ?? "Fish Your Style";
   const title = `${productName} | Fish Your Style`;
-  const description = productDescriptionByLocale[locale](productName);
+  const description = buildProductDescription(storefrontProduct, locale);
   const url = buildLocalizedUrl(locale, `/shop/${slug}`);
-  const ogImages = [defaultOgImageUrl];
+  const ogImages = [getProductSocialImage(storefrontProduct)];
 
   return {
     title,
@@ -57,6 +104,9 @@ export async function generateMetadata({
       description,
       url,
       type: "website",
+      siteName,
+      locale: getOpenGraphLocale(locale),
+      alternateLocale: getAlternateOpenGraphLocales(locale),
       images: ogImages,
     },
     twitter: {
@@ -145,7 +195,8 @@ type ProductDetailPageParams = {
 };
 
 export default async function ProductDetailPage({ params }: ProductDetailPageParams) {
-  const { slug } = await params;
+  const { locale: localeParam, slug } = await params;
+  const locale = resolveLocale(localeParam);
   const storefrontProduct = await fetchStorefrontProductBySlug(slug);
 
   if (!storefrontProduct) {
@@ -161,5 +212,15 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePar
   });
   const suggestedProducts = suggestedStorefrontProducts.map(mapStorefrontToProduct);
 
-  return <ProductDetailContent product={product} suggestedProducts={suggestedProducts} />;
+  const productStructuredData = buildProductJsonLd(storefrontProduct, locale);
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData) }}
+      />
+      <ProductDetailContent product={product} suggestedProducts={suggestedProducts} />
+    </>
+  );
 }
