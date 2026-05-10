@@ -6,6 +6,7 @@ export const siteUrl = "https://fishyourstyle.vercel.app";
 export const metadataBase = new URL(siteUrl);
 export const defaultOgImagePath = "/outphoto.PNG";
 export const defaultOgImageUrl = new URL(defaultOgImagePath, metadataBase).toString();
+export const defaultSocialImageUrl = defaultOgImageUrl;
 export const brandLogoPath = "/logoF.png";
 export const brandLogoUrl = new URL(brandLogoPath, metadataBase).toString();
 
@@ -45,5 +46,5 @@ export function resolveOgImageUrl(imageUrl: string): string {
 }
 
 export function getDefaultSocialImages(): string[] {
-  return [defaultOgImageUrl];
+  return [defaultSocialImageUrl];
 }
