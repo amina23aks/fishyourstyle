@@ -12,7 +12,7 @@ import { localizePathname } from "@/i18n/paths";
 import { resolveLocale, type Locale } from "@/i18n/config";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
-import { buildAlternateLanguages, buildLocalizedUrl, brandLogoUrl, defaultOgImageUrl, siteName, siteUrl } from "@/lib/seo";
+import { buildAlternateLanguages, buildLocalizedUrl, brandLogoUrl, defaultOgImageUrl, getAlternateOpenGraphLocales, getOpenGraphLocale, siteName, siteUrl } from "@/lib/seo";
 
 export const revalidate = 0;
 
@@ -51,6 +51,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       url,
       type: "website",
       siteName,
+      locale: getOpenGraphLocale(locale),
+      alternateLocale: getAlternateOpenGraphLocales(locale),
       images: ogImages,
     },
     twitter: {

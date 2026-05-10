@@ -9,6 +9,20 @@ export const defaultOgImageUrl = new URL(defaultOgImagePath, metadataBase).toStr
 export const brandLogoPath = "/logoF.png";
 export const brandLogoUrl = new URL(brandLogoPath, metadataBase).toString();
 
+export const localeOpenGraphMap: Record<Locale, string> = {
+  en: "en_US",
+  fr: "fr_FR",
+  ar: "ar_DZ",
+};
+
+export function getOpenGraphLocale(locale: Locale): string {
+  return localeOpenGraphMap[locale];
+}
+
+export function getAlternateOpenGraphLocales(locale: Locale): string[] {
+  return locales.filter((candidate) => candidate !== locale).map((candidate) => localeOpenGraphMap[candidate]);
+}
+
 export function buildLocalizedUrl(locale: Locale, pathname: string): string {
   return new URL(localizePathname(locale, pathname), metadataBase).toString();
 }
