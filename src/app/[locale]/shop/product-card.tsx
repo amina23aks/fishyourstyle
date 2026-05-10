@@ -9,6 +9,7 @@ import {
   useState,
   type KeyboardEvent,
   type MouseEvent,
+  type ReactNode,
   type TouchEvent,
 } from "react";
 import Image from "next/image";
@@ -41,6 +42,53 @@ const formatPrice = (value: number) =>
 
 const skeletonShimmer =
   "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.4s_ease_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent";
+
+type ProductCardPerformanceScopeProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+export function ProductCardPerformanceScope({ children, className = "" }: ProductCardPerformanceScopeProps) {
+  // Phase 5 targeted experiment: add a scoped class during active scroll so
+  // product-card paint effects can be disabled from CSS without changing cart,
+  // favorite, selection, stock, or navigation behavior. Remove this wrapper to revert.
+  const [isScrollActive, setIsScrollActive] = useState(false);
+  const isScrollActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let scrollStopTimer: number | undefined;
+
+    const handleScroll = () => {
+      if (!isScrollActiveRef.current) {
+        isScrollActiveRef.current = true;
+        setIsScrollActive(true);
+      }
+      if (scrollStopTimer) {
+        window.clearTimeout(scrollStopTimer);
+      }
+      scrollStopTimer = window.setTimeout(() => {
+        isScrollActiveRef.current = false;
+        setIsScrollActive(false);
+      }, 180);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollStopTimer) {
+        window.clearTimeout(scrollStopTimer);
+      }
+      isScrollActiveRef.current = false;
+    };
+  }, []);
+
+  const scopedClassName = `${className} ${isScrollActive ? "product-card-scroll-quiet" : ""}`.trim();
+
+  return <div className={scopedClassName}>{children}</div>;
+}
 
 export type ProductCardProps = {
   product: ProductWithInventory;
@@ -373,7 +421,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   />
                 </div>
                 {isHovering && images.length > 1 && (
-                  <div className="absolute inset-0 transition-opacity duration-300">
+                  <div className="product-card-hover-swap absolute inset-0 transition-opacity duration-300">
                     <Image
                       src={displayNextImage}
                       alt={product.nameFr}

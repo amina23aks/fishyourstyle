@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Product } from "@/types/product";
-import { ProductCard } from "./product-card";
+import { ProductCard, ProductCardPerformanceScope } from "./product-card";
 import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
 import { useTranslations } from "@/i18n/I18nProvider";
 
@@ -281,15 +281,13 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
           No products in this category yet.
         </div>
       ) : (
-        <div
-          className="mt-10 grid min-h-[350px] grid-cols-2 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-        >
+        <ProductCardPerformanceScope className="mt-10 grid min-h-[350px] grid-cols-2 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filteredProducts.map((product) => (
             <div key={product.id}>
               <ProductCard product={product} />
             </div>
           ))}
-        </div>
+        </ProductCardPerformanceScope>
       )}
 
       {loadMoreError ? (
