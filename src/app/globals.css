@@ -474,6 +474,39 @@ html[data-theme="aurora"] .aurora-overlay::before {
   transform: translate3d(-4%, -6%, 0) scale(1.12);
 }
 
+/* Phase 5 targeted experiment: product-card paint/re-render cost.
+   ProductCardPerformanceScope adds this class only while scrolling so it can be
+   reverted by removing the scope wrapper and this block. Business controls stay active. */
+.product-card-scroll-quiet .product-card-shell,
+.product-card-scroll-quiet .product-card-shell:hover {
+  box-shadow: none;
+  transition: none;
+  transform: none;
+}
+
+.product-card-scroll-quiet .product-card-shell::before,
+.product-card-scroll-quiet .product-card-shell:hover::before {
+  opacity: 0;
+  transform: scale(1.05);
+  transition: none;
+}
+
+.product-card-scroll-quiet .product-card-hover-swap {
+  display: none;
+}
+
+.product-card-scroll-quiet .product-card-shell *,
+.product-card-scroll-quiet .product-card-shell::before,
+.product-card-scroll-quiet .btn-shine::after {
+  animation: none;
+  box-shadow: none;
+  transition-duration: 0ms;
+}
+
+.product-card-scroll-quiet .btn-shine::after {
+  opacity: 0;
+}
+
 .gallery-thumbnails-scroll::-webkit-scrollbar {
   display: none;
 }

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "@/lib/motion";
 
 import { Swatch } from "../swatch";
-import { ProductCard } from "../product-card";
+import { ProductCard, ProductCardPerformanceScope } from "../product-card";
 import { Product } from "@/types/product";
 import { useCart } from "@/context/cart";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
@@ -553,11 +553,11 @@ export function ProductDetailContent({
       {suggestedProducts.length > 0 ? (
         <section className="mt-10 space-y-4">
           <h2 className="text-xl font-semibold text-white sm:text-2xl">Suggested Products</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <ProductCardPerformanceScope className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {suggestedProducts.map((suggestedProduct) => (
               <ProductCard key={suggestedProduct.id} product={suggestedProduct} />
             ))}
-          </div>
+          </ProductCardPerformanceScope>
         </section>
       ) : null}
 

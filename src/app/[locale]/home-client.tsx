@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ProductCard } from "./shop/product-card";
+import { ProductCard, ProductCardPerformanceScope } from "./shop/product-card";
 import type { Product } from "@/types/product";
 import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
 
@@ -183,11 +183,11 @@ export default function HomeClient({ products, allProducts, categories, designTh
           No products in this category yet.
         </div>
       ) : (
-        <div className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-4 md:gap-10 auto-rows-fr">
+        <ProductCardPerformanceScope className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-4 md:gap-10 auto-rows-fr">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
-        </div>
+        </ProductCardPerformanceScope>
       )}
     </>
   );
