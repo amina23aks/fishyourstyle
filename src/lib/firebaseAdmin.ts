@@ -167,6 +167,31 @@ export async function requireAdmin(request: Request): Promise<AdminAuthResult> {
   };
 }
 
+
+function getAdminExportToken(): string | null {
+  const token = process.env.ADMIN_EXPORT_TOKEN?.trim();
+  return token ? token : null;
+}
+
+export function hasValidAdminExportToken(request: Request): boolean {
+  const expectedToken = getAdminExportToken();
+  if (!expectedToken) return false;
+
+  const authHeader =
+    request.headers.get("authorization") ??
+    request.headers.get("Authorization");
+
+  return authHeader === `Bearer ${expectedToken}`;
+}
+
+export async function requireAdminOrExportToken(request: Request): Promise<AdminAuthResult | null> {
+  if (hasValidAdminExportToken(request)) {
+    return null;
+  }
+
+  return requireAdmin(request);
+}
+
 export async function setAdminClaim(uid: string) {
   const auth = ensureAdminAuth();
   const user = await auth.getUser(uid);
