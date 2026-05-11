@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { fetchStorefrontProductsPage, type StorefrontProduct, type StorefrontProductsCursor } from "@/lib/storefront-products";
+import {
+  fetchStorefrontFilterProducts,
+  fetchStorefrontProductsPage,
+  type StorefrontFilterProduct,
+  type StorefrontProduct,
+  type StorefrontProductsCursor,
+} from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import ShopClient from "./shop-client";
 import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
@@ -113,6 +119,7 @@ export default async function ShopPage() {
   let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
   let nextCursor: StorefrontProductsCursor | null = null;
+  let filterProducts: StorefrontFilterProduct[] = [];
   try {
     const firstPage = await fetchStorefrontProductsPage({ pageSize: 8 });
     storefrontProducts = firstPage.products;
@@ -136,12 +143,21 @@ export default async function ShopPage() {
     designThemes = [];
   }
 
+
+  try {
+    filterProducts = await fetchStorefrontFilterProducts();
+  } catch (error) {
+    console.error("Failed to fetch filter products:", error);
+    filterProducts = [];
+  }
+
   const products = storefrontProducts.map(mapStorefrontToProduct);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-12 overscroll-y-contain">
       <ShopClient
         products={products}
+        filterProducts={filterProducts}
         initialCursor={nextCursor}
         errorMessage={errorMessage}
         categories={categories}

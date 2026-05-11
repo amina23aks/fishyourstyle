@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 
+import { useAuth } from "@/context/auth";
 import type { AdminProductCategory } from "@/lib/admin-products";
 import type { SelectableOption } from "@/types/selectable";
 
@@ -166,16 +167,28 @@ function clampDiscount(value: number | null) {
   return value;
 }
 
-async function persistSelectable(name: string, type: "category" | "design") {
+function getApiErrorMessage(payload: unknown, fallback: string): string {
+  if (payload && typeof payload === "object") {
+    const data = payload as { error?: unknown; message?: unknown };
+    if (typeof data.message === "string" && data.message.trim()) return data.message;
+    if (typeof data.error === "string" && data.error.trim()) return data.error;
+  }
+  return fallback;
+}
+
+async function persistSelectable(name: string, type: "category" | "design", token: string) {
   const response = await fetch("/api/categories", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({ name, type }),
   });
 
   if (!response.ok) {
     const data = await response.json().catch(() => null);
-    throw new Error(data?.error ?? "Unable to save entry");
+    throw new Error(getApiErrorMessage(data, "Unable to save entry"));
   }
 }
 
@@ -220,6 +233,7 @@ export function ProductForm({
   onReloadCategories,
   onReloadDesignThemes,
 }: ProductFormProps) {
+  const { user } = useAuth();
   const initialColors = normalizeColors(initialValues?.colors, defaultValues.colors);
   const initialImages = normalizeImages(initialValues?.images ?? defaultValues.images);
   const [values, setValues] = useState<ProductFormValues>({
@@ -252,6 +266,14 @@ export function ProductForm({
   const [newDesignName, setNewDesignName] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showNewDesign, setShowNewDesign] = useState(false);
+
+  const getAdminMutationToken = useCallback(async () => {
+    const token = await user?.getIdToken(true);
+    if (!token) {
+      throw new Error("Admin authentication is required to manage categories and designs.");
+    }
+    return token;
+  }, [user]);
 
   const syncDesignThemes = useCallback(
     (next: SelectableOption[]) => {
@@ -424,7 +446,8 @@ export function ProductForm({
     const slug = slugify(trimmed);
     if (!slug) return;
     try {
-      await persistSelectable(capitalize(trimmed), "category");
+      const token = await getAdminMutationToken();
+      await persistSelectable(capitalize(trimmed), "category", token);
       const next = mergeSelectables(categories, [{ slug, name: capitalize(trimmed), id: slug, isDefault: false }]);
       onCategoriesChange(next);
       setValues((prev) => ({ ...prev, category: slug }));
@@ -432,10 +455,33 @@ export function ProductForm({
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to add category";
       console.error("Failed to add category", err);
-      alert(message);
+      setError(message);
     } finally {
       setNewCategoryName("");
       setShowNewCategory(false);
+    }
+  };
+
+  const handleAddDesign = async () => {
+    const trimmed = newDesignName.trim();
+    const slug = slugify(trimmed);
+    if (!slug) return;
+    try {
+      const token = await getAdminMutationToken();
+      await persistSelectable(capitalize(trimmed), "design", token);
+      const next = mergeSelectables(designThemeOptions, [
+        { slug, name: capitalize(trimmed), id: slug, isDefault: false },
+      ]);
+      syncDesignThemes(next);
+      setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
+      await onReloadDesignThemes();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to add design";
+      console.error("Failed to add design", err);
+      setError(message);
+    } finally {
+      setNewDesignName("");
+      setShowNewDesign(false);
     }
   };
 
@@ -444,12 +490,14 @@ export function ProductForm({
       const slug = category.slug;
       setIsDeletingCategory(slug);
       try {
+        const token = await getAdminMutationToken();
         const response = await fetch(`/api/categories?slug=${encodeURIComponent(slug)}&type=category`, {
           method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) {
           const data = await response.json().catch(() => null);
-          throw new Error(data?.error ?? "Failed to delete category");
+          throw new Error(getApiErrorMessage(data, "Failed to delete category"));
         }
         const next = categories.filter((cat) => cat.slug !== slug);
         onCategoriesChange(next);
@@ -461,12 +509,12 @@ export function ProductForm({
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to delete category";
         console.error("Failed to delete category", err);
-        alert(message);
+        setError(message);
       } finally {
         setIsDeletingCategory(null);
       }
     },
-    [categories, onCategoriesChange, onReloadCategories],
+    [categories, getAdminMutationToken, onCategoriesChange, onReloadCategories],
   );
 
   const performDeleteDesign = useCallback(
@@ -474,12 +522,14 @@ export function ProductForm({
       const slug = design.slug;
       setIsDeletingDesign(slug);
       try {
+        const token = await getAdminMutationToken();
         const response = await fetch(`/api/categories?slug=${encodeURIComponent(slug)}&type=design`, {
           method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) {
           const data = await response.json().catch(() => null);
-          throw new Error(data?.error ?? "Failed to delete design");
+          throw new Error(getApiErrorMessage(data, "Failed to delete design"));
         }
         const next = designThemeOptions.filter((theme) => theme.slug !== slug);
         syncDesignThemes(next);
@@ -491,12 +541,12 @@ export function ProductForm({
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to delete design";
         console.error("Failed to delete design", err);
-        alert(message);
+        setError(message);
       } finally {
         setIsDeletingDesign(null);
       }
     },
-    [designThemeOptions, onReloadDesignThemes, syncDesignThemes],
+    [designThemeOptions, getAdminMutationToken, onReloadDesignThemes, syncDesignThemes],
   );
 
   const requestDeleteCategory = useCallback((category: SelectableOption) => {
@@ -728,52 +778,16 @@ export function ProductForm({
                 onChange={(e) => setNewDesignName(e.target.value)}
                 placeholder="New design name"
                 className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
-                onKeyDown={async (e) => {
+                onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    const trimmed = newDesignName.trim();
-                    const slug = slugify(trimmed);
-                    if (!slug) return;
-                    try {
-                      await persistSelectable(capitalize(trimmed), "design");
-                      const next = mergeSelectables(designThemeOptions, [
-                        { slug, name: capitalize(trimmed), id: slug, isDefault: false },
-                      ]);
-                      syncDesignThemes(next);
-                      setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
-                      await onReloadDesignThemes();
-                    } catch (err) {
-                      const message = err instanceof Error ? err.message : "Failed to add design";
-                      console.error("Failed to add design", err);
-                      alert(message);
-                    }
-                    setNewDesignName("");
-                    setShowNewDesign(false);
+                    void handleAddDesign();
                   }
                 }}
               />
               <button
                 type="button"
-              onClick={async () => {
-                const trimmed = newDesignName.trim();
-                const slug = slugify(trimmed);
-                if (!slug) return;
-                try {
-                  await persistSelectable(capitalize(trimmed), "design");
-                  const next = mergeSelectables(designThemeOptions, [
-                    { slug, name: capitalize(trimmed), id: slug, isDefault: false },
-                  ]);
-                  syncDesignThemes(next);
-                  setValues((prev) => ({ ...prev, designTheme: slug, designThemeCustom: slug }));
-                  await onReloadDesignThemes();
-                } catch (err) {
-                  const message = err instanceof Error ? err.message : "Failed to add design";
-                  console.error("Failed to add design", err);
-                  alert(message);
-                }
-                  setNewDesignName("");
-                  setShowNewDesign(false);
-                }}
+                onClick={() => void handleAddDesign()}
                 className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15"
               >
                 Add design

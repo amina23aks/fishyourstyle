@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
-import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
+import type { SelectableItem } from "@/lib/categories-shared";
+import { buildDependentFilterPills } from "@/lib/dependent-filter-options";
 import { useTranslations } from "@/i18n/I18nProvider";
 
 type StorefrontCursor = {
@@ -26,18 +27,21 @@ type ShopProductsResponse = {
 
 type ShopClientProps = {
   products: ShopClientProduct[];
+  filterProducts?: Pick<ShopClientProduct, "category" | "designTheme" | "status">[];
   initialCursor?: StorefrontCursor | null;
   errorMessage?: string | null;
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
 };
 
-function capitalizeLabel(value: string | undefined | null): string {
-  if (!value) return "";
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-export default function ShopClient({ products, initialCursor = null, errorMessage, categories, designThemes }: ShopClientProps) {
+export default function ShopClient({
+  products,
+  filterProducts,
+  initialCursor = null,
+  errorMessage,
+  categories,
+  designThemes,
+}: ShopClientProps) {
   const t = useTranslations();
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
@@ -76,61 +80,16 @@ export default function ShopClient({ products, initialCursor = null, errorMessag
     }
   }, [collectionFilter, designFilter, isLoadingMore, nextCursor]);
 
-  const collectionValues = useMemo(() => {
-    const source = categories && categories.length > 0 ? categories : CANONICAL_CATEGORIES;
-    const allPill = { label: "All", value: "all" as const };
-    const fetchedPills = source.map((item) => ({
-      label: item.label ?? capitalizeLabel(item.slug),
-      value: item.slug.toLowerCase(),
-    }));
-    return [allPill, ...fetchedPills];
-  }, [categories]);
-
-  const designValues = useMemo(() => {
-    const allPill = { label: "All", value: "all" as const };
-    const designMap = new Map<string, string>();
-    loadedProducts.forEach((product) => {
-      const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
-      if (!rawTheme) return;
-      const normalized = rawTheme.toLowerCase();
-      if (!designMap.has(normalized)) {
-        designMap.set(normalized, capitalizeLabel(rawTheme));
-      }
-    });
-
-    const baseDesigns = Array.from(designMap.entries())
-      .map(([value, label]) => ({ value, label }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-
-    const hasSimple = baseDesigns.some((item) => item.value === "simple");
-    const simpleInDesigns = designThemes?.some((item) => {
-      const slug = typeof item.slug === "string" ? item.slug.toLowerCase() : "";
-      const label = typeof item.label === "string" ? item.label.toLowerCase() : "";
-      return slug === "simple" || label === "simple";
-    });
-
-    if (!hasSimple && simpleInDesigns) {
-      baseDesigns.unshift({ label: "Simple", value: "simple" });
-    }
-
-    if (baseDesigns.length === 0) {
-      const fallback = (designThemes && designThemes.length > 0 ? designThemes : CANONICAL_DESIGNS).map((item) => ({
-        label: item.label ?? capitalizeLabel(item.slug),
-        value: item.slug.toLowerCase(),
-      }));
-      return [allPill, ...fallback];
-    }
-
-    return [allPill, ...baseDesigns];
-  }, [designThemes, loadedProducts]);
-
-  const collectionPills = useMemo(() => {
-    return collectionValues;
-  }, [collectionValues]);
-
-  const allDesignPills = useMemo(() => {
-    return designValues;
-  }, [designValues]);
+  const { categoryPills: collectionPills, designPills: allDesignPills } = useMemo(
+    () =>
+      buildDependentFilterPills({
+        products: filterProducts ?? products,
+        categories,
+        designThemes,
+        selectedCategory: collectionFilter,
+      }),
+    [categories, collectionFilter, designThemes, filterProducts, products],
+  );
 
   useEffect(() => {
     let ignore = false;

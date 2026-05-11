@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProductCard } from "./shop/product-card";
 import type { Product } from "@/types/product";
-import { CANONICAL_CATEGORIES, CANONICAL_DESIGNS, type SelectableItem } from "@/lib/categories-shared";
+import type { SelectableItem } from "@/lib/categories-shared";
+import { buildDependentFilterPills } from "@/lib/dependent-filter-options";
 
 type Props = {
   products: (Product & {
@@ -26,11 +27,6 @@ type Props = {
   designThemes?: SelectableItem[];
 };
 
-function capitalizeLabel(value: string | undefined | null): string {
-  if (!value) return "";
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 export default function HomeClient({ products, allProducts, categories, designThemes }: Props) {
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
@@ -38,53 +34,16 @@ export default function HomeClient({ products, allProducts, categories, designTh
   const searchInputRef = useRef<HTMLInputElement>(null);
   const filterSourceProducts = allProducts ?? products;
 
-  const collectionPills = useMemo(() => {
-    const source = categories && categories.length > 0 ? categories : CANONICAL_CATEGORIES;
-    const fetchedPills = source.map((item) => ({
-      label: item.label ?? capitalizeLabel(item.slug),
-      value: item.slug.toLowerCase(),
-    }));
-    const allPill = { label: "All", value: "all" as const };
-    return [allPill, ...fetchedPills];
-  }, [categories]);
-
-  const designPills = useMemo(() => {
-    const allPill = { label: "All", value: "all" as const };
-    const designMap = new Map<string, string>();
-    filterSourceProducts.forEach((product) => {
-      const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
-      if (!rawTheme) return;
-      const normalized = rawTheme.toLowerCase();
-      if (!designMap.has(normalized)) {
-        designMap.set(normalized, capitalizeLabel(rawTheme));
-      }
-    });
-
-    const baseDesigns = Array.from(designMap.entries())
-      .map(([value, label]) => ({ value, label }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-
-    const hasSimple = baseDesigns.some((item) => item.value === "simple");
-    const simpleInDesigns = designThemes?.some((item) => {
-      const slug = typeof item.slug === "string" ? item.slug.toLowerCase() : "";
-      const label = typeof item.label === "string" ? item.label.toLowerCase() : "";
-      return slug === "simple" || label === "simple";
-    });
-
-    if (!hasSimple && simpleInDesigns) {
-      baseDesigns.unshift({ label: "Simple", value: "simple" });
-    }
-
-    if (baseDesigns.length === 0) {
-      const fallback = (designThemes && designThemes.length > 0 ? designThemes : CANONICAL_DESIGNS).map((item) => ({
-        label: item.label ?? capitalizeLabel(item.slug),
-        value: item.slug.toLowerCase(),
-      }));
-      return [allPill, ...fallback];
-    }
-
-    return [allPill, ...baseDesigns];
-  }, [filterSourceProducts, designThemes]);
+  const { categoryPills: collectionPills, designPills } = useMemo(
+    () =>
+      buildDependentFilterPills({
+        products: filterSourceProducts,
+        categories,
+        designThemes,
+        selectedCategory: collectionFilter,
+      }),
+    [categories, collectionFilter, designThemes, filterSourceProducts],
+  );
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();

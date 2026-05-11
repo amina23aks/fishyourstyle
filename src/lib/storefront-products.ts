@@ -45,6 +45,12 @@ export type StorefrontProductsPageParams = {
   designTheme?: string;
 };
 
+export type StorefrontFilterProduct = {
+  category: string;
+  designTheme: string;
+  status: "active";
+};
+
 export type StorefrontProduct = {
   id: string;
   slug: string;
@@ -292,6 +298,35 @@ export async function fetchStorefrontProductsPage({
       console.error("Failed to fetch storefront products from Firestore, returning empty list:", error);
     }
     return { products: [], nextCursor: null };
+  }
+}
+
+
+export async function fetchStorefrontFilterProducts(): Promise<StorefrontFilterProduct[]> {
+  if (!isFirebaseConfigured()) {
+    console.warn("Firebase env vars are missing; returning an empty filter product list.");
+    return [];
+  }
+
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId())));
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        category: typeof data.category === "string" ? data.category : "tshirts",
+        designTheme: typeof data.designTheme === "string" ? data.designTheme : "simple",
+        status: "active",
+      };
+    });
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      console.warn("Firestore permission denied while reading storefront filter products; returning empty list.");
+    } else {
+      console.error("Failed to fetch storefront filter products from Firestore, returning empty list:", error);
+    }
+    return [];
   }
 }
 
