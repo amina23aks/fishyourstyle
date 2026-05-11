@@ -62,6 +62,30 @@ If a preview URL works but the main `*.pages.dev` domain is blank or times out, 
 ## Firebase Admin access and rules
 
 - Server-side Firebase Admin uses `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` (with `\n` preserved) for initialization, plus `SUPER_ADMIN_EMAIL` for protected admin-claim tooling.
-- Admin-only endpoints/pages expect an ID token in the `Authorization: Bearer <idToken>` header or in one of the cookies `__session`, `session`, or `idToken`.
+- Admin-only endpoints/pages expect a Firebase Auth ID token with the `admin` custom claim in the `Authorization: Bearer <idToken>` header.
 - `POST /api/admin/claim` remains a protected backend admin-claim tool restricted to the configured `SUPER_ADMIN_EMAIL`; there is no temporary bootstrap UI.
 - Firestore security rules live in `firestore.rules`; deploy them to the project to enforce public reads for catalog data, admin-only writes and order access, locked-down contact messages, and owner-only wishlists.
+
+## Google Sheets order sync
+
+Google Apps Script cannot mint a Firebase Auth ID token for the dashboard admin flow. The Sheets sync is a machine-to-machine export integration and should call the dedicated export endpoint with the shared export token instead:
+
+- Endpoint: `GET https://fishyourstyle.vercel.app/api/admin/orders-export?max=200`
+- Required Vercel env var: `ADMIN_EXPORT_TOKEN`
+- Required Apps Script property: `ADMIN_EXPORT_TOKEN` with the same value as Vercel
+- Required request header: `Authorization: Bearer <ADMIN_EXPORT_TOKEN>`
+
+The export token is accepted only by the order export/sync endpoints. Normal admin APIs still require a Firebase Auth ID token whose user has the `admin` custom claim. Missing, wrong, or malformed export tokens must return `401`.
+
+Apps Script `Code.gs` should send the token exactly like this:
+
+```js
+const token = PropertiesService.getScriptProperties().getProperty("ADMIN_EXPORT_TOKEN");
+const response = UrlFetchApp.fetch("https://fishyourstyle.vercel.app/api/admin/orders-export?max=200", {
+  method: "get",
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+  muteHttpExceptions: false,
+});
+```

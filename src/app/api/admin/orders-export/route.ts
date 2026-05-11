@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
-import { AdminAuthError, getAdminResources, requireAdmin } from "@/lib/firebaseAdmin";
+import { AdminAuthError, getAdminResources, requireAdminOrExportToken } from "@/lib/firebaseAdmin";
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 500;
@@ -70,7 +70,7 @@ function toIsoString(value: unknown): string {
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    await requireAdminOrExportToken(request);
   } catch (error) {
     const status = error instanceof AdminAuthError ? error.status : 401;
     const code = status === 403 ? "forbidden" : "unauthorized";
