@@ -41,9 +41,8 @@ export default function HomeClient({ products, allProducts, categories, designTh
         categories,
         designThemes,
         selectedCategory: collectionFilter,
-        selectedDesign: designFilter,
       }),
-    [categories, collectionFilter, designFilter, designThemes, filterSourceProducts],
+    [categories, collectionFilter, designThemes, filterSourceProducts],
   );
 
   const filteredProducts = useMemo(() => {

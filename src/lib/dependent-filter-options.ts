@@ -16,7 +16,6 @@ type BuildDependentFilterPillsParams = {
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
   selectedCategory: string;
-  selectedDesign: string;
 };
 
 const ALL_PILL: FilterPill = { label: "All", value: "all" };
@@ -47,14 +46,19 @@ function buildKnownOptionMap(items: SelectableItem[] | undefined, fallback: Sele
   return optionMap;
 }
 
+function pushAllKnownOptions(pills: FilterPill[], knownOptions: Map<string, string>) {
+  knownOptions.forEach((label, value) => {
+    pills.push({ label, value });
+  });
+}
+
 function pushKnownThenProductOptions(
   pills: FilterPill[],
   allowedValues: Set<string>,
   knownOptions: Map<string, string>,
-  selectedValue: string,
 ) {
   knownOptions.forEach((label, value) => {
-    if (allowedValues.has(value) || value === selectedValue) {
+    if (allowedValues.has(value)) {
       pills.push({ label, value });
     }
   });
@@ -71,23 +75,16 @@ export function buildDependentFilterPills({
   categories,
   designThemes,
   selectedCategory,
-  selectedDesign,
 }: BuildDependentFilterPillsParams): { categoryPills: FilterPill[]; designPills: FilterPill[] } {
   const normalizedSelectedCategory = normalizeFilterValue(selectedCategory);
-  const normalizedSelectedDesign = normalizeFilterValue(selectedDesign);
   const categoryOptions = buildKnownOptionMap(categories, CANONICAL_CATEGORIES);
   const designOptions = buildKnownOptionMap(designThemes, CANONICAL_DESIGNS);
-  const categoryValues = new Set<string>();
   const designValues = new Set<string>();
 
   products.filter(isActiveProduct).forEach((product) => {
     const category = normalizeFilterValue(product.category);
     const design = normalizeFilterValue(product.designTheme) || "simple";
     if (!category || !design) return;
-
-    if (normalizedSelectedDesign === "all" || design === normalizedSelectedDesign) {
-      categoryValues.add(category);
-    }
 
     if (normalizedSelectedCategory === "all" || category === normalizedSelectedCategory) {
       designValues.add(design);
@@ -96,8 +93,8 @@ export function buildDependentFilterPills({
 
   const categoryPills: FilterPill[] = [ALL_PILL];
   const designPills: FilterPill[] = [ALL_PILL];
-  pushKnownThenProductOptions(categoryPills, categoryValues, categoryOptions, normalizedSelectedCategory);
-  pushKnownThenProductOptions(designPills, designValues, designOptions, normalizedSelectedDesign);
+  pushAllKnownOptions(categoryPills, categoryOptions);
+  pushKnownThenProductOptions(designPills, designValues, designOptions);
 
   return { categoryPills, designPills };
 }

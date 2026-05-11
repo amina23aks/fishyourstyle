@@ -87,9 +87,8 @@ export default function ShopClient({
         categories,
         designThemes,
         selectedCategory: collectionFilter,
-        selectedDesign: designFilter,
       }),
-    [categories, collectionFilter, designFilter, designThemes, filterProducts, products],
+    [categories, collectionFilter, designThemes, filterProducts, products],
   );
 
   useEffect(() => {
