@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 import type { SelectableItem } from "@/lib/categories-shared";
-import { buildDependentFilterPills } from "@/lib/dependent-filter-options";
+import { buildDependentFilterPills, isDesignFilterAvailableForCategory } from "@/lib/dependent-filter-options";
 import { useTranslations } from "@/i18n/I18nProvider";
 
 type StorefrontCursor = {
@@ -89,6 +89,22 @@ export default function ShopClient({
         selectedCategory: collectionFilter,
       }),
     [categories, collectionFilter, designThemes, filterProducts, products],
+  );
+
+  const handleCollectionFilterChange = useCallback(
+    (nextCollection: string) => {
+      setCollectionFilter(nextCollection);
+      setDesignFilter((currentDesign) =>
+        isDesignFilterAvailableForCategory({
+          products: filterProducts ?? products,
+          selectedCategory: nextCollection,
+          selectedDesign: currentDesign,
+        })
+          ? currentDesign
+          : "all",
+      );
+    },
+    [filterProducts, products],
   );
 
   useEffect(() => {
@@ -181,7 +197,7 @@ export default function ShopClient({
                     <button
                       key={pill.value}
                       type="button"
-                      onClick={() => setCollectionFilter(pill.value)}
+                      onClick={() => handleCollectionFilterChange(pill.value)}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         active
                           ? "border-white bg-white text-slate-900"

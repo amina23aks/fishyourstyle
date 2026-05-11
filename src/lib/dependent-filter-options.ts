@@ -18,6 +18,12 @@ type BuildDependentFilterPillsParams = {
   selectedCategory: string;
 };
 
+type IsDesignFilterAvailableForCategoryParams = {
+  products: FilterableProduct[];
+  selectedCategory: string;
+  selectedDesign: string;
+};
+
 const ALL_PILL: FilterPill = { label: "All", value: "all" };
 
 function normalizeFilterValue(value: string | null | undefined): string {
@@ -68,6 +74,25 @@ function pushKnownThenProductOptions(
     .filter((value) => !knownValues.has(value))
     .sort((a, b) => a.localeCompare(b))
     .forEach((value) => pills.push({ label: capitalizeLabel(value), value }));
+}
+
+export function isDesignFilterAvailableForCategory({
+  products,
+  selectedCategory,
+  selectedDesign,
+}: IsDesignFilterAvailableForCategoryParams): boolean {
+  const normalizedSelectedDesign = normalizeFilterValue(selectedDesign);
+  if (normalizedSelectedDesign === "all") return true;
+
+  const normalizedSelectedCategory = normalizeFilterValue(selectedCategory);
+
+  return products.filter(isActiveProduct).some((product) => {
+    const category = normalizeFilterValue(product.category);
+    const design = normalizeFilterValue(product.designTheme) || "simple";
+    if (!category || !design) return false;
+    if (normalizedSelectedCategory !== "all" && category !== normalizedSelectedCategory) return false;
+    return design === normalizedSelectedDesign;
+  });
 }
 
 export function buildDependentFilterPills({
