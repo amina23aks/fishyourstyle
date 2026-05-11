@@ -178,9 +178,9 @@ const AdminNavLink = memo(function AdminNavLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition shadow-sm shadow-sky-900/30 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:ring-offset-0 ${
+      className={`admin-nav-link flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:ring-offset-0 ${
         isActive
-          ? "border-white/30 bg-white/15 text-white ring-1 ring-white/40"
+          ? "admin-nav-link-active border-white/30 bg-white/15 text-white"
           : "border-white/5 text-sky-100"
       }`}
     >
