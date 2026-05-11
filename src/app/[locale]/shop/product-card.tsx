@@ -15,7 +15,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
-import { useCart } from "@/context/cart";
+import { useCartActions } from "@/context/cart";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
@@ -33,6 +33,7 @@ import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import { normalizeProductStock } from "@/lib/stock";
 import { useFavorites } from "@/hooks/use-favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { runAfterNextPaint } from "@/lib/defer";
 
 type ProductWithInventory = Product & { stockMode?: "unlimited" | "limited"; stockQty?: number; inStock?: boolean };
 
@@ -78,7 +79,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     () => images.map((image) => getCloudinaryDeliveryUrl(image, { width: 640 })),
     [images],
   );
-  const { addItem, items } = useCart();
+  const { addItem, getItemQuantity } = useCartActions();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
@@ -227,9 +228,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     const colorCode = color?.hex ?? "default";
 
     const variantKey = `${product.id}-${colorCode}-${sizeChoice}`.toLowerCase();
-    const existing = items.find((item) => item.variantKey === variantKey);
-    const maxQty = existing?.maxQuantity ?? availableStock;
-    if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
+    const existingQuantity = getItemQuantity(variantKey);
+    const maxQty = availableStock;
+    if (typeof maxQty === "number" && maxQty > 0 && existingQuantity >= maxQty) {
       setSelectionWarning(t("shop.outOfStock"));
       return false;
     }
@@ -259,7 +260,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
     setSelectionWarning(null);
 
-    flyToCart(imageRef.current);
+    runAfterNextPaint(() => flyToCart(imageRef.current));
     return true;
   }, [
     addItem,
@@ -271,7 +272,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     isOutOfStock,
     isSelectionIncomplete,
     isSelectionInvalid,
-    items,
+    getItemQuantity,
     productCategory,
     product.currency,
     productDesignTheme,

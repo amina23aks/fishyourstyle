@@ -7,9 +7,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { trackAddToCart } from "@/lib/analytics";
+import { runAfterNextPaint } from "@/lib/defer";
 import { addToCart as trackMetaAddToCart } from "@/lib/metaPixel";
 
 export type CartItem = {
@@ -62,9 +64,16 @@ export type CartContextValue = {
   removeItem: (id: string, variantKey: string) => void;
   updateQty: (id: string, variantKey: string, quantity: number) => void;
   clearCart: () => void;
+  getItemQuantity: (variantKey: string) => number;
 };
 
+type CartActionsContextValue = Pick<
+  CartContextValue,
+  "addItem" | "removeItem" | "updateQty" | "clearCart" | "getItemQuantity"
+>;
+
 const CartContext = createContext<CartContextValue | undefined>(undefined);
+const CartActionsContext = createContext<CartActionsContextValue | undefined>(undefined);
 const STORAGE_KEY = "fys-cart";
 
 const makeVariantKey = (item: { id: string; colorCode: string; size: string }) =>
@@ -99,6 +108,11 @@ export const normalizeCartItem = (item: CartItem | AddItemPayload): CartItem => 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [lastAddedAt, setLastAddedAt] = useState<number | null>(null);
+  const itemsRef = useRef<CartItem[]>([]);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   useEffect(() => {
     const stored =
@@ -110,6 +124,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const normalized = parsed
           .filter((item): item is CartItem => Boolean(item))
           .map((item) => normalizeCartItem(item as CartItem));
+        itemsRef.current = normalized;
         setItems(normalized);
       } catch (error) {
         console.error("Failed to parse cart from storage", error);
@@ -119,7 +134,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    runAfterNextPaint(() => {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    });
   }, [items]);
 
   const addItem = useCallback((payload: AddItemPayload) => {
@@ -131,7 +148,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     const variantKey = ensureVariantKey(payload);
     const quantityToAdd = payload.quantity ?? 1;
-    let addedQuantity = 0;
+    const existingItem = itemsRef.current.find(
+      (item) => item.variantKey === variantKey,
+    );
+    const addedQuantity = existingItem
+      ? Math.max(
+          Math.min(
+            existingItem.quantity + quantityToAdd,
+            existingItem.maxQuantity ?? existingItem.quantity + quantityToAdd,
+          ) - existingItem.quantity,
+          0,
+        )
+      : Math.min(quantityToAdd, payload.maxQuantity ?? quantityToAdd);
 
     setItems((previous) => {
       const existingIndex = previous.findIndex(
@@ -139,7 +167,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
 
       if (existingIndex !== -1) {
-        return previous.map((item, index) => {
+        const nextItems = previous.map((item, index) => {
           if (index !== existingIndex) {
             return item;
           }
@@ -147,21 +175,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
             item.quantity + quantityToAdd,
             item.maxQuantity ?? item.quantity + quantityToAdd,
           );
-          addedQuantity = Math.max(nextQuantity - item.quantity, 0);
           return {
             ...item,
             quantity: nextQuantity,
           };
         });
+        itemsRef.current = nextItems;
+        return nextItems;
       }
 
       const initialQuantity = Math.min(
         quantityToAdd,
         payload.maxQuantity ?? quantityToAdd,
       );
-      addedQuantity = initialQuantity;
 
-      return [
+      const nextItems = [
         ...previous,
         {
           ...payload,
@@ -169,36 +197,43 @@ export function CartProvider({ children }: { children: ReactNode }) {
           variantKey,
         },
       ];
+      itemsRef.current = nextItems;
+      return nextItems;
     });
 
     if (addedQuantity > 0) {
-      trackAddToCart({
-        item_id: payload.id,
-        item_name: payload.name,
-        price: payload.price,
-        currency: "DZD",
-        quantity: addedQuantity,
-      });
-      // Meta Pixel: AddToCart event.
-      trackMetaAddToCart(
-        {
-          id: payload.id,
-          name: payload.name,
+      const quantity = addedQuantity;
+      runAfterNextPaint(() => {
+        trackAddToCart({
+          item_id: payload.id,
+          item_name: payload.name,
           price: payload.price,
-          currency: payload.currency ?? "DZD",
-        },
-        addedQuantity,
-      );
+          currency: "DZD",
+          quantity,
+        });
+        // Meta Pixel: AddToCart event.
+        trackMetaAddToCart(
+          {
+            id: payload.id,
+            name: payload.name,
+            price: payload.price,
+            currency: payload.currency ?? "DZD",
+          },
+          quantity,
+        );
+      });
     }
     setLastAddedAt(Date.now());
   }, []);
 
   const removeItem = useCallback((id: string, variantKey: string) => {
-    setItems((previous) =>
-      previous.filter(
+    setItems((previous) => {
+      const nextItems = previous.filter(
         (item) => !(item.id === id && item.variantKey === variantKey),
-      ),
-    );
+      );
+      itemsRef.current = nextItems;
+      return nextItems;
+    });
   }, []);
 
   const updateQty = useCallback(
@@ -208,8 +243,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setItems((previous) =>
-        previous.map((item) => {
+      setItems((previous) => {
+        const nextItems = previous.map((item) => {
           if (item.id === id && item.variantKey === variantKey) {
             const max = item.maxQuantity;
             const nextQuantity =
@@ -217,13 +252,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
             return { ...item, quantity: nextQuantity };
           }
           return item;
-        }),
-      );
+        });
+        itemsRef.current = nextItems;
+        return nextItems;
+      });
     },
     [removeItem],
   );
 
-  const clearCart = useCallback(() => setItems([]), []);
+  const clearCart = useCallback(() => {
+    itemsRef.current = [];
+    setItems([]);
+  }, []);
+
+  const getItemQuantity = useCallback((variantKey: string) => {
+    const item = itemsRef.current.find((cartItem) => cartItem.variantKey === variantKey);
+    return item?.quantity ?? 0;
+  }, []);
 
   const totals = useMemo(
     () => ({
@@ -250,11 +295,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem,
       updateQty,
       clearCart,
+      getItemQuantity,
     }),
-    [addItem, clearCart, items, lastAddedAt, removeItem, totalQuantity, totals, updateQty],
+    [addItem, clearCart, getItemQuantity, items, lastAddedAt, removeItem, totalQuantity, totals, updateQty],
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  const actionsValue = useMemo(
+    () => ({
+      addItem,
+      removeItem,
+      updateQty,
+      clearCart,
+      getItemQuantity,
+    }),
+    [addItem, clearCart, getItemQuantity, removeItem, updateQty],
+  );
+
+  return (
+    <CartActionsContext.Provider value={actionsValue}>
+      <CartContext.Provider value={value}>{children}</CartContext.Provider>
+    </CartActionsContext.Provider>
+  );
 }
 
 export function useCart() {
@@ -262,6 +323,16 @@ export function useCart() {
 
   if (!context) {
     throw new Error("useCart must be used within a CartProvider");
+  }
+
+  return context;
+}
+
+export function useCartActions() {
+  const context = useContext(CartActionsContext);
+
+  if (!context) {
+    throw new Error("useCartActions must be used within a CartProvider");
   }
 
   return context;

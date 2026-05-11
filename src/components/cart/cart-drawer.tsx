@@ -25,6 +25,7 @@ import { submitOrder } from "@/lib/ordersClient";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
+import { runAfterNextPaint } from "@/lib/defer";
 
 type CartDrawerProps = {
   open: boolean;
@@ -248,7 +249,9 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     }));
     const value = items.reduce((total, item) => total + item.price * item.quantity, 0);
 
-    trackViewCart({ currency, value, items: analyticsItems });
+    runAfterNextPaint(() => {
+      trackViewCart({ currency, value, items: analyticsItems });
+    });
   }, [items, open]);
 
   const summaryLines = useMemo(

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { memo, startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAdmin } from "@/lib/admin";
 import { useLocale } from "@/i18n/I18nProvider";
@@ -30,6 +30,10 @@ export default function AdminLayout({
   const adminRoot = localizePathname(locale, "/admin");
   const adminProducts = localizePathname(locale, "/admin/products");
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const localizedNavItems = useMemo(
+    () => navItems.map((item) => ({ ...item, href: localizePathname(locale, item.href) })),
+    [locale],
+  );
   const blurFixClass =
     pathname === adminRoot || pathname === adminProducts
       ? "admin-glass-stability"
@@ -49,8 +53,16 @@ export default function AdminLayout({
   }, [isAdmin, loading, locale, router, user]);
 
   useEffect(() => {
-    setIsNavOpen(false);
+    startTransition(() => setIsNavOpen(false));
   }, [pathname]);
+
+  const toggleNav = useCallback(() => {
+    setIsNavOpen((prev) => !prev);
+  }, []);
+
+  const closeNav = useCallback(() => {
+    startTransition(() => setIsNavOpen(false));
+  }, []);
 
   if (loading) {
     return (
@@ -90,7 +102,7 @@ export default function AdminLayout({
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-sky-900/30 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70 lg:hidden"
-              onClick={() => setIsNavOpen((prev) => !prev)}
+              onClick={toggleNav}
             >
               <span>{isNavOpen ? "Close" : "Menu"}</span>
               <span className="text-lg leading-none">{isNavOpen ? "×" : "☰"}</span>
@@ -98,25 +110,19 @@ export default function AdminLayout({
           </div>
 
           <nav className={`${isNavOpen ? "block" : "hidden"} space-y-1 lg:block`}>
-            {navItems.map((item) => {
-              const localizedHref = localizePathname(locale, item.href);
+            {localizedNavItems.map((item) => {
               const isActive =
-                pathname === localizedHref ||
-                pathname.startsWith(`${localizedHref}/`);
+                pathname === item.href ||
+                pathname.startsWith(`${item.href}/`);
 
               return (
-                <Link
+                <AdminNavLink
                   key={item.href}
-                  href={localizedHref}
-                  className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition shadow-sm shadow-sky-900/30 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:ring-offset-0 ${
-                    isActive
-                      ? "border-white/30 bg-white/15 text-white ring-1 ring-white/40"
-                      : "border-white/5 text-sky-100"
-                  }`}
-                >
-                  <span>{item.label}</span>
-                  <span className="text-xs text-sky-100/70">→</span>
-                </Link>
+                  href={item.href}
+                  label={item.label}
+                  isActive={isActive}
+                  onClick={closeNav}
+                />
               );
             })}
           </nav>
@@ -155,3 +161,31 @@ function AdminLoader({
     </div>
   );
 }
+
+
+const AdminNavLink = memo(function AdminNavLink({
+  href,
+  label,
+  isActive,
+  onClick,
+}: {
+  href: string;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition shadow-sm shadow-sky-900/30 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:ring-offset-0 ${
+        isActive
+          ? "border-white/30 bg-white/15 text-white ring-1 ring-white/40"
+          : "border-white/5 text-sky-100"
+      }`}
+    >
+      <span>{label}</span>
+      <span className="text-xs text-sky-100/70">→</span>
+    </Link>
+  );
+});

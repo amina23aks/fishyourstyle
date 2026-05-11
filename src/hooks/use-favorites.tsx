@@ -10,6 +10,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { useAuth } from "@/context/auth";
+import { runAfterNextPaint } from "@/lib/defer";
 import type { FavoriteItem } from "@/types/favorites";
 
 type FavoritesContextValue = {
@@ -45,12 +46,16 @@ function readLocalFavorites(): FavoriteItem[] {
 
 function writeLocalFavorites(items: FavoriteItem[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(LOCAL_FAVORITES_KEY, JSON.stringify(items));
+  runAfterNextPaint(() => {
+    window.localStorage.setItem(LOCAL_FAVORITES_KEY, JSON.stringify(items));
+  });
 }
 
 function clearLocalFavorites() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(LOCAL_FAVORITES_KEY);
+  runAfterNextPaint(() => {
+    window.localStorage.removeItem(LOCAL_FAVORITES_KEY);
+  });
 }
 
 function FavoritesToasts({ toasts }: { toasts: Toast[] }) {
@@ -155,9 +160,14 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
     };
   }, [authLoading, mergedUid, user]);
 
-  const isFavorite = useCallback(
-    (productId: string) => items.some((item) => (item.productId ?? item.id) === productId),
+  const favoriteIds = useMemo(
+    () => new Set(items.map((item) => item.productId ?? item.id)),
     [items],
+  );
+
+  const isFavorite = useCallback(
+    (productId: string) => favoriteIds.has(productId),
+    [favoriteIds],
   );
 
   const toggleFavorite = useCallback(

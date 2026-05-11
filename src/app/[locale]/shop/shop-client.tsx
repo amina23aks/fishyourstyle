@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 import type { SelectableItem } from "@/lib/categories-shared";
@@ -93,16 +93,18 @@ export default function ShopClient({
 
   const handleCollectionFilterChange = useCallback(
     (nextCollection: string) => {
-      setCollectionFilter(nextCollection);
-      setDesignFilter((currentDesign) =>
-        isDesignFilterAvailableForCategory({
-          products: filterProducts ?? products,
-          selectedCategory: nextCollection,
-          selectedDesign: currentDesign,
-        })
-          ? currentDesign
-          : "all",
-      );
+      startTransition(() => {
+        setCollectionFilter(nextCollection);
+        setDesignFilter((currentDesign) =>
+          isDesignFilterAvailableForCategory({
+            products: filterProducts ?? products,
+            selectedCategory: nextCollection,
+            selectedDesign: currentDesign,
+          })
+            ? currentDesign
+            : "all",
+        );
+      });
     },
     [filterProducts, products],
   );
@@ -220,7 +222,7 @@ export default function ShopClient({
                     <button
                       key={pill.value}
                       type="button"
-                      onClick={() => setDesignFilter(pill.value)}
+                      onClick={() => startTransition(() => setDesignFilter(pill.value))}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         active
                           ? "border-white bg-white text-slate-900"

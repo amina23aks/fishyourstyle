@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 
 export type FlyToCartTarget = HTMLElement | null;
 
@@ -14,7 +14,7 @@ export function useFlyToCart() {
   // Anchors can still be targeted via the data attribute fallback selector below.
   const cartRef = useRef<HTMLButtonElement | null>(null);
 
-  const flyToCart = (imageEl: HTMLImageElement | null) => {
+  const flyToCart = useCallback((imageEl: HTMLImageElement | null) => {
     if (typeof window === "undefined") return;
 
     const cartEl = cartRef.current ?? (document.querySelector("[data-cart-target=\"true\"]") as HTMLElement | null);
@@ -67,7 +67,7 @@ export function useFlyToCart() {
         { once: true },
       );
     };
-  };
+  }, []);
 
   return { cartRef, flyToCart };
 }
