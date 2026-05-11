@@ -28,6 +28,35 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+
+## Environment variables
+
+Required for local development and production:
+
+- `NEXT_PUBLIC_FIREBASE_API_KEY` (or server-side fallback `FIREBASE_API_KEY`)
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` (or `FIREBASE_AUTH_DOMAIN`)
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID` (or `FIREBASE_PROJECT_ID`)
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` (or `FIREBASE_STORAGE_BUCKET`)
+- `NEXT_PUBLIC_FIREBASE_APP_ID` (or `FIREBASE_APP_ID`)
+- `FIREBASE_PROJECT_ID` (or `FIREBASE_ADMIN_PROJECT_ID`)
+- `FIREBASE_CLIENT_EMAIL` (or `FIREBASE_ADMIN_CLIENT_EMAIL`)
+- `FIREBASE_PRIVATE_KEY` (or `FIREBASE_ADMIN_PRIVATE_KEY`, with `\n` preserved)
+
+Required only for specific operational tooling:
+
+- `SUPER_ADMIN_EMAIL` — required for the protected `POST /api/admin/claim` tool.
+- `ADMIN_EXPORT_TOKEN` — required in Google Apps Script properties for `Code.gs` order export sync.
+- `CONFIRM_CLEANUP=true` — required only when intentionally running `npm run cleanup:firestore`.
+
+Optional integrations:
+
+- `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` (or `FIREBASE_MEASUREMENT_ID`) — Firebase analytics measurement ID.
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` — Google Analytics page view tracking.
+- `NEXT_PUBLIC_META_PIXEL_ID` — Meta Pixel browser tracking.
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` — admin product image uploads and Cloudinary delivery URLs.
+- `TELEGRAM_NOTIFICATIONS_ENABLED`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_CHAT_ID` — order/contact notification delivery.
+- `NEXT_PUBLIC_VERCEL_ENV` — Vercel environment label used to suppress Meta Pixel outside production.
+
 ## Firestore product seeding
 
 Products are stored in Firestore and the storefront reads directly from that collection (the JSON file is only for initial data).

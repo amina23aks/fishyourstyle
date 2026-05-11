@@ -101,14 +101,6 @@ export function ProductDetailContent({
   );
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && product.images.gallery.length > 0) {
-      console.debug(
-        `Product ${product.slug} has ${product.images.gallery.length} gallery images ready for thumbnails.`,
-      );
-    }
-  }, [product.images.gallery.length, product.slug]);
-
-  useEffect(() => {
     if (activeImage >= imageList.length) {
       setActiveImage(0);
     }

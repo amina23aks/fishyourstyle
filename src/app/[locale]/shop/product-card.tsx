@@ -107,14 +107,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     Boolean(selectedColor?.soldOut) ||
     Boolean(selectedSizeOption?.soldOut);
 
-  if (process.env.NODE_ENV !== "production") {
-    // Surface variant state in development to verify sold-out flags per product card.
-    console.log("[ProductCard] product", product.slug, {
-      colors: colorOptions,
-      sizes: sizeOptions,
-    });
-  }
-
   const productCategory = product.category ?? "";
   const productDesignTheme = product.designTheme ?? "";
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
