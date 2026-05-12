@@ -27,18 +27,11 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
-  const adminRoot = localizePathname(locale, "/admin");
-  const adminProducts = localizePathname(locale, "/admin/products");
   const [isNavOpen, setIsNavOpen] = useState(false);
   const localizedNavItems = useMemo(
     () => navItems.map((item) => ({ ...item, href: localizePathname(locale, item.href) })),
     [locale],
   );
-  const blurFixClass =
-    pathname === adminRoot || pathname === adminProducts
-      ? "admin-glass-stability"
-      : "";
-
   useEffect(() => {
     if (loading) return;
 
@@ -83,10 +76,10 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-3 py-8 sm:px-5 lg:px-10">
+    <div className="admin-route-shell min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-3 py-8 sm:px-5 lg:px-10">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row isolate overflow-x-hidden">
         <aside
-          className={`admin-shell-panel w-full max-w-full overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-5 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:w-64 lg:flex-shrink-0 ${blurFixClass}`}
+          className="admin-shell-panel admin-shell-surface w-full max-w-full overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-5 text-sky-50 lg:w-64 lg:flex-shrink-0"
         >
           <div className="mb-4 flex items-start justify-between gap-3 border-b border-white/10 pb-4">
             <div className="space-y-1">
@@ -128,9 +121,9 @@ export default function AdminLayout({
           </nav>
         </aside>
 
-        <main className="flex-1 min-w-0">
+        <main className="min-w-0 flex-1">
           <div
-            className={`admin-shell-panel overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur lg:p-8 ${blurFixClass}`}
+            className="admin-shell-panel admin-shell-surface admin-content-stable overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 lg:p-8"
           >
             {children}
           </div>
@@ -149,7 +142,7 @@ function AdminLoader({
 }) {
   return (
     <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <div className="admin-shell-panel flex items-center gap-4 rounded-3xl border border-white/10 bg-white/10 px-6 py-5 text-sky-50 shadow-2xl shadow-sky-900/40 backdrop-blur">
+      <div className="admin-shell-panel admin-shell-surface flex items-center gap-4 rounded-3xl border border-white/10 bg-white/10 px-6 py-5 text-sky-50">
         <span className="h-11 w-11 animate-spin rounded-full border-4 border-white/60 border-t-transparent" />
         <div className="space-y-1">
           <p className="text-lg font-semibold text-white">{title}</p>
@@ -178,10 +171,10 @@ const AdminNavLink = memo(function AdminNavLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`admin-nav-link flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:ring-offset-0 ${
+      className={`admin-nav-link flex min-h-11 items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-200/70 ${
         isActive
-          ? "admin-nav-link-active border-white/30 bg-white/15 text-white"
-          : "border-white/5 text-sky-100"
+          ? "admin-nav-link-active border-white/20 bg-white/15 text-white"
+          : "border-white/10 text-sky-100"
       }`}
     >
       <span>{label}</span>

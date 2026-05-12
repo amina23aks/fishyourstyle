@@ -121,7 +121,7 @@ export default function HeroFishing() {
             </div>
           </div>
           <div className="relative order-1 aspect-[16/9] w-full max-w-2xl lg:order-2 lg:max-w-[640px]">
-            <div className="hero-cat-shadow absolute inset-0 float-slow">
+            <div className="absolute inset-0 float-slow">
               <Image
                 src="/hero/cat.png"
                 alt="Cat on a wooden boat"
