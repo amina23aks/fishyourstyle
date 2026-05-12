@@ -9,13 +9,14 @@ import {
   useState,
   type KeyboardEvent,
   type MouseEvent,
+  type RefObject,
   type TouchEvent,
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
-import { useCart } from "@/context/cart";
+import { useCartActions } from "@/context/cart";
 import { useFlyToCart } from "@/lib/useFlyToCart";
 import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
@@ -33,6 +34,7 @@ import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import { normalizeProductStock } from "@/lib/stock";
 import { useFavorites } from "@/hooks/use-favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { runAfterNextPaint } from "@/lib/defer";
 
 type ProductWithInventory = Product & { stockMode?: "unlimited" | "limited"; stockQty?: number; inStock?: boolean };
 
@@ -50,7 +52,6 @@ export type ProductCardProps = {
 function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const locale = useLocale();
   const t = useTranslations();
-  const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
   const colorOptions = useMemo(() => buildProductColorOptions(product), [product]);
   const sizeOptions = useMemo(() => buildProductSizeOptions(product), [product]);
   const availableColors = useMemo(() => colorOptions.filter((color) => !color.soldOut), [colorOptions]);
@@ -78,9 +79,8 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     () => images.map((image) => getCloudinaryDeliveryUrl(image, { width: 640 })),
     [images],
   );
-  const { addItem, items } = useCart();
+  const { addItem, getItemQuantity } = useCartActions();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isHovering, setIsHovering] = useState(false);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const touchStartX = useRef<number | null>(null);
@@ -227,9 +227,9 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     const colorCode = color?.hex ?? "default";
 
     const variantKey = `${product.id}-${colorCode}-${sizeChoice}`.toLowerCase();
-    const existing = items.find((item) => item.variantKey === variantKey);
-    const maxQty = existing?.maxQuantity ?? availableStock;
-    if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
+    const existingQuantity = getItemQuantity(variantKey);
+    const maxQty = availableStock;
+    if (typeof maxQty === "number" && maxQty > 0 && existingQuantity >= maxQty) {
       setSelectionWarning(t("shop.outOfStock"));
       return false;
     }
@@ -259,7 +259,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
     setSelectionWarning(null);
 
-    flyToCart(imageRef.current);
+    runAfterNextPaint(() => flyToCart(imageRef.current));
     return true;
   }, [
     addItem,
@@ -271,7 +271,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     isOutOfStock,
     isSelectionIncomplete,
     isSelectionInvalid,
-    items,
+    getItemQuantity,
     productCategory,
     product.currency,
     productDesignTheme,
@@ -319,25 +319,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
         className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)] transition-transform duration-200 hover:-translate-y-1"
       >
         <div className="absolute right-2.5 top-2.5 z-10">
-          <FavoriteButton
-            isFavorite={isFavorite(product.id)}
-            disabled={isUpdating}
-            size="sm"
-            onToggle={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              void toggleFavorite({
-                id: product.id,
-                productId: product.id,
-                slug: product.slug,
-                name: product.nameFr,
-                image: currentImage ?? product.images.main ?? "",
-                price: product.priceDzd,
-                currency: product.currency,
-                inStock: !isOutOfStock,
-                addedAt: new Date().toISOString(),
-              });
-            }}
+          <ProductFavoriteToggle
+            productId={product.id}
+            slug={product.slug}
+            name={product.nameFr}
+            image={currentImage ?? product.images.main ?? ""}
+            price={product.priceDzd}
+            currency={product.currency}
+            inStock={!isOutOfStock}
           />
         </div>
         <Link
@@ -347,40 +336,16 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
           onKeyDown={handleKeyNavigation}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
         >
           <div className="relative aspect-[3/4] w-full min-h-[270px] overflow-hidden bg-gradient-to-b from-white/10 via-white/0 to-white/5">
-            {currentImage ? (
-              <>
-                <div className="absolute inset-0">
-                  <Image
-                    src={displayCurrentImage}
-                    alt={product.nameFr}
-                    ref={imageRef}
-                    fill
-                    priority={false}
-                    sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                {isHovering && images.length > 1 && (
-                  <div className="absolute inset-0 transition-opacity duration-300">
-                    <Image
-                      src={displayNextImage}
-                      alt={product.nameFr}
-                      ref={imageRef}
-                      fill
-                      priority={false}
-                      sizes="(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              <span className="flex h-full items-center justify-center text-slate-300 bg-white/10 w-full text-sm font-medium">No image</span>
-            )}
+            <ProductCardImageStack
+              currentImage={currentImage}
+              displayCurrentImage={displayCurrentImage}
+              displayNextImage={displayNextImage}
+              hasNextImage={images.length > 1}
+              productName={product.nameFr}
+              imageRef={imageRef}
+            />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
@@ -546,5 +511,104 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     </>
   );
   }
+
+const productImageSizes = "(min-width: 1280px) 23vw, (min-width: 1024px) 30vw, (min-width: 640px) 48vw, 100vw";
+
+const ProductCardImageStack = memo(function ProductCardImageStack({
+  currentImage,
+  displayCurrentImage,
+  displayNextImage,
+  hasNextImage,
+  productName,
+  imageRef,
+}: {
+  currentImage?: string;
+  displayCurrentImage: string;
+  displayNextImage: string;
+  hasNextImage: boolean;
+  productName: string;
+  imageRef: RefObject<HTMLImageElement | null>;
+}) {
+  if (!currentImage) {
+    return (
+      <span className="flex h-full w-full items-center justify-center bg-white/10 text-sm font-medium text-slate-300">
+        No image
+      </span>
+    );
+  }
+
+  return (
+    <>
+      <div className="absolute inset-0">
+        <Image
+          src={displayCurrentImage}
+          alt={productName}
+          ref={imageRef}
+          fill
+          priority={false}
+          sizes={productImageSizes}
+          className="h-full w-full object-cover"
+        />
+      </div>
+      {hasNextImage ? (
+        <div className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none">
+          <Image
+            src={displayNextImage}
+            alt={productName}
+            fill
+            priority={false}
+            sizes={productImageSizes}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ) : null}
+    </>
+  );
+});
+
+const ProductFavoriteToggle = memo(function ProductFavoriteToggle({
+  productId,
+  slug,
+  name,
+  image,
+  price,
+  currency,
+  inStock,
+}: {
+  productId: string;
+  slug: string;
+  name: string;
+  image: string;
+  price: number;
+  currency: Product["currency"];
+  inStock: boolean;
+}) {
+  const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
+
+  const handleToggle = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    void toggleFavorite({
+      id: productId,
+      productId,
+      slug,
+      name,
+      image,
+      price,
+      currency,
+      inStock,
+      addedAt: new Date().toISOString(),
+    });
+  }, [currency, image, inStock, name, price, productId, slug, toggleFavorite]);
+
+  return (
+    <FavoriteButton
+      isFavorite={isFavorite(productId)}
+      disabled={isUpdating}
+      size="sm"
+      onToggle={handleToggle}
+    />
+  );
+});
 
 export const ProductCard = memo(ProductCardComponent);

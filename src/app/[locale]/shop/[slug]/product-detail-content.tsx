@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { Swatch } from "../swatch";
 import { ProductCard } from "../product-card";
 import { Product } from "@/types/product";
-import { useCart } from "@/context/cart";
+import { useCartActions } from "@/context/cart";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { useFlyToCart } from "@/lib/useFlyToCart";
@@ -24,6 +24,7 @@ import {
 import { useFavorites } from "@/hooks/use-favorites";
 import { viewContent } from "@/lib/metaPixel";
 import { useTranslations } from "@/i18n/I18nProvider";
+import { runAfterNextPaint } from "@/lib/defer";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -68,7 +69,7 @@ export function ProductDetailContent({
   const requiresSizeSelection = availableSizes.length > 1;
   const hasVariantAvailable = hasAvailableVariants(product);
   const [selectionError, setSelectionError] = useState<string | null>(null);
-  const { addItem, items } = useCart();
+  const { addItem, getItemQuantity } = useCartActions();
   const { flyToCart } = useFlyToCart();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const viewItemTrackedRef = useRef<string | null>(null);
@@ -200,9 +201,9 @@ export function ProductDetailContent({
     const size = selectedSize ?? "Taille unique";
 
     const variantKey = `${product.id}-${colorCode}-${size}`.toLowerCase();
-    const existing = items.find((item) => item.variantKey === variantKey);
-    const maxQty = existing?.maxQuantity ?? availableStock;
-    if (typeof maxQty === "number" && maxQty > 0 && (existing?.quantity ?? 0) >= maxQty) {
+    const existingQuantity = getItemQuantity(variantKey);
+    const maxQty = availableStock;
+    if (typeof maxQty === "number" && maxQty > 0 && existingQuantity >= maxQty) {
       setSelectionError(t("shop.outOfStock"));
       return false;
     }
@@ -231,7 +232,7 @@ export function ProductDetailContent({
 
     setSelectionError(null);
     if (flyToCart && !isOutOfStock) {
-      flyToCart(imageRef.current);
+      runAfterNextPaint(() => flyToCart(imageRef.current));
     }
     return true;
   };

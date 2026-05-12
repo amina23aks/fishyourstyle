@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -183,41 +183,41 @@ export function Navbar() {
     };
   }, [isAccountMenuOpen]);
 
-  const closeAllMenus = () => {
+  const closeAllMenus = useCallback(() => {
     setIsMenuOpen(false);
     setIsAccountMenuOpen(false);
-  };
+  }, []);
 
-  const toggleDrawer = () => {
-    setHasCartDrawerLoaded(true);
+  const toggleDrawer = useCallback(() => {
+    startTransition(() => setHasCartDrawerLoaded(true));
     setIsDrawerOpen((previous) => !previous);
-  };
-  const toggleMenu = () => setIsMenuOpen((previous) => !previous);
-  const toggleAccountMenu = () => {
+  }, []);
+  const toggleMenu = useCallback(() => setIsMenuOpen((previous) => !previous), []);
+  const toggleAccountMenu = useCallback(() => {
     if (authLoading) return;
     setIsAccountMenuOpen((previous) => !previous);
-  };
+  }, [authLoading]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut();
     } finally {
       setIsAccountMenuOpen(false);
     }
-  };
+  }, [signOut]);
 
-  const handleOpenAuthModal = () => {
+  const handleOpenAuthModal = useCallback(() => {
     openModal({ returnTo: pathname || localizePathname(locale, "/") });
-  };
+  }, [locale, openModal, pathname]);
 
-  const handleThemeChange = (nextTheme: "light" | "dark") => {
+  const handleThemeChange = useCallback((nextTheme: "light" | "dark") => {
     setTheme(nextTheme);
-  };
+  }, []);
 
-  const localizedLinks = links.map((link) => ({
+  const localizedLinks = useMemo(() => links.map((link) => ({
     ...link,
     href: localizePathname(locale, link.href),
-  }));
+  })), [locale]);
 
   return (
     <header className="navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">

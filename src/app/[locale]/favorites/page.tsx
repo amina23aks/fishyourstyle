@@ -6,7 +6,7 @@ import Link from "next/link";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
-import { useCart } from "@/context/cart";
+import { useCartActions } from "@/context/cart";
 import { useFavorites } from "@/hooks/use-favorites";
 import type { FavoriteItem } from "@/types/favorites";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
@@ -34,7 +34,7 @@ function formatAddedDate(item: FavoriteItem) {
 function FavoriteCard({ item }: { item: FavoriteItem }) {
   const locale = useLocale();
   const t = useTranslations();
-  const { addItem } = useCart();
+  const { addItem } = useCartActions();
   const isOutOfStock = !item.inStock;
 
   const handleAddToCart = () => {

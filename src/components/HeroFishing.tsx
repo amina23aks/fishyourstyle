@@ -128,7 +128,7 @@ export default function HeroFishing() {
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 640px"
-                className="object-contain drop-shadow-[0_14px_32px_rgba(0,0,0,0.4)]"
+                className="object-contain"
               />
             </div>
           </div>

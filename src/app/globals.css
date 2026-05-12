@@ -64,6 +64,18 @@ body {
   transform: translateX(140%);
 }
 
+
+.admin-nav-link {
+  box-shadow: none;
+  outline-offset: 2px;
+  transition: none;
+  contain: paint;
+}
+
+.admin-nav-link-active {
+  box-shadow: none;
+}
+
 .wave-loader {
   --loader-size: 22px;
   position: relative;
@@ -98,18 +110,26 @@ body {
   }
 }
 
-.admin-glass-stability {
+.admin-route-shell {
   isolation: isolate;
-  backface-visibility: hidden;
-  -webkit-backdrop-filter: blur(8px);
 }
 
-@media (max-width: 640px) {
-  .admin-glass-stability {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+.admin-shell-surface {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 14px 28px rgba(15, 23, 42, 0.24);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
+
+
+.admin-products-list-panel,
+.admin-products-form-panel {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+
+.admin-products-list-panel {
+  contain: layout paint;
+}
+
 
 @keyframes bubbleDrift {
   0% {
@@ -546,8 +566,11 @@ html[data-theme="aurora"] .aurora-overlay::before {
 
 .admin-shell-panel,
 .admin-dashboard-card {
-  contain: paint;
   backface-visibility: hidden;
+}
+
+.admin-dashboard-card {
+  contain: layout paint;
 }
 
 .admin-dashboard-card {
@@ -558,7 +581,7 @@ html[data-theme="aurora"] .aurora-overlay::before {
   .admin-shell-panel {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.28);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.22);
   }
 
   .admin-dashboard-card {

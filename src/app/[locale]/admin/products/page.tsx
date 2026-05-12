@@ -256,6 +256,7 @@ export default function AdminProductsPage() {
     loadCollectionsAndDesigns();
   }, [loadCollectionsAndDesigns]);
 
+
   useEffect(() => {
     if (!pendingDelete) return;
     cancelButtonRef.current?.focus();
@@ -463,28 +464,32 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {toast ? (
-        <div
-          className={`rounded-2xl border px-4 py-3 text-sm shadow-inner shadow-sky-900/30 ${
-            toast.type === "success"
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-50"
-              : "border-rose-500/50 bg-rose-500/10 text-rose-50"
-          }`}
-        >
-          {toast.message}
-        </div>
-      ) : null}
+      {toast || error ? (
+        <div className="space-y-3" aria-live="polite">
+          {toast ? (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm ${
+                toast.type === "success"
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-50"
+                  : "border-rose-500/50 bg-rose-500/10 text-rose-50"
+              }`}
+            >
+              {toast.message}
+            </div>
+          ) : null}
 
-      {error ? (
-        <div className="rounded-2xl border border-rose-500/50 bg-rose-500/10 px-4 py-3 text-sm text-rose-50 shadow-inner shadow-rose-900/30">
-          {error}
+          {error ? (
+            <div className="rounded-2xl border border-rose-500/50 bg-rose-500/10 px-4 py-3 text-sm text-rose-50">
+              {error}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       <div className="mt-6 flex flex-col gap-6">
         <section
           id="products-list"
-          className="order-2 space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40 lg:order-3"
+          className="admin-products-list-panel order-2 space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 lg:order-3"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
@@ -624,7 +629,7 @@ export default function AdminProductsPage() {
 
         <section
           id="product-form"
-          className="order-3 rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl shadow-sky-900/40 lg:order-2"
+          className="admin-products-form-panel order-3 rounded-3xl border border-white/10 bg-white/10 p-6 lg:order-2"
         >
           <ProductForm
             key={formKey}
