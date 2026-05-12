@@ -123,7 +123,7 @@ export default function AdminLayout({
 
         <main className="min-w-0 flex-1">
           <div
-            className="admin-shell-panel admin-shell-surface admin-content-stable overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 lg:p-8"
+            className="admin-shell-panel admin-shell-surface overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 lg:p-8"
           >
             {children}
           </div>

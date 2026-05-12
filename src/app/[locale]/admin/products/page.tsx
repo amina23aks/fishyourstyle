@@ -15,7 +15,6 @@ import {
 } from "@/lib/admin-products";
 import { uploadImageToCloudinary, uploadImageToCloudinaryWithMetadata } from "@/lib/cloudinary";
 import { CANONICAL_CATEGORY_SLUGS, CANONICAL_DESIGN_SLUGS, type SelectableItem } from "@/lib/categories-shared";
-import { runAfterNextPaint } from "@/lib/defer";
 import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
@@ -124,7 +123,6 @@ export default function AdminProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isFormReady, setIsFormReady] = useState(false);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const productsInfiniteScrollRef = useRef<HTMLDivElement | null>(null);
   const [categories, setCategories] = useState<SelectableOption[]>([]);
@@ -258,9 +256,6 @@ export default function AdminProductsPage() {
     loadCollectionsAndDesigns();
   }, [loadCollectionsAndDesigns]);
 
-  useEffect(() => {
-    runAfterNextPaint(() => setIsFormReady(true));
-  }, []);
 
   useEffect(() => {
     if (!pendingDelete) return;
@@ -469,30 +464,32 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      <div className="min-h-[104px] space-y-3" aria-live="polite">
-        {toast ? (
-          <div
-            className={`rounded-2xl border px-4 py-3 text-sm ${
-              toast.type === "success"
-                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-50"
-                : "border-rose-500/50 bg-rose-500/10 text-rose-50"
-            }`}
-          >
-            {toast.message}
-          </div>
-        ) : null}
+      {toast || error ? (
+        <div className="space-y-3" aria-live="polite">
+          {toast ? (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm ${
+                toast.type === "success"
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-50"
+                  : "border-rose-500/50 bg-rose-500/10 text-rose-50"
+              }`}
+            >
+              {toast.message}
+            </div>
+          ) : null}
 
-        {error ? (
-          <div className="rounded-2xl border border-rose-500/50 bg-rose-500/10 px-4 py-3 text-sm text-rose-50">
-            {error}
-          </div>
-        ) : null}
-      </div>
+          {error ? (
+            <div className="rounded-2xl border border-rose-500/50 bg-rose-500/10 px-4 py-3 text-sm text-rose-50">
+              {error}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-6 flex flex-col gap-6">
         <section
           id="products-list"
-          className="admin-products-list-panel order-2 min-h-[520px] space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 lg:order-3"
+          className="admin-products-list-panel order-2 space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 lg:order-3"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
@@ -634,33 +631,29 @@ export default function AdminProductsPage() {
           id="product-form"
           className="admin-products-form-panel order-3 rounded-3xl border border-white/10 bg-white/10 p-6 lg:order-2"
         >
-          {isFormReady ? (
-            <ProductForm
-              key={formKey}
-              mode={editingId ? "edit" : "create"}
-              heading="Create / Edit product"
-              subheading={editingId ? "You are editing an existing product" : "Add a new product"}
-              submitLabel={editingId ? "Save changes" : "Add product"}
-              initialValues={formInitial}
-              loading={saving}
-              uploading={uploadingImage}
-              uploadingSizeGuide={uploadingSizeGuide}
-              cloudinaryConfigured={cloudinaryConfigured}
-              cloudinaryMissing={cloudinaryMissing}
-              onSubmit={handleSubmit}
-              onUploadImage={handleUploadImage}
-              onUploadSizeGuide={handleUploadSizeGuide}
-              onCancelEdit={resetForm}
-              categories={categories}
-              designThemes={derivedDesignThemes}
-              onCategoriesChange={setCategories}
-              onDesignThemesChange={setDesignThemes}
-              onReloadCategories={loadCategories}
-              onReloadDesignThemes={loadDesignThemes}
-            />
-          ) : (
-            <ProductFormPlaceholder />
-          )}
+          <ProductForm
+            key={formKey}
+            mode={editingId ? "edit" : "create"}
+            heading="Create / Edit product"
+            subheading={editingId ? "You are editing an existing product" : "Add a new product"}
+            submitLabel={editingId ? "Save changes" : "Add product"}
+            initialValues={formInitial}
+            loading={saving}
+            uploading={uploadingImage}
+            uploadingSizeGuide={uploadingSizeGuide}
+            cloudinaryConfigured={cloudinaryConfigured}
+            cloudinaryMissing={cloudinaryMissing}
+            onSubmit={handleSubmit}
+            onUploadImage={handleUploadImage}
+            onUploadSizeGuide={handleUploadSizeGuide}
+            onCancelEdit={resetForm}
+            categories={categories}
+            designThemes={derivedDesignThemes}
+            onCategoriesChange={setCategories}
+            onDesignThemesChange={setDesignThemes}
+            onReloadCategories={loadCategories}
+            onReloadDesignThemes={loadDesignThemes}
+          />
         </section>
       </div>
 
@@ -733,28 +726,6 @@ function ProductTableSkeleton() {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-
-function ProductFormPlaceholder() {
-  return (
-    <div className="admin-products-form-placeholder animate-pulse space-y-5" aria-hidden="true">
-      <div className="space-y-2">
-        <div className="h-6 w-52 rounded-full bg-white/10" />
-        <div className="h-4 w-72 max-w-full rounded-full bg-white/10" />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {[...Array(8)].map((_, index) => (
-          <div key={index} className="space-y-2">
-            <div className="h-3 w-24 rounded-full bg-white/10" />
-            <div className="h-11 rounded-xl bg-white/10" />
-          </div>
-        ))}
-      </div>
-      <div className="h-32 rounded-2xl bg-white/10" />
-      <div className="h-11 w-40 rounded-full bg-white/10" />
     </div>
   );
 }

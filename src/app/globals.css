@@ -120,9 +120,6 @@ body {
   -webkit-backdrop-filter: none;
 }
 
-.admin-content-stable {
-  min-height: calc(100vh - 9rem);
-}
 
 .admin-products-list-panel,
 .admin-products-form-panel {
@@ -133,9 +130,6 @@ body {
   contain: layout paint;
 }
 
-.admin-products-form-placeholder {
-  min-height: 720px;
-}
 
 @keyframes bubbleDrift {
   0% {
