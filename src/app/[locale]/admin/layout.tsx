@@ -76,7 +76,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="admin-route-shell min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-3 py-8 sm:px-5 lg:px-10">
+    <div className="admin-route-shell min-h-screen bg-gradient-to-b from-[#0b2e55] via-[#123f6f] to-[#0b2e55] px-3 py-8 sm:px-5 lg:px-10">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row isolate overflow-x-hidden">
         <aside
           className="admin-shell-panel admin-shell-surface w-full max-w-full overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-5 text-sky-50 lg:w-64 lg:flex-shrink-0"

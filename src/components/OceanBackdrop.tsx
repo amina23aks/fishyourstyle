@@ -10,7 +10,7 @@ export default function OceanBackdrop() {
 
   return (
     <div
-      className="aurora-overlay pointer-events-none absolute inset-0 z-0 h-full min-h-full min-h-screen overflow-hidden"
+      className="aurora-overlay pointer-events-none absolute inset-0 z-0 h-full min-h-full min-h-screen overflow-hidden bg-[#1e4c82]"
       aria-hidden
     >
       <div className="absolute inset-0 ocean-bg" />
@@ -18,7 +18,7 @@ export default function OceanBackdrop() {
       {/* Preserve the original soft ocean glow */}
       <div className="absolute inset-0 bg-[radial-gradient(180%_48%_at_50%_0%,rgba(255,255,255,0.18),transparent_54%)] mix-blend-soft-light opacity-45" />
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#020617] via-[#020617]/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0b2e55] via-[#0b2e55]/70 to-transparent" />
 
       {/* Bubble effect layer (visible across the page height but masked above the wave) */}
       <div className="bubble-field ocean-bubble-mask">
