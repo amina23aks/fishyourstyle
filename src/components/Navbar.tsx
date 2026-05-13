@@ -220,7 +220,7 @@ export function Navbar() {
   })), [locale]);
 
   return (
-    <header className="navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-white/10 backdrop-blur-2xl shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+    <header className="navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#082f55]/90 shadow-[0_8px_18px_rgba(0,0,0,0.24)]">
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href={localizePathname(locale, "/")} className="group flex items-center gap-3">
@@ -257,7 +257,7 @@ export function Navbar() {
         <div className="ml-auto flex items-center gap-2 md:gap-3">
           <Link
             href={localizePathname(locale, "/favorites")}
-            className={`relative inline-flex h-10 w-10 items-center justify-center rounded-xl border text-white shadow-sm shadow-white/20 backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+            className={`relative inline-flex h-10 w-10 items-center justify-center rounded-xl border text-white shadow-sm shadow-black/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
               isFavoritesActive
                 ? "border-rose-200/70 bg-rose-400/30"
                 : "border-white/25 bg-white/10 hover:-translate-y-0.5 hover:bg-white/15"
@@ -281,7 +281,7 @@ export function Navbar() {
             }}
             whileTap={{ scale: 0.95 }}
             data-cart-target="true"
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white shadow-sm shadow-black/10 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             aria-label="Cart"
           >
             <CartIcon />
@@ -298,7 +298,7 @@ export function Navbar() {
               onClick={toggleAccountMenu}
               aria-haspopup="menu"
               aria-expanded={isAccountMenuOpen}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/25 text-sm font-semibold text-white shadow-sm shadow-black/10 transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="Account"
               disabled={authLoading}
             >
@@ -318,7 +318,7 @@ export function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/20 bg-slate-900/80 text-sm text-sky-50 shadow-xl shadow-black/30 backdrop-blur"
+                  className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/20 bg-slate-900/95 text-sm text-sky-50 shadow-lg shadow-black/20"
                   role="menu"
                 >
                   <div className="flex flex-col gap-3 p-3">
@@ -429,7 +429,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={toggleMenu}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/15 text-white shadow-sm shadow-black/10 transition hover:-translate-y-0.5 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 md:hidden"
             aria-label="Toggle menu"
             aria-expanded={isMenuOpen}
           >
@@ -471,7 +471,7 @@ export function Navbar() {
             transition={{ duration: 0.2 }}
             className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pb-4 text-sm font-medium text-white md:hidden"
           >
-            <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 shadow-lg shadow-black/30 backdrop-blur">
+            <div className="rounded-2xl border border-white/10 bg-slate-900/95 p-3 shadow-md shadow-black/20">
               {localizedLinks.map((link) => {
                 const active = pathname === link.href;
                 return (

@@ -1192,8 +1192,8 @@ export function ProductForm({
 
       {mounted && pendingDelete
         ? createPortal(
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#082f55]/70 px-4 backdrop-blur-sm" role="dialog" aria-modal>
-              <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#082f55]/95 p-6 text-white shadow-2xl shadow-black/40">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#082f55]/84 px-4" role="dialog" aria-modal>
+              <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#082f55]/95 p-6 text-white shadow-lg shadow-black/25">
                 <div className="space-y-2">
                   <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Confirm delete</p>
                   <h3 className="text-lg font-semibold">

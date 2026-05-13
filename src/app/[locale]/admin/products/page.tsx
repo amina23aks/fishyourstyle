@@ -670,7 +670,7 @@ export default function AdminProductsPage() {
           }}
         >
           <div
-            className="w-full max-w-md rounded-3xl border border-white/10 bg-[#082f55]/95 p-6 text-sky-50 shadow-2xl shadow-black/40"
+            className="w-full max-w-md rounded-3xl border border-white/10 bg-[#082f55]/95 p-6 text-sky-50 shadow-lg shadow-black/25"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="space-y-2">

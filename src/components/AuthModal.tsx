@@ -131,7 +131,7 @@ export default function AuthModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-sky-950/70 px-4 py-8 backdrop-blur"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-sky-950/85 px-4 py-8"
       role="dialog"
       aria-modal="true"
     >
@@ -141,7 +141,7 @@ export default function AuthModal() {
         onClick={handleClose}
         aria-label="Close modal"
       />
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-slate-900/80 p-6 text-sky-50 shadow-2xl shadow-sky-900/40">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-slate-900/95 p-6 text-sky-50 shadow-lg shadow-sky-900/25">
         <button
           type="button"
           onClick={handleClose}
