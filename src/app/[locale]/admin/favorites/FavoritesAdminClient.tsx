@@ -80,7 +80,7 @@ export function FavoritesAdminClient({
       </div>
 
       <div className="space-y-6">
-        <div className="rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur">
+        <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl shadow-sky-900/40 backdrop-blur">
           <div className="flex flex-col gap-2 border-b border-white/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Users</p>
@@ -90,7 +90,7 @@ export function FavoritesAdminClient({
               Showing {rows.length} {rows.length === 1 ? "user" : "users"}
             </span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-left text-sm text-sky-100/85">
               <thead className="bg-slate-950/60 backdrop-blur">
                 <tr>
@@ -116,6 +116,27 @@ export function FavoritesAdminClient({
               </tbody>
             </table>
           </div>
+          <div className="grid gap-3 p-4 md:hidden">
+            {rows.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                onClick={() => handleOpenModal(row.id)}
+                className="min-w-0 rounded-2xl border border-white/10 bg-white/10 p-4 text-left text-sm text-sky-100/85 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words font-semibold text-white">{row.email || "Guest"}</p>
+                    <p className="mt-1 break-all font-mono text-[11px] text-sky-100/65">{row.userId}</p>
+                  </div>
+                  <span className="flex-none rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+                    {row.count}
+                  </span>
+                </div>
+                <p className="mt-3 text-xs text-sky-100/70">Updated {formatDateTime(row.updatedAt)}</p>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -129,7 +150,7 @@ export function FavoritesAdminClient({
             Ranked by favorite count
           </span>
         </div>
-        <div className="flex flex-col gap-4 p-6">
+        <div className="flex flex-col gap-4 p-4 sm:p-6">
           {topProducts.length === 0 ? (
             <p className="text-sm text-sky-100/80">No favorites data yet.</p>
           ) : (
@@ -138,7 +159,7 @@ export function FavoritesAdminClient({
                 key={product.productId}
                 className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-3 text-sky-50 shadow-lg shadow-sky-900/30 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white">
                     #{index + 1}
                   </span>
@@ -156,8 +177,8 @@ export function FavoritesAdminClient({
                       No image
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm font-semibold text-white">{product.name}</p>
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-semibold text-white">{product.name}</p>
                     <p className="text-xs text-sky-100/80">{product.count} favorites</p>
                   </div>
                 </div>
@@ -181,7 +202,7 @@ export function FavoritesAdminClient({
             onClick={handleCloseModal}
             aria-label="Close favorite details"
           />
-          <div className="relative z-10 w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/95 p-6 text-sky-50 shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+          <div className="relative z-10 max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/95 p-4 text-sky-50 shadow-[0_30px_70px_rgba(0,0,0,0.55)] sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Favorite details</p>
@@ -207,7 +228,7 @@ export function FavoritesAdminClient({
                 selectedRow.items.map((item) => (
                   <div
                     key={item.productId ?? item.id}
-                    className="flex items-center gap-4 rounded-2xl border border-white/10 bg-slate-900/70 p-3"
+                    className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/70 p-3 sm:gap-4"
                   >
                     {item.image ? (
                       <Image
@@ -223,8 +244,8 @@ export function FavoritesAdminClient({
                         No image
                       </div>
                     )}
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{item.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-semibold text-white">{item.name}</p>
                       <p className="text-xs text-sky-100/80">
                         {item.price.toLocaleString("fr-DZ")} {item.currency} •{" "}
                         {item.inStock ? "IN STOCK" : "OUT OF STOCK"}

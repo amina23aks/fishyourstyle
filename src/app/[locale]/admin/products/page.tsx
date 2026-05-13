@@ -489,7 +489,7 @@ export default function AdminProductsPage() {
       <div className="mt-6 flex flex-col gap-6">
         <section
           id="products-list"
-          className="admin-products-list-panel order-2 space-y-4 rounded-3xl border border-white/10 bg-white/10 p-6 lg:order-3"
+          className="admin-products-list-panel order-3 space-y-4 rounded-3xl border border-white/10 bg-white/10 p-4 sm:p-6"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
@@ -508,7 +508,7 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <div className="min-w-[720px]">
                 <div className="grid grid-cols-6 gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-100/70">
                   <span className="col-span-2">Product</span>
@@ -587,9 +587,7 @@ export default function AdminProductsPage() {
                           <div className="space-y-1 text-sm">
                             <span
                               className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                isLimited
-                                  ? safeStockCount > 0
-                                  : true
+(isLimited ? safeStockCount > 0 : true)
                                   ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
                                   : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
                               }`}
@@ -620,6 +618,108 @@ export default function AdminProductsPage() {
                 )}
               </div>
             </div>
+            {loading ? (
+              <div className="space-y-3 p-3 md:hidden">
+                {[...Array(3)].map((_, index) => (
+                  <div key={index} className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="h-14 w-14 rounded-xl bg-white/10" />
+                      <div className="flex-1 space-y-2">
+                        <span className="block h-3 w-2/3 rounded-full bg-white/10" />
+                        <span className="block h-3 w-1/2 rounded-full bg-white/10" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : products.length === 0 ? (
+              <div className="px-4 py-6 text-sm text-sky-100/80 md:hidden">
+                No products yet. Add the first item using the form.
+              </div>
+            ) : (
+              <ul className="grid gap-3 p-3 md:hidden">
+                {products.map((product) => {
+                  const mainImage = product.images.main || product.images.gallery[0];
+                  const derivedStock = deriveStockState(product);
+                  const isLimited = derivedStock.stockMode === "limited";
+                  const stockCount = isLimited ? derivedStock.stockQty ?? 0 : null;
+                  const safeStockCount = typeof stockCount === "number" ? stockCount : 0;
+
+                  return (
+                    <li
+                      key={product.id}
+                      className="space-y-3 rounded-2xl border border-white/10 bg-white/10 p-3 text-sm text-sky-50"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        {mainImage ? (
+                          <Image
+                            src={mainImage}
+                            alt={product.name}
+                            width={56}
+                            height={56}
+                            className="h-14 w-14 flex-none rounded-xl object-cover ring-1 ring-white/20"
+                          />
+                        ) : (
+                          <span className="flex h-14 w-14 flex-none items-center justify-center rounded-xl border border-dashed border-white/20 text-[11px] text-sky-100/70">
+                            No image
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="break-words font-semibold text-white">{product.name}</p>
+                          <p className="text-[11px] text-sky-100/70">{product.designTheme}</p>
+                          <p className="break-words text-xs uppercase text-sky-100/80">{product.category}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-950/25 p-3 text-xs text-sky-100/80">
+                        <div>
+                          <p className="uppercase tracking-[0.16em] text-sky-200/70">Price</p>
+                          <p className="mt-1 font-semibold text-white">
+                            {new Intl.NumberFormat("fr-DZ", {
+                              style: "currency",
+                              currency: "DZD",
+                              maximumFractionDigits: 0,
+                            }).format(Math.max(product.finalPrice ?? product.basePrice, 0))}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="uppercase tracking-[0.16em] text-sky-200/70">Stock</p>
+                          <p className="mt-1 font-semibold text-white">{isLimited ? `${stockCount} pcs` : "Unlimited"}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            (isLimited ? safeStockCount > 0 : true)
+                              ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
+                              : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
+                          }`}
+                        >
+                          {isLimited ? (safeStockCount > 0 ? "In stock" : "Out of stock") : "In stock"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(product)}
+                            className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(product)}
+                            className="rounded-full bg-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-50 transition hover:bg-rose-500/30"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
           <div ref={productsInfiniteScrollRef} className="h-4" aria-hidden="true" />
           {loadingMoreProducts ? (
@@ -629,7 +729,7 @@ export default function AdminProductsPage() {
 
         <section
           id="product-form"
-          className="admin-products-form-panel order-3 rounded-3xl border border-white/10 bg-white/10 p-6 lg:order-2"
+          className="admin-products-form-panel order-2 rounded-3xl border border-white/10 bg-white/10 p-4 sm:p-6"
         >
           <ProductForm
             key={formKey}

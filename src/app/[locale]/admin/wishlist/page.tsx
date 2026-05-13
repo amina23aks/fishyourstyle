@@ -129,7 +129,8 @@ export default async function WishlistPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-left text-sm text-sky-100/85">
               <thead className="bg-slate-950/60 backdrop-blur">
                 <tr>
@@ -153,6 +154,19 @@ export default async function WishlistPage() {
               </tbody>
             </table>
           </div>
+          <div className="grid gap-3 p-4 md:hidden">
+            {entries.map((entry) => (
+              <div
+                key={entry.id}
+                className="min-w-0 rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-sky-100/85"
+              >
+                <p className="break-all font-semibold text-white">{entry.email || "—"}</p>
+                <p className="mt-3 text-xs uppercase tracking-[0.16em] text-sky-200/70">Created at</p>
+                <p className="mt-1 text-sm text-sky-100/80">{formatDateTime(entry.createdAt)}</p>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
     </div>

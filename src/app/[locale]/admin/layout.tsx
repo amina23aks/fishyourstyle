@@ -15,7 +15,6 @@ const navItems = [
   { href: "/admin/favorites", label: "Favorites" },
   { href: "/admin/wishlist", label: "Wishlist" },
   { href: "/admin/contact", label: "Contact" },
-  { href: "/admin/settings", label: "Settings" },
 ];
 
 export default function AdminLayout({
@@ -104,9 +103,10 @@ export default function AdminLayout({
 
           <nav className={`${isNavOpen ? "block" : "hidden"} space-y-1 lg:block`}>
             {localizedNavItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                pathname.startsWith(`${item.href}/`);
+              const isOverview = item.href.endsWith("/admin");
+              const isActive = isOverview
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
               return (
                 <AdminNavLink
@@ -123,7 +123,7 @@ export default function AdminLayout({
 
         <main className="min-w-0 flex-1">
           <div
-            className="admin-shell-panel admin-shell-surface overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 text-sky-50 lg:p-8"
+            className="admin-shell-panel admin-shell-surface overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-4 text-sky-50 sm:p-6 lg:p-8"
           >
             {children}
           </div>

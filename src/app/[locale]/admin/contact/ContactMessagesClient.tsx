@@ -170,7 +170,8 @@ export function ContactMessagesClient() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-left text-sm text-sky-100/85">
               <thead className="bg-slate-950/60 backdrop-blur">
                 <tr>
@@ -223,6 +224,31 @@ export function ContactMessagesClient() {
               </tbody>
             </table>
           </div>
+          <div className="grid gap-3 p-4 md:hidden">
+            {messages.map((message) => (
+              <button
+                key={message.id}
+                type="button"
+                onClick={() => setSelectedMessage(message)}
+                className="min-w-0 rounded-2xl border border-white/10 bg-white/10 p-4 text-left text-sm text-sky-100/85 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words font-semibold text-white">{message.name || "Anonymous"}</p>
+                    <p className="mt-1 break-all text-xs text-sky-100/70">{message.email || "—"}</p>
+                  </div>
+                  <span className="flex-none rounded-full bg-white/10 px-2.5 py-1 font-mono text-[11px] text-sky-100/80">
+                    {message.id.slice(0, 8)}…
+                  </span>
+                </div>
+                <p className="mt-3 line-clamp-3 break-words text-sm leading-relaxed text-sky-50">
+                  {message.message || "No message provided."}
+                </p>
+                <p className="mt-3 text-xs text-sky-100/70">{formatDateTime(message.createdAt)}</p>
+              </button>
+            ))}
+          </div>
+          </>
         )}
       </div>
 
@@ -233,7 +259,7 @@ export function ContactMessagesClient() {
             onClick={() => setSelectedMessage(null)}
             aria-hidden="true"
           />
-          <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-900/90 p-6 text-sky-50 shadow-2xl shadow-sky-900/40">
+          <div className="relative z-10 w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-900/90 p-4 text-sky-50 shadow-2xl shadow-sky-900/40 sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Contact message</p>
