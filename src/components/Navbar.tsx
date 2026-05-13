@@ -222,7 +222,7 @@ export function Navbar() {
   return (
     <header
       className={`navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 shadow-[0_8px_18px_rgba(0,0,0,0.24)] ${
-        theme === "dark" ? "bg-[#2f8fc8]/90" : "bg-[#78b7ee]/75"
+        theme === "dark" ? "bg-[#0f5f8d]/92" : "bg-[#78b7ee]/75"
       }`}
     >
       {/* Navbar height + mobile layout adjustments */}

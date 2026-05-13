@@ -39,7 +39,7 @@ export default function CheckoutClient() {
   const t = useTranslations();
   const locale = useLocale();
   const { items, totals, clearCart } = useCart();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
     phone: "",
@@ -357,27 +357,8 @@ export default function CheckoutClient() {
           </p>
         </header>
 
-        <section className={`rounded-2xl border border-white/15 bg-white/5 p-4 shadow-inner shadow-sky-900/30 ${user ? "hidden sm:block" : ""}`}>
-          {user ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100">
-              <div>
-                <p className="text-white">{t("checkout.loggedInTitle")}</p>
-                <p className="text-xs text-sky-200">{t("checkout.loggedInNote")}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white">
-                  {user.email || t("checkout.authenticatedUser")}
-                </span>
-                <button
-                  type="button"
-                  onClick={signOut}
-                  className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
-                >
-                  {t("profile.signOut")}
-                </button>
-              </div>
-            </div>
-          ) : (
+        {!user && (
+          <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-inner shadow-sky-900/30">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100">
               <div>
                 <p className="text-white">{t("checkout.guestTitle")}</p>
@@ -393,8 +374,8 @@ export default function CheckoutClient() {
                 {t("checkout.loginCta")}
               </Link>
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
         {!hasItems ? (
           <section className="rounded-2xl border border-white/20 bg-white/5 p-8 text-center text-sm text-sky-100">
