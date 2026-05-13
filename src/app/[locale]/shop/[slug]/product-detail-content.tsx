@@ -10,7 +10,6 @@ import { Product } from "@/types/product";
 import { useCartActions } from "@/context/cart";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
-import { useFlyToCart } from "@/lib/useFlyToCart";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { trackViewItem } from "@/lib/analytics";
 import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
@@ -24,7 +23,6 @@ import {
 import { useFavorites } from "@/hooks/use-favorites";
 import { viewContent } from "@/lib/metaPixel";
 import { useTranslations } from "@/i18n/I18nProvider";
-import { runAfterNextPaint } from "@/lib/defer";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -70,8 +68,6 @@ export function ProductDetailContent({
   const hasVariantAvailable = hasAvailableVariants(product);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const { addItem, getItemQuantity } = useCartActions();
-  const { flyToCart } = useFlyToCart();
-  const imageRef = useRef<HTMLImageElement | null>(null);
   const viewItemTrackedRef = useRef<string | null>(null);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const stockState = normalizeProductStock({
@@ -231,9 +227,6 @@ export function ProductDetailContent({
     });
 
     setSelectionError(null);
-    if (flyToCart && !isOutOfStock) {
-      runAfterNextPaint(() => flyToCart(imageRef.current));
-    }
     return true;
   };
 
@@ -303,7 +296,6 @@ export function ProductDetailContent({
                   src={displayCurrentImage}
                   alt={product.nameFr}
                   fill
-                  ref={imageRef}
                   className="object-cover"
                   sizes="(min-width: 1024px) 50vw, 100vw"
                 />

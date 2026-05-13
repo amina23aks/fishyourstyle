@@ -280,7 +280,6 @@ export function Navbar() {
               rotate: isBumping ? "-2deg" : "0deg",
             }}
             whileTap={{ scale: 0.95 }}
-            data-cart-target="true"
             className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white shadow-sm shadow-white/20 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             aria-label="Cart"
           >
