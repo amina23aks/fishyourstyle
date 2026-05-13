@@ -9,7 +9,6 @@ import {
   useState,
   type KeyboardEvent,
   type MouseEvent,
-  type RefObject,
   type TouchEvent,
 } from "react";
 import Image from "next/image";
@@ -17,7 +16,6 @@ import Link from "next/link";
 import { AnimatedAddToCartButton } from "@/components/AnimatedAddToCartButton";
 import { SoldOutTooltipWrapper } from "@/components/SoldOutTooltipWrapper";
 import { useCartActions } from "@/context/cart";
-import { useFlyToCart } from "@/lib/useFlyToCart";
 import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 import { useTranslations } from "@/i18n/I18nProvider";
@@ -34,7 +32,6 @@ import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import { normalizeProductStock } from "@/lib/stock";
 import { useFavorites } from "@/hooks/use-favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
-import { runAfterNextPaint } from "@/lib/defer";
 
 type ProductWithInventory = Product & { stockMode?: "unlimited" | "limited"; stockQty?: number; inStock?: boolean };
 
@@ -82,9 +79,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const { addItem, getItemQuantity } = useCartActions();
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectionWarning, setSelectionWarning] = useState<string | null>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
   const touchStartX = useRef<number | null>(null);
-  const { flyToCart } = useFlyToCart();
   const stockState = normalizeProductStock({
     stockMode: product.stockMode,
     stockQty: product.stockQty,
@@ -259,13 +254,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
     setSelectionWarning(null);
 
-    runAfterNextPaint(() => flyToCart(imageRef.current));
     return true;
   }, [
     addItem,
     currentImage,
     availableColors,
-    flyToCart,
     availableStock,
     hasVariantAvailable,
     isOutOfStock,
@@ -344,7 +337,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               displayNextImage={displayNextImage}
               hasNextImage={images.length > 1}
               productName={product.nameFr}
-              imageRef={imageRef}
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -520,14 +512,12 @@ const ProductCardImageStack = memo(function ProductCardImageStack({
   displayNextImage,
   hasNextImage,
   productName,
-  imageRef,
 }: {
   currentImage?: string;
   displayCurrentImage: string;
   displayNextImage: string;
   hasNextImage: boolean;
   productName: string;
-  imageRef: RefObject<HTMLImageElement | null>;
 }) {
   if (!currentImage) {
     return (
@@ -543,7 +533,6 @@ const ProductCardImageStack = memo(function ProductCardImageStack({
         <Image
           src={displayCurrentImage}
           alt={productName}
-          ref={imageRef}
           fill
           priority={false}
           sizes={productImageSizes}
