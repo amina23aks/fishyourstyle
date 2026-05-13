@@ -35,10 +35,10 @@ function FavoriteButtonComponent({
   disabled = false,
 }: FavoriteButtonProps) {
   const base =
-    "relative inline-flex items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur hover:scale-[1.05] active:scale-[0.92]";
+    "relative inline-flex items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black hover:scale-[1.05] active:scale-[0.92]";
   const sizeClass = sizes[size];
   const stateClass = isFavorite
-    ? "bg-red-500 border-red-400 text-white shadow-[0_0_18px_rgba(239,68,68,0.55)]"
+    ? "bg-red-500 border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.35)]"
     : "bg-transparent border-white/70 text-white hover:bg-white/10";
 
   return (

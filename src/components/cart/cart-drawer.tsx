@@ -287,7 +287,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             type="button"
             aria-label={t("cart.close")}
             onClick={onClose}
-            className="absolute inset-0 z-0 h-full w-full bg-[#082f55]/65 backdrop-blur-sm"
+            className="absolute inset-0 z-0 h-full w-full bg-[#082f55]/82"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -303,7 +303,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
             transition={{ type: "spring", stiffness: 280, damping: 28 }}
             className="relative z-10 ml-auto flex h-full w-full max-w-md min-w-[320px]"
           >
-            <div className="flex h-full w-full flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-[#082f55] via-[#0b2e55]/95 to-[#123f6f]/90 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]">
+            <div className="flex h-full w-full flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-[#082f55] via-[#0b2e55]/95 to-[#123f6f]/90 text-white shadow-[0_10px_24px_rgba(0,0,0,0.36)]">
               <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.28em] text-sky-200">{t("cart.title")}</p>

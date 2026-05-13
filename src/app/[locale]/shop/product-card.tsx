@@ -292,7 +292,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
 
   if (loading) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-[0_6px_16px_rgba(0,0,0,0.22)]">
         <div
           className={`relative aspect-[4/3.6] w-full bg-white/10 sm:aspect-[5/4.4] lg:aspect-[5/4.6] ${skeletonShimmer}`}
         />
@@ -316,7 +316,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     <>
       {/* Product card height + controls tightening */}
       <article
-        className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_10px_26px_rgba(0,0,0,0.3)] transition-transform duration-200 hover:-translate-y-1"
+        className="product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-slate-900/70 shadow-[0_6px_16px_rgba(0,0,0,0.22)] transition-transform duration-200 hover:-translate-y-1"
       >
         <div className="absolute right-2.5 top-2.5 z-10">
           <ProductFavoriteToggle
@@ -374,7 +374,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 <button
                   type="button"
                   onClick={(event) => handleNav("prev", event)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-sm transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   aria-label="Voir l'image précédente"
                 >
                   &#8249;
@@ -382,7 +382,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                 <button
                   type="button"
                   onClick={(event) => handleNav("next", event)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-md transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-sm transition hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   aria-label="Voir l'image suivante"
                 >
                   &#8250;
