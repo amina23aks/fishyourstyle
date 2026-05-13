@@ -220,7 +220,11 @@ export function Navbar() {
   })), [locale]);
 
   return (
-    <header className="navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#2f8fc8]/90 shadow-[0_8px_18px_rgba(0,0,0,0.24)]">
+    <header
+      className={`navbar-shell fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 shadow-[0_8px_18px_rgba(0,0,0,0.24)] ${
+        theme === "dark" ? "bg-[#2f8fc8]/90" : "bg-[#78b7ee]/75"
+      }`}
+    >
       {/* Navbar height + mobile layout adjustments */}
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 text-white">
         <Link href={localizePathname(locale, "/")} className="group flex items-center gap-3">
