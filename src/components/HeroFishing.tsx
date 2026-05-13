@@ -18,12 +18,6 @@ export default function HeroFishing() {
     { size: 11, left: "55%", delay: "4s", duration: "10.5s" },
   ];
 
-  const lightColumns = [
-    { left: "30%", width: "8%", delay: "0s" },
-    { left: "48%", width: "6%", delay: "3s" },
-    { left: "62%", width: "10%", delay: "1.4s" },
-  ];
-
   return (
     <section className="relative overflow-hidden text-white">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -68,18 +62,6 @@ export default function HeroFishing() {
 
         <div className="absolute inset-x-0 bottom-0 overflow-hidden hero-water-overlay">
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-sky-200/10 to-transparent" />
-
-          {lightColumns.map((beam, index) => (
-            <div
-              key={index}
-              className="light-column absolute inset-y-6 rounded-full"
-              style={{
-                left: beam.left,
-                width: beam.width,
-                animationDelay: beam.delay,
-              }}
-            />
-          ))}
 
           <div className="absolute left-[54%] top-12 h-64 w-64 -translate-x-1/2 rounded-full underwater-vortex" />
 
