@@ -380,8 +380,8 @@ export default function AdminOrdersPage() {
           ))}
         </div>
 
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3 lg:w-auto">
-          <div className="w-full min-w-[240px] max-w-sm sm:w-auto">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 lg:w-auto">
+          <div className="w-full max-w-sm sm:w-auto sm:min-w-[220px]">
             <label className="relative block">
               <input
                 type="search"
@@ -453,16 +453,16 @@ export default function AdminOrdersPage() {
           </div>
         ) : (
           <>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full text-left text-sm text-sky-100/85">
+            <div className="hidden md:block">
+              <table className="w-full table-fixed text-left text-sm text-sky-100/85">
                 <thead className="sticky top-0 z-10 bg-slate-950/70 backdrop-blur">
                   <tr>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Order</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Date</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Customer</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Wilaya</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Status</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-sky-200">Total</th>
+                    <th className="w-[16%] px-3 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200 lg:px-4">Order</th>
+                    <th className="w-[18%] px-3 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200 lg:px-4">Date</th>
+                    <th className="w-[25%] px-3 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200 lg:px-4">Customer</th>
+                    <th className="w-[12%] px-3 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200 lg:px-4">Wilaya</th>
+                    <th className="w-[17%] px-3 py-3 text-xs font-semibold uppercase tracking-wide text-sky-200 lg:px-4">Status</th>
+                    <th className="w-[12%] px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-sky-200 lg:px-4">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -472,26 +472,26 @@ export default function AdminOrdersPage() {
                       className="cursor-pointer transition hover:bg-white/5"
                       onClick={() => router.push(localizePathname(locale, `/admin/orders/${order.id}`))}
                     >
-                      <td className="px-6 py-4 align-top font-semibold text-white">
-                        <div className="flex items-center gap-2">
+                      <td className="px-3 py-4 align-top font-semibold text-white lg:px-4">
+                        <div className="flex min-w-0 items-center gap-2">
                           <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-sky-100/80">Order</span>
-                          <span className="font-mono text-sm">{order.id.slice(0, 8)}…</span>
+                          <span className="font-mono text-xs lg:text-sm">{order.id.slice(0, 8)}…</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 align-top text-sky-100/80">{formatDateTime(order.createdAt)}</td>
-                      <td className="px-6 py-4 align-top text-sky-100/90">
+                      <td className="px-3 py-4 align-top text-xs text-sky-100/80 lg:px-4 lg:text-sm">{formatDateTime(order.createdAt)}</td>
+                      <td className="px-3 py-4 align-top text-sky-100/90 lg:px-4">
                         <div className="font-semibold text-white">{order.shipping.customerName || "Unknown"}</div>
-                        <div className="text-xs text-sky-100/70">{order.customerEmail || "Guest checkout"}</div>
+                        <div className="break-words text-xs text-sky-100/70">{order.customerEmail || "Guest checkout"}</div>
                       </td>
-                      <td className="px-6 py-4 align-top text-sky-100/80">{order.shipping.wilaya || "—"}</td>
-                      <td className="px-6 py-4 align-top">
+                      <td className="px-3 py-4 align-top text-xs text-sky-100/80 lg:px-4 lg:text-sm">{order.shipping.wilaya || "—"}</td>
+                      <td className="px-3 py-4 align-top lg:px-4">
                         <OrderStatusSelect
                           value={order.status}
                           onChange={(status) => handleStatusChange(order.id, status)}
                           disabled={statusUpdating === order.id}
                         />
                       </td>
-                      <td className="px-6 py-4 align-top text-right font-semibold text-white">
+                      <td className="px-3 py-4 align-top text-right font-semibold text-white lg:px-4">
                         {formatCurrency(order.total)}
                       </td>
                     </tr>

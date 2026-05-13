@@ -357,7 +357,7 @@ export default function CheckoutClient() {
           </p>
         </header>
 
-        <section className="rounded-2xl border border-white/15 bg-white/5 p-4 shadow-inner shadow-sky-900/30">
+        <section className={`rounded-2xl border border-white/15 bg-white/5 p-4 shadow-inner shadow-sky-900/30 ${user ? "hidden sm:block" : ""}`}>
           {user ? (
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100">
               <div>
@@ -405,7 +405,7 @@ export default function CheckoutClient() {
             onSubmit={handleSubmit}
             className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start"
           >
-            <section className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30">
+            <section className="order-2 space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:order-1">
               <h2 className="text-sm font-semibold text-white">{t("checkout.deliveryDetails")}</h2>
 
               <input
@@ -559,7 +559,7 @@ export default function CheckoutClient() {
               </button>
             </section>
 
-            <aside className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:sticky lg:top-8">
+            <aside className="order-1 space-y-4 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-inner shadow-sky-900/30 lg:sticky lg:top-8 lg:order-2">
               <h2 className="text-sm font-semibold text-white">{t("checkout.orderSummaryTitle")}</h2>
 
               <ul className="space-y-3 text-xs text-sky-100">
