@@ -659,7 +659,7 @@ export default function AdminProductsPage() {
 
       {pendingDelete ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#082f55]/70 px-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-product-title"
@@ -670,7 +670,7 @@ export default function AdminProductsPage() {
           }}
         >
           <div
-            className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950/95 p-6 text-sky-50 shadow-2xl shadow-black/40"
+            className="w-full max-w-md rounded-3xl border border-white/10 bg-[#082f55]/95 p-6 text-sky-50 shadow-2xl shadow-black/40"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="space-y-2">

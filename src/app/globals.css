@@ -2,8 +2,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #a7c7f0;
+  --background: #1e4c82;
   --foreground: #e2f3ff;
+  --ocean-fallback: #1e4c82;
+  --ocean-deep: #0b2e55;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -24,12 +26,13 @@
 */
 html {
   min-height: 100%;
-  background: #020617;
+  /* Prevent compositor/repaint gaps from exposing the browser default or a black page fallback. */
+  background-color: var(--ocean-fallback);
 }
 
 body {
   min-height: 100%;
-  background: var(--background);
+  background-color: var(--ocean-fallback);
   color: var(--foreground);
   font-family: var(--font-sans);
 }
@@ -41,6 +44,7 @@ body {
 
 #__next {
   min-height: 100%;
+  background-color: var(--ocean-fallback);
 }
 
 .btn-shine {
@@ -148,28 +152,28 @@ body {
 
 .ocean-page {
   /* Full-page ocean gradient: light crest to deep sea, mirroring production */
-  background-color: #020617;
+  background-color: var(--ocean-fallback);
   background-image: linear-gradient(
     to bottom,
     #7bb0f5 0%,
     #6db3f0 32%,
     #3671a5 62%,
     #1e4c82 84%,
-    #020617 100%
+    var(--ocean-deep) 100%
   );
   background-repeat: no-repeat;
   color: var(--foreground);
 }
 
 html[data-theme="aurora"] body.ocean-page {
-  background-color: #020617;
+  background-color: var(--ocean-fallback);
   background-image: linear-gradient(
     to bottom,
     #0a2546 0%,
     #0a2546 36%,
     #0a1f3b 62%,
     #04122a 82%,
-    #020617 100%
+    var(--ocean-deep) 100%
   );
   background-repeat: no-repeat;
   color: #e2f3ff;
@@ -177,12 +181,14 @@ html[data-theme="aurora"] body.ocean-page {
 
 
 .ocean-bg {
-  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, #020617 100%);
+  background-color: var(--ocean-fallback);
+  background-image: linear-gradient(to bottom, #7bb0f5 0%, #3671a5 48%, var(--ocean-deep) 100%);
   background-size: 100% 100%;
 }
 
 html[data-theme="aurora"] .ocean-bg {
-  background-image: linear-gradient(to bottom, #0a2546 0%, #0a1f3b 52%, #020617 100%);
+  background-color: var(--ocean-deep);
+  background-image: linear-gradient(to bottom, #0a2546 0%, #0a1f3b 52%, var(--ocean-deep) 100%);
 }
 
 .ocean-glow {

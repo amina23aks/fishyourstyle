@@ -339,7 +339,7 @@ export function ProductDetailContent({
           )}
         </div>
 
-        <div className="mx-auto flex w-full min-w-0 max-w-[480px] flex-col gap-4 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)] md:mx-0">
+        <div className="mx-auto flex w-full min-w-0 max-w-[480px] flex-col gap-4 rounded-2xl border border-white/10 bg-[#0b2e55]/60 p-5 shadow-[0_10px_28px_rgba(0,0,0,0.32)] md:mx-0">
           <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
             <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
@@ -557,11 +557,11 @@ export function ProductDetailContent({
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           <button
             type="button"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#082f55]/70 backdrop-blur-sm"
             onClick={() => setIsSizeGuideOpen(false)}
             aria-label={t("common.close")}
           />
-          <div className="relative z-10 w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-[32px] border border-white/10 bg-black/90 p-4 text-white shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+          <div className="relative z-10 w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-[32px] border border-white/10 bg-[#082f55]/95 p-4 text-white shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
             <div className="flex items-center justify-between gap-4">
               <p className="text-xs uppercase tracking-[0.3em] text-neutral-300">{t("shop.sizeGuide")}</p>
               <button
