@@ -31,6 +31,13 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function getAccountingNetProfit(order: Order) {
+  if (order.status === "returned") return -(order.returnCost ?? 0);
+  if (order.status !== "delivered") return null;
+  const cogs = typeof order.costOfGoodsSold === "number" ? order.costOfGoodsSold : 0;
+  return order.subtotal - cogs;
+}
+
 type Toast = { id: number; type: "success" | "error"; message: string };
 
 const ADMIN_ORDERS_PAGE_SIZE = 10;
@@ -55,6 +62,10 @@ const ORDER_EXPORT_HEADERS = [
   "total",
   "paymentMethod",
   "productRevenue",
+  "returnCost",
+  "accountingRevenue",
+  "accountingCOGS",
+  "accountingNetProfit",
 ];
 
 const ORDER_ITEM_EXPORT_HEADERS = [
@@ -117,6 +128,11 @@ function buildOrdersCsv(orders: Order[]) {
     const deliveryMode = resolveDeliveryMode(order);
     const itemsCount = (order.items ?? []).reduce((sum, item) => sum + (item.quantity ?? 0), 0);
     const itemsSummary = (order.items ?? []).map((item) => `${item.name} x${item.quantity}`).join(" | ");
+    const returnCost = order.returnCost ?? 0;
+    const accountingRevenue = order.status === "delivered" ? order.subtotal : 0;
+    const accountingCOGS = order.status === "delivered" ? order.costOfGoodsSold ?? 0 : 0;
+    const accountingNetProfit =
+      order.status === "delivered" ? accountingRevenue - accountingCOGS : order.status === "returned" ? -returnCost : 0;
     rows.push([
       s(order.id),
       s(order.createdAt),
@@ -137,6 +153,10 @@ function buildOrdersCsv(orders: Order[]) {
       n(order.total),
       s(order.paymentMethod),
       n(order.subtotal),
+      n(returnCost),
+      n(accountingRevenue),
+      n(accountingCOGS),
+      n(accountingNetProfit),
     ]);
   });
 
@@ -495,8 +515,10 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="px-3 py-4 align-top text-right font-semibold text-white lg:px-4">
                         {formatCurrency(order.total)}
-                        {typeof order.netProfit === "number" ? (
-                          <div className="text-[11px] font-normal text-cyan-100/75">Profit {formatCurrency(order.netProfit)}</div>
+                        {getAccountingNetProfit(order) !== null ? (
+                          <div className="text-[11px] font-normal text-cyan-100/75">
+                            Accounting profit {formatCurrency(getAccountingNetProfit(order) ?? 0)}
+                          </div>
                         ) : null}
                       </td>
                     </tr>
@@ -534,8 +556,10 @@ export default function AdminOrdersPage() {
                     </div>
                     <div className="text-right font-semibold text-white">
                       {formatCurrency(order.total)}
-                      {typeof order.netProfit === "number" ? (
-                        <div className="text-[11px] font-normal text-cyan-100/75">Profit {formatCurrency(order.netProfit)}</div>
+                      {getAccountingNetProfit(order) !== null ? (
+                        <div className="text-[11px] font-normal text-cyan-100/75">
+                          Accounting profit {formatCurrency(getAccountingNetProfit(order) ?? 0)}
+                        </div>
                       ) : null}
                     </div>
                   </div>

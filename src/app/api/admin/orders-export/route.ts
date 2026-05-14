@@ -30,6 +30,10 @@ type ExportOrderRow = {
   costOfGoodsSold: number;
   netProfit: number;
   profitSnapshotComplete: boolean;
+  returnCost: number;
+  accountingRevenue: number;
+  accountingCOGS: number;
+  accountingNetProfit: number;
 };
 
 type ExportOrderItemRow = {
@@ -138,6 +142,11 @@ export async function GET(request: NextRequest) {
       }, 0);
       const costOfGoodsSold = typeof data.costOfGoodsSold === "number" ? data.costOfGoodsSold : 0;
       const netProfit = typeof data.netProfit === "number" ? data.netProfit : 0;
+      const status = typeof data.status === "string" ? data.status : "";
+      const returnCost = typeof data.returnCost === "number" ? data.returnCost : 0;
+      const accountingRevenue = status === "delivered" ? subtotal : 0;
+      const accountingCOGS = status === "delivered" ? costOfGoodsSold : 0;
+      const accountingNetProfit = status === "delivered" ? accountingRevenue - accountingCOGS : status === "returned" ? -returnCost : 0;
       const profitSnapshotComplete = data.profitSnapshotComplete === true;
       const itemsSummary = itemsRaw
         .map((item) => {
@@ -159,7 +168,7 @@ export async function GET(request: NextRequest) {
         createdAt: createdAtIso,
         month,
         date,
-        status: typeof data.status === "string" ? data.status : "",
+        status,
         customerName: typeof shipping.customerName === "string" ? shipping.customerName : "",
         customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : "",
         phone: typeof shipping.phone === "string" ? shipping.phone : "",
@@ -177,6 +186,10 @@ export async function GET(request: NextRequest) {
         costOfGoodsSold,
         netProfit,
         profitSnapshotComplete,
+        returnCost,
+        accountingRevenue,
+        accountingCOGS,
+        accountingNetProfit,
       });
 
       itemsRaw.forEach((item, index) => {
@@ -191,7 +204,7 @@ export async function GET(request: NextRequest) {
           orderId: doc.id,
           createdAt: createdAtIso,
           date,
-          status: typeof data.status === "string" ? data.status : "",
+          status,
           wilaya: typeof shipping.wilaya === "string" ? shipping.wilaya : "",
           deliveryMode: resolveDeliveryMode(shipping.mode),
           itemName: typeof itemData.name === "string" ? itemData.name : "",

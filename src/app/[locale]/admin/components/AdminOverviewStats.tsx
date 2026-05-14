@@ -100,9 +100,11 @@ type StatusCounts = {
   pending: number;
   delivered: number;
   cancelled: number;
+  returned: number;
   prevPending: number;
   prevDelivered: number;
   prevCancelled: number;
+  prevReturned: number;
   costOfGoodsSold: number;
   netProfit: number;
   incompleteProfitOrders: number;
@@ -305,6 +307,8 @@ function getOrderProfitStats(
 ) {
   return orderDocs.reduce((acc, docSnap) => {
     const orderData = docSnap.data() ?? {};
+    const status = typeof orderData.status === "string" ? orderData.status : "pending";
+    const returnCost = typeof orderData.returnCost === "number" ? Math.max(orderData.returnCost, 0) : 0;
     const items = Array.isArray(orderData.items) ? orderData.items : [];
     const createdDate = toDateSafe(orderData.createdAt);
     const dateKey = createdDate ? dateKeyInTZ(createdDate, TIME_ZONE) : "unknown";
@@ -315,6 +319,18 @@ function getOrderProfitStats(
       incompleteProfitItems: 0,
     };
     let orderMissingCost = false;
+
+    if (status === "returned") {
+      acc.netProfit -= returnCost;
+      day.netProfit -= returnCost;
+      acc.byDate[dateKey] = day;
+      return acc;
+    }
+
+    if (status !== "delivered") {
+      acc.byDate[dateKey] = day;
+      return acc;
+    }
 
     items.forEach((item) => {
       const itemData = item as Record<string, unknown>;
@@ -356,6 +372,8 @@ function getOrderProductRevenueStats(orderDocs: { data: () => Record<string, unk
       const orderData = docSnap.data() ?? {};
       const createdDate = toDateSafe(orderData.createdAt);
       const dateKey = createdDate ? dateKeyInTZ(createdDate, TIME_ZONE) : "unknown";
+      const status = typeof orderData.status === "string" ? orderData.status : "pending";
+      if (status !== "delivered") return acc;
       const items = Array.isArray(orderData.items) ? orderData.items : [];
       const fallbackSubtotal = items.reduce((sum, item) => {
         const itemData = item as Record<string, unknown>;
@@ -398,9 +416,11 @@ export function AdminOverviewStats() {
     pending: 0,
     delivered: 0,
     cancelled: 0,
+    returned: 0,
     prevPending: 0,
     prevDelivered: 0,
     prevCancelled: 0,
+    prevReturned: 0,
     costOfGoodsSold: 0,
     netProfit: 0,
     incompleteProfitOrders: 0,
@@ -581,9 +601,11 @@ export function AdminOverviewStats() {
           pending: 0,
           delivered: 0,
           cancelled: 0,
+          returned: 0,
           prevPending: 0,
           prevDelivered: 0,
           prevCancelled: 0,
+          prevReturned: 0,
           costOfGoodsSold: currentProfitStats.costOfGoodsSold,
           netProfit: currentProfitStats.netProfit,
           incompleteProfitOrders: currentProfitStats.incompleteProfitOrders,
@@ -597,6 +619,7 @@ export function AdminOverviewStats() {
           if (status === "pending") nextStatusCounts.pending += 1;
           if (status === "delivered") nextStatusCounts.delivered += 1;
           if (status === "cancelled") nextStatusCounts.cancelled += 1;
+          if (status === "returned") nextStatusCounts.returned += 1;
         });
         prevOrdersSnapshot.docs.forEach((docSnap) => {
           const orderData = docSnap.data() ?? {};
@@ -604,6 +627,7 @@ export function AdminOverviewStats() {
           if (status === "pending") nextStatusCounts.prevPending += 1;
           if (status === "delivered") nextStatusCounts.prevDelivered += 1;
           if (status === "cancelled") nextStatusCounts.prevCancelled += 1;
+          if (status === "returned") nextStatusCounts.prevReturned += 1;
         });
         setStatusCounts(nextStatusCounts);
 
@@ -713,6 +737,10 @@ export function AdminOverviewStats() {
     () => (statusCounts.total > 0 ? (statusCounts.pending / statusCounts.total) * 100 : null),
     [statusCounts.pending, statusCounts.total]
   );
+  const returnedRate = useMemo(
+    () => (statusCounts.total > 0 ? (statusCounts.returned / statusCounts.total) * 100 : null),
+    [statusCounts.returned, statusCounts.total]
+  );
 
   const cards = useMemo(
     () => [
@@ -732,7 +760,7 @@ export function AdminOverviewStats() {
       {
         title: "Revenue",
         value: formatCurrency(currentRevenueTotal),
-        description: `Gross sales ${rangeDescription}.`,
+        description: `Delivered product sales ${rangeDescription}.`,
         delta: getDeltaInfo(currentRevenueTotal, previousRevenueTotal),
         accent: "from-emerald-500/20 via-emerald-500/5 to-transparent",
         icon: (
@@ -752,7 +780,7 @@ export function AdminOverviewStats() {
         description:
           statusCounts.incompleteProfitOrders > 0
             ? `Estimated — missing cost for ${statusCounts.incompleteProfitOrders} order(s) / ${statusCounts.incompleteProfitItems} item(s).`
-            : `Snapshot profit ${rangeDescription}.`,
+            : `Delivered profit minus return costs ${rangeDescription}.`,
         delta: getDeltaInfo(statusCounts.netProfit, statusCounts.prevNetProfit),
         accent: "from-cyan-500/20 via-cyan-500/5 to-transparent",
         icon: (
@@ -768,7 +796,7 @@ export function AdminOverviewStats() {
         description:
           statusCounts.incompleteProfitItems > 0
             ? `Known costs only; ${statusCounts.incompleteProfitItems} item(s) missing cost.`
-            : `Known product costs ${rangeDescription}.`,
+            : `Delivered product costs ${rangeDescription}.`,
         delta: getDeltaInfo(statusCounts.costOfGoodsSold, statusCounts.prevCostOfGoodsSold),
         accent: "from-violet-500/20 via-violet-500/5 to-transparent",
         icon: (
@@ -808,6 +836,21 @@ export function AdminOverviewStats() {
         ),
       },
       {
+        title: "Returned orders",
+        value: statusLoading ? "—" : formatCount(statusCounts.returned),
+        description: `Returned or failed-delivery orders created ${rangeDescription}.`,
+        rateLabel: "Return rate",
+        rateValue: returnedRate,
+        delta: getDeltaInfo(statusCounts.returned, statusCounts.prevReturned),
+        accent: "from-orange-500/20 via-orange-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-orange-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M7 7h10l-3-3M17 17H7l3 3" />
+            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M17 7a5 5 0 0 1 0 10M7 17A5 5 0 0 1 7 7" />
+          </svg>
+        ),
+      },
+      {
         title: "Cancelled orders",
         value: statusLoading ? "—" : formatCount(statusCounts.cancelled),
         description: `Cancelled orders created ${rangeDescription}.`,
@@ -830,10 +873,13 @@ export function AdminOverviewStats() {
       deliveryRate,
       cancelRate,
       pendingRate,
+      returnedRate,
       rangeDescription,
       statusCounts.cancelled,
       statusCounts.delivered,
       statusCounts.pending,
+      statusCounts.returned,
+      statusCounts.prevReturned,
       statusCounts.costOfGoodsSold,
       statusCounts.incompleteProfitOrders,
       statusCounts.incompleteProfitItems,

@@ -26,6 +26,10 @@ type ExportOrder = {
   total: number;
   paymentMethod: string;
   productRevenue: number;
+  returnCost: number;
+  accountingRevenue: number;
+  accountingCOGS: number;
+  accountingNetProfit: number;
   items: ExportItem[];
 };
 
@@ -120,6 +124,12 @@ export async function GET(request: NextRequest) {
       const shippingFee = typeof data.shippingCost === "number" ? data.shippingCost : 0;
       const total = typeof data.total === "number" ? data.total : 0;
       const discount = Math.max(0, subtotal + shippingFee - total);
+      const status = typeof data.status === "string" ? data.status : "";
+      const returnCost = typeof data.returnCost === "number" ? data.returnCost : 0;
+      const costOfGoodsSold = typeof data.costOfGoodsSold === "number" ? data.costOfGoodsSold : 0;
+      const accountingRevenue = status === "delivered" ? subtotal : 0;
+      const accountingCOGS = status === "delivered" ? costOfGoodsSold : 0;
+      const accountingNetProfit = status === "delivered" ? accountingRevenue - accountingCOGS : status === "returned" ? -returnCost : 0;
       const createdAtValue = data.createdAt ?? null;
       const createdAtMs = toMillis(createdAtValue);
 
@@ -140,7 +150,7 @@ export async function GET(request: NextRequest) {
       return {
         orderId: doc.id,
         createdAt: toIsoString(createdAtValue),
-        status: typeof data.status === "string" ? data.status : "",
+        status,
         customerName: typeof shipping.customerName === "string" ? shipping.customerName : "",
         customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : "",
         phone: typeof shipping.phone === "string" ? shipping.phone : "",
@@ -151,6 +161,10 @@ export async function GET(request: NextRequest) {
         total,
         paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
         productRevenue: subtotal,
+        returnCost,
+        accountingRevenue,
+        accountingCOGS,
+        accountingNetProfit,
         items,
       };
     });

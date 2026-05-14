@@ -65,7 +65,8 @@ export type OrderStatus =
   | "confirmed" // Order confirmed, preparing for shipment
   | "shipped" // Order shipped
   | "delivered" // Order delivered
-  | "cancelled"; // Order cancelled
+  | "cancelled" // Order cancelled
+  | "returned"; // Order returned or failed delivery
 
 /**
  * Payment method used for the order.
@@ -108,6 +109,8 @@ export type Order = {
   netProfit?: number;
   /** True when every item profit was computed from an order-time snapshot. */
   profitSnapshotComplete?: boolean;
+  /** Admin-only return or failed-delivery cost in DZD. */
+  returnCost?: number;
   /** Payment method */
   paymentMethod: PaymentMethod;
   /** Order status */

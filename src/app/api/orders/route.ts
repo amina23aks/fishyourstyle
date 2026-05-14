@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
     let loyaltyDiscountAmount = 0;
     let loyaltyApplied = false;
     let orderTotal = 0;
-    const productRevenue = orderSubtotal;
+    const productRevenue = 0;
 
     console.log("[api/orders] Order payload prepared", {
       hasUser: Boolean(orderToSave.userId),
@@ -680,6 +680,7 @@ function firestoreDocToOrder(docId: string, data: DocumentData, includeAdminFina
           netProfit: typeof data.netProfit === "number" ? data.netProfit : undefined,
           profitSnapshotComplete:
             typeof data.profitSnapshotComplete === "boolean" ? data.profitSnapshotComplete : undefined,
+          returnCost: typeof data.returnCost === "number" ? data.returnCost : undefined,
         }
       : {}),
   };

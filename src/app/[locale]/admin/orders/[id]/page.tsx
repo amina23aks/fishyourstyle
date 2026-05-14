@@ -43,6 +43,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [returnCostValue, setReturnCostValue] = useState("");
 
   const pushToast = useCallback((toast: Omit<Toast, "id">) => {
     const id = Date.now();
@@ -83,6 +84,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
           setError("Order not found");
         }
         setOrder(fetched);
+        setReturnCostValue(fetched?.returnCost ? String(fetched.returnCost) : "");
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load order";
         setError(message);
@@ -106,7 +108,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
       setOrder({ ...order, status: nextStatus, updatedAt });
 
       try {
-        await updateOrderStatus(orderId, nextStatus);
+        await updateOrderStatus(orderId, nextStatus, nextStatus === "returned" ? Number(returnCostValue || order.returnCost || 0) : undefined);
         pushToast({ type: "success", message: "Order status updated" });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to update status";
@@ -116,14 +118,20 @@ export default function AdminOrderDetailPage({ params }: Props) {
         setStatusUpdating(null);
       }
     },
-    [order, pushToast]
+    [order, pushToast, returnCostValue]
   );
 
   const currentStatus = useMemo(() => order?.status, [order?.status]);
   const profitSummary = useMemo(() => {
     if (!order) return { cogs: 0, profit: 0, complete: false };
-    if (typeof order.costOfGoodsSold === "number" && typeof order.netProfit === "number") {
-      return { cogs: order.costOfGoodsSold, profit: order.netProfit, complete: order.profitSnapshotComplete === true };
+    if (order.status === "returned") {
+      return { cogs: 0, profit: -(order.returnCost ?? 0), complete: true };
+    }
+    if (order.status !== "delivered") {
+      return { cogs: 0, profit: 0, complete: true };
+    }
+    if (typeof order.costOfGoodsSold === "number") {
+      return { cogs: order.costOfGoodsSold, profit: order.subtotal - order.costOfGoodsSold, complete: order.profitSnapshotComplete === true };
     }
     let complete = true;
     const totals = order.items.reduce(
@@ -139,6 +147,22 @@ export default function AdminOrderDetailPage({ params }: Props) {
     );
     return { ...totals, complete };
   }, [order]);
+
+  const saveReturnCost = useCallback(async () => {
+    if (!order) return;
+    const nextReturnCost = Math.max(Number(returnCostValue || 0), 0);
+    setStatusUpdating(order.id);
+    try {
+      await updateOrderStatus(order.id, "returned", nextReturnCost);
+      setOrder({ ...order, status: "returned", returnCost: nextReturnCost, updatedAt: new Date().toISOString() });
+      pushToast({ type: "success", message: "Return cost updated" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update return cost";
+      pushToast({ type: "error", message });
+    } finally {
+      setStatusUpdating(null);
+    }
+  }, [order, pushToast, returnCostValue]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 pb-10">
@@ -214,6 +238,30 @@ export default function AdminOrderDetailPage({ params }: Props) {
                   <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Total</p>
                   <p className="text-xl font-semibold text-white">{formatCurrency(order.total)}</p>
                 </div>
+                {order.status === "returned" ? (
+                  <div className="space-y-2 sm:col-span-2">
+                    <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Return cost / failed delivery fee</p>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="decimal"
+                        value={returnCostValue}
+                        onChange={(event) => setReturnCostValue(event.target.value)}
+                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                        placeholder="0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void saveReturnCost()}
+                        disabled={statusUpdating === order.id}
+                        className="rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15 disabled:opacity-50"
+                      >
+                        Save fee
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="space-y-1">
                   <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Cost of goods sold</p>
                   <p className="text-white">{formatCurrency(profitSummary.cogs)}</p>

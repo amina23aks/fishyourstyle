@@ -22,6 +22,10 @@ const ORDERS_HEADERS = [
   "costOfGoodsSold",
   "netProfit",
   "profitSnapshotComplete",
+  "returnCost",
+  "accountingRevenue",
+  "accountingCOGS",
+  "accountingNetProfit",
 ];
 
 const ORDER_ITEMS_HEADERS = [

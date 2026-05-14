@@ -27,6 +27,7 @@ const ALLOWED_STATUSES: OrderStatus[] = [
   "shipped",
   "delivered",
   "cancelled",
+  "returned",
 ];
 
 function timestampToISO(timestamp: unknown): string {
@@ -82,6 +83,7 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>, in
           netProfit: typeof data.netProfit === "number" ? data.netProfit : undefined,
           profitSnapshotComplete:
             typeof data.profitSnapshotComplete === "boolean" ? data.profitSnapshotComplete : undefined,
+          returnCost: typeof data.returnCost === "number" ? data.returnCost : undefined,
         }
       : {}),
   };
@@ -100,6 +102,7 @@ type PatchPayload = {
   notes?: string;
   items?: OrderItem[];
   status?: OrderStatus;
+  returnCost?: number;
 };
 
 function isSafeNumber(value: unknown, max: number): value is number {
@@ -238,6 +241,11 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         return NextResponse.json({ error: "Invalid order status" }, { status: 400 });
       }
 
+      const nextReturnCost = payload.returnCost;
+      if (nextReturnCost !== undefined && !isSafeNumber(nextReturnCost, 1_000_000)) {
+        return NextResponse.json({ error: "Invalid return cost" }, { status: 400 });
+      }
+
       try {
         await requireAdmin(request);
       } catch (error) {
@@ -246,7 +254,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         return NextResponse.json({ error: status === 403 ? "Forbidden" : "Authentication required", message }, { status });
       }
 
-      if (nextStatus === order.status) {
+      if (nextStatus === order.status && nextReturnCost === undefined) {
         return NextResponse.json(order);
       }
 
@@ -286,6 +294,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           status: nextStatus,
           updatedAt: FieldValue.serverTimestamp(),
         };
+
+        if (nextStatus === "returned" || nextReturnCost !== undefined) {
+          orderUpdate.returnCost = Math.max(Number(nextReturnCost ?? orderData.returnCost ?? 0), 0);
+        }
 
         const shouldCountLoyalty =
           normalizedNextStatus === "delivered" &&
