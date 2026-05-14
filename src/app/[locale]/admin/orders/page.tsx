@@ -54,6 +54,7 @@ const ORDER_EXPORT_HEADERS = [
   "discount",
   "total",
   "paymentMethod",
+  "productRevenue",
 ];
 
 const ORDER_ITEM_EXPORT_HEADERS = [
@@ -135,6 +136,7 @@ function buildOrdersCsv(orders: Order[]) {
       n(discountValue),
       n(order.total),
       s(order.paymentMethod),
+      n(order.subtotal),
     ]);
   });
 

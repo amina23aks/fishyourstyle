@@ -324,6 +324,7 @@ export async function POST(request: NextRequest) {
     let loyaltyDiscountAmount = 0;
     let loyaltyApplied = false;
     let orderTotal = 0;
+    const productRevenue = orderSubtotal;
 
     console.log("[api/orders] Order payload prepared", {
       hasUser: Boolean(orderToSave.userId),
@@ -521,12 +522,12 @@ export async function POST(request: NextRequest) {
         summaryRef,
         {
           totalOrders: Number(summaryData.totalOrders ?? 0) + 1,
-          totalRevenue: Number(summaryData.totalRevenue ?? 0) + orderTotal,
+          totalRevenue: Number(summaryData.totalRevenue ?? 0) + productRevenue,
           pendingOrders: Number(summaryData.pendingOrders ?? 0) + 1,
           ordersToday: baseOrdersToday + 1,
-          revenueToday: baseRevenueToday + orderTotal,
+          revenueToday: baseRevenueToday + productRevenue,
           ordersThisWeek: baseOrdersWeek + 1,
-          revenueThisWeek: baseRevenueWeek + orderTotal,
+          revenueThisWeek: baseRevenueWeek + productRevenue,
           updatedAt: FieldValue.serverTimestamp(),
           todayKey,
           weekKey,
@@ -538,7 +539,7 @@ export async function POST(request: NextRequest) {
         dailyRef,
         {
           orders: Number(dailyData.orders ?? 0) + 1,
-          revenue: Number(dailyData.revenue ?? 0) + orderTotal,
+          revenue: Number(dailyData.revenue ?? 0) + productRevenue,
           topCategories: nextCategoryTotals,
           topDesignThemes: nextDesignTotals,
           topProducts: nextProductTotals,

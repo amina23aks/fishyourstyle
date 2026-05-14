@@ -350,6 +350,28 @@ function getOrderProfitStats(
   }, emptyProfitStats());
 }
 
+function getOrderProductRevenueStats(orderDocs: { data: () => Record<string, unknown> }[]) {
+  return orderDocs.reduce(
+    (acc, docSnap) => {
+      const orderData = docSnap.data() ?? {};
+      const createdDate = toDateSafe(orderData.createdAt);
+      const dateKey = createdDate ? dateKeyInTZ(createdDate, TIME_ZONE) : "unknown";
+      const items = Array.isArray(orderData.items) ? orderData.items : [];
+      const fallbackSubtotal = items.reduce((sum, item) => {
+        const itemData = item as Record<string, unknown>;
+        const price = typeof itemData.price === "number" ? itemData.price : 0;
+        const quantity = typeof itemData.quantity === "number" ? itemData.quantity : 0;
+        return sum + price * quantity;
+      }, 0);
+      const productRevenue = typeof orderData.subtotal === "number" ? orderData.subtotal : fallbackSubtotal;
+      acc.total += productRevenue;
+      acc.byDate[dateKey] = (acc.byDate[dateKey] ?? 0) + productRevenue;
+      return acc;
+    },
+    { total: 0, byDate: {} as Record<string, number> },
+  );
+}
+
 function getDeltaInfo(current: number, previous: number) {
   if (previous === 0) {
     return { label: "—", direction: "neutral" as const };
@@ -501,31 +523,41 @@ export function AdminOverviewStats() {
         const currentProductCosts = await loadCurrentProductCosts(db, orderProductIds);
         const currentProfitStats = getOrderProfitStats(ordersSnapshot.docs, currentProductCosts);
         const previousProfitStats = getOrderProfitStats(prevOrdersSnapshot.docs, currentProductCosts);
+        const currentRevenueStats = getOrderProductRevenueStats(ordersSnapshot.docs);
+        const previousRevenueStats = getOrderProductRevenueStats(prevOrdersSnapshot.docs);
 
         const data = summarySnapshot.data() ?? {};
         setSummary({
           updatedAt: data.updatedAt ?? null,
         });
 
-        const daily = dailySnapshot.docs
-          .map((docSnap) => {
-            const dailyData = docSnap.data() ?? {};
+        const dailyDataByKey = new Map(dailySnapshot.docs.map((docSnap) => [docSnap.id, docSnap.data() ?? {}]));
+        const dailyKeys = Array.from(
+          new Set([
+            ...rangeMeta.points.map((point) => point.dateKey),
+            ...previousRangeMeta.points.map((point) => point.dateKey),
+            ...dailyDataByKey.keys(),
+          ]),
+        );
+        const daily = dailyKeys
+          .map((dateKey) => {
+            const dailyData = dailyDataByKey.get(dateKey) ?? {};
             return {
-              dateKey: docSnap.id,
+              dateKey,
               orders: Number(dailyData.orders ?? 0),
-              revenue: Number(dailyData.revenue ?? 0),
-              netProfit: currentProfitStats.byDate[docSnap.id]?.netProfit ?? previousProfitStats.byDate[docSnap.id]?.netProfit ?? 0,
+              revenue: currentRevenueStats.byDate[dateKey] ?? previousRevenueStats.byDate[dateKey] ?? 0,
+              netProfit: currentProfitStats.byDate[dateKey]?.netProfit ?? previousProfitStats.byDate[dateKey]?.netProfit ?? 0,
               costOfGoodsSold:
-                currentProfitStats.byDate[docSnap.id]?.costOfGoodsSold ??
-                previousProfitStats.byDate[docSnap.id]?.costOfGoodsSold ??
+                currentProfitStats.byDate[dateKey]?.costOfGoodsSold ??
+                previousProfitStats.byDate[dateKey]?.costOfGoodsSold ??
                 0,
               incompleteProfitOrders:
-                currentProfitStats.byDate[docSnap.id]?.incompleteProfitOrders ??
-                previousProfitStats.byDate[docSnap.id]?.incompleteProfitOrders ??
+                currentProfitStats.byDate[dateKey]?.incompleteProfitOrders ??
+                previousProfitStats.byDate[dateKey]?.incompleteProfitOrders ??
                 0,
               incompleteProfitItems:
-                currentProfitStats.byDate[docSnap.id]?.incompleteProfitItems ??
-                previousProfitStats.byDate[docSnap.id]?.incompleteProfitItems ??
+                currentProfitStats.byDate[dateKey]?.incompleteProfitItems ??
+                previousProfitStats.byDate[dateKey]?.incompleteProfitItems ??
                 0,
               topCategories:
                 typeof dailyData.topCategories === "object" && dailyData.topCategories
@@ -600,7 +632,7 @@ export function AdminOverviewStats() {
     };
 
     loadSummary();
-  }, [previousStartKey, rangeMeta.days, rangeMeta.startKey]);
+  }, [previousRangeMeta.points, previousStartKey, rangeMeta.days, rangeMeta.points, rangeMeta.startKey]);
 
   const lastUpdatedLabel = useMemo(() => {
     const date = toDateSafe(summary.updatedAt);

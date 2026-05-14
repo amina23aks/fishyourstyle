@@ -25,6 +25,7 @@ type ExportOrder = {
   discount: number;
   total: number;
   paymentMethod: string;
+  productRevenue: number;
   items: ExportItem[];
 };
 
@@ -149,6 +150,7 @@ export async function GET(request: NextRequest) {
         discount,
         total,
         paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
+        productRevenue: subtotal,
         items,
       };
     });

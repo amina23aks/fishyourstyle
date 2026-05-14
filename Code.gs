@@ -18,6 +18,7 @@ const ORDERS_HEADERS = [
   "discount",
   "total",
   "paymentMethod",
+  "productRevenue",
   "costOfGoodsSold",
   "netProfit",
   "profitSnapshotComplete",

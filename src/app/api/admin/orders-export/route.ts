@@ -26,6 +26,7 @@ type ExportOrderRow = {
   discount: number;
   total: number;
   paymentMethod: string;
+  productRevenue: number;
   costOfGoodsSold: number;
   netProfit: number;
   profitSnapshotComplete: boolean;
@@ -172,6 +173,7 @@ export async function GET(request: NextRequest) {
         discount,
         total,
         paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
+        productRevenue: subtotal,
         costOfGoodsSold,
         netProfit,
         profitSnapshotComplete,
