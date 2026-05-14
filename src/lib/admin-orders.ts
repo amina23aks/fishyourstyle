@@ -45,10 +45,14 @@ function normalizeOrder(data: DocumentData, id: string): Order {
     subtotal: typeof data.subtotal === "number" ? data.subtotal : 0,
     shippingCost: typeof data.shippingCost === "number" ? data.shippingCost : 0,
     total: typeof data.total === "number" ? data.total : 0,
+    costOfGoodsSold: typeof data.costOfGoodsSold === "number" ? data.costOfGoodsSold : undefined,
+    netProfit: typeof data.netProfit === "number" ? data.netProfit : undefined,
+    profitSnapshotComplete: typeof data.profitSnapshotComplete === "boolean" ? data.profitSnapshotComplete : undefined,
+    returnCost: typeof data.returnCost === "number" ? data.returnCost : undefined,
     paymentMethod: data.paymentMethod === "COD" ? "COD" : "COD",
     status:
       typeof data.status === "string" &&
-      ["pending", "confirmed", "shipped", "delivered", "cancelled"].includes(data.status)
+      ["pending", "confirmed", "shipped", "delivered", "cancelled", "returned"].includes(data.status)
         ? (data.status as OrderStatus)
         : "pending",
     createdAt: timestampToISO(data.createdAt),
@@ -90,7 +94,7 @@ export async function fetchRecentOrders(limitCount = 25): Promise<Order[]> {
   return page.orders;
 }
 
-export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus): Promise<void> {
+export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus, returnCost?: number): Promise<void> {
   const auth = getAuthInstance();
   const token = await auth?.currentUser?.getIdToken();
   if (!token) {
@@ -103,7 +107,7 @@ export async function updateOrderStatus(orderId: string, nextStatus: OrderStatus
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ status: nextStatus }),
+    body: JSON.stringify({ status: nextStatus, ...(typeof returnCost === "number" ? { returnCost } : {}) }),
   });
 
   if (!response.ok) {

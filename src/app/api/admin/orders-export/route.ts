@@ -26,6 +26,14 @@ type ExportOrderRow = {
   discount: number;
   total: number;
   paymentMethod: string;
+  productRevenue: number;
+  costOfGoodsSold: number;
+  netProfit: number;
+  profitSnapshotComplete: boolean;
+  returnCost: number;
+  accountingRevenue: number;
+  accountingCOGS: number;
+  accountingNetProfit: number;
 };
 
 type ExportOrderItemRow = {
@@ -43,6 +51,9 @@ type ExportOrderItemRow = {
   paymentMethod: string;
   category: string;
   design: string;
+  itemCostPrice: number;
+  itemProfit: number;
+  itemProfitTotal: number;
 };
 
 function getDateParts(iso: string) {
@@ -89,7 +100,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "bad_request", message: "since must be a valid ISO date." }, { status: 400 });
   }
 
-  // Cap limit to keep reads bounded on the free plan.
   // Cap max to keep reads bounded on the free plan.
   const rawLimit = Number(request.nextUrl.searchParams.get("max") ?? DEFAULT_LIMIT);
   const requestedLimit = Number.isFinite(rawLimit) ? rawLimit : DEFAULT_LIMIT;
@@ -130,6 +140,14 @@ export async function GET(request: NextRequest) {
         const itemData = item as Record<string, unknown>;
         return sum + (typeof itemData.quantity === "number" ? itemData.quantity : 0);
       }, 0);
+      const costOfGoodsSold = typeof data.costOfGoodsSold === "number" ? data.costOfGoodsSold : 0;
+      const netProfit = typeof data.netProfit === "number" ? data.netProfit : 0;
+      const status = typeof data.status === "string" ? data.status : "";
+      const returnCost = typeof data.returnCost === "number" ? data.returnCost : 0;
+      const accountingRevenue = status === "delivered" ? subtotal : 0;
+      const accountingCOGS = status === "delivered" ? costOfGoodsSold : 0;
+      const accountingNetProfit = status === "delivered" ? accountingRevenue - accountingCOGS : status === "returned" ? -returnCost : 0;
+      const profitSnapshotComplete = data.profitSnapshotComplete === true;
       const itemsSummary = itemsRaw
         .map((item) => {
           const itemData = item as Record<string, unknown>;
@@ -150,7 +168,7 @@ export async function GET(request: NextRequest) {
         createdAt: createdAtIso,
         month,
         date,
-        status: typeof data.status === "string" ? data.status : "",
+        status,
         customerName: typeof shipping.customerName === "string" ? shipping.customerName : "",
         customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : "",
         phone: typeof shipping.phone === "string" ? shipping.phone : "",
@@ -164,18 +182,29 @@ export async function GET(request: NextRequest) {
         discount,
         total,
         paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
+        productRevenue: subtotal,
+        costOfGoodsSold,
+        netProfit,
+        profitSnapshotComplete,
+        returnCost,
+        accountingRevenue,
+        accountingCOGS,
+        accountingNetProfit,
       });
 
       itemsRaw.forEach((item, index) => {
         const itemData = item as Record<string, unknown>;
         const itemQty = typeof itemData.quantity === "number" ? itemData.quantity : 0;
         const itemUnitPrice = typeof itemData.price === "number" ? itemData.price : 0;
+        const itemCostPrice = typeof itemData.itemCostPrice === "number" ? itemData.itemCostPrice : 0;
+        const itemProfit = typeof itemData.itemProfit === "number" ? itemData.itemProfit : itemUnitPrice - itemCostPrice;
+        const itemProfitTotal = typeof itemData.itemProfitTotal === "number" ? itemData.itemProfitTotal : itemProfit * itemQty;
         orderItems.push({
           rowKey: `${doc.id}_${index}`,
           orderId: doc.id,
           createdAt: createdAtIso,
           date,
-          status: typeof data.status === "string" ? data.status : "",
+          status,
           wilaya: typeof shipping.wilaya === "string" ? shipping.wilaya : "",
           deliveryMode: resolveDeliveryMode(shipping.mode),
           itemName: typeof itemData.name === "string" ? itemData.name : "",
@@ -185,6 +214,9 @@ export async function GET(request: NextRequest) {
           paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
           category: typeof itemData.category === "string" ? itemData.category : "",
           design: typeof itemData.design === "string" ? itemData.design : "",
+          itemCostPrice,
+          itemProfit,
+          itemProfitTotal,
         });
       });
     });

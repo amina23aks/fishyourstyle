@@ -60,6 +60,10 @@ type DailyStat = {
   dateKey: string;
   orders: number;
   revenue: number;
+  netProfit: number;
+  costOfGoodsSold: number;
+  incompleteProfitOrders: number;
+  incompleteProfitItems: number;
   topCategories: Record<string, number>;
   topDesignThemes: Record<string, number>;
   topProducts: Record<string, { name: string; qty: number; revenue: number }>;
@@ -70,6 +74,10 @@ type TrendPoint = {
   label: string;
   orders: number;
   revenue: number;
+  netProfit: number;
+  costOfGoodsSold: number;
+  incompleteProfitOrders: number;
+  incompleteProfitItems: number;
 };
 
 type RangeKey = "today" | "7d" | "30d" | "month";
@@ -92,9 +100,17 @@ type StatusCounts = {
   pending: number;
   delivered: number;
   cancelled: number;
+  returned: number;
   prevPending: number;
   prevDelivered: number;
   prevCancelled: number;
+  prevReturned: number;
+  costOfGoodsSold: number;
+  netProfit: number;
+  incompleteProfitOrders: number;
+  incompleteProfitItems: number;
+  prevCostOfGoodsSold: number;
+  prevNetProfit: number;
 };
 
 function buildDateRange(days: number, timeZone: string): TrendPoint[] {
@@ -112,6 +128,10 @@ function buildDateRange(days: number, timeZone: string): TrendPoint[] {
       label: dateKey.slice(5),
       orders: 0,
       revenue: 0,
+      netProfit: 0,
+      costOfGoodsSold: 0,
+      incompleteProfitOrders: 0,
+      incompleteProfitItems: 0,
     });
   }
 
@@ -132,6 +152,10 @@ function buildDateRangeFromStart(startKey: string, days: number, timeZone: strin
       label: dateKey.slice(5),
       orders: 0,
       revenue: 0,
+      netProfit: 0,
+      costOfGoodsSold: 0,
+      incompleteProfitOrders: 0,
+      incompleteProfitItems: 0,
     });
   }
 
@@ -196,8 +220,12 @@ function toDateSafe(value: unknown): Date | null {
   return null;
 }
 
+function normalizeAccountingAmount(value: number) {
+  return Math.round(value) === 0 ? 0 : value;
+}
+
 function formatCurrency(value: number) {
-  return CURRENCY_FORMATTER.format(value);
+  return CURRENCY_FORMATTER.format(normalizeAccountingAmount(value));
 }
 
 function formatCount(value: number) {
@@ -235,6 +263,137 @@ function getDesignThemeColor(themeName: string) {
   return AUTO_PALETTE[idx];
 }
 
+type ProductCostInfo = {
+  cost: number;
+  hasKnownCost: boolean;
+};
+
+type ProfitStats = {
+  costOfGoodsSold: number;
+  netProfit: number;
+  incompleteProfitOrders: number;
+  incompleteProfitItems: number;
+  byDate: Record<string, Omit<ProfitStats, "byDate">>;
+};
+
+const emptyProfitStats = (): ProfitStats => ({
+  costOfGoodsSold: 0,
+  netProfit: 0,
+  incompleteProfitOrders: 0,
+  incompleteProfitItems: 0,
+  byDate: {},
+});
+
+function normalizeKnownCost(value: unknown): ProductCostInfo {
+  const parsed = typeof value === "number" ? value : Number(value ?? 0);
+  const cost = Number.isFinite(parsed) ? Math.max(parsed, 0) : 0;
+  return { cost, hasKnownCost: cost > 0 };
+}
+
+async function loadCurrentProductCosts(db: NonNullable<ReturnType<typeof getDb>>, productIds: string[]) {
+  const uniqueIds = Array.from(new Set(productIds.filter(Boolean)));
+  const costs = new Map<string, ProductCostInfo>();
+  for (let index = 0; index < uniqueIds.length; index += 30) {
+    const chunk = uniqueIds.slice(index, index + 30);
+    if (chunk.length === 0) continue;
+    const snapshot = await getDocs(query(collection(db, "products"), where(documentId(), "in", chunk)));
+    snapshot.docs.forEach((docSnap) => {
+      const data = docSnap.data() ?? {};
+      costs.set(docSnap.id, normalizeKnownCost(data.costPrice ?? data.purchasePrice));
+    });
+  }
+  return costs;
+}
+
+function getOrderProfitStats(
+  orderDocs: { data: () => Record<string, unknown> }[],
+  currentProductCosts: Map<string, ProductCostInfo>,
+) {
+  return orderDocs.reduce((acc, docSnap) => {
+    const orderData = docSnap.data() ?? {};
+    const status = typeof orderData.status === "string" ? orderData.status : "pending";
+    const returnCost = typeof orderData.returnCost === "number" ? Math.max(orderData.returnCost, 0) : 0;
+    const items = Array.isArray(orderData.items) ? orderData.items : [];
+    const createdDate = toDateSafe(orderData.createdAt);
+    const dateKey = createdDate ? dateKeyInTZ(createdDate, TIME_ZONE) : "unknown";
+    const day = acc.byDate[dateKey] ?? {
+      costOfGoodsSold: 0,
+      netProfit: 0,
+      incompleteProfitOrders: 0,
+      incompleteProfitItems: 0,
+    };
+    let orderMissingCost = false;
+
+    if (status === "returned") {
+      acc.netProfit -= returnCost;
+      day.netProfit -= returnCost;
+      acc.byDate[dateKey] = day;
+      return acc;
+    }
+
+    if (status !== "delivered") {
+      acc.byDate[dateKey] = day;
+      return acc;
+    }
+
+    items.forEach((item) => {
+      const itemData = item as Record<string, unknown>;
+      const quantity = typeof itemData.quantity === "number" ? itemData.quantity : 0;
+      const price = typeof itemData.price === "number" ? itemData.price : 0;
+      const productId = typeof itemData.id === "string" ? itemData.id : "";
+      const hasSnapshotCost = typeof itemData.itemCostPrice === "number";
+      const snapshotCost = hasSnapshotCost ? normalizeKnownCost(itemData.itemCostPrice) : null;
+      const currentCost = productId ? currentProductCosts.get(productId) : undefined;
+      const costInfo = snapshotCost ?? currentCost ?? { cost: 0, hasKnownCost: false };
+      const knownLineCost = costInfo.hasKnownCost ? costInfo.cost * quantity : 0;
+      const estimatedLineProfit = price * quantity - knownLineCost;
+
+      acc.costOfGoodsSold += knownLineCost;
+      acc.netProfit += estimatedLineProfit;
+      day.costOfGoodsSold += knownLineCost;
+      day.netProfit += estimatedLineProfit;
+
+      if (!costInfo.hasKnownCost && quantity > 0) {
+        orderMissingCost = true;
+        acc.incompleteProfitItems += 1;
+        day.incompleteProfitItems += 1;
+      }
+    });
+
+    if (orderMissingCost) {
+      acc.incompleteProfitOrders += 1;
+      day.incompleteProfitOrders += 1;
+    }
+
+    acc.byDate[dateKey] = day;
+    return acc;
+  }, emptyProfitStats());
+}
+
+function getOrderProductRevenueStats(orderDocs: { data: () => Record<string, unknown> }[]) {
+  return orderDocs.reduce(
+    (acc, docSnap) => {
+      const orderData = docSnap.data() ?? {};
+      const createdDate = toDateSafe(orderData.createdAt);
+      const dateKey = createdDate ? dateKeyInTZ(createdDate, TIME_ZONE) : "unknown";
+      const status = typeof orderData.status === "string" ? orderData.status : "pending";
+      if (status !== "delivered") return acc;
+      const items = Array.isArray(orderData.items) ? orderData.items : [];
+      const fallbackSubtotal = items.reduce((sum, item) => {
+        const itemData = item as Record<string, unknown>;
+        const price = typeof itemData.price === "number" ? itemData.price : 0;
+        const quantity = typeof itemData.quantity === "number" ? itemData.quantity : 0;
+        return sum + price * quantity;
+      }, 0);
+      const productRevenue = typeof orderData.subtotal === "number" ? orderData.subtotal : fallbackSubtotal;
+      acc.total += productRevenue;
+      acc.byDate[dateKey] = (acc.byDate[dateKey] ?? 0) + productRevenue;
+      return acc;
+    },
+    { total: 0, byDate: {} as Record<string, number> },
+  );
+}
+
 function getDeltaInfo(current: number, previous: number) {
   if (previous === 0) {
     return { label: "—", direction: "neutral" as const };
@@ -261,12 +420,20 @@ export function AdminOverviewStats() {
     pending: 0,
     delivered: 0,
     cancelled: 0,
+    returned: 0,
     prevPending: 0,
     prevDelivered: 0,
     prevCancelled: 0,
+    prevReturned: 0,
+    costOfGoodsSold: 0,
+    netProfit: 0,
+    incompleteProfitOrders: 0,
+    incompleteProfitItems: 0,
+    prevCostOfGoodsSold: 0,
+    prevNetProfit: 0,
   });
   const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
-  const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
+  const [trendMetric, setTrendMetric] = useState<"orders" | "revenue" | "netProfit">("orders");
   const [rangeKey, setRangeKey] = useState<RangeKey>("7d");
 
   const rangeMeta = useMemo<RangeMeta>(() => {
@@ -370,19 +537,52 @@ export function AdminOverviewStats() {
           getDocs(prevOrdersQuery),
           getDocs(categoriesQuery),
         ]);
+        const orderProductIds = [...ordersSnapshot.docs, ...prevOrdersSnapshot.docs].flatMap((docSnap) => {
+          const orderData = docSnap.data() ?? {};
+          const items = Array.isArray(orderData.items) ? orderData.items : [];
+          return items
+            .map((item) => (item && typeof item === "object" ? (item as { id?: unknown }).id : null))
+            .filter((id): id is string => typeof id === "string" && id.length > 0);
+        });
+        const currentProductCosts = await loadCurrentProductCosts(db, orderProductIds);
+        const currentProfitStats = getOrderProfitStats(ordersSnapshot.docs, currentProductCosts);
+        const previousProfitStats = getOrderProfitStats(prevOrdersSnapshot.docs, currentProductCosts);
+        const currentRevenueStats = getOrderProductRevenueStats(ordersSnapshot.docs);
+        const previousRevenueStats = getOrderProductRevenueStats(prevOrdersSnapshot.docs);
 
         const data = summarySnapshot.data() ?? {};
         setSummary({
           updatedAt: data.updatedAt ?? null,
         });
 
-        const daily = dailySnapshot.docs
-          .map((docSnap) => {
-            const dailyData = docSnap.data() ?? {};
+        const dailyDataByKey = new Map(dailySnapshot.docs.map((docSnap) => [docSnap.id, docSnap.data() ?? {}]));
+        const dailyKeys = Array.from(
+          new Set([
+            ...rangeMeta.points.map((point) => point.dateKey),
+            ...previousRangeMeta.points.map((point) => point.dateKey),
+            ...dailyDataByKey.keys(),
+          ]),
+        );
+        const daily = dailyKeys
+          .map((dateKey) => {
+            const dailyData = dailyDataByKey.get(dateKey) ?? {};
             return {
-              dateKey: docSnap.id,
+              dateKey,
               orders: Number(dailyData.orders ?? 0),
-              revenue: Number(dailyData.revenue ?? 0),
+              revenue: currentRevenueStats.byDate[dateKey] ?? previousRevenueStats.byDate[dateKey] ?? 0,
+              netProfit: currentProfitStats.byDate[dateKey]?.netProfit ?? previousProfitStats.byDate[dateKey]?.netProfit ?? 0,
+              costOfGoodsSold:
+                currentProfitStats.byDate[dateKey]?.costOfGoodsSold ??
+                previousProfitStats.byDate[dateKey]?.costOfGoodsSold ??
+                0,
+              incompleteProfitOrders:
+                currentProfitStats.byDate[dateKey]?.incompleteProfitOrders ??
+                previousProfitStats.byDate[dateKey]?.incompleteProfitOrders ??
+                0,
+              incompleteProfitItems:
+                currentProfitStats.byDate[dateKey]?.incompleteProfitItems ??
+                previousProfitStats.byDate[dateKey]?.incompleteProfitItems ??
+                0,
               topCategories:
                 typeof dailyData.topCategories === "object" && dailyData.topCategories
                   ? (dailyData.topCategories as Record<string, number>)
@@ -405,9 +605,17 @@ export function AdminOverviewStats() {
           pending: 0,
           delivered: 0,
           cancelled: 0,
+          returned: 0,
           prevPending: 0,
           prevDelivered: 0,
           prevCancelled: 0,
+          prevReturned: 0,
+          costOfGoodsSold: currentProfitStats.costOfGoodsSold,
+          netProfit: currentProfitStats.netProfit,
+          incompleteProfitOrders: currentProfitStats.incompleteProfitOrders,
+          incompleteProfitItems: currentProfitStats.incompleteProfitItems,
+          prevCostOfGoodsSold: previousProfitStats.costOfGoodsSold,
+          prevNetProfit: previousProfitStats.netProfit,
         };
         ordersSnapshot.docs.forEach((docSnap) => {
           const orderData = docSnap.data() ?? {};
@@ -415,6 +623,7 @@ export function AdminOverviewStats() {
           if (status === "pending") nextStatusCounts.pending += 1;
           if (status === "delivered") nextStatusCounts.delivered += 1;
           if (status === "cancelled") nextStatusCounts.cancelled += 1;
+          if (status === "returned") nextStatusCounts.returned += 1;
         });
         prevOrdersSnapshot.docs.forEach((docSnap) => {
           const orderData = docSnap.data() ?? {};
@@ -422,6 +631,7 @@ export function AdminOverviewStats() {
           if (status === "pending") nextStatusCounts.prevPending += 1;
           if (status === "delivered") nextStatusCounts.prevDelivered += 1;
           if (status === "cancelled") nextStatusCounts.prevCancelled += 1;
+          if (status === "returned") nextStatusCounts.prevReturned += 1;
         });
         setStatusCounts(nextStatusCounts);
 
@@ -450,7 +660,7 @@ export function AdminOverviewStats() {
     };
 
     loadSummary();
-  }, [previousStartKey, rangeMeta.days, rangeMeta.startKey]);
+  }, [previousRangeMeta.points, previousStartKey, rangeMeta.days, rangeMeta.points, rangeMeta.startKey]);
 
   const lastUpdatedLabel = useMemo(() => {
     const date = toDateSafe(summary.updatedAt);
@@ -476,6 +686,10 @@ export function AdminOverviewStats() {
         ...point,
         orders: match?.orders ?? 0,
         revenue: match?.revenue ?? 0,
+        netProfit: match?.netProfit ?? 0,
+        costOfGoodsSold: match?.costOfGoodsSold ?? 0,
+        incompleteProfitOrders: match?.incompleteProfitOrders ?? 0,
+        incompleteProfitItems: match?.incompleteProfitItems ?? 0,
       };
     });
   }, [dailyStatsByKey, rangeMeta.points]);
@@ -487,6 +701,10 @@ export function AdminOverviewStats() {
         ...point,
         orders: match?.orders ?? 0,
         revenue: match?.revenue ?? 0,
+        netProfit: match?.netProfit ?? 0,
+        costOfGoodsSold: match?.costOfGoodsSold ?? 0,
+        incompleteProfitOrders: match?.incompleteProfitOrders ?? 0,
+        incompleteProfitItems: match?.incompleteProfitItems ?? 0,
       };
     });
   }, [dailyStatsByKey, previousRangeMeta.points]);
@@ -507,6 +725,10 @@ export function AdminOverviewStats() {
     () => previousTrendSeries.reduce((sum, item) => sum + item.revenue, 0),
     [previousTrendSeries]
   );
+  const currentNetProfitTotal = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.netProfit, 0),
+    [trendSeries]
+  );
   const deliveryRate = useMemo(
     () => (statusCounts.total > 0 ? (statusCounts.delivered / statusCounts.total) * 100 : null),
     [statusCounts.delivered, statusCounts.total]
@@ -518,6 +740,10 @@ export function AdminOverviewStats() {
   const pendingRate = useMemo(
     () => (statusCounts.total > 0 ? (statusCounts.pending / statusCounts.total) * 100 : null),
     [statusCounts.pending, statusCounts.total]
+  );
+  const returnedRate = useMemo(
+    () => (statusCounts.total > 0 ? (statusCounts.returned / statusCounts.total) * 100 : null),
+    [statusCounts.returned, statusCounts.total]
   );
 
   const cards = useMemo(
@@ -538,7 +764,7 @@ export function AdminOverviewStats() {
       {
         title: "Revenue",
         value: formatCurrency(currentRevenueTotal),
-        description: `Gross sales ${rangeDescription}.`,
+        description: `Delivered product sales ${rangeDescription}.`,
         delta: getDeltaInfo(currentRevenueTotal, previousRevenueTotal),
         accent: "from-emerald-500/20 via-emerald-500/5 to-transparent",
         icon: (
@@ -549,6 +775,38 @@ export function AdminOverviewStats() {
               strokeLinejoin="round"
               d="M12 3v18M16 7a4 4 0 0 0-8 0c0 2.5 8 2.5 8 5a4 4 0 0 1-8 0"
             />
+          </svg>
+        ),
+      },
+      {
+        title: "Net profit",
+        value: statusLoading ? "—" : formatCurrency(statusCounts.netProfit),
+        description:
+          statusCounts.incompleteProfitOrders > 0
+            ? `Estimated — missing cost for ${statusCounts.incompleteProfitOrders} order(s) / ${statusCounts.incompleteProfitItems} item(s).`
+            : `Delivered profit minus return costs ${rangeDescription}.`,
+        delta: getDeltaInfo(statusCounts.netProfit, statusCounts.prevNetProfit),
+        accent: "from-cyan-500/20 via-cyan-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-cyan-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M4 17l6-6 4 4 6-8" />
+            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M15 7h5v5" />
+          </svg>
+        ),
+      },
+      {
+        title: "Cost of goods sold",
+        value: statusLoading ? "—" : formatCurrency(statusCounts.costOfGoodsSold),
+        description:
+          statusCounts.incompleteProfitItems > 0
+            ? `Known costs only; ${statusCounts.incompleteProfitItems} item(s) missing cost.`
+            : `Delivered product costs ${rangeDescription}.`,
+        delta: getDeltaInfo(statusCounts.costOfGoodsSold, statusCounts.prevCostOfGoodsSold),
+        accent: "from-violet-500/20 via-violet-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-violet-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M4 7h16M6 7v11h12V7" />
+            <path strokeWidth="1.5" d="M9 11h6" />
           </svg>
         ),
       },
@@ -582,6 +840,21 @@ export function AdminOverviewStats() {
         ),
       },
       {
+        title: "Returned orders",
+        value: statusLoading ? "—" : formatCount(statusCounts.returned),
+        description: `Returned or failed-delivery orders created ${rangeDescription}.`,
+        rateLabel: "Return rate",
+        rateValue: returnedRate,
+        delta: getDeltaInfo(statusCounts.returned, statusCounts.prevReturned),
+        accent: "from-orange-500/20 via-orange-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-orange-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M7 7h10l-3-3M17 17H7l3 3" />
+            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M17 7a5 5 0 0 1 0 10M7 17A5 5 0 0 1 7 7" />
+          </svg>
+        ),
+      },
+      {
         title: "Cancelled orders",
         value: statusLoading ? "—" : formatCount(statusCounts.cancelled),
         description: `Cancelled orders created ${rangeDescription}.`,
@@ -604,10 +877,19 @@ export function AdminOverviewStats() {
       deliveryRate,
       cancelRate,
       pendingRate,
+      returnedRate,
       rangeDescription,
       statusCounts.cancelled,
       statusCounts.delivered,
       statusCounts.pending,
+      statusCounts.returned,
+      statusCounts.prevReturned,
+      statusCounts.costOfGoodsSold,
+      statusCounts.incompleteProfitOrders,
+      statusCounts.incompleteProfitItems,
+      statusCounts.netProfit,
+      statusCounts.prevCostOfGoodsSold,
+      statusCounts.prevNetProfit,
       statusCounts.prevDelivered,
       statusCounts.prevCancelled,
       statusCounts.prevPending,
@@ -673,16 +955,28 @@ export function AdminOverviewStats() {
     [topProducts]
   );
 
-  const chartSummaryValue = useMemo(
-    () =>
-      trendMetric === "orders"
-        ? `${formatCount(currentOrdersTotal)} orders`
-        : formatCurrency(currentRevenueTotal),
-    [currentOrdersTotal, currentRevenueTotal, trendMetric]
+  const chartMoneyKey = trendMetric === "netProfit" ? "netProfit" : "revenue";
+  const chartMoneyLabel = trendMetric === "netProfit" ? "Net profit" : "Revenue";
+  const chartMoneyTotal = trendMetric === "netProfit" ? currentNetProfitTotal : currentRevenueTotal;
+  const chartIncompleteProfitOrders = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.incompleteProfitOrders, 0),
+    [trendSeries]
   );
+  const chartIncompleteProfitItems = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.incompleteProfitItems, 0),
+    [trendSeries]
+  );
+  const chartSummaryValue = useMemo(() => {
+    if (trendMetric === "orders") return `${formatCount(currentOrdersTotal)} orders`;
+    const suffix =
+      trendMetric === "netProfit" && chartIncompleteProfitItems > 0
+        ? ` (estimated; missing cost for ${chartIncompleteProfitOrders} order(s) / ${chartIncompleteProfitItems} item(s))`
+        : "";
+    return `${formatCurrency(chartMoneyTotal)}${suffix}`;
+  }, [chartIncompleteProfitItems, chartIncompleteProfitOrders, chartMoneyTotal, currentOrdersTotal, trendMetric]);
 
   const isChartEmpty = useMemo(
-    () => trendSeries.every((point) => point.orders === 0 && point.revenue === 0),
+    () => trendSeries.every((point) => point.orders === 0 && point.revenue === 0 && point.netProfit === 0),
     [trendSeries]
   );
   const donutData = useMemo(
@@ -841,7 +1135,7 @@ export function AdminOverviewStats() {
             </div>
             <div className="flex flex-wrap gap-2">
               <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
-                {(["orders", "revenue"] as const).map((metric) => (
+                {(["orders", "revenue", "netProfit"] as const).map((metric) => (
                   <button
                     key={metric}
                     type="button"
@@ -852,7 +1146,7 @@ export function AdminOverviewStats() {
                         : "text-sky-100/70 hover:text-white"
                     }`}
                   >
-                    {metric === "orders" ? "Orders" : "Revenue"}
+                    {metric === "orders" ? "Orders" : metric === "revenue" ? "Revenue" : "Net profit"}
                   </button>
                 ))}
               </div>
@@ -891,27 +1185,38 @@ export function AdminOverviewStats() {
                     axisLine={false}
                     tickLine={false}
                     domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.2)]}
+                    tickFormatter={(value) =>
+                      trendMetric === "orders" ? formatCount(Number(value)) : `${formatCount(Number(value))} DA`
+                    }
                   />
                   <Tooltip
                     cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
                       const ordersValue = payload.find((entry) => entry.dataKey === "orders")?.value ?? 0;
-                      const revenueValue = payload.find((entry) => entry.dataKey === "revenue")?.value ?? 0;
+                      const moneyValue = payload.find((entry) => entry.dataKey === chartMoneyKey)?.value ?? 0;
+                      const point = payload[0]?.payload as TrendPoint | undefined;
                       return (
                         <div className="rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-sky-100 shadow-xl">
                           <p className="text-[10px] uppercase tracking-[0.18em] text-sky-200">{label}</p>
                           <p className="mt-1 text-sm font-semibold text-white">
                             {formatCount(Number(ordersValue))} orders
                           </p>
-                          <p className="text-sm text-sky-100/80">{formatCurrency(Number(revenueValue))}</p>
+                          <p className="text-sm text-sky-100/80">
+                            {chartMoneyLabel}: {formatCurrency(Number(moneyValue))}
+                          </p>
+                          {trendMetric === "netProfit" && point && point.incompleteProfitItems > 0 ? (
+                            <p className="mt-1 text-[11px] text-amber-100/80">
+                              Estimated — missing cost for {point.incompleteProfitOrders} order(s) / {point.incompleteProfitItems} item(s).
+                            </p>
+                          ) : null}
                         </div>
                       );
                     }}
                   />
                   <Bar dataKey="orders" fill="rgba(14, 165, 233, 0.6)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
                   <Area
-                    dataKey="revenue"
+                    dataKey={chartMoneyKey}
                     stroke="rgba(52, 211, 153, 0.8)"
                     fill="rgba(52, 211, 153, 0.15)"
                     strokeWidth={2}

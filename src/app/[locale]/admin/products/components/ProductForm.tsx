@@ -13,6 +13,7 @@ export type ProductFormValues = {
   description: string;
   basePrice: string;
   discountPercent: string;
+  costPrice: string;
   category: AdminProductCategory;
   designTheme: string;
   designThemeCustom: string;
@@ -118,6 +119,7 @@ const defaultValues: ProductFormValues = {
   description: "",
   basePrice: "",
   discountPercent: "0",
+  costPrice: "",
   category: "hoodies",
   designTheme: "simple",
   designThemeCustom: "",
@@ -192,22 +194,26 @@ async function persistSelectable(name: string, type: "category" | "design", toke
   }
 }
 
-function getDiscountPreview(basePrice: number | null, discountPercent: number | null) {
+function getDiscountPreview(basePrice: number | null, discountPercent: number | null, costPrice: number | null) {
   const base = Number.isFinite(basePrice ?? NaN) ? (basePrice as number) : null;
   const discount = clampDiscount(discountPercent);
   if (base === null) {
-    return { label: "Enter a base price to preview", discountedPrice: null };
+    return { label: "Enter a base price to preview", discountedPrice: null, profit: null, margin: null };
   }
   if (!discount) {
     return {
       label: `${currencyFormatter.format(base)} — no discount applied`,
       discountedPrice: base,
+      profit: costPrice !== null ? base - Math.max(costPrice, 0) : null,
+      margin: base > 0 && costPrice !== null ? ((base - Math.max(costPrice, 0)) / base) * 100 : null,
     };
   }
   const discounted = Math.max(base * (1 - discount / 100), 0);
   return {
     label: `${currencyFormatter.format(base)} → ${currencyFormatter.format(discounted)} (-${discount}%)`,
     discountedPrice: discounted,
+    profit: costPrice !== null ? discounted - Math.max(costPrice, 0) : null,
+    margin: discounted > 0 && costPrice !== null ? ((discounted - Math.max(costPrice, 0)) / discounted) * 100 : null,
   };
 }
 
@@ -438,8 +444,13 @@ export function ProductForm({
   const preview = useMemo(() => {
     const base = Number(values.basePrice || "");
     const discount = Number(values.discountPercent || "");
-    return getDiscountPreview(Number.isFinite(base) ? base : null, Number.isFinite(discount) ? discount : null);
-  }, [values.basePrice, values.discountPercent]);
+    const cost = values.costPrice === "" ? null : Number(values.costPrice);
+    return getDiscountPreview(
+      Number.isFinite(base) ? base : null,
+      Number.isFinite(discount) ? discount : null,
+      cost !== null && Number.isFinite(cost) ? cost : null,
+    );
+  }, [values.basePrice, values.discountPercent, values.costPrice]);
 
   const handleAddCategory = async () => {
     const trimmed = newCategoryName.trim();
@@ -647,9 +658,35 @@ export function ProductForm({
               placeholder="0"
             />
           </label>
-          <div className="col-span-2 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[12px] text-sky-100/80">
-            <span>Price after discount</span>
-            <span className="font-semibold text-white text-right">{preview.label}</span>
+          <label className="space-y-2 text-sm text-sky-100/90">
+            <span className="font-semibold text-white">Cost price (DZD)</span>
+            <input
+              type="number"
+              min="0"
+              inputMode="decimal"
+              value={values.costPrice}
+              onChange={(e) => setValues((prev) => ({ ...prev, costPrice: e.target.value }))}
+              className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2.5 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+              placeholder="0"
+            />
+          </label>
+          <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[12px] text-sky-100/80">
+            <div className="flex items-center justify-between gap-3">
+              <span>Selling price after discount</span>
+              <span className="font-semibold text-white text-right">{preview.label}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Estimated profit per item</span>
+              <span className="font-semibold text-white text-right">
+                {preview.profit === null ? "Add cost price" : currencyFormatter.format(preview.profit)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Estimated profit margin</span>
+              <span className="font-semibold text-white text-right">
+                {preview.margin === null ? "—" : `${preview.margin.toFixed(1)}%`}
+              </span>
+            </div>
           </div>
         </div>
 

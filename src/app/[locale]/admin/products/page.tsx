@@ -53,6 +53,7 @@ const defaultForm: ProductFormValues = {
   description: "",
   basePrice: "",
   discountPercent: "0",
+  costPrice: "",
   category: "", // Will be set from categories list
   designTheme: "simple",
   designThemeCustom: "",
@@ -337,6 +338,7 @@ export default function AdminProductsPage() {
         basePrice: Number(values.basePrice || 0),
         discountPercent: Number(values.discountPercent || 0),
         finalPrice: Math.max(Number(values.basePrice || 0) * (1 - Number(values.discountPercent || 0) / 100), 0),
+        costPrice: Math.max(Number(values.costPrice || 0), 0),
         category: values.category,
         designTheme,
         sizes: values.sizes,
@@ -420,6 +422,7 @@ export default function AdminProductsPage() {
       description: product.description ?? "",
       basePrice: product.basePrice?.toString() ?? "",
       discountPercent: product.discountPercent?.toString() ?? "0",
+      costPrice: product.costPrice ? product.costPrice.toString() : "",
       category: product.category,
       designTheme: product.designTheme || "simple",
       designThemeCustom: "",

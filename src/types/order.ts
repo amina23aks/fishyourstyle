@@ -29,6 +29,12 @@ export type OrderItem = {
   size: string;
   /** Quantity ordered */
   quantity: number;
+  /** Admin-only item cost snapshot in DZD, captured at order time. */
+  itemCostPrice?: number;
+  /** Admin-only per-unit profit snapshot in DZD, captured at order time. */
+  itemProfit?: number;
+  /** Admin-only line profit snapshot in DZD, captured at order time. */
+  itemProfitTotal?: number;
   /** Variant key for uniqueness (id-colorCode-size) */
   variantKey: string;
 };
@@ -59,7 +65,8 @@ export type OrderStatus =
   | "confirmed" // Order confirmed, preparing for shipment
   | "shipped" // Order shipped
   | "delivered" // Order delivered
-  | "cancelled"; // Order cancelled
+  | "cancelled" // Order cancelled
+  | "returned"; // Order returned or failed delivery
 
 /**
  * Payment method used for the order.
@@ -96,6 +103,14 @@ export type Order = {
   discountAmount?: number;
   /** Grand total (subtotal + shipping) */
   total: number;
+  /** Admin-only cost of goods sold snapshot in DZD. */
+  costOfGoodsSold?: number;
+  /** Admin-only net profit snapshot in DZD. */
+  netProfit?: number;
+  /** True when every item profit was computed from an order-time snapshot. */
+  profitSnapshotComplete?: boolean;
+  /** Admin-only return or failed-delivery cost in DZD. */
+  returnCost?: number;
   /** Payment method */
   paymentMethod: PaymentMethod;
   /** Order status */

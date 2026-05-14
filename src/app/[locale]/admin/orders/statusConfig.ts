@@ -7,6 +7,7 @@ export const STATUS_FILTER_OPTIONS: ("all" | OrderStatus)[] = [
   "shipped",
   "delivered",
   "cancelled",
+  "returned",
 ];
 
 export const STATUS_OPTIONS: OrderStatus[] = [
@@ -15,6 +16,7 @@ export const STATUS_OPTIONS: OrderStatus[] = [
   "shipped",
   "delivered",
   "cancelled",
+  "returned",
 ];
 
 export const statusStyles: Record<OrderStatus, { label: string; className: string; dotClass: string }> = {
@@ -42,5 +44,10 @@ export const statusStyles: Record<OrderStatus, { label: string; className: strin
     label: "Cancelled",
     className: "bg-rose-400/15 text-rose-100 ring-1 ring-rose-300/40",
     dotClass: "bg-rose-300",
+  },
+  returned: {
+    label: "Returned",
+    className: "bg-orange-400/15 text-orange-100 ring-1 ring-orange-300/40",
+    dotClass: "bg-orange-300",
   },
 };

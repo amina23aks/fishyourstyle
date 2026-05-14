@@ -12,12 +12,16 @@ import { colorCodeToHex } from "@/lib/colorUtils";
 import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
+function normalizeAccountingAmount(value: number) {
+  return Math.round(value) === 0 ? 0 : value;
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("fr-DZ", {
     style: "currency",
     currency: "DZD",
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(normalizeAccountingAmount(value));
 }
 
 function formatDateTime(iso: string) {
@@ -43,6 +47,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [returnCostValue, setReturnCostValue] = useState("");
 
   const pushToast = useCallback((toast: Omit<Toast, "id">) => {
     const id = Date.now();
@@ -83,6 +88,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
           setError("Order not found");
         }
         setOrder(fetched);
+        setReturnCostValue(fetched?.returnCost ? String(fetched.returnCost) : "");
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load order";
         setError(message);
@@ -102,24 +108,72 @@ export default function AdminOrderDetailPage({ params }: Props) {
       const previousUpdatedAt = order.updatedAt;
       const updatedAt = new Date().toISOString();
 
+      const requestedReturnCost = Number(returnCostValue || order.returnCost || 0);
+      const optimisticReturnCost = nextStatus === "returned" ? (requestedReturnCost > 0 ? requestedReturnCost : 300) : order.returnCost;
+
       setStatusUpdating(orderId);
-      setOrder({ ...order, status: nextStatus, updatedAt });
+      setOrder({ ...order, status: nextStatus, returnCost: optimisticReturnCost, updatedAt });
+      if (nextStatus === "returned") setReturnCostValue(String(optimisticReturnCost));
 
       try {
-        await updateOrderStatus(orderId, nextStatus);
+        await updateOrderStatus(orderId, nextStatus, nextStatus === "returned" && requestedReturnCost > 0 ? requestedReturnCost : undefined);
         pushToast({ type: "success", message: "Order status updated" });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to update status";
         pushToast({ type: "error", message });
         setOrder({ ...order, status: previousStatus, updatedAt: previousUpdatedAt });
+        setReturnCostValue(order.returnCost ? String(order.returnCost) : "");
       } finally {
         setStatusUpdating(null);
       }
     },
-    [order, pushToast]
+    [order, pushToast, returnCostValue]
   );
 
   const currentStatus = useMemo(() => order?.status, [order?.status]);
+  const profitSummary = useMemo(() => {
+    if (!order) return { accountingCogs: 0, originalCogs: 0, profit: 0, complete: false };
+    let complete = true;
+    const originalCogs =
+      typeof order.costOfGoodsSold === "number"
+        ? order.costOfGoodsSold
+        : order.items.reduce((sum, item) => {
+            if (typeof item.itemCostPrice !== "number") complete = false;
+            const cost = typeof item.itemCostPrice === "number" ? item.itemCostPrice : 0;
+            return sum + cost * item.quantity;
+          }, 0);
+
+    if (order.status === "returned") {
+      return { accountingCogs: 0, originalCogs, profit: -(order.returnCost ?? 0), complete };
+    }
+    if (order.status !== "delivered") {
+      return { accountingCogs: 0, originalCogs, profit: 0, complete };
+    }
+
+    return {
+      accountingCogs: originalCogs,
+      originalCogs,
+      profit: order.subtotal - originalCogs,
+      complete: complete && order.profitSnapshotComplete === true,
+    };
+  }, [order]);
+
+  const saveReturnCost = useCallback(async () => {
+    if (!order) return;
+    const nextReturnCost = Math.max(Number(returnCostValue || 0), 0);
+    setStatusUpdating(order.id);
+    try {
+      await updateOrderStatus(order.id, "returned", nextReturnCost);
+      setReturnCostValue(String(nextReturnCost));
+      setOrder({ ...order, status: "returned", returnCost: nextReturnCost, updatedAt: new Date().toISOString() });
+      pushToast({ type: "success", message: "Return cost updated" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update return cost";
+      pushToast({ type: "error", message });
+    } finally {
+      setStatusUpdating(null);
+    }
+  }, [order, pushToast, returnCostValue]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 pb-10">
@@ -195,6 +249,45 @@ export default function AdminOrderDetailPage({ params }: Props) {
                   <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Total</p>
                   <p className="text-xl font-semibold text-white">{formatCurrency(order.total)}</p>
                 </div>
+                {order.status === "returned" ? (
+                  <div className="space-y-2 sm:col-span-2">
+                    <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Return cost / failed delivery fee</p>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="decimal"
+                        value={returnCostValue}
+                        onChange={(event) => setReturnCostValue(event.target.value)}
+                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/30 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/40"
+                        placeholder="0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void saveReturnCost()}
+                        disabled={statusUpdating === order.id}
+                        className="rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15 disabled:opacity-50"
+                      >
+                        Save fee
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Original product cost</p>
+                  <p className="text-white">{formatCurrency(profitSummary.originalCogs)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Accounting COGS</p>
+                  <p className="text-white">{formatCurrency(profitSummary.accountingCogs)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Final accounting impact</p>
+                  <p className="text-xl font-semibold text-white">{formatCurrency(profitSummary.profit)}</p>
+                  {!profitSummary.complete ? (
+                    <p className="text-[11px] text-amber-100/80">Incomplete: missing snapshots use 0 cost.</p>
+                  ) : null}
+                </div>
               </div>
             </div>
 
@@ -246,9 +339,11 @@ export default function AdminOrderDetailPage({ params }: Props) {
                     </div>
                     <p className="font-semibold text-white">{formatCurrency(item.price)}</p>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between text-xs text-sky-100/70">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-sky-100/70">
                     <span>Qty: {item.quantity}</span>
                     <span>Line total: {formatCurrency(item.price * item.quantity)}</span>
+                    <span>Cost: {formatCurrency(typeof item.itemCostPrice === "number" ? item.itemCostPrice : 0)}</span>
+                    <span>Profit: {formatCurrency(typeof item.itemProfitTotal === "number" ? item.itemProfitTotal : (item.price - (item.itemCostPrice ?? 0)) * item.quantity)}</span>
                   </div>
                 </div>
               ))}

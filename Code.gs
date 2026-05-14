@@ -18,6 +18,14 @@ const ORDERS_HEADERS = [
   "discount",
   "total",
   "paymentMethod",
+  "productRevenue",
+  "costOfGoodsSold",
+  "netProfit",
+  "profitSnapshotComplete",
+  "returnCost",
+  "accountingRevenue",
+  "accountingCOGS",
+  "accountingNetProfit",
 ];
 
 const ORDER_ITEMS_HEADERS = [
@@ -35,6 +43,9 @@ const ORDER_ITEMS_HEADERS = [
   "paymentMethod",
   "category",
   "design",
+  "itemCostPrice",
+  "itemProfit",
+  "itemProfitTotal",
 ];
 
 function syncNow() {

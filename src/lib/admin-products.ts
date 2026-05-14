@@ -30,6 +30,7 @@ export type AdminProduct = {
   basePrice: number;
   discountPercent: number;
   finalPrice: number;
+  costPrice: number;
   category: AdminProductCategory;
   designTheme: string;
   sizes: string[];
@@ -50,7 +51,7 @@ export type AdminProduct = {
   updatedAt: Timestamp;
 };
 
-export type AdminProductInput = Omit<AdminProduct, "id" | "createdAt" | "updatedAt">;
+export type AdminProductInput = Omit<AdminProduct, "id" | "createdAt" | "updatedAt" | "costPrice"> & { costPrice?: number };
 type AdminProductWrite = AdminProductInput & { updatedAt: Timestamp; createdAt?: Timestamp };
 
 function getDbOrThrow() {
@@ -174,6 +175,9 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     typeof data.finalPrice === "number"
       ? data.finalPrice
       : computeFinalPrice(basePrice, Number.isFinite(discountPercent) ? discountPercent : 0);
+  const rawCostPrice = data.costPrice ?? data.purchasePrice ?? 0;
+  const costPrice =
+    typeof rawCostPrice === "number" ? rawCostPrice : Number(rawCostPrice ?? 0);
 
   const legacyStockQuantity =
     typeof data.stockQuantity === "number"
@@ -213,6 +217,7 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     basePrice,
     discountPercent: Number.isFinite(discountPercent) ? discountPercent : 0,
     finalPrice,
+    costPrice: Number.isFinite(costPrice) ? Math.max(costPrice, 0) : 0,
     category: (data.category as AdminProductCategory) ?? "tshirts",
     designTheme: typeof data.designTheme === "string" ? data.designTheme : "simple",
     sizes: parseStringArray(data.sizes),
@@ -253,6 +258,7 @@ function sanitizeCreate(input: AdminProductInput): WithFieldValue<AdminProductWr
     basePrice: Number(input.basePrice),
     discountPercent: Number(input.discountPercent) || 0,
     finalPrice: computeFinalPrice(Number(input.basePrice), Number(input.discountPercent) || 0),
+    costPrice: Math.max(Number(input.costPrice ?? 0) || 0, 0),
     category: input.category,
     designTheme: input.designTheme,
     sizes: input.sizes ?? [],
@@ -301,6 +307,7 @@ function sanitizeUpdate(patch: Partial<AdminProduct>): WithFieldValue<Partial<Ad
   }
   if (patch.basePrice !== undefined) payload.basePrice = Number(patch.basePrice);
   if (patch.discountPercent !== undefined) payload.discountPercent = Number(patch.discountPercent) || 0;
+  if (patch.costPrice !== undefined) payload.costPrice = Math.max(Number(patch.costPrice ?? 0) || 0, 0);
   if (patch.basePrice !== undefined || patch.discountPercent !== undefined) {
     const base = patch.basePrice !== undefined ? Number(patch.basePrice) : 0;
     const discount = patch.discountPercent !== undefined ? Number(patch.discountPercent) || 0 : 0;
