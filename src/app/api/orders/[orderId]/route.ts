@@ -42,14 +42,23 @@ function timestampToISO(timestamp: unknown): string {
   return new Date().toISOString();
 }
 
-function firestoreDataToOrder(orderId: string, data: Record<string, unknown>): Order {
+function firestoreDataToOrder(orderId: string, data: Record<string, unknown>, includeAdminFinancials = false): Order {
   const status = (data.status ?? "pending") as OrderStatus;
 
   return {
     id: orderId,
     userId: typeof data.userId === "string" ? data.userId : undefined,
     customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : undefined,
-    items: Array.isArray(data.items) ? (data.items as Order["items"]) : [],
+    items: Array.isArray(data.items)
+      ? data.items.map((item) => {
+          if (includeAdminFinancials || !item || typeof item !== "object") return item;
+          const { itemCostPrice, itemProfit, itemProfitTotal, ...publicItem } = item as Record<string, unknown>;
+          void itemCostPrice;
+          void itemProfit;
+          void itemProfitTotal;
+          return publicItem;
+        }) as Order["items"]
+      : [],
     shipping: (data.shipping as Order["shipping"]) ?? {
       customerName: "",
       phone: "",
@@ -67,6 +76,14 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>): O
     createdAt: timestampToISO(data.createdAt),
     updatedAt: timestampToISO(data.updatedAt),
     cancelledAt: data.cancelledAt ? timestampToISO(data.cancelledAt) : undefined,
+    ...(includeAdminFinancials
+      ? {
+          costOfGoodsSold: typeof data.costOfGoodsSold === "number" ? data.costOfGoodsSold : undefined,
+          netProfit: typeof data.netProfit === "number" ? data.netProfit : undefined,
+          profitSnapshotComplete:
+            typeof data.profitSnapshotComplete === "boolean" ? data.profitSnapshotComplete : undefined,
+        }
+      : {}),
   };
 }
 
@@ -203,7 +220,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     }
 
     const data = snapshot.data();
-    const order = firestoreDataToOrder(snapshot.id, data as Record<string, unknown>);
+    const order = firestoreDataToOrder(snapshot.id, data as Record<string, unknown>, true);
 
     const wantsStatusUpdate = typeof payload?.status === "string";
 
@@ -352,7 +369,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
       const updatedOrder = firestoreDataToOrder(
         updatedSnapshot.id,
-        updatedData as Record<string, unknown>
+        updatedData as Record<string, unknown>,
+        true
       );
 
       return NextResponse.json(updatedOrder);
@@ -418,14 +436,28 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       const shippingCost =
         typeof updatedShipping.price === "number" ? updatedShipping.price : order.shippingCost;
       const total = subtotal + shippingCost;
+      const previousCostByVariant = new Map(
+        order.items.map((item) => [item.variantKey, typeof item.itemCostPrice === "number" ? item.itemCostPrice : 0]),
+      );
+      const itemsWithProfit = updatedItems.map((item) => {
+        const itemCostPrice = previousCostByVariant.get(item.variantKey) ?? 0;
+        const itemProfit = item.price - itemCostPrice;
+        const itemProfitTotal = itemProfit * item.quantity;
+        return { ...item, itemCostPrice, itemProfit, itemProfitTotal };
+      });
+      const costOfGoodsSold = itemsWithProfit.reduce((sum, item) => sum + item.itemCostPrice * item.quantity, 0);
+      const netProfit = itemsWithProfit.reduce((sum, item) => sum + item.itemProfitTotal, 0);
 
       const updateData: Record<string, unknown> = {
         shipping: updatedShipping,
-        items: updatedItems,
+        items: itemsWithProfit,
         notes: updatedNotes ?? null,
         subtotal,
         shippingCost,
         total,
+        costOfGoodsSold,
+        netProfit,
+        profitSnapshotComplete: order.profitSnapshotComplete === true,
         updatedAt: FieldValue.serverTimestamp(),
       };
 

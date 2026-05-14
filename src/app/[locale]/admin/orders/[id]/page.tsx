@@ -120,6 +120,25 @@ export default function AdminOrderDetailPage({ params }: Props) {
   );
 
   const currentStatus = useMemo(() => order?.status, [order?.status]);
+  const profitSummary = useMemo(() => {
+    if (!order) return { cogs: 0, profit: 0, complete: false };
+    if (typeof order.costOfGoodsSold === "number" && typeof order.netProfit === "number") {
+      return { cogs: order.costOfGoodsSold, profit: order.netProfit, complete: order.profitSnapshotComplete === true };
+    }
+    let complete = true;
+    const totals = order.items.reduce(
+      (acc, item) => {
+        if (typeof item.itemCostPrice !== "number" || typeof item.itemProfitTotal !== "number") {
+          complete = false;
+        }
+        const cost = typeof item.itemCostPrice === "number" ? item.itemCostPrice : 0;
+        const profit = typeof item.itemProfitTotal === "number" ? item.itemProfitTotal : (item.price - cost) * item.quantity;
+        return { cogs: acc.cogs + cost * item.quantity, profit: acc.profit + profit };
+      },
+      { cogs: 0, profit: 0 },
+    );
+    return { ...totals, complete };
+  }, [order]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 pb-10">
@@ -195,6 +214,17 @@ export default function AdminOrderDetailPage({ params }: Props) {
                   <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Total</p>
                   <p className="text-xl font-semibold text-white">{formatCurrency(order.total)}</p>
                 </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Cost of goods sold</p>
+                  <p className="text-white">{formatCurrency(profitSummary.cogs)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Net profit</p>
+                  <p className="text-xl font-semibold text-white">{formatCurrency(profitSummary.profit)}</p>
+                  {!profitSummary.complete ? (
+                    <p className="text-[11px] text-amber-100/80">Incomplete: missing snapshots use 0 cost.</p>
+                  ) : null}
+                </div>
               </div>
             </div>
 
@@ -246,9 +276,11 @@ export default function AdminOrderDetailPage({ params }: Props) {
                     </div>
                     <p className="font-semibold text-white">{formatCurrency(item.price)}</p>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between text-xs text-sky-100/70">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-sky-100/70">
                     <span>Qty: {item.quantity}</span>
                     <span>Line total: {formatCurrency(item.price * item.quantity)}</span>
+                    <span>Cost: {formatCurrency(typeof item.itemCostPrice === "number" ? item.itemCostPrice : 0)}</span>
+                    <span>Profit: {formatCurrency(typeof item.itemProfitTotal === "number" ? item.itemProfitTotal : (item.price - (item.itemCostPrice ?? 0)) * item.quantity)}</span>
                   </div>
                 </div>
               ))}

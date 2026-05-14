@@ -45,6 +45,9 @@ function normalizeOrder(data: DocumentData, id: string): Order {
     subtotal: typeof data.subtotal === "number" ? data.subtotal : 0,
     shippingCost: typeof data.shippingCost === "number" ? data.shippingCost : 0,
     total: typeof data.total === "number" ? data.total : 0,
+    costOfGoodsSold: typeof data.costOfGoodsSold === "number" ? data.costOfGoodsSold : undefined,
+    netProfit: typeof data.netProfit === "number" ? data.netProfit : undefined,
+    profitSnapshotComplete: typeof data.profitSnapshotComplete === "boolean" ? data.profitSnapshotComplete : undefined,
     paymentMethod: data.paymentMethod === "COD" ? "COD" : "COD",
     status:
       typeof data.status === "string" &&

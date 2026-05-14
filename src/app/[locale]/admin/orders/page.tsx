@@ -493,6 +493,9 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="px-3 py-4 align-top text-right font-semibold text-white lg:px-4">
                         {formatCurrency(order.total)}
+                        {typeof order.netProfit === "number" ? (
+                          <div className="text-[11px] font-normal text-cyan-100/75">Profit {formatCurrency(order.netProfit)}</div>
+                        ) : null}
                       </td>
                     </tr>
                   ))}
@@ -527,7 +530,12 @@ export default function AdminOrdersPage() {
                       </div>
                       <div className="text-xs text-sky-100/70">{order.customerEmail || "Guest checkout"}</div>
                     </div>
-                    <div className="text-right font-semibold text-white">{formatCurrency(order.total)}</div>
+                    <div className="text-right font-semibold text-white">
+                      {formatCurrency(order.total)}
+                      {typeof order.netProfit === "number" ? (
+                        <div className="text-[11px] font-normal text-cyan-100/75">Profit {formatCurrency(order.netProfit)}</div>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-sky-100/80">

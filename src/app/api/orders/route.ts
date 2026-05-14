@@ -190,6 +190,11 @@ function normalizeOrderPayload(data: unknown): NewOrder | null {
   };
 }
 
+function normalizeCostPrice(value: unknown): number {
+  const parsed = typeof value === "number" ? value : Number(value ?? 0);
+  return Number.isFinite(parsed) ? Math.max(parsed, 0) : 0;
+}
+
 function hasInvalidOrderPhone(data: unknown): boolean {
   if (!isPlainObject(data) || !isPlainObject(data.shipping)) return false;
   const phone = data.shipping.phone;
@@ -442,7 +447,7 @@ export async function POST(request: NextRequest) {
       const nextDesignTotals = { ...existingDesignTotals };
       const nextProductTotals = { ...existingProductTotals };
 
-      // Snapshot category/design on the order items to avoid extra reads during exports.
+      // Snapshot admin-only cost/profit plus category/design to avoid extra reads during exports.
       const itemsWithMetadata = orderToSave.items.map((item) => {
         const productData = productSnapshots.get(item.id);
         const categoryFromCart = typeof item.category === "string" ? item.category.trim() : "";
@@ -457,8 +462,16 @@ export async function POST(request: NextRequest) {
           (typeof productData?.designTheme === "string" && productData.designTheme.trim()
             ? productData.designTheme
             : "");
-        return { ...item, category, design };
+        const itemCostPrice = normalizeCostPrice(productData?.costPrice ?? productData?.purchasePrice);
+        const itemProfit = item.price - itemCostPrice;
+        const itemProfitTotal = itemProfit * item.quantity;
+        return { ...item, category, design, itemCostPrice, itemProfit, itemProfitTotal };
       });
+      const costOfGoodsSold = itemsWithMetadata.reduce(
+        (sum, item) => sum + item.itemCostPrice * item.quantity,
+        0,
+      );
+      const netProfit = itemsWithMetadata.reduce((sum, item) => sum + item.itemProfitTotal, 0);
 
       for (const item of itemsWithMetadata) {
         const productData = productSnapshots.get(item.id);
@@ -490,6 +503,9 @@ export async function POST(request: NextRequest) {
         items: itemsWithMetadata,
         totalBeforeDiscount: orderTotalBeforeDiscount,
         total: orderTotal,
+        costOfGoodsSold,
+        netProfit,
+        profitSnapshotComplete: true,
       };
       if (loyaltyApplied) {
         orderDataForFirestore = {
@@ -628,12 +644,21 @@ function timestampToISO(timestamp: unknown): string {
   return new Date().toISOString();
 }
 
-function firestoreDocToOrder(docId: string, data: DocumentData): Order {
+function firestoreDocToOrder(docId: string, data: DocumentData, includeAdminFinancials = false): Order {
   return {
     id: docId,
     userId: typeof data.userId === "string" ? data.userId : undefined,
     customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : undefined,
-    items: data.items || [],
+    items: Array.isArray(data.items)
+      ? data.items.map((item: unknown) => {
+          if (includeAdminFinancials || !item || typeof item !== "object") return item;
+          const { itemCostPrice, itemProfit, itemProfitTotal, ...publicItem } = item as Record<string, unknown>;
+          void itemCostPrice;
+          void itemProfit;
+          void itemProfitTotal;
+          return publicItem;
+        }) as Order["items"]
+      : [],
     shipping: data.shipping,
     notes: data.notes,
     subtotal: data.subtotal,
@@ -648,6 +673,14 @@ function firestoreDocToOrder(docId: string, data: DocumentData): Order {
     createdAt: timestampToISO(data.createdAt),
     updatedAt: timestampToISO(data.updatedAt),
     cancelledAt: data.cancelledAt ? timestampToISO(data.cancelledAt) : undefined,
+    ...(includeAdminFinancials
+      ? {
+          costOfGoodsSold: typeof data.costOfGoodsSold === "number" ? data.costOfGoodsSold : undefined,
+          netProfit: typeof data.netProfit === "number" ? data.netProfit : undefined,
+          profitSnapshotComplete:
+            typeof data.profitSnapshotComplete === "boolean" ? data.profitSnapshotComplete : undefined,
+        }
+      : {}),
   };
 }
 
@@ -705,7 +738,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
-      const orderData = firestoreDocToOrder(orderSnapshot.id, data);
+      const orderData = firestoreDocToOrder(orderSnapshot.id, data, isAdmin(decoded));
       return NextResponse.json(orderData);
     }
 
@@ -725,7 +758,7 @@ export async function GET(request: NextRequest) {
       userOrdersSnapshot.forEach((snapshotDoc) => {
         const orderData = snapshotDoc.data();
         if (orderData) {
-          orders.push(firestoreDocToOrder(snapshotDoc.id, orderData as DocumentData));
+          orders.push(firestoreDocToOrder(snapshotDoc.id, orderData as DocumentData, isAdmin(decoded)));
         }
       });
 
@@ -742,7 +775,7 @@ export async function GET(request: NextRequest) {
     ordersSnapshot.forEach((doc) => {
       const data = doc.data();
       if (data) {
-        orders.push(firestoreDocToOrder(doc.id, data as DocumentData));
+        orders.push(firestoreDocToOrder(doc.id, data as DocumentData, true));
       }
     });
 

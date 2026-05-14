@@ -95,6 +95,11 @@ type StatusCounts = {
   prevPending: number;
   prevDelivered: number;
   prevCancelled: number;
+  costOfGoodsSold: number;
+  netProfit: number;
+  incompleteProfitOrders: number;
+  prevCostOfGoodsSold: number;
+  prevNetProfit: number;
 };
 
 function buildDateRange(days: number, timeZone: string): TrendPoint[] {
@@ -235,6 +240,57 @@ function getDesignThemeColor(themeName: string) {
   return AUTO_PALETTE[idx];
 }
 
+async function loadCurrentProductCosts(db: NonNullable<ReturnType<typeof getDb>>, productIds: string[]) {
+  const uniqueIds = Array.from(new Set(productIds.filter(Boolean)));
+  const costs = new Map<string, number>();
+  for (let index = 0; index < uniqueIds.length; index += 30) {
+    const chunk = uniqueIds.slice(index, index + 30);
+    if (chunk.length === 0) continue;
+    const snapshot = await getDocs(query(collection(db, "products"), where(documentId(), "in", chunk)));
+    snapshot.docs.forEach((docSnap) => {
+      const data = docSnap.data() ?? {};
+      const raw = data.costPrice ?? data.purchasePrice ?? 0;
+      const parsed = typeof raw === "number" ? raw : Number(raw ?? 0);
+      costs.set(docSnap.id, Number.isFinite(parsed) ? Math.max(parsed, 0) : 0);
+    });
+  }
+  return costs;
+}
+
+function getOrderProfitStats(
+  orderDocs: { data: () => Record<string, unknown> }[],
+  currentProductCosts: Map<string, number>,
+) {
+  return orderDocs.reduce(
+    (acc, docSnap) => {
+      const orderData = docSnap.data() ?? {};
+      if (typeof orderData.netProfit === "number" && typeof orderData.costOfGoodsSold === "number") {
+        acc.netProfit += orderData.netProfit;
+        acc.costOfGoodsSold += orderData.costOfGoodsSold;
+        return acc;
+      }
+
+      const items = Array.isArray(orderData.items) ? orderData.items : [];
+      let complete = true;
+      items.forEach((item) => {
+        const itemData = item as Record<string, unknown>;
+        const quantity = typeof itemData.quantity === "number" ? itemData.quantity : 0;
+        const price = typeof itemData.price === "number" ? itemData.price : 0;
+        const productId = typeof itemData.id === "string" ? itemData.id : "";
+        const snapshotCost = typeof itemData.itemCostPrice === "number" ? itemData.itemCostPrice : null;
+        const currentCost = productId ? currentProductCosts.get(productId) : undefined;
+        const cost = snapshotCost ?? currentCost ?? 0;
+        if (snapshotCost === null && currentCost === undefined) complete = false;
+        acc.costOfGoodsSold += cost * quantity;
+        acc.netProfit += (price - cost) * quantity;
+      });
+      if (!complete) acc.incompleteProfitOrders += 1;
+      return acc;
+    },
+    { costOfGoodsSold: 0, netProfit: 0, incompleteProfitOrders: 0 },
+  );
+}
+
 function getDeltaInfo(current: number, previous: number) {
   if (previous === 0) {
     return { label: "—", direction: "neutral" as const };
@@ -264,6 +320,11 @@ export function AdminOverviewStats() {
     prevPending: 0,
     prevDelivered: 0,
     prevCancelled: 0,
+    costOfGoodsSold: 0,
+    netProfit: 0,
+    incompleteProfitOrders: 0,
+    prevCostOfGoodsSold: 0,
+    prevNetProfit: 0,
   });
   const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
   const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
@@ -370,6 +431,16 @@ export function AdminOverviewStats() {
           getDocs(prevOrdersQuery),
           getDocs(categoriesQuery),
         ]);
+        const orderProductIds = [...ordersSnapshot.docs, ...prevOrdersSnapshot.docs].flatMap((docSnap) => {
+          const orderData = docSnap.data() ?? {};
+          const items = Array.isArray(orderData.items) ? orderData.items : [];
+          return items
+            .map((item) => (item && typeof item === "object" ? (item as { id?: unknown }).id : null))
+            .filter((id): id is string => typeof id === "string" && id.length > 0);
+        });
+        const currentProductCosts = await loadCurrentProductCosts(db, orderProductIds);
+        const currentProfitStats = getOrderProfitStats(ordersSnapshot.docs, currentProductCosts);
+        const previousProfitStats = getOrderProfitStats(prevOrdersSnapshot.docs, currentProductCosts);
 
         const data = summarySnapshot.data() ?? {};
         setSummary({
@@ -408,6 +479,11 @@ export function AdminOverviewStats() {
           prevPending: 0,
           prevDelivered: 0,
           prevCancelled: 0,
+          costOfGoodsSold: currentProfitStats.costOfGoodsSold,
+          netProfit: currentProfitStats.netProfit,
+          incompleteProfitOrders: currentProfitStats.incompleteProfitOrders,
+          prevCostOfGoodsSold: previousProfitStats.costOfGoodsSold,
+          prevNetProfit: previousProfitStats.netProfit,
         };
         ordersSnapshot.docs.forEach((docSnap) => {
           const orderData = docSnap.data() ?? {};
@@ -553,6 +629,35 @@ export function AdminOverviewStats() {
         ),
       },
       {
+        title: "Net profit",
+        value: statusLoading ? "—" : formatCurrency(statusCounts.netProfit),
+        description: `${statusCounts.incompleteProfitOrders > 0 ? "Estimated" : "Snapshot"} profit ${rangeDescription}.`,
+        delta: getDeltaInfo(statusCounts.netProfit, statusCounts.prevNetProfit),
+        accent: "from-cyan-500/20 via-cyan-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-cyan-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M4 17l6-6 4 4 6-8" />
+            <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M15 7h5v5" />
+          </svg>
+        ),
+      },
+      {
+        title: "Cost of goods sold",
+        value: statusLoading ? "—" : formatCurrency(statusCounts.costOfGoodsSold),
+        description:
+          statusCounts.incompleteProfitOrders > 0
+            ? `${statusCounts.incompleteProfitOrders} order(s) use partial cost fallback.`
+            : `Product cost snapshots ${rangeDescription}.`,
+        delta: getDeltaInfo(statusCounts.costOfGoodsSold, statusCounts.prevCostOfGoodsSold),
+        accent: "from-violet-500/20 via-violet-500/5 to-transparent",
+        icon: (
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-violet-200" fill="none" stroke="currentColor">
+            <path strokeWidth="1.5" d="M4 7h16M6 7v11h12V7" />
+            <path strokeWidth="1.5" d="M9 11h6" />
+          </svg>
+        ),
+      },
+      {
         title: "Pending orders",
         value: statusLoading ? "—" : formatCount(statusCounts.pending),
         description: `Pending orders created ${rangeDescription}.`,
@@ -608,6 +713,11 @@ export function AdminOverviewStats() {
       statusCounts.cancelled,
       statusCounts.delivered,
       statusCounts.pending,
+      statusCounts.costOfGoodsSold,
+      statusCounts.incompleteProfitOrders,
+      statusCounts.netProfit,
+      statusCounts.prevCostOfGoodsSold,
+      statusCounts.prevNetProfit,
       statusCounts.prevDelivered,
       statusCounts.prevCancelled,
       statusCounts.prevPending,
