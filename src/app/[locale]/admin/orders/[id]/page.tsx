@@ -12,12 +12,16 @@ import { colorCodeToHex } from "@/lib/colorUtils";
 import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
+function normalizeAccountingAmount(value: number) {
+  return Math.round(value) === 0 ? 0 : value;
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("fr-DZ", {
     style: "currency",
     currency: "DZD",
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(normalizeAccountingAmount(value));
 }
 
 function formatDateTime(iso: string) {
@@ -123,29 +127,30 @@ export default function AdminOrderDetailPage({ params }: Props) {
 
   const currentStatus = useMemo(() => order?.status, [order?.status]);
   const profitSummary = useMemo(() => {
-    if (!order) return { cogs: 0, profit: 0, complete: false };
+    if (!order) return { accountingCogs: 0, originalCogs: 0, profit: 0, complete: false };
+    let complete = true;
+    const originalCogs =
+      typeof order.costOfGoodsSold === "number"
+        ? order.costOfGoodsSold
+        : order.items.reduce((sum, item) => {
+            if (typeof item.itemCostPrice !== "number") complete = false;
+            const cost = typeof item.itemCostPrice === "number" ? item.itemCostPrice : 0;
+            return sum + cost * item.quantity;
+          }, 0);
+
     if (order.status === "returned") {
-      return { cogs: 0, profit: -(order.returnCost ?? 0), complete: true };
+      return { accountingCogs: 0, originalCogs, profit: -(order.returnCost ?? 0), complete };
     }
     if (order.status !== "delivered") {
-      return { cogs: 0, profit: 0, complete: true };
+      return { accountingCogs: 0, originalCogs, profit: 0, complete };
     }
-    if (typeof order.costOfGoodsSold === "number") {
-      return { cogs: order.costOfGoodsSold, profit: order.subtotal - order.costOfGoodsSold, complete: order.profitSnapshotComplete === true };
-    }
-    let complete = true;
-    const totals = order.items.reduce(
-      (acc, item) => {
-        if (typeof item.itemCostPrice !== "number" || typeof item.itemProfitTotal !== "number") {
-          complete = false;
-        }
-        const cost = typeof item.itemCostPrice === "number" ? item.itemCostPrice : 0;
-        const profit = typeof item.itemProfitTotal === "number" ? item.itemProfitTotal : (item.price - cost) * item.quantity;
-        return { cogs: acc.cogs + cost * item.quantity, profit: acc.profit + profit };
-      },
-      { cogs: 0, profit: 0 },
-    );
-    return { ...totals, complete };
+
+    return {
+      accountingCogs: originalCogs,
+      originalCogs,
+      profit: order.subtotal - originalCogs,
+      complete: complete && order.profitSnapshotComplete === true,
+    };
   }, [order]);
 
   const saveReturnCost = useCallback(async () => {
@@ -154,6 +159,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
     setStatusUpdating(order.id);
     try {
       await updateOrderStatus(order.id, "returned", nextReturnCost);
+      setReturnCostValue(String(nextReturnCost));
       setOrder({ ...order, status: "returned", returnCost: nextReturnCost, updatedAt: new Date().toISOString() });
       pushToast({ type: "success", message: "Return cost updated" });
     } catch (err) {
@@ -263,11 +269,15 @@ export default function AdminOrderDetailPage({ params }: Props) {
                   </div>
                 ) : null}
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Cost of goods sold</p>
-                  <p className="text-white">{formatCurrency(profitSummary.cogs)}</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Original product cost</p>
+                  <p className="text-white">{formatCurrency(profitSummary.originalCogs)}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Net profit</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Accounting COGS</p>
+                  <p className="text-white">{formatCurrency(profitSummary.accountingCogs)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Final accounting impact</p>
                   <p className="text-xl font-semibold text-white">{formatCurrency(profitSummary.profit)}</p>
                   {!profitSummary.complete ? (
                     <p className="text-[11px] text-amber-100/80">Incomplete: missing snapshots use 0 cost.</p>

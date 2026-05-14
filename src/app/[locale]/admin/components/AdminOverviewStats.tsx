@@ -220,8 +220,12 @@ function toDateSafe(value: unknown): Date | null {
   return null;
 }
 
+function normalizeAccountingAmount(value: number) {
+  return Math.round(value) === 0 ? 0 : value;
+}
+
 function formatCurrency(value: number) {
-  return CURRENCY_FORMATTER.format(value);
+  return CURRENCY_FORMATTER.format(normalizeAccountingAmount(value));
 }
 
 function formatCount(value: number) {
