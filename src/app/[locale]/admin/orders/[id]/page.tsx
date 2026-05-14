@@ -108,16 +108,21 @@ export default function AdminOrderDetailPage({ params }: Props) {
       const previousUpdatedAt = order.updatedAt;
       const updatedAt = new Date().toISOString();
 
+      const requestedReturnCost = Number(returnCostValue || order.returnCost || 0);
+      const optimisticReturnCost = nextStatus === "returned" ? (requestedReturnCost > 0 ? requestedReturnCost : 300) : order.returnCost;
+
       setStatusUpdating(orderId);
-      setOrder({ ...order, status: nextStatus, updatedAt });
+      setOrder({ ...order, status: nextStatus, returnCost: optimisticReturnCost, updatedAt });
+      if (nextStatus === "returned") setReturnCostValue(String(optimisticReturnCost));
 
       try {
-        await updateOrderStatus(orderId, nextStatus, nextStatus === "returned" ? Number(returnCostValue || order.returnCost || 0) : undefined);
+        await updateOrderStatus(orderId, nextStatus, nextStatus === "returned" && requestedReturnCost > 0 ? requestedReturnCost : undefined);
         pushToast({ type: "success", message: "Order status updated" });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to update status";
         pushToast({ type: "error", message });
         setOrder({ ...order, status: previousStatus, updatedAt: previousUpdatedAt });
+        setReturnCostValue(order.returnCost ? String(order.returnCost) : "");
       } finally {
         setStatusUpdating(null);
       }

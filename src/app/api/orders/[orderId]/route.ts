@@ -295,8 +295,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           updatedAt: FieldValue.serverTimestamp(),
         };
 
-        if (nextStatus === "returned" || nextReturnCost !== undefined) {
-          orderUpdate.returnCost = Math.max(Number(nextReturnCost ?? orderData.returnCost ?? 0), 0);
+        if (nextStatus === "returned") {
+          const existingReturnCost = typeof orderData.returnCost === "number" ? orderData.returnCost : 0;
+          const requestedReturnCost = typeof nextReturnCost === "number" ? nextReturnCost : existingReturnCost;
+          orderUpdate.returnCost = requestedReturnCost > 0 ? requestedReturnCost : 300;
+        } else if (nextReturnCost !== undefined) {
+          orderUpdate.returnCost = Math.max(Number(nextReturnCost), 0);
         }
 
         const shouldCountLoyalty =
