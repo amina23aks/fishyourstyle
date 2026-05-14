@@ -60,6 +60,10 @@ type DailyStat = {
   dateKey: string;
   orders: number;
   revenue: number;
+  netProfit: number;
+  costOfGoodsSold: number;
+  incompleteProfitOrders: number;
+  incompleteProfitItems: number;
   topCategories: Record<string, number>;
   topDesignThemes: Record<string, number>;
   topProducts: Record<string, { name: string; qty: number; revenue: number }>;
@@ -70,6 +74,10 @@ type TrendPoint = {
   label: string;
   orders: number;
   revenue: number;
+  netProfit: number;
+  costOfGoodsSold: number;
+  incompleteProfitOrders: number;
+  incompleteProfitItems: number;
 };
 
 type RangeKey = "today" | "7d" | "30d" | "month";
@@ -98,6 +106,7 @@ type StatusCounts = {
   costOfGoodsSold: number;
   netProfit: number;
   incompleteProfitOrders: number;
+  incompleteProfitItems: number;
   prevCostOfGoodsSold: number;
   prevNetProfit: number;
 };
@@ -117,6 +126,10 @@ function buildDateRange(days: number, timeZone: string): TrendPoint[] {
       label: dateKey.slice(5),
       orders: 0,
       revenue: 0,
+      netProfit: 0,
+      costOfGoodsSold: 0,
+      incompleteProfitOrders: 0,
+      incompleteProfitItems: 0,
     });
   }
 
@@ -137,6 +150,10 @@ function buildDateRangeFromStart(startKey: string, days: number, timeZone: strin
       label: dateKey.slice(5),
       orders: 0,
       revenue: 0,
+      netProfit: 0,
+      costOfGoodsSold: 0,
+      incompleteProfitOrders: 0,
+      incompleteProfitItems: 0,
     });
   }
 
@@ -240,18 +257,43 @@ function getDesignThemeColor(themeName: string) {
   return AUTO_PALETTE[idx];
 }
 
+type ProductCostInfo = {
+  cost: number;
+  hasKnownCost: boolean;
+};
+
+type ProfitStats = {
+  costOfGoodsSold: number;
+  netProfit: number;
+  incompleteProfitOrders: number;
+  incompleteProfitItems: number;
+  byDate: Record<string, Omit<ProfitStats, "byDate">>;
+};
+
+const emptyProfitStats = (): ProfitStats => ({
+  costOfGoodsSold: 0,
+  netProfit: 0,
+  incompleteProfitOrders: 0,
+  incompleteProfitItems: 0,
+  byDate: {},
+});
+
+function normalizeKnownCost(value: unknown): ProductCostInfo {
+  const parsed = typeof value === "number" ? value : Number(value ?? 0);
+  const cost = Number.isFinite(parsed) ? Math.max(parsed, 0) : 0;
+  return { cost, hasKnownCost: cost > 0 };
+}
+
 async function loadCurrentProductCosts(db: NonNullable<ReturnType<typeof getDb>>, productIds: string[]) {
   const uniqueIds = Array.from(new Set(productIds.filter(Boolean)));
-  const costs = new Map<string, number>();
+  const costs = new Map<string, ProductCostInfo>();
   for (let index = 0; index < uniqueIds.length; index += 30) {
     const chunk = uniqueIds.slice(index, index + 30);
     if (chunk.length === 0) continue;
     const snapshot = await getDocs(query(collection(db, "products"), where(documentId(), "in", chunk)));
     snapshot.docs.forEach((docSnap) => {
       const data = docSnap.data() ?? {};
-      const raw = data.costPrice ?? data.purchasePrice ?? 0;
-      const parsed = typeof raw === "number" ? raw : Number(raw ?? 0);
-      costs.set(docSnap.id, Number.isFinite(parsed) ? Math.max(parsed, 0) : 0);
+      costs.set(docSnap.id, normalizeKnownCost(data.costPrice ?? data.purchasePrice));
     });
   }
   return costs;
@@ -259,36 +301,53 @@ async function loadCurrentProductCosts(db: NonNullable<ReturnType<typeof getDb>>
 
 function getOrderProfitStats(
   orderDocs: { data: () => Record<string, unknown> }[],
-  currentProductCosts: Map<string, number>,
+  currentProductCosts: Map<string, ProductCostInfo>,
 ) {
-  return orderDocs.reduce(
-    (acc, docSnap) => {
-      const orderData = docSnap.data() ?? {};
-      if (typeof orderData.netProfit === "number" && typeof orderData.costOfGoodsSold === "number") {
-        acc.netProfit += orderData.netProfit;
-        acc.costOfGoodsSold += orderData.costOfGoodsSold;
-        return acc;
-      }
+  return orderDocs.reduce((acc, docSnap) => {
+    const orderData = docSnap.data() ?? {};
+    const items = Array.isArray(orderData.items) ? orderData.items : [];
+    const createdDate = toDateSafe(orderData.createdAt);
+    const dateKey = createdDate ? dateKeyInTZ(createdDate, TIME_ZONE) : "unknown";
+    const day = acc.byDate[dateKey] ?? {
+      costOfGoodsSold: 0,
+      netProfit: 0,
+      incompleteProfitOrders: 0,
+      incompleteProfitItems: 0,
+    };
+    let orderMissingCost = false;
 
-      const items = Array.isArray(orderData.items) ? orderData.items : [];
-      let complete = true;
-      items.forEach((item) => {
-        const itemData = item as Record<string, unknown>;
-        const quantity = typeof itemData.quantity === "number" ? itemData.quantity : 0;
-        const price = typeof itemData.price === "number" ? itemData.price : 0;
-        const productId = typeof itemData.id === "string" ? itemData.id : "";
-        const snapshotCost = typeof itemData.itemCostPrice === "number" ? itemData.itemCostPrice : null;
-        const currentCost = productId ? currentProductCosts.get(productId) : undefined;
-        const cost = snapshotCost ?? currentCost ?? 0;
-        if (snapshotCost === null && currentCost === undefined) complete = false;
-        acc.costOfGoodsSold += cost * quantity;
-        acc.netProfit += (price - cost) * quantity;
-      });
-      if (!complete) acc.incompleteProfitOrders += 1;
-      return acc;
-    },
-    { costOfGoodsSold: 0, netProfit: 0, incompleteProfitOrders: 0 },
-  );
+    items.forEach((item) => {
+      const itemData = item as Record<string, unknown>;
+      const quantity = typeof itemData.quantity === "number" ? itemData.quantity : 0;
+      const price = typeof itemData.price === "number" ? itemData.price : 0;
+      const productId = typeof itemData.id === "string" ? itemData.id : "";
+      const hasSnapshotCost = typeof itemData.itemCostPrice === "number";
+      const snapshotCost = hasSnapshotCost ? normalizeKnownCost(itemData.itemCostPrice) : null;
+      const currentCost = productId ? currentProductCosts.get(productId) : undefined;
+      const costInfo = snapshotCost ?? currentCost ?? { cost: 0, hasKnownCost: false };
+      const knownLineCost = costInfo.hasKnownCost ? costInfo.cost * quantity : 0;
+      const estimatedLineProfit = price * quantity - knownLineCost;
+
+      acc.costOfGoodsSold += knownLineCost;
+      acc.netProfit += estimatedLineProfit;
+      day.costOfGoodsSold += knownLineCost;
+      day.netProfit += estimatedLineProfit;
+
+      if (!costInfo.hasKnownCost && quantity > 0) {
+        orderMissingCost = true;
+        acc.incompleteProfitItems += 1;
+        day.incompleteProfitItems += 1;
+      }
+    });
+
+    if (orderMissingCost) {
+      acc.incompleteProfitOrders += 1;
+      day.incompleteProfitOrders += 1;
+    }
+
+    acc.byDate[dateKey] = day;
+    return acc;
+  }, emptyProfitStats());
 }
 
 function getDeltaInfo(current: number, previous: number) {
@@ -323,11 +382,12 @@ export function AdminOverviewStats() {
     costOfGoodsSold: 0,
     netProfit: 0,
     incompleteProfitOrders: 0,
+    incompleteProfitItems: 0,
     prevCostOfGoodsSold: 0,
     prevNetProfit: 0,
   });
   const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
-  const [trendMetric, setTrendMetric] = useState<"orders" | "revenue">("orders");
+  const [trendMetric, setTrendMetric] = useState<"orders" | "revenue" | "netProfit">("orders");
   const [rangeKey, setRangeKey] = useState<RangeKey>("7d");
 
   const rangeMeta = useMemo<RangeMeta>(() => {
@@ -454,6 +514,19 @@ export function AdminOverviewStats() {
               dateKey: docSnap.id,
               orders: Number(dailyData.orders ?? 0),
               revenue: Number(dailyData.revenue ?? 0),
+              netProfit: currentProfitStats.byDate[docSnap.id]?.netProfit ?? previousProfitStats.byDate[docSnap.id]?.netProfit ?? 0,
+              costOfGoodsSold:
+                currentProfitStats.byDate[docSnap.id]?.costOfGoodsSold ??
+                previousProfitStats.byDate[docSnap.id]?.costOfGoodsSold ??
+                0,
+              incompleteProfitOrders:
+                currentProfitStats.byDate[docSnap.id]?.incompleteProfitOrders ??
+                previousProfitStats.byDate[docSnap.id]?.incompleteProfitOrders ??
+                0,
+              incompleteProfitItems:
+                currentProfitStats.byDate[docSnap.id]?.incompleteProfitItems ??
+                previousProfitStats.byDate[docSnap.id]?.incompleteProfitItems ??
+                0,
               topCategories:
                 typeof dailyData.topCategories === "object" && dailyData.topCategories
                   ? (dailyData.topCategories as Record<string, number>)
@@ -482,6 +555,7 @@ export function AdminOverviewStats() {
           costOfGoodsSold: currentProfitStats.costOfGoodsSold,
           netProfit: currentProfitStats.netProfit,
           incompleteProfitOrders: currentProfitStats.incompleteProfitOrders,
+          incompleteProfitItems: currentProfitStats.incompleteProfitItems,
           prevCostOfGoodsSold: previousProfitStats.costOfGoodsSold,
           prevNetProfit: previousProfitStats.netProfit,
         };
@@ -552,6 +626,10 @@ export function AdminOverviewStats() {
         ...point,
         orders: match?.orders ?? 0,
         revenue: match?.revenue ?? 0,
+        netProfit: match?.netProfit ?? 0,
+        costOfGoodsSold: match?.costOfGoodsSold ?? 0,
+        incompleteProfitOrders: match?.incompleteProfitOrders ?? 0,
+        incompleteProfitItems: match?.incompleteProfitItems ?? 0,
       };
     });
   }, [dailyStatsByKey, rangeMeta.points]);
@@ -563,6 +641,10 @@ export function AdminOverviewStats() {
         ...point,
         orders: match?.orders ?? 0,
         revenue: match?.revenue ?? 0,
+        netProfit: match?.netProfit ?? 0,
+        costOfGoodsSold: match?.costOfGoodsSold ?? 0,
+        incompleteProfitOrders: match?.incompleteProfitOrders ?? 0,
+        incompleteProfitItems: match?.incompleteProfitItems ?? 0,
       };
     });
   }, [dailyStatsByKey, previousRangeMeta.points]);
@@ -582,6 +664,10 @@ export function AdminOverviewStats() {
   const previousRevenueTotal = useMemo(
     () => previousTrendSeries.reduce((sum, item) => sum + item.revenue, 0),
     [previousTrendSeries]
+  );
+  const currentNetProfitTotal = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.netProfit, 0),
+    [trendSeries]
   );
   const deliveryRate = useMemo(
     () => (statusCounts.total > 0 ? (statusCounts.delivered / statusCounts.total) * 100 : null),
@@ -631,7 +717,10 @@ export function AdminOverviewStats() {
       {
         title: "Net profit",
         value: statusLoading ? "—" : formatCurrency(statusCounts.netProfit),
-        description: `${statusCounts.incompleteProfitOrders > 0 ? "Estimated" : "Snapshot"} profit ${rangeDescription}.`,
+        description:
+          statusCounts.incompleteProfitOrders > 0
+            ? `Estimated — missing cost for ${statusCounts.incompleteProfitOrders} order(s) / ${statusCounts.incompleteProfitItems} item(s).`
+            : `Snapshot profit ${rangeDescription}.`,
         delta: getDeltaInfo(statusCounts.netProfit, statusCounts.prevNetProfit),
         accent: "from-cyan-500/20 via-cyan-500/5 to-transparent",
         icon: (
@@ -645,9 +734,9 @@ export function AdminOverviewStats() {
         title: "Cost of goods sold",
         value: statusLoading ? "—" : formatCurrency(statusCounts.costOfGoodsSold),
         description:
-          statusCounts.incompleteProfitOrders > 0
-            ? `${statusCounts.incompleteProfitOrders} order(s) use partial cost fallback.`
-            : `Product cost snapshots ${rangeDescription}.`,
+          statusCounts.incompleteProfitItems > 0
+            ? `Known costs only; ${statusCounts.incompleteProfitItems} item(s) missing cost.`
+            : `Known product costs ${rangeDescription}.`,
         delta: getDeltaInfo(statusCounts.costOfGoodsSold, statusCounts.prevCostOfGoodsSold),
         accent: "from-violet-500/20 via-violet-500/5 to-transparent",
         icon: (
@@ -715,6 +804,7 @@ export function AdminOverviewStats() {
       statusCounts.pending,
       statusCounts.costOfGoodsSold,
       statusCounts.incompleteProfitOrders,
+      statusCounts.incompleteProfitItems,
       statusCounts.netProfit,
       statusCounts.prevCostOfGoodsSold,
       statusCounts.prevNetProfit,
@@ -783,16 +873,28 @@ export function AdminOverviewStats() {
     [topProducts]
   );
 
-  const chartSummaryValue = useMemo(
-    () =>
-      trendMetric === "orders"
-        ? `${formatCount(currentOrdersTotal)} orders`
-        : formatCurrency(currentRevenueTotal),
-    [currentOrdersTotal, currentRevenueTotal, trendMetric]
+  const chartMoneyKey = trendMetric === "netProfit" ? "netProfit" : "revenue";
+  const chartMoneyLabel = trendMetric === "netProfit" ? "Net profit" : "Revenue";
+  const chartMoneyTotal = trendMetric === "netProfit" ? currentNetProfitTotal : currentRevenueTotal;
+  const chartIncompleteProfitOrders = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.incompleteProfitOrders, 0),
+    [trendSeries]
   );
+  const chartIncompleteProfitItems = useMemo(
+    () => trendSeries.reduce((sum, item) => sum + item.incompleteProfitItems, 0),
+    [trendSeries]
+  );
+  const chartSummaryValue = useMemo(() => {
+    if (trendMetric === "orders") return `${formatCount(currentOrdersTotal)} orders`;
+    const suffix =
+      trendMetric === "netProfit" && chartIncompleteProfitItems > 0
+        ? ` (estimated; missing cost for ${chartIncompleteProfitOrders} order(s) / ${chartIncompleteProfitItems} item(s))`
+        : "";
+    return `${formatCurrency(chartMoneyTotal)}${suffix}`;
+  }, [chartIncompleteProfitItems, chartIncompleteProfitOrders, chartMoneyTotal, currentOrdersTotal, trendMetric]);
 
   const isChartEmpty = useMemo(
-    () => trendSeries.every((point) => point.orders === 0 && point.revenue === 0),
+    () => trendSeries.every((point) => point.orders === 0 && point.revenue === 0 && point.netProfit === 0),
     [trendSeries]
   );
   const donutData = useMemo(
@@ -951,7 +1053,7 @@ export function AdminOverviewStats() {
             </div>
             <div className="flex flex-wrap gap-2">
               <div className="flex gap-2 rounded-full bg-white/5 p-1 text-xs font-semibold text-sky-100">
-                {(["orders", "revenue"] as const).map((metric) => (
+                {(["orders", "revenue", "netProfit"] as const).map((metric) => (
                   <button
                     key={metric}
                     type="button"
@@ -962,7 +1064,7 @@ export function AdminOverviewStats() {
                         : "text-sky-100/70 hover:text-white"
                     }`}
                   >
-                    {metric === "orders" ? "Orders" : "Revenue"}
+                    {metric === "orders" ? "Orders" : metric === "revenue" ? "Revenue" : "Net profit"}
                   </button>
                 ))}
               </div>
@@ -1001,27 +1103,38 @@ export function AdminOverviewStats() {
                     axisLine={false}
                     tickLine={false}
                     domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.2)]}
+                    tickFormatter={(value) =>
+                      trendMetric === "orders" ? formatCount(Number(value)) : `${formatCount(Number(value))} DA`
+                    }
                   />
                   <Tooltip
                     cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
                       const ordersValue = payload.find((entry) => entry.dataKey === "orders")?.value ?? 0;
-                      const revenueValue = payload.find((entry) => entry.dataKey === "revenue")?.value ?? 0;
+                      const moneyValue = payload.find((entry) => entry.dataKey === chartMoneyKey)?.value ?? 0;
+                      const point = payload[0]?.payload as TrendPoint | undefined;
                       return (
                         <div className="rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-sky-100 shadow-xl">
                           <p className="text-[10px] uppercase tracking-[0.18em] text-sky-200">{label}</p>
                           <p className="mt-1 text-sm font-semibold text-white">
                             {formatCount(Number(ordersValue))} orders
                           </p>
-                          <p className="text-sm text-sky-100/80">{formatCurrency(Number(revenueValue))}</p>
+                          <p className="text-sm text-sky-100/80">
+                            {chartMoneyLabel}: {formatCurrency(Number(moneyValue))}
+                          </p>
+                          {trendMetric === "netProfit" && point && point.incompleteProfitItems > 0 ? (
+                            <p className="mt-1 text-[11px] text-amber-100/80">
+                              Estimated — missing cost for {point.incompleteProfitOrders} order(s) / {point.incompleteProfitItems} item(s).
+                            </p>
+                          ) : null}
                         </div>
                       );
                     }}
                   />
                   <Bar dataKey="orders" fill="rgba(14, 165, 233, 0.6)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
                   <Area
-                    dataKey="revenue"
+                    dataKey={chartMoneyKey}
                     stroke="rgba(52, 211, 153, 0.8)"
                     fill="rgba(52, 211, 153, 0.15)"
                     strokeWidth={2}
