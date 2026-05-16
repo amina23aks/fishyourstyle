@@ -4,7 +4,7 @@ import { localizePathname } from "@/i18n/paths";
 export const siteName = "Fish Your Style";
 export const siteUrl = "https://fishyourstyle.vercel.app";
 export const metadataBase = new URL(siteUrl);
-export const defaultOgImagePath = "/outphoto.PNG";
+export const defaultOgImagePath = "/outphoto.png";
 export const defaultOgImageUrl = new URL(defaultOgImagePath, metadataBase).toString();
 export const defaultSocialImageUrl = defaultOgImageUrl;
 export const brandLogoPath = "/logoF.png";
