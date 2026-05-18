@@ -5,7 +5,7 @@ import PageShell from "@/components/PageShell";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
 import { resolveLocale } from "@/i18n/config";
-import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl } from "@/lib/seo";
+import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl, privateRobots } from "@/lib/seo";
 
 const metadataContent = {
   title: "Orders | Fish Your Style",
@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
   return {
     ...metadataContent,
+    robots: privateRobots,
     alternates: {
       canonical: url,
       languages: buildAlternateLanguages("/orders"),
