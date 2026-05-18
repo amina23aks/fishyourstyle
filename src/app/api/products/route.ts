@@ -15,9 +15,14 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
       return { id: color, labelFr: color, labelAr: color, image: mainImage };
     }
     const id = typeof color.id === "string" && color.id ? color.id : mainImage;
-    const labelFr = typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
-    const labelAr = typeof color.labelAr === "string" && color.labelAr ? color.labelAr : labelFr;
-    const image = typeof color.image === "string" && color.image ? color.image : mainImage;
+    const labelFr =
+      typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
+    const labelAr =
+      typeof color.labelAr === "string" && color.labelAr
+        ? color.labelAr
+        : labelFr;
+    const image =
+      typeof color.image === "string" && color.image ? color.image : mainImage;
     return { id, labelFr, labelAr, image };
   });
   return {
@@ -59,11 +64,17 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
 }
 
 function parseCursor(value: string | null): StorefrontProductsCursor | null {
-  if (!value) return null;
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  if (!trimmed.startsWith("{")) {
+    return { id: trimmed.slice(0, 1500) };
+  }
+
   try {
-    const parsed = JSON.parse(value) as Partial<StorefrontProductsCursor>;
-    if (typeof parsed.id !== "string") return null;
-    return { id: parsed.id };
+    const parsed = JSON.parse(trimmed) as Partial<StorefrontProductsCursor>;
+    if (typeof parsed.id !== "string" || !parsed.id.trim()) return null;
+    return { id: parsed.id.trim().slice(0, 1500) };
   } catch {
     return null;
   }
@@ -83,9 +94,21 @@ export async function GET(request: NextRequest) {
     category: cleanFilter(searchParams.get("category")),
     designTheme: cleanFilter(searchParams.get("designTheme")),
   });
+  const hasPrivateRequestHeaders = Boolean(
+    request.headers.get("authorization") || request.headers.get("cookie"),
+  );
 
-  return NextResponse.json({
-    products: page.products.map(mapStorefrontToProduct),
-    nextCursor: page.nextCursor,
-  });
+  return NextResponse.json(
+    {
+      products: page.products.map(mapStorefrontToProduct),
+      nextCursor: page.nextCursor,
+    },
+    {
+      headers: {
+        "Cache-Control": hasPrivateRequestHeaders
+          ? "private, no-store"
+          : "s-maxage=300, stale-while-revalidate=600",
+      },
+    },
+  );
 }

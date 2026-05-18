@@ -4,26 +4,46 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import FAQAccordion from "@/components/FAQAccordion";
 import { faqItems } from "@/data/faqItems";
-import { fetchAllStorefrontProducts, type StorefrontProduct } from "@/lib/storefront-products";
+import {
+  fetchStorefrontProductsPage,
+  type StorefrontProduct,
+} from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
-import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
+import {
+  getSelectableCollections,
+  getSelectableDesigns,
+} from "@/lib/categories";
 import { localizePathname } from "@/i18n/paths";
 import { resolveLocale, type Locale } from "@/i18n/config";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
-import { buildAlternateLanguages, buildLocalizedUrl, brandLogoUrl, getAlternateOpenGraphLocales, getOpenGraphLocale, getDefaultSocialImages, siteName, siteUrl } from "@/lib/seo";
+import {
+  buildAlternateLanguages,
+  buildLocalizedUrl,
+  brandLogoUrl,
+  getAlternateOpenGraphLocales,
+  getOpenGraphLocale,
+  getDefaultSocialImages,
+  siteName,
+  siteUrl,
+} from "@/lib/seo";
 
-export const revalidate = 0;
+export const revalidate = 300;
 
-const homeMetadataByLocale: Record<Locale, { title: string; description: string }> = {
+const homeMetadataByLocale: Record<
+  Locale,
+  { title: string; description: string }
+> = {
   en: {
     title: "Fish Your Style — Streetwear for every mood",
-    description: "Discover streetwear for every style, every mood, and every moment with Fish Your Style.",
+    description:
+      "Discover streetwear for every style, every mood, and every moment with Fish Your Style.",
   },
   fr: {
     title: "Fish Your Style — Streetwear pour chaque humeur",
-    description: "Découvrez le streetwear Fish Your Style pour chaque style, chaque humeur et chaque moment.",
+    description:
+      "Découvrez le streetwear Fish Your Style pour chaque style, chaque humeur et chaque moment.",
   },
   ar: {
     title: "Fish Your Style — ستريت وير لكل مزاج",
@@ -31,7 +51,11 @@ const homeMetadataByLocale: Record<Locale, { title: string; description: string 
   },
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
   const { title, description } = homeMetadataByLocale[locale];
@@ -72,9 +96,14 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
       return { id: color, labelFr: color, labelAr: color, image: mainImage };
     }
     const id = typeof color.id === "string" && color.id ? color.id : mainImage;
-    const labelFr = typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
-    const labelAr = typeof color.labelAr === "string" && color.labelAr ? color.labelAr : labelFr;
-    const image = typeof color.image === "string" && color.image ? color.image : mainImage;
+    const labelFr =
+      typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
+    const labelAr =
+      typeof color.labelAr === "string" && color.labelAr
+        ? color.labelAr
+        : labelFr;
+    const image =
+      typeof color.image === "string" && color.image ? color.image : mainImage;
     return { id, labelFr, labelAr, image };
   });
   return {
@@ -113,7 +142,11 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   };
 }
 
-export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
@@ -121,11 +154,13 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   let errorMessage: string | null = null;
   let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
-  const storefrontProducts = await fetchAllStorefrontProducts().catch((error) => {
-    console.error("Failed to fetch products:", error);
-    errorMessage = "Products are temporarily unavailable.";
-    return [];
-  });
+  const storefrontProducts = await fetchStorefrontProductsPage({ pageSize: 8 })
+    .then((page) => page.products)
+    .catch((error) => {
+      console.error("Failed to fetch products:", error);
+      errorMessage = "Products are temporarily unavailable.";
+      return [];
+    });
   try {
     categories = await getSelectableCollections();
   } catch (error) {
@@ -138,8 +173,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     console.error("Failed to fetch design themes:", error);
     designThemes = [];
   }
-  const allProducts = storefrontProducts.map(mapStorefrontToProduct);
-  const products = allProducts.slice(0, 8);
+  const products = storefrontProducts.map(mapStorefrontToProduct);
 
   const websiteStructuredData = {
     "@context": "https://schema.org",
@@ -177,11 +211,15 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     <div className="flex w-full flex-col gap-12">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteStructuredData) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(websiteStructuredData),
+        }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationStructuredData) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(organizationStructuredData),
+        }}
       />
       <div dir="ltr" className="text-left">
         <Hero />
@@ -190,8 +228,12 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
         <section className="space-y-4" id="shop-search">
           <div className="flex flex-col gap-2 md:max-w-2xl">
-            <p className="text-sm uppercase tracking-[0.28em] text-white/90">{t("shop.headerEyebrow")}</p>
-            <h2 className="text-2xl font-semibold text-white">{t("shop.headerTitle")}</h2>
+            <p className="text-sm uppercase tracking-[0.28em] text-white/90">
+              {t("shop.headerEyebrow")}
+            </p>
+            <h2 className="text-2xl font-semibold text-white">
+              {t("shop.headerTitle")}
+            </h2>
             <p className="text-white/80">
               {t("shop.headerDescriptionLine1")}
               <br />
@@ -199,7 +241,11 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             </p>
           </div>
 
-          <HomeClient products={products} allProducts={allProducts} categories={categories} designThemes={designThemes} />
+          <HomeClient
+            products={products}
+            categories={categories}
+            designThemes={designThemes}
+          />
           {errorMessage ? (
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
               {errorMessage}
@@ -219,11 +265,11 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
         <section className="space-y-8 rounded-3xl bg-sky-900/90 px-6 py-14 text-sky-50 shadow-lg shadow-sky-200/60 md:px-10">
           <div className="flex flex-col gap-3">
-            <p className="text-sm uppercase tracking-[0.28em] text-sky-200">{t("whyUs.eyebrow")}</p>
-            <h2 className="text-2xl font-semibold">{t("whyUs.title")}</h2>
-            <p className="text-sky-100">
-              {t("whyUs.subtitle")}
+            <p className="text-sm uppercase tracking-[0.28em] text-sky-200">
+              {t("whyUs.eyebrow")}
             </p>
+            <h2 className="text-2xl font-semibold">{t("whyUs.title")}</h2>
+            <p className="text-sky-100">{t("whyUs.subtitle")}</p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {reasons.map((reason) => (
@@ -243,7 +289,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 <h3 className="mt-5 text-lg font-semibold text-white">
                   {reason.title}
                 </h3>
-                <p className="mt-3 text-sm text-sky-100/90">{reason.description}</p>
+                <p className="mt-3 text-sm text-sky-100/90">
+                  {reason.description}
+                </p>
               </div>
             ))}
           </div>
@@ -256,9 +304,13 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             className="rounded-3xl border border-white/15 bg-sky-950/40 px-6 py-12 text-sky-50 shadow-[0_12px_30px_rgba(15,23,42,0.45)] backdrop-blur md:px-10"
           >
             <div className="space-y-2 text-center">
-              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">FAQ</p>
+              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">
+                FAQ
+              </p>
               <h3 className="text-xl font-semibold text-white">أسئلة متكررة</h3>
-              <p className="text-sm text-sky-100">إجابات مختصرة لأكثر الأسئلة شيوعًا.</p>
+              <p className="text-sm text-sky-100">
+                إجابات مختصرة لأكثر الأسئلة شيوعًا.
+              </p>
             </div>
             <div className="mt-6">
               <FAQAccordion items={faqItems} />

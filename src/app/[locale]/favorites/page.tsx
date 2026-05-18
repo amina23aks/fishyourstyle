@@ -11,6 +11,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import type { FavoriteItem } from "@/types/favorites";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
+import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 
 const formatPrice = (value: number) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} DZD`;
@@ -21,7 +22,8 @@ function formatAddedDate(item: FavoriteItem) {
     typeof raw === "string"
       ? Date.parse(raw)
       : typeof (raw as { seconds?: number }).seconds === "number"
-        ? ((raw as { seconds: number; nanoseconds?: number }).seconds ?? 0) * 1000
+        ? ((raw as { seconds: number; nanoseconds?: number }).seconds ?? 0) *
+          1000
         : Date.now();
   const date = new Date(Number.isNaN(millis) ? Date.now() : millis);
   return date.toLocaleDateString(undefined, {
@@ -58,7 +60,7 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
       <div className="relative aspect-[4/3] w-full overflow-hidden">
         {item.image ? (
           <Image
-            src={item.image}
+            src={getCloudinaryDeliveryUrl(item.image, { width: 640 })}
             alt={item.name}
             fill
             sizes="(min-width: 1024px) 25vw, 50vw"
@@ -73,10 +75,14 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
         <div className="absolute left-3 right-3 top-3 flex items-start justify-between">
           <span
             className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide shadow-sm ${
-              isOutOfStock ? "bg-rose-500/90 text-white" : "bg-emerald-400/90 text-emerald-950"
+              isOutOfStock
+                ? "bg-rose-500/90 text-white"
+                : "bg-emerald-400/90 text-emerald-950"
             }`}
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${isOutOfStock ? "bg-white" : "bg-emerald-700"}`} />
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${isOutOfStock ? "bg-white" : "bg-emerald-700"}`}
+            />
             {isOutOfStock ? t("shop.outOfStock") : t("shop.inStock")}
           </span>
         </div>
@@ -84,14 +90,21 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="space-y-1">
-          <h3 className="text-base font-semibold text-white line-clamp-2">{item.name}</h3>
-          <p className="text-sm font-semibold text-amber-200">{formatPrice(item.price)}</p>
+          <h3 className="text-base font-semibold text-white line-clamp-2">
+            {item.name}
+          </h3>
+          <p className="text-sm font-semibold text-amber-200">
+            {formatPrice(item.price)}
+          </p>
         </div>
 
         <div className="mt-auto space-y-3">
           <div className="flex gap-2">
             <Link
-              href={localizePathname(locale, `/shop/${item.slug || item.productId}`)}
+              href={localizePathname(
+                locale,
+                `/shop/${item.slug || item.productId}`,
+              )}
               className="inline-flex flex-1 items-center justify-center rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/25"
             >
               View product
@@ -116,18 +129,31 @@ function FavoriteCard({ item }: { item: FavoriteItem }) {
   );
 }
 
-function FavoritesEmpty({ signedOut, onSignIn }: { signedOut?: boolean; onSignIn?: () => void }) {
+function FavoritesEmpty({
+  signedOut,
+  onSignIn,
+}: {
+  signedOut?: boolean;
+  onSignIn?: () => void;
+}) {
   const locale = useLocale();
   const t = useTranslations();
   if (signedOut) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-white/10 bg-white/5 px-6 py-12 text-center text-white shadow-lg shadow-black/30 backdrop-blur">
         <div className="relative h-32 w-32 overflow-hidden rounded-2xl border border-white/10 bg-white/10">
-          <Image src="/favorite.png" alt="Favorites" fill className="object-contain p-3" />
+          <Image
+            src="/favorite.png"
+            alt="Favorites"
+            fill
+            className="object-contain p-3"
+          />
         </div>
         <div className="space-y-2">
           <p className="text-xl font-semibold">{t("favorites.guestTitle")}</p>
-          <p className="text-sm text-white/70">{t("favorites.guestSubtitle")}</p>
+          <p className="text-sm text-white/70">
+            {t("favorites.guestSubtitle")}
+          </p>
         </div>
         <button
           type="button"
@@ -159,7 +185,8 @@ export default function FavoritesPage() {
   const t = useTranslations();
   const { user, loading: authLoading } = useAuth();
   const { openModal } = useAuthModal();
-  const { items, isLoading, isUpdating, toggleFavorite, isFavorite } = useFavorites();
+  const { items, isLoading, isUpdating, toggleFavorite, isFavorite } =
+    useFavorites();
 
   const loadingState = authLoading || isLoading;
   const showEmpty = !loadingState && (!user || items.length === 0);
@@ -167,17 +194,21 @@ export default function FavoritesPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-6 space-y-2">
-          <p className="text-xs uppercase tracking-[0.3em] text-sky-200">{t("favorites.title")}</p>
-        <h1 className="text-3xl font-semibold text-white sm:text-4xl">{t("favorites.title")}</h1>
-        <p className="text-sm text-white/70">
-          {t("favorites.subtitle")}
+        <p className="text-xs uppercase tracking-[0.3em] text-sky-200">
+          {t("favorites.title")}
         </p>
+        <h1 className="text-3xl font-semibold text-white sm:text-4xl">
+          {t("favorites.title")}
+        </h1>
+        <p className="text-sm text-white/70">{t("favorites.subtitle")}</p>
         {!user && (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xs font-semibold text-white shadow-sm shadow-black/30">
             <span>{t("favorites.guestNote")}</span>
             <button
               type="button"
-              onClick={() => openModal({ returnTo: localizePathname(locale, "/favorites") })}
+              onClick={() =>
+                openModal({ returnTo: localizePathname(locale, "/favorites") })
+              }
               className="inline-flex items-center justify-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-white/25"
             >
               {t("favorites.signIn")}
@@ -205,7 +236,9 @@ export default function FavoritesPage() {
       ) : showEmpty ? (
         <FavoritesEmpty
           signedOut={!user}
-          onSignIn={() => openModal({ returnTo: localizePathname(locale, "/favorites") })}
+          onSignIn={() =>
+            openModal({ returnTo: localizePathname(locale, "/favorites") })
+          }
         />
       ) : (
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">

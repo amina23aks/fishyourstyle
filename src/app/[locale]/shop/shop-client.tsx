@@ -1,10 +1,20 @@
 "use client";
 
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Product } from "@/types/product";
 import { ProductCard } from "./product-card";
 import type { SelectableItem } from "@/lib/categories-shared";
-import { buildDependentFilterPills, isDesignFilterAvailableForCategory } from "@/lib/dependent-filter-options";
+import {
+  buildDependentFilterPills,
+  isDesignFilterAvailableForCategory,
+} from "@/lib/dependent-filter-options";
 import { useTranslations } from "@/i18n/I18nProvider";
 
 type StorefrontCursor = {
@@ -27,7 +37,10 @@ type ShopProductsResponse = {
 
 type ShopClientProps = {
   products: ShopClientProduct[];
-  filterProducts?: Pick<ShopClientProduct, "category" | "designTheme" | "status">[];
+  filterProducts?: Pick<
+    ShopClientProduct,
+    "category" | "designTheme" | "status"
+  >[];
   initialCursor?: StorefrontCursor | null;
   errorMessage?: string | null;
   categories?: SelectableItem[];
@@ -46,11 +59,16 @@ export default function ShopClient({
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [loadedProducts, setLoadedProducts] = useState<ShopClientProduct[]>(products);
-  const [nextCursor, setNextCursor] = useState<StorefrontCursor | null>(initialCursor);
+  const [loadedProducts, setLoadedProducts] =
+    useState<ShopClientProduct[]>(products);
+  const [nextCursor, setNextCursor] = useState<StorefrontCursor | null>(
+    initialCursor,
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const infiniteScrollRef = useRef<HTMLDivElement | null>(null);
+  const isLoadingMoreRef = useRef(false);
+  const failedCursorRef = useRef<string | null>(null);
 
   useEffect(() => {
     setLoadedProducts(products);
@@ -58,38 +76,57 @@ export default function ShopClient({
   }, [initialCursor, products]);
 
   const loadMoreProducts = useCallback(async () => {
-    if (!nextCursor || isLoadingMore) return;
+    if (
+      !nextCursor ||
+      isLoadingMoreRef.current ||
+      failedCursorRef.current === nextCursor.id
+    )
+      return;
+
+    const cursorId = nextCursor.id;
+    isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     setLoadMoreError(null);
     try {
       const params = new URLSearchParams({
         pageSize: "8",
-        cursor: JSON.stringify(nextCursor),
+        cursor: cursorId,
       });
       if (collectionFilter !== "all") params.set("category", collectionFilter);
       if (designFilter !== "all") params.set("designTheme", designFilter);
-      const response = await fetch(`/api/products?${params.toString()}`, { cache: "no-store" });
-      if (!response.ok) throw new Error("Failed to load more products");
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        credentials: "same-origin",
+      });
+      if (!response.ok) {
+        failedCursorRef.current = cursorId;
+        setNextCursor(null);
+        throw new Error("Failed to load more products");
+      }
       const payload = (await response.json()) as ShopProductsResponse;
+      failedCursorRef.current = null;
       setLoadedProducts((prev) => [...prev, ...(payload.products ?? [])]);
       setNextCursor(payload.nextCursor ?? null);
     } catch (error) {
-      setLoadMoreError(error instanceof Error ? error.message : "Failed to load more products");
+      setLoadMoreError(
+        error instanceof Error ? error.message : "Failed to load more products",
+      );
     } finally {
+      isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [collectionFilter, designFilter, isLoadingMore, nextCursor]);
+  }, [collectionFilter, designFilter, nextCursor]);
 
-  const { categoryPills: collectionPills, designPills: allDesignPills } = useMemo(
-    () =>
-      buildDependentFilterPills({
-        products: filterProducts ?? products,
-        categories,
-        designThemes,
-        selectedCategory: collectionFilter,
-      }),
-    [categories, collectionFilter, designThemes, filterProducts, products],
-  );
+  const { categoryPills: collectionPills, designPills: allDesignPills } =
+    useMemo(
+      () =>
+        buildDependentFilterPills({
+          products: filterProducts ?? products,
+          categories,
+          designThemes,
+          selectedCategory: collectionFilter,
+        }),
+      [categories, collectionFilter, designThemes, filterProducts, products],
+    );
 
   const handleCollectionFilterChange = useCallback(
     (nextCollection: string) => {
@@ -113,26 +150,41 @@ export default function ShopClient({
     let ignore = false;
     async function loadFilteredProducts() {
       if (collectionFilter === "all" && designFilter === "all") {
+        failedCursorRef.current = null;
         setLoadedProducts(products);
         setNextCursor(initialCursor);
         return;
       }
+      failedCursorRef.current = null;
+      isLoadingMoreRef.current = true;
       setIsLoadingMore(true);
       setLoadMoreError(null);
       try {
         const params = new URLSearchParams({ pageSize: "8" });
-        if (collectionFilter !== "all") params.set("category", collectionFilter);
+        if (collectionFilter !== "all")
+          params.set("category", collectionFilter);
         if (designFilter !== "all") params.set("designTheme", designFilter);
-        const response = await fetch(`/api/products?${params.toString()}`, { cache: "no-store" });
-        if (!response.ok) throw new Error("Failed to load filtered products");
+        const response = await fetch(`/api/products?${params.toString()}`, {
+          credentials: "same-origin",
+        });
+        if (!response.ok) {
+          if (!ignore) setNextCursor(null);
+          throw new Error("Failed to load filtered products");
+        }
         const payload = (await response.json()) as ShopProductsResponse;
         if (!ignore) {
           setLoadedProducts(payload.products ?? []);
           setNextCursor(payload.nextCursor ?? null);
         }
       } catch (error) {
-        if (!ignore) setLoadMoreError(error instanceof Error ? error.message : "Failed to load filtered products");
+        if (!ignore)
+          setLoadMoreError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load filtered products",
+          );
       } finally {
+        isLoadingMoreRef.current = false;
         if (!ignore) setIsLoadingMore(false);
       }
     }
@@ -141,7 +193,6 @@ export default function ShopClient({
       ignore = true;
     };
   }, [collectionFilter, designFilter, initialCursor, products]);
-
 
   useEffect(() => {
     const sentinel = infiniteScrollRef.current;
@@ -165,8 +216,13 @@ export default function ShopClient({
     return loadedProducts.filter((product) => {
       const category = (product.category as string)?.toLowerCase();
       const design = (product.designTheme ?? "simple").toLowerCase();
-      if (collectionFilter !== "all" && category !== collectionFilter.toLowerCase()) return false;
-      if (designFilter !== "all" && design !== designFilter.toLowerCase()) return false;
+      if (
+        collectionFilter !== "all" &&
+        category !== collectionFilter.toLowerCase()
+      )
+        return false;
+      if (designFilter !== "all" && design !== designFilter.toLowerCase())
+        return false;
 
       if (!term) return true;
       const tags = (product.tags ?? []) as string[];
@@ -179,8 +235,12 @@ export default function ShopClient({
     <>
       <div className="mb-6 flex flex-col gap-4">
         <div className="flex flex-col gap-2 md:max-w-2xl">
-          <p className="text-sm uppercase tracking-[0.25em] text-white/90">{t("shop.headerEyebrow")}</p>
-          <h1 className="text-4xl font-semibold text-white">{t("shop.headerTitle")}</h1>
+          <p className="text-sm uppercase tracking-[0.25em] text-white/90">
+            {t("shop.headerEyebrow")}
+          </p>
+          <h1 className="text-4xl font-semibold text-white">
+            {t("shop.headerTitle")}
+          </h1>
           <p className="text-sm text-white/80">
             {t("shop.headerDescriptionLine1")}
             <br />
@@ -191,7 +251,9 @@ export default function ShopClient({
         <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/40">
           <div className="flex flex-col gap-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-100">Collections</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-100">
+                Collections
+              </p>
               <div className="flex flex-wrap gap-2">
                 {collectionPills.map((pill) => {
                   const active = collectionFilter === pill.value;
@@ -214,7 +276,9 @@ export default function ShopClient({
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-100">Design</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-100">
+                Design
+              </p>
               <div className="flex flex-wrap gap-2">
                 {allDesignPills.map((pill) => {
                   const active = designFilter === pill.value;
@@ -222,7 +286,9 @@ export default function ShopClient({
                     <button
                       key={pill.value}
                       type="button"
-                      onClick={() => startTransition(() => setDesignFilter(pill.value))}
+                      onClick={() =>
+                        startTransition(() => setDesignFilter(pill.value))
+                      }
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         active
                           ? "border-white bg-white text-slate-900"
@@ -238,7 +304,9 @@ export default function ShopClient({
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs uppercase tracking-[0.25em] text-slate-100">Search</label>
+            <label className="text-xs uppercase tracking-[0.25em] text-slate-100">
+              Search
+            </label>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -258,9 +326,7 @@ export default function ShopClient({
           No products in this category yet.
         </div>
       ) : (
-        <div
-          className="mt-10 grid min-h-[350px] grid-cols-2 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-        >
+        <div className="mt-10 grid min-h-[350px] grid-cols-2 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filteredProducts.map((product) => (
             <div key={product.id}>
               <ProductCard product={product} />
@@ -270,13 +336,19 @@ export default function ShopClient({
       )}
 
       {loadMoreError ? (
-        <p className="mt-4 text-center text-sm text-rose-100">{loadMoreError}</p>
+        <p className="mt-4 text-center text-sm text-rose-100">
+          {loadMoreError}
+        </p>
       ) : null}
 
-      {!errorMessage ? <div ref={infiniteScrollRef} className="h-8" aria-hidden="true" /> : null}
+      {!errorMessage ? (
+        <div ref={infiniteScrollRef} className="h-8" aria-hidden="true" />
+      ) : null}
 
       {isLoadingMore ? (
-        <p className="mt-4 text-center text-sm text-white/70">Loading more products...</p>
+        <p className="mt-4 text-center text-sm text-white/70">
+          Loading more products...
+        </p>
       ) : null}
     </>
   );
