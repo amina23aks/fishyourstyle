@@ -8,28 +8,47 @@ import {
 } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
 import ShopClient from "./shop-client";
-import { getSelectableCollections, getSelectableDesigns } from "@/lib/categories";
+import {
+  getSelectableCollections,
+  getSelectableDesigns,
+} from "@/lib/categories";
 import { resolveLocale, type Locale } from "@/i18n/config";
-import { buildAlternateLanguages, buildLocalizedUrl, getAlternateOpenGraphLocales, getDefaultSocialImages, getOpenGraphLocale } from "@/lib/seo";
+import {
+  buildAlternateLanguages,
+  buildLocalizedUrl,
+  getAlternateOpenGraphLocales,
+  getDefaultSocialImages,
+  getOpenGraphLocale,
+} from "@/lib/seo";
 
-export const revalidate = 0;
+export const revalidate = 300;
 
-const shopMetadataByLocale: Record<Locale, { title: string; description: string }> = {
+const shopMetadataByLocale: Record<
+  Locale,
+  { title: string; description: string }
+> = {
   en: {
     title: "Shop | Fish Your Style",
-    description: "Browse Fish Your Style streetwear drops, colors, and fits designed for every mood.",
+    description:
+      "Browse Fish Your Style streetwear drops, colors, and fits designed for every mood.",
   },
   fr: {
     title: "Boutique | Fish Your Style",
-    description: "Parcourez les collections, couleurs et coupes Fish Your Style conçues pour chaque humeur.",
+    description:
+      "Parcourez les collections, couleurs et coupes Fish Your Style conçues pour chaque humeur.",
   },
   ar: {
     title: "المتجر | Fish Your Style",
-    description: "تسوّق تشكيلات ستريت وير Fish Your Style والألوان والقصّات المصممة لكل مزاج.",
+    description:
+      "تسوّق تشكيلات ستريت وير Fish Your Style والألوان والقصّات المصممة لكل مزاج.",
   },
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
   const { title, description } = shopMetadataByLocale[locale];
@@ -69,9 +88,14 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
       return { id: color, labelFr: color, labelAr: color, image: mainImage };
     }
     const id = typeof color.id === "string" && color.id ? color.id : mainImage;
-    const labelFr = typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
-    const labelAr = typeof color.labelAr === "string" && color.labelAr ? color.labelAr : labelFr;
-    const image = typeof color.image === "string" && color.image ? color.image : mainImage;
+    const labelFr =
+      typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
+    const labelAr =
+      typeof color.labelAr === "string" && color.labelAr
+        ? color.labelAr
+        : labelFr;
+    const image =
+      typeof color.image === "string" && color.image ? color.image : mainImage;
     return { id, labelFr, labelAr, image };
   });
   return {
@@ -143,9 +167,11 @@ export default async function ShopPage() {
     designThemes = [];
   }
 
-
   try {
-    filterProducts = await fetchStorefrontFilterProducts();
+    filterProducts = await fetchStorefrontFilterProducts({
+      categories,
+      designThemes,
+    });
   } catch (error) {
     console.error("Failed to fetch filter products:", error);
     filterProducts = [];

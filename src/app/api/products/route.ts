@@ -15,9 +15,14 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
       return { id: color, labelFr: color, labelAr: color, image: mainImage };
     }
     const id = typeof color.id === "string" && color.id ? color.id : mainImage;
-    const labelFr = typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
-    const labelAr = typeof color.labelAr === "string" && color.labelAr ? color.labelAr : labelFr;
-    const image = typeof color.image === "string" && color.image ? color.image : mainImage;
+    const labelFr =
+      typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
+    const labelAr =
+      typeof color.labelAr === "string" && color.labelAr
+        ? color.labelAr
+        : labelFr;
+    const image =
+      typeof color.image === "string" && color.image ? color.image : mainImage;
     return { id, labelFr, labelAr, image };
   });
   return {
@@ -84,8 +89,15 @@ export async function GET(request: NextRequest) {
     designTheme: cleanFilter(searchParams.get("designTheme")),
   });
 
-  return NextResponse.json({
-    products: page.products.map(mapStorefrontToProduct),
-    nextCursor: page.nextCursor,
-  });
+  return NextResponse.json(
+    {
+      products: page.products.map(mapStorefrontToProduct),
+      nextCursor: page.nextCursor,
+    },
+    {
+      headers: {
+        "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
+      },
+    },
+  );
 }

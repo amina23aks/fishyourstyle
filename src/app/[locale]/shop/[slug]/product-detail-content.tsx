@@ -48,8 +48,14 @@ export function ProductDetailContent({
       ? capitalizeLabel(product.designTheme)
       : capitalizeLabel(product.category);
   const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
-  const colorOptions = useMemo(() => buildProductColorOptions(product), [product]);
-  const sizeOptions = useMemo(() => buildProductSizeOptions(product), [product]);
+  const colorOptions = useMemo(
+    () => buildProductColorOptions(product),
+    [product],
+  );
+  const sizeOptions = useMemo(
+    () => buildProductSizeOptions(product),
+    [product],
+  );
   const availableColors = useMemo(
     () => colorOptions.filter((color) => !color.soldOut),
     [colorOptions],
@@ -58,9 +64,9 @@ export function ProductDetailContent({
     () => sizeOptions.filter((size) => !size.soldOut),
     [sizeOptions],
   );
-  const [activeColor, setActiveColor] = useState<typeof colorOptions[number] | undefined>(() =>
-    availableColors.length === 1 ? availableColors[0] : undefined,
-  );
+  const [activeColor, setActiveColor] = useState<
+    (typeof colorOptions)[number] | undefined
+  >(() => (availableColors.length === 1 ? availableColors[0] : undefined));
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | undefined>(() =>
     availableSizes.length === 1 ? availableSizes[0].value : undefined,
@@ -80,7 +86,8 @@ export function ProductDetailContent({
     inStock: product.inStock,
   });
   const isOutOfStock = !stockState.isAvailable;
-  const availableStock = stockState.stockMode === "limited" ? stockState.stockQty : undefined;
+  const availableStock =
+    stockState.stockMode === "limited" ? stockState.stockQty : undefined;
   const hasColorSelection = !requiresColorSelection || Boolean(activeColor);
   const hasSizeSelection = !requiresSizeSelection || Boolean(selectedSize);
   const sizeGuideImageUrl = product.sizeGuideImageUrl ?? null;
@@ -91,13 +98,20 @@ export function ProductDetailContent({
     [product.images.gallery, product.images.main],
   );
 
-  const imageList = useMemo(() => (allImages.length > 0 ? allImages : [product.images.main]), [allImages, product.images.main]);
+  const imageList = useMemo(
+    () => (allImages.length > 0 ? allImages : [product.images.main]),
+    [allImages, product.images.main],
+  );
   const displayImageList = useMemo(
-    () => imageList.map((image) => getCloudinaryDeliveryUrl(image, { quality: "auto:good" })),
+    () =>
+      imageList.map((image) =>
+        getCloudinaryDeliveryUrl(image, { width: 1200, quality: "auto:good" }),
+      ),
     [imageList],
   );
   const thumbnailImageList = useMemo(
-    () => imageList.map((image) => getCloudinaryDeliveryUrl(image, { width: 240 })),
+    () =>
+      imageList.map((image) => getCloudinaryDeliveryUrl(image, { width: 240 })),
     [imageList],
   );
 
@@ -118,7 +132,10 @@ export function ProductDetailContent({
   }, [activeColor, availableColors]);
 
   useEffect(() => {
-    if (selectedSize && availableSizes.every((size) => size.value !== selectedSize)) {
+    if (
+      selectedSize &&
+      availableSizes.every((size) => size.value !== selectedSize)
+    ) {
       setSelectedSize(availableSizes[0]?.value);
       return;
     }
@@ -172,8 +189,12 @@ export function ProductDetailContent({
     product.images.main ??
     "/placeholder.png";
   const displayCurrentImage =
-    displayImageList[activeImage] ?? getCloudinaryDeliveryUrl(currentImage, { quality: "auto:good" });
-  
+    displayImageList[activeImage] ??
+    getCloudinaryDeliveryUrl(currentImage, {
+      width: 1200,
+      quality: "auto:good",
+    });
+
   const handleAddToCart = () => {
     // Prevent any action if the item is out of stock.
     if (isOutOfStock) {
@@ -203,7 +224,11 @@ export function ProductDetailContent({
     const variantKey = `${product.id}-${colorCode}-${size}`.toLowerCase();
     const existingQuantity = getItemQuantity(variantKey);
     const maxQty = availableStock;
-    if (typeof maxQty === "number" && maxQty > 0 && existingQuantity >= maxQty) {
+    if (
+      typeof maxQty === "number" &&
+      maxQty > 0 &&
+      existingQuantity >= maxQty
+    ) {
       setSelectionError(t("shop.outOfStock"));
       return false;
     }
@@ -238,7 +263,10 @@ export function ProductDetailContent({
   };
 
   // Only show gender if it's explicitly set (not empty string)
-  const infoRows = product.gender && product.gender.trim() !== "" ? [{ label: "Genre", value: product.gender }] : [];
+  const infoRows =
+    product.gender && product.gender.trim() !== ""
+      ? [{ label: "Genre", value: product.gender }]
+      : [];
 
   const isSelectionPartial = hasColorSelection !== hasSizeSelection;
   const availabilityLine =
@@ -254,7 +282,10 @@ export function ProductDetailContent({
     : null;
   const displayMessage = isOutOfStock
     ? t("shop.outOfStock")
-    : selectionError ?? (!hasVariantAvailable ? t("shop.selectedOptionsSoldOut") : selectionMessage);
+    : (selectionError ??
+      (!hasVariantAvailable
+        ? t("shop.selectedOptionsSoldOut")
+        : selectionMessage));
 
   return (
     <main className="mx-auto w-full max-w-6xl overflow-x-hidden px-4 py-6 lg:px-8">
@@ -321,7 +352,9 @@ export function ProductDetailContent({
                     type="button"
                     onClick={() => setActiveImage(index)}
                     className={`relative h-20 w-20 shrink-0 snap-start overflow-hidden rounded-2xl border border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
-                      isActive ? "ring-2 ring-white/60" : "hover:border-white/40"
+                      isActive
+                        ? "ring-2 ring-white/60"
+                        : "hover:border-white/40"
                     }`}
                     aria-label={`Afficher l'image ${index + 1}`}
                   >
@@ -341,13 +374,25 @@ export function ProductDetailContent({
 
         <div className="mx-auto flex w-full min-w-0 max-w-[480px] flex-col gap-4 rounded-2xl border border-white/10 bg-[#0b2e55]/60 p-5 shadow-[0_6px_16px_rgba(0,0,0,0.22)] md:mx-0">
           <div className="space-y-1.5">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">Collection</p>
-            <p className="text-xs font-medium text-white/90 capitalize">{collectionName}</p>
-            <h1 className="text-xl font-semibold text-white leading-tight sm:text-2xl">{product.nameFr}</h1>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">
+              Collection
+            </p>
+            <p className="text-xs font-medium text-white/90 capitalize">
+              {collectionName}
+            </p>
+            <h1 className="text-xl font-semibold text-white leading-tight sm:text-2xl">
+              {product.nameFr}
+            </h1>
             {product.discountPercent && product.discountPercent > 0 ? (
               <div className="flex items-center gap-2">
                 <p className="text-2xl font-bold text-emerald-200 sm:text-[26px]">
-                  {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0), product.currency)}
+                  {formatPrice(
+                    Math.max(
+                      product.priceDzd * (1 - product.discountPercent / 100),
+                      0,
+                    ),
+                    product.currency,
+                  )}
                 </p>
                 <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-100">
                   -{product.discountPercent}%
@@ -364,7 +409,9 @@ export function ProductDetailContent({
           </div>
 
           <div className="space-y-1.5">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.color")}</h2>
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">
+              {t("shop.color")}
+            </h2>
             <div className="color-chips-scroll flex w-full max-w-full min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] md:flex-wrap md:overflow-visible md:pb-0">
               {colorOptions.map((color, index) => {
                 const hexValue = resolveSwatchHex(color);
@@ -379,7 +426,9 @@ export function ProductDetailContent({
                     onSelect={() => {
                       if (isSoldOut) return;
                       setActiveColor(color);
-                      setActiveImage(Math.min(index, Math.max(imageList.length - 1, 0)));
+                      setActiveImage(
+                        Math.min(index, Math.max(imageList.length - 1, 0)),
+                      );
                       setSelectionError(null);
                     }}
                     size="sm"
@@ -394,7 +443,9 @@ export function ProductDetailContent({
 
           <div className="space-y-2">
             <div className="flex min-w-0 items-center justify-between gap-3">
-              <h2 className="min-w-0 text-[13px] font-semibold uppercase tracking-wide text-white/80">{t("shop.size")}</h2>
+              <h2 className="min-w-0 text-[13px] font-semibold uppercase tracking-wide text-white/80">
+                {t("shop.size")}
+              </h2>
               {showSizeGuide ? (
                 <button
                   type="button"
@@ -433,7 +484,11 @@ export function ProductDetailContent({
                   setSelectionError(null);
                 };
                 return (
-                  <SoldOutTooltipWrapper key={size.value} isSoldOut={isSoldOut} className="inline-flex">
+                  <SoldOutTooltipWrapper
+                    key={size.value}
+                    isSoldOut={isSoldOut}
+                    className="inline-flex"
+                  >
                     <motion.button
                       type="button"
                       onClick={handleSelectSize}
@@ -460,7 +515,9 @@ export function ProductDetailContent({
                         ) : null}
                       </span>
                       {isSoldOut ? (
-                        <span className="ml-1 text-[10px] uppercase tracking-wide text-rose-100">{t("shop.outOfStock")}</span>
+                        <span className="ml-1 text-[10px] uppercase tracking-wide text-rose-100">
+                          {t("shop.outOfStock")}
+                        </span>
                       ) : null}
                     </motion.button>
                   </SoldOutTooltipWrapper>
@@ -470,9 +527,12 @@ export function ProductDetailContent({
           </div>
 
           <div className="space-y-2.5 md:space-y-3">
-            {(infoRows.length > 0 || (product.descriptionFr && product.descriptionFr.trim())) && (
+            {(infoRows.length > 0 ||
+              (product.descriptionFr && product.descriptionFr.trim())) && (
               <div className="space-y-1">
-                <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">Détails</h2>
+                <h2 className="text-[13px] font-semibold uppercase tracking-wide text-white/80">
+                  Détails
+                </h2>
                 {product.descriptionFr && product.descriptionFr.trim() && (
                   <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                     <p className="text-[13px] leading-relaxed text-neutral-300 break-words">
@@ -496,12 +556,18 @@ export function ProductDetailContent({
               </div>
             )}
 
-            <p className="min-h-[18px] text-[13px] text-rose-200" aria-live="polite">
+            <p
+              className="min-h-[18px] text-[13px] text-rose-200"
+              aria-live="polite"
+            >
               {displayMessage ?? "\u00a0"}
             </p>
 
             {availabilityLine && (
-              <p className="min-h-[18px] text-xs font-semibold text-white" aria-live="polite">
+              <p
+                className="min-h-[18px] text-xs font-semibold text-white"
+                aria-live="polite"
+              >
                 {availabilityLine}
               </p>
             )}
@@ -512,7 +578,9 @@ export function ProductDetailContent({
                   onClick={handleAddToCart}
                   disabled={isOutOfStock || !hasVariantAvailable}
                   className={`w-full justify-center sm:w-auto ${
-                    isOutOfStock || !hasVariantAvailable ? "opacity-60 cursor-not-allowed" : ""
+                    isOutOfStock || !hasVariantAvailable
+                      ? "opacity-60 cursor-not-allowed"
+                      : ""
                   }`.trim()}
                 />
                 <FavoriteButton
@@ -536,7 +604,9 @@ export function ProductDetailContent({
                   }}
                 />
               </div>
-              <p className="text-[11px] text-neutral-400">Livraison rapide & échanges simples.</p>
+              <p className="text-[11px] text-neutral-400">
+                Livraison rapide & échanges simples.
+              </p>
             </div>
           </div>
         </div>
@@ -544,10 +614,15 @@ export function ProductDetailContent({
 
       {suggestedProducts.length > 0 ? (
         <section className="mt-10 space-y-4">
-          <h2 className="text-xl font-semibold text-white sm:text-2xl">Suggested Products</h2>
+          <h2 className="text-xl font-semibold text-white sm:text-2xl">
+            Suggested Products
+          </h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {suggestedProducts.map((suggestedProduct) => (
-              <ProductCard key={suggestedProduct.id} product={suggestedProduct} />
+              <ProductCard
+                key={suggestedProduct.id}
+                product={suggestedProduct}
+              />
             ))}
           </div>
         </section>
@@ -563,7 +638,9 @@ export function ProductDetailContent({
           />
           <div className="relative z-10 w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-[32px] border border-white/10 bg-[#082f55]/95 p-4 text-white shadow-[0_14px_32px_rgba(0,0,0,0.36)]">
             <div className="flex items-center justify-between gap-4">
-              <p className="text-xs uppercase tracking-[0.3em] text-neutral-300">{t("shop.sizeGuide")}</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-neutral-300">
+                {t("shop.sizeGuide")}
+              </p>
               <button
                 type="button"
                 onClick={() => setIsSizeGuideOpen(false)}
@@ -575,7 +652,9 @@ export function ProductDetailContent({
             <div className="mt-4 flex items-center justify-center">
               <div className="relative h-[78vh] w-full">
                 <Image
-                  src={getCloudinaryDeliveryUrl(sizeGuideImageUrl ?? "", { quality: "auto:best" })}
+                  src={getCloudinaryDeliveryUrl(sizeGuideImageUrl ?? "", {
+                    quality: "auto:best",
+                  })}
                   alt={t("shop.sizeGuide")}
                   fill
                   sizes="100vw"

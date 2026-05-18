@@ -9,11 +9,12 @@ import {
   where,
   limit,
   type DocumentData,
-  type QueryConstraint
+  type QueryConstraint,
 } from "firebase/firestore";
 
 import { getServerDb } from "./firestore";
 import { isFirebaseConfigured } from "./firebaseConfig";
+import type { SelectableItem } from "./categories-shared";
 
 export type StorefrontProductImages = {
   main: string;
@@ -102,13 +103,18 @@ function normalizeImagesField(images: unknown): StorefrontProductImages {
   const finalMain = main ?? "";
   const finalGallery = gallery.filter((url) => url !== finalMain);
 
-  return { main: finalMain, gallery: finalGallery } satisfies StorefrontProductImages;
+  return {
+    main: finalMain,
+    gallery: finalGallery,
+  } satisfies StorefrontProductImages;
 }
 
 function parseStringArray(value: unknown): string[] {
   if (!value) return [];
   if (Array.isArray(value)) {
-    return value.map((item) => (typeof item === "string" ? item : String(item))).filter(Boolean);
+    return value
+      .map((item) => (typeof item === "string" ? item : String(item)))
+      .filter(Boolean);
   }
   if (typeof value === "string") {
     return value
@@ -120,9 +126,14 @@ function parseStringArray(value: unknown): string[] {
 }
 
 function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
-  const basePrice = typeof data.basePrice === "number" ? data.basePrice : Number(data.basePrice ?? 0);
+  const basePrice =
+    typeof data.basePrice === "number"
+      ? data.basePrice
+      : Number(data.basePrice ?? 0);
   const discountPercent =
-    typeof data.discountPercent === "number" ? data.discountPercent : Number(data.discountPercent ?? 0);
+    typeof data.discountPercent === "number"
+      ? data.discountPercent
+      : Number(data.discountPercent ?? 0);
   const finalPrice =
     typeof data.finalPrice === "number"
       ? data.finalPrice
@@ -135,13 +146,26 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
           return acc;
         }
         if (c && typeof c === "object") {
-          const color = c as { id?: unknown; labelFr?: unknown; labelAr?: unknown; image?: unknown; hex?: unknown };
-          const id = typeof color.id === "string" && color.id ? color.id : typeof color.hex === "string" ? color.hex : null;
+          const color = c as {
+            id?: unknown;
+            labelFr?: unknown;
+            labelAr?: unknown;
+            image?: unknown;
+            hex?: unknown;
+          };
+          const id =
+            typeof color.id === "string" && color.id
+              ? color.id
+              : typeof color.hex === "string"
+                ? color.hex
+                : null;
           if (!id) return acc;
           acc.push({
             id,
-            labelFr: typeof color.labelFr === "string" ? color.labelFr : undefined,
-            labelAr: typeof color.labelAr === "string" ? color.labelAr : undefined,
+            labelFr:
+              typeof color.labelFr === "string" ? color.labelFr : undefined,
+            labelAr:
+              typeof color.labelAr === "string" ? color.labelAr : undefined,
             image: typeof color.image === "string" ? color.image : undefined,
           });
         }
@@ -151,10 +175,15 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
 
   const imagesValue = normalizeImagesField(data.images);
 
-  const validGenders: StorefrontProduct["gender"][] = ["unisex", "men", "women"];
+  const validGenders: StorefrontProduct["gender"][] = [
+    "unisex",
+    "men",
+    "women",
+  ];
   const genderValue = data.gender;
   const gender =
-    typeof genderValue === "string" && validGenders.includes(genderValue as StorefrontProduct["gender"])
+    typeof genderValue === "string" &&
+    validGenders.includes(genderValue as StorefrontProduct["gender"])
       ? (genderValue as StorefrontProduct["gender"])
       : undefined;
   const soldOutSizes = parseStringArray(data.soldOutSizes);
@@ -166,7 +195,10 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
         ? data.stock
         : Number(data.stock ?? 0);
   const inStockValue = typeof data.inStock === "boolean" ? data.inStock : true;
-  const requestedMode = data.stockMode === "limited" || data.stockMode === "unlimited" ? data.stockMode : null;
+  const requestedMode =
+    data.stockMode === "limited" || data.stockMode === "unlimited"
+      ? data.stockMode
+      : null;
   const stockMode =
     requestedMode ??
     (inStockValue === false
@@ -192,26 +224,34 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     id,
     slug: typeof data.slug === "string" ? data.slug : "",
     name: typeof data.name === "string" ? data.name : "Untitled product",
-    description: typeof data.description === "string" ? data.description : undefined,
+    description:
+      typeof data.description === "string" ? data.description : undefined,
     basePrice,
     discountPercent: Number.isFinite(discountPercent) ? discountPercent : 0,
     finalPrice,
     category: typeof data.category === "string" ? data.category : "tshirts",
-    designTheme: typeof data.designTheme === "string" ? data.designTheme : "simple",
+    designTheme:
+      typeof data.designTheme === "string" ? data.designTheme : "simple",
     sizes: Array.isArray(data.sizes) ? (data.sizes as string[]) : [],
     colors: colorsArray,
-    sizeGuideEnabled: typeof data.sizeGuideEnabled === "boolean" ? data.sizeGuideEnabled : false,
+    sizeGuideEnabled:
+      typeof data.sizeGuideEnabled === "boolean"
+        ? data.sizeGuideEnabled
+        : false,
     sizeGuideImageUrl:
-      typeof data.sizeGuideImageUrl === "string" && data.sizeGuideImageUrl.trim()
+      typeof data.sizeGuideImageUrl === "string" &&
+      data.sizeGuideImageUrl.trim()
         ? data.sizeGuideImageUrl.trim()
         : null,
     sizeGuideImagePublicId:
-      typeof data.sizeGuideImagePublicId === "string" && data.sizeGuideImagePublicId.trim()
+      typeof data.sizeGuideImagePublicId === "string" &&
+      data.sizeGuideImagePublicId.trim()
         ? data.sizeGuideImagePublicId.trim()
         : null,
     gender,
     soldOutSizes: soldOutSizes.length > 0 ? soldOutSizes : undefined,
-    soldOutColorCodes: soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
+    soldOutColorCodes:
+      soldOutColorCodes.length > 0 ? soldOutColorCodes : undefined,
     stockMode,
     stockQty,
     inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
@@ -220,8 +260,6 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     status: data.status === "inactive" ? "inactive" : "active",
   };
 }
-
-
 
 async function fetchStorefrontProductsByConstraints(
   constraints: QueryConstraint[],
@@ -239,9 +277,14 @@ async function fetchStorefrontProductsByConstraints(
       .filter((product) => product.status === "active");
   } catch (error) {
     if (isPermissionDenied(error)) {
-      console.warn("Firestore permission denied while reading filtered storefront products; returning empty list.");
+      console.warn(
+        "Firestore permission denied while reading filtered storefront products; returning empty list.",
+      );
     } else {
-      console.error("Failed to fetch filtered storefront products from Firestore:", error);
+      console.error(
+        "Failed to fetch filtered storefront products from Firestore:",
+        error,
+      );
     }
     return [];
   }
@@ -257,7 +300,10 @@ function cursorFromDoc(doc: { id: string }): StorefrontProductsCursor {
 
 function clampPageSize(value: number | undefined, fallback = 8): number {
   const parsed = Number(value ?? fallback);
-  return Math.min(Math.max(Math.floor(Number.isFinite(parsed) ? parsed : fallback), 1), 48);
+  return Math.min(
+    Math.max(Math.floor(Number.isFinite(parsed) ? parsed : fallback), 1),
+    48,
+  );
 }
 
 export async function fetchStorefrontProductsPage({
@@ -267,14 +313,18 @@ export async function fetchStorefrontProductsPage({
   designTheme,
 }: StorefrontProductsPageParams = {}): Promise<StorefrontProductsPage> {
   if (!isFirebaseConfigured()) {
-    console.warn("Firebase env vars are missing; returning an empty product list.");
+    console.warn(
+      "Firebase env vars are missing; returning an empty product list.",
+    );
     return { products: [], nextCursor: null };
   }
 
   const safeLimit = clampPageSize(pageSize);
   const constraints: QueryConstraint[] = [where("status", "==", "active")];
-  if (category && category !== "all") constraints.push(where("category", "==", category));
-  if (designTheme && designTheme !== "all") constraints.push(where("designTheme", "==", designTheme));
+  if (category && category !== "all")
+    constraints.push(where("category", "==", category));
+  if (designTheme && designTheme !== "all")
+    constraints.push(where("designTheme", "==", designTheme));
   constraints.push(orderBy(documentId()));
   if (cursor) {
     constraints.push(startAfter(cursor.id));
@@ -289,73 +339,169 @@ export async function fetchStorefrontProductsPage({
       products: snapshot.docs
         .map((doc) => normalizeProduct(doc.data(), doc.id))
         .filter((product) => product.status === "active"),
-      nextCursor: snapshot.docs.length === safeLimit ? cursorFromDoc(snapshot.docs[snapshot.docs.length - 1]) : null,
+      nextCursor:
+        snapshot.docs.length === safeLimit
+          ? cursorFromDoc(snapshot.docs[snapshot.docs.length - 1])
+          : null,
     };
   } catch (error) {
     if (isPermissionDenied(error)) {
-      console.warn("Firestore permission denied while reading storefront products; returning empty list.");
+      console.warn(
+        "Firestore permission denied while reading storefront products; returning empty list.",
+      );
     } else {
-      console.error("Failed to fetch storefront products from Firestore, returning empty list:", error);
+      console.error(
+        "Failed to fetch storefront products from Firestore, returning empty list:",
+        error,
+      );
     }
     return { products: [], nextCursor: null };
   }
 }
 
+type StorefrontFilterProductsParams = {
+  categories?: SelectableItem[];
+  designThemes?: SelectableItem[];
+};
 
-export async function fetchStorefrontFilterProducts(): Promise<StorefrontFilterProduct[]> {
+const FILTER_PRODUCT_SCAN_LIMIT = 200;
+const MAX_FILTER_COMBO_PROBES = 120;
+
+function selectableSlugs(items: SelectableItem[] | undefined): string[] {
+  return Array.from(
+    new Set(
+      (items ?? [])
+        .map((item) => item.slug?.trim().toLowerCase())
+        .filter((slug): slug is string => Boolean(slug)),
+    ),
+  );
+}
+
+function mapFilterDoc(data: DocumentData): StorefrontFilterProduct {
+  return {
+    category: typeof data.category === "string" ? data.category : "tshirts",
+    designTheme:
+      typeof data.designTheme === "string" ? data.designTheme : "simple",
+    status: "active",
+  };
+}
+
+export async function fetchStorefrontFilterProducts({
+  categories,
+  designThemes,
+}: StorefrontFilterProductsParams = {}): Promise<StorefrontFilterProduct[]> {
   if (!isFirebaseConfigured()) {
-    console.warn("Firebase env vars are missing; returning an empty filter product list.");
+    console.warn(
+      "Firebase env vars are missing; returning an empty filter product list.",
+    );
     return [];
   }
+
+  const categorySlugs = selectableSlugs(categories);
+  const designSlugs = selectableSlugs(designThemes);
+  const canProbeKnownCombinations =
+    categorySlugs.length > 0 &&
+    designSlugs.length > 0 &&
+    categorySlugs.length * designSlugs.length <= MAX_FILTER_COMBO_PROBES;
 
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
-    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId())));
-    return snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        category: typeof data.category === "string" ? data.category : "tshirts",
-        designTheme: typeof data.designTheme === "string" ? data.designTheme : "simple",
-        status: "active",
-      };
-    });
+
+    if (canProbeKnownCombinations) {
+      const comboSnapshots = await Promise.all(
+        categorySlugs.flatMap((category) =>
+          designSlugs.map(async (designTheme) => {
+            const snapshot = await getDocs(
+              query(
+                productsRef,
+                where("status", "==", "active"),
+                where("category", "==", category),
+                where("designTheme", "==", designTheme),
+                limit(1),
+              ),
+            );
+            return snapshot.empty
+              ? null
+              : { category, designTheme, status: "active" as const };
+          }),
+        ),
+      );
+
+      return comboSnapshots.filter(
+        (product): product is StorefrontFilterProduct => Boolean(product),
+      );
+    }
+
+    const snapshot = await getDocs(
+      query(
+        productsRef,
+        where("status", "==", "active"),
+        orderBy(documentId()),
+        limit(FILTER_PRODUCT_SCAN_LIMIT),
+      ),
+    );
+    return snapshot.docs.map((doc) => mapFilterDoc(doc.data()));
   } catch (error) {
     if (isPermissionDenied(error)) {
-      console.warn("Firestore permission denied while reading storefront filter products; returning empty list.");
+      console.warn(
+        "Firestore permission denied while reading storefront filter products; returning empty list.",
+      );
     } else {
-      console.error("Failed to fetch storefront filter products from Firestore, returning empty list:", error);
+      console.error(
+        "Failed to fetch storefront filter products from Firestore, returning empty list:",
+        error,
+      );
     }
     return [];
   }
 }
 
-export async function fetchAllStorefrontProducts(): Promise<StorefrontProduct[]> {
+export async function fetchAllStorefrontProducts(): Promise<
+  StorefrontProduct[]
+> {
   if (!isFirebaseConfigured()) {
-    console.warn("Firebase env vars are missing; returning an empty product list.");
+    console.warn(
+      "Firebase env vars are missing; returning an empty product list.",
+    );
     return [];
   }
 
   try {
     const db = getServerDb();
     const productsRef = collection(db, "products");
-    const snapshot = await getDocs(query(productsRef, where("status", "==", "active"), orderBy(documentId())));
+    const snapshot = await getDocs(
+      query(
+        productsRef,
+        where("status", "==", "active"),
+        orderBy(documentId()),
+      ),
+    );
     return snapshot.docs
       .map((doc) => normalizeProduct(doc.data(), doc.id))
       .filter((product) => product.status === "active");
   } catch (error) {
     if (isPermissionDenied(error)) {
-      console.warn("Firestore permission denied while reading storefront products; returning empty list.");
+      console.warn(
+        "Firestore permission denied while reading storefront products; returning empty list.",
+      );
     } else {
-      console.error("Failed to fetch storefront products from Firestore, returning empty list:", error);
+      console.error(
+        "Failed to fetch storefront products from Firestore, returning empty list:",
+        error,
+      );
     }
     return [];
   }
 }
 
-export async function fetchStorefrontProductBySlug(slug: string): Promise<StorefrontProduct | null> {
+export async function fetchStorefrontProductBySlug(
+  slug: string,
+): Promise<StorefrontProduct | null> {
   if (!isFirebaseConfigured()) {
-    console.warn("Firebase env vars are missing; unable to fetch product by slug.");
+    console.warn(
+      "Firebase env vars are missing; unable to fetch product by slug.",
+    );
     return null;
   }
 
@@ -373,11 +519,13 @@ export async function fetchStorefrontProductBySlug(slug: string): Promise<Storef
     const product = normalizeProduct(doc.data(), doc.id);
     return product.status === "active" ? product : null;
   } catch (error) {
-    console.error(`Failed to fetch product by slug "${slug}" from Firestore:`, error);
+    console.error(
+      `Failed to fetch product by slug "${slug}" from Firestore:`,
+      error,
+    );
     return null;
   }
 }
-
 
 export async function fetchSuggestedStorefrontProducts(params: {
   currentSlug: string;

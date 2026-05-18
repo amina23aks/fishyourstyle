@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -19,15 +20,23 @@ import {
   siteName,
 } from "@/lib/seo";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
+
+const getStorefrontProductBySlug = cache(fetchStorefrontProductBySlug);
 
 const productDescriptionByLocale: Record<Locale, (name: string) => string> = {
-  en: (name) => `Discover ${name} from Fish Your Style. Premium streetwear made for everyday comfort.`,
-  fr: (name) => `Découvrez ${name} chez Fish Your Style. Du streetwear premium pensé pour le confort au quotidien.`,
-  ar: (name) => `اكتشف ${name} من Fish Your Style. ستريت وير فاخر مصمم للراحة اليومية.`,
+  en: (name) =>
+    `Discover ${name} from Fish Your Style. Premium streetwear made for everyday comfort.`,
+  fr: (name) =>
+    `Découvrez ${name} chez Fish Your Style. Du streetwear premium pensé pour le confort au quotidien.`,
+  ar: (name) =>
+    `اكتشف ${name} من Fish Your Style. ستريت وير فاخر مصمم للراحة اليومية.`,
 };
 
-function buildProductDescription(product: StorefrontProduct, locale: Locale): string {
+function buildProductDescription(
+  product: StorefrontProduct,
+  locale: Locale,
+): string {
   const description = product.description?.trim();
   if (description) return description;
   return productDescriptionByLocale[locale](product.name);
@@ -49,7 +58,8 @@ function buildProductJsonLd(product: StorefrontProduct, locale: Locale) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: images.length > 0 ? Array.from(new Set(images)) : [defaultSocialImageUrl],
+    image:
+      images.length > 0 ? Array.from(new Set(images)) : [defaultSocialImageUrl],
     description,
     brand: {
       "@type": "Brand",
@@ -60,7 +70,9 @@ function buildProductJsonLd(product: StorefrontProduct, locale: Locale) {
       url,
       priceCurrency: "DZD",
       price: product.finalPrice,
-      availability: product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      availability: product.inStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
     },
   };
@@ -73,7 +85,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale: localeParam, slug } = await params;
   const locale = resolveLocale(localeParam);
-  const storefrontProduct = await fetchStorefrontProductBySlug(slug);
+  const storefrontProduct = await getStorefrontProductBySlug(slug);
 
   if (!storefrontProduct) {
     const url = buildLocalizedUrl(locale, `/shop/${slug}`);
@@ -118,7 +130,9 @@ export async function generateMetadata({
   };
 }
 
-function normalizeImages(images: StorefrontProduct["images"] | unknown): string[] {
+function normalizeImages(
+  images: StorefrontProduct["images"] | unknown,
+): string[] {
   const collected: string[] = [];
 
   if (Array.isArray(images)) {
@@ -154,9 +168,14 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
       return { id: color, labelFr: color, labelAr: color, image: mainImage };
     }
     const id = typeof color.id === "string" && color.id ? color.id : mainImage;
-    const labelFr = typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
-    const labelAr = typeof color.labelAr === "string" && color.labelAr ? color.labelAr : labelFr;
-    const image = typeof color.image === "string" && color.image ? color.image : mainImage;
+    const labelFr =
+      typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
+    const labelAr =
+      typeof color.labelAr === "string" && color.labelAr
+        ? color.labelAr
+        : labelFr;
+    const image =
+      typeof color.image === "string" && color.image ? color.image : mainImage;
     return { id, labelFr, labelAr, image };
   });
   return {
@@ -194,10 +213,12 @@ type ProductDetailPageParams = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
-export default async function ProductDetailPage({ params }: ProductDetailPageParams) {
+export default async function ProductDetailPage({
+  params,
+}: ProductDetailPageParams) {
   const { locale: localeParam, slug } = await params;
   const locale = resolveLocale(localeParam);
-  const storefrontProduct = await fetchStorefrontProductBySlug(slug);
+  const storefrontProduct = await getStorefrontProductBySlug(slug);
 
   if (!storefrontProduct) {
     notFound();
@@ -210,7 +231,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePar
     designTheme: storefrontProduct.designTheme,
     limitCount: 8,
   });
-  const suggestedProducts = suggestedStorefrontProducts.map(mapStorefrontToProduct);
+  const suggestedProducts = suggestedStorefrontProducts.map(
+    mapStorefrontToProduct,
+  );
 
   const productStructuredData = buildProductJsonLd(storefrontProduct, locale);
 
@@ -218,9 +241,14 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePar
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productStructuredData),
+        }}
       />
-      <ProductDetailContent product={product} suggestedProducts={suggestedProducts} />
+      <ProductDetailContent
+        product={product}
+        suggestedProducts={suggestedProducts}
+      />
     </>
   );
 }
