@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { resolveLocale } from "@/i18n/config";
-import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl } from "@/lib/seo";
+import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl, privateRobots } from "@/lib/seo";
 import CheckoutClient from "./CheckoutClient";
 
 const metadataContent = {
@@ -16,6 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
   return {
     ...metadataContent,
+    robots: privateRobots,
     alternates: {
       canonical: url,
       languages: buildAlternateLanguages("/checkout"),

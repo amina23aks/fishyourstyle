@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { locales, type Locale } from "@/i18n/config";
 import { localizePathname } from "@/i18n/paths";
 
@@ -9,6 +11,15 @@ export const defaultOgImageUrl = new URL(defaultOgImagePath, metadataBase).toStr
 export const defaultSocialImageUrl = defaultOgImageUrl;
 export const brandLogoPath = "/logoF.png";
 export const brandLogoUrl = new URL(brandLogoPath, metadataBase).toString();
+
+export const privateRobots = {
+  index: false,
+  follow: false,
+  googleBot: {
+    index: false,
+    follow: false,
+  },
+} satisfies Metadata["robots"];
 
 export const localeOpenGraphMap: Record<Locale, string> = {
   en: "en_US",

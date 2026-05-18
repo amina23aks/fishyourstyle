@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 
 import { privateRobots } from "@/lib/seo";
-import AdminClientLayout from "./AdminClientLayout";
 
 export const metadata: Metadata = {
   robots: privateRobots,
 };
 
-export default function AdminLayout({
+export default function PrivatePageLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AdminClientLayout>{children}</AdminClientLayout>;
+  return children;
 }

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import type { Timestamp } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { resolveLocale } from "@/i18n/config";
-import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl } from "@/lib/seo";
+import { buildAlternateLanguages, buildLocalizedUrl, defaultOgImageUrl, privateRobots } from "@/lib/seo";
 
 export type AdminWishlistEntry = {
   id: string;
@@ -27,6 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
   return {
     ...metadataContent,
+    robots: privateRobots,
     alternates: {
       canonical: url,
       languages: buildAlternateLanguages("/admin/wishlist"),
