@@ -88,6 +88,9 @@ export async function GET(request: NextRequest) {
     category: cleanFilter(searchParams.get("category")),
     designTheme: cleanFilter(searchParams.get("designTheme")),
   });
+  const hasPrivateRequestHeaders = Boolean(
+    request.headers.get("authorization") || request.headers.get("cookie"),
+  );
 
   return NextResponse.json(
     {
@@ -96,7 +99,9 @@ export async function GET(request: NextRequest) {
     },
     {
       headers: {
-        "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
+        "Cache-Control": hasPrivateRequestHeaders
+          ? "private, no-store"
+          : "s-maxage=300, stale-while-revalidate=600",
       },
     },
   );

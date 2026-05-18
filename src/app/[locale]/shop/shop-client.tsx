@@ -84,7 +84,9 @@ export default function ShopClient({
       });
       if (collectionFilter !== "all") params.set("category", collectionFilter);
       if (designFilter !== "all") params.set("designTheme", designFilter);
-      const response = await fetch(`/api/products?${params.toString()}`);
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        credentials: "omit",
+      });
       if (!response.ok) throw new Error("Failed to load more products");
       const payload = (await response.json()) as ShopProductsResponse;
       setLoadedProducts((prev) => [...prev, ...(payload.products ?? [])]);
@@ -143,7 +145,9 @@ export default function ShopClient({
         if (collectionFilter !== "all")
           params.set("category", collectionFilter);
         if (designFilter !== "all") params.set("designTheme", designFilter);
-        const response = await fetch(`/api/products?${params.toString()}`);
+        const response = await fetch(`/api/products?${params.toString()}`, {
+          credentials: "omit",
+        });
         if (!response.ok) throw new Error("Failed to load filtered products");
         const payload = (await response.json()) as ShopProductsResponse;
         if (!ignore) {
