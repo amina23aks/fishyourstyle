@@ -80,7 +80,7 @@ export default function ShopClient({
     try {
       const params = new URLSearchParams({
         pageSize: "8",
-        cursor: JSON.stringify(nextCursor),
+        cursor: nextCursor.id,
       });
       if (collectionFilter !== "all") params.set("category", collectionFilter);
       if (designFilter !== "all") params.set("designTheme", designFilter);

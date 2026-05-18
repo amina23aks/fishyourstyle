@@ -64,11 +64,17 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
 }
 
 function parseCursor(value: string | null): StorefrontProductsCursor | null {
-  if (!value) return null;
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  if (!trimmed.startsWith("{")) {
+    return { id: trimmed.slice(0, 1500) };
+  }
+
   try {
-    const parsed = JSON.parse(value) as Partial<StorefrontProductsCursor>;
-    if (typeof parsed.id !== "string") return null;
-    return { id: parsed.id };
+    const parsed = JSON.parse(trimmed) as Partial<StorefrontProductsCursor>;
+    if (typeof parsed.id !== "string" || !parsed.id.trim()) return null;
+    return { id: parsed.id.trim().slice(0, 1500) };
   } catch {
     return null;
   }
