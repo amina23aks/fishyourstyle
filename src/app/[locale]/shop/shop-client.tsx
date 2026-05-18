@@ -67,6 +67,8 @@ export default function ShopClient({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const infiniteScrollRef = useRef<HTMLDivElement | null>(null);
+  const isLoadingMoreRef = useRef(false);
+  const failedCursorRef = useRef<string | null>(null);
 
   useEffect(() => {
     setLoadedProducts(products);
@@ -74,21 +76,34 @@ export default function ShopClient({
   }, [initialCursor, products]);
 
   const loadMoreProducts = useCallback(async () => {
-    if (!nextCursor || isLoadingMore) return;
+    if (
+      !nextCursor ||
+      isLoadingMoreRef.current ||
+      failedCursorRef.current === nextCursor.id
+    )
+      return;
+
+    const cursorId = nextCursor.id;
+    isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     setLoadMoreError(null);
     try {
       const params = new URLSearchParams({
         pageSize: "8",
-        cursor: nextCursor.id,
+        cursor: cursorId,
       });
       if (collectionFilter !== "all") params.set("category", collectionFilter);
       if (designFilter !== "all") params.set("designTheme", designFilter);
       const response = await fetch(`/api/products?${params.toString()}`, {
-        credentials: "omit",
+        credentials: "same-origin",
       });
-      if (!response.ok) throw new Error("Failed to load more products");
+      if (!response.ok) {
+        failedCursorRef.current = cursorId;
+        setNextCursor(null);
+        throw new Error("Failed to load more products");
+      }
       const payload = (await response.json()) as ShopProductsResponse;
+      failedCursorRef.current = null;
       setLoadedProducts((prev) => [...prev, ...(payload.products ?? [])]);
       setNextCursor(payload.nextCursor ?? null);
     } catch (error) {
@@ -96,9 +111,10 @@ export default function ShopClient({
         error instanceof Error ? error.message : "Failed to load more products",
       );
     } finally {
+      isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [collectionFilter, designFilter, isLoadingMore, nextCursor]);
+  }, [collectionFilter, designFilter, nextCursor]);
 
   const { categoryPills: collectionPills, designPills: allDesignPills } =
     useMemo(
@@ -134,10 +150,13 @@ export default function ShopClient({
     let ignore = false;
     async function loadFilteredProducts() {
       if (collectionFilter === "all" && designFilter === "all") {
+        failedCursorRef.current = null;
         setLoadedProducts(products);
         setNextCursor(initialCursor);
         return;
       }
+      failedCursorRef.current = null;
+      isLoadingMoreRef.current = true;
       setIsLoadingMore(true);
       setLoadMoreError(null);
       try {
@@ -146,9 +165,12 @@ export default function ShopClient({
           params.set("category", collectionFilter);
         if (designFilter !== "all") params.set("designTheme", designFilter);
         const response = await fetch(`/api/products?${params.toString()}`, {
-          credentials: "omit",
+          credentials: "same-origin",
         });
-        if (!response.ok) throw new Error("Failed to load filtered products");
+        if (!response.ok) {
+          if (!ignore) setNextCursor(null);
+          throw new Error("Failed to load filtered products");
+        }
         const payload = (await response.json()) as ShopProductsResponse;
         if (!ignore) {
           setLoadedProducts(payload.products ?? []);
@@ -162,6 +184,7 @@ export default function ShopClient({
               : "Failed to load filtered products",
           );
       } finally {
+        isLoadingMoreRef.current = false;
         if (!ignore) setIsLoadingMore(false);
       }
     }
