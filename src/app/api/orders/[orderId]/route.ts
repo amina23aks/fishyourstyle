@@ -272,13 +272,6 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           typeof orderData.userId === "string" ? orderData.userId : null;
         const alreadyCounted = Boolean(orderData.loyaltyCounted);
 
-        console.log("[orders][loyalty] status update", {
-          orderId,
-          newStatus: nextStatus,
-          orderUserId,
-          loyaltyCounted: alreadyCounted,
-        });
-
         const summaryRef = db.doc("adminStats/summary");
         const summarySnapshot = await transaction.get(summaryRef);
         const summaryData = summarySnapshot.data() ?? {};
@@ -311,9 +304,6 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
         if (shouldCountLoyalty) {
           const userRef = db.collection("users").doc(orderUserId ?? "");
-          console.log("[orders][loyalty] incrementing user orderCount", {
-            userDocPath: `users/${orderUserId}`,
-          });
           const userSnapshot = await transaction.get(userRef);
           const userData = userSnapshot.data() ?? {};
           if (!userSnapshot.exists) {
@@ -346,10 +336,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           }
           transaction.set(userRef, userUpdate, { merge: true });
           orderUpdate.loyaltyCounted = true;
-        } else if (!orderUserId && normalizedNextStatus === "delivered") {
-          console.log("[orders][loyalty] missing userId, skipping increment", {
-            orderId,
-          });
+
         }
 
         if (nextStatus === "cancelled") {

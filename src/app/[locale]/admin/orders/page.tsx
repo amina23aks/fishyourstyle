@@ -350,13 +350,6 @@ export default function AdminOrdersPage() {
     try {
       const exportOrders = await exportOrdersData();
       const csvContent = buildOrdersCsv(exportOrders);
-      /*
-       * Testing checklist:
-       * - Download both CSVs and confirm Excel columns align (semicolon).
-       * - Confirm order-items export has no duplicated date/orderId columns.
-       * - Confirm rowKey is unique and stable.
-       * - Verify admin vs guest access for /api/admin/orders-export.
-       */
       triggerCsvDownload(csvContent, `orders-${new Date().toISOString().slice(0, 10)}.csv`);
       pushToast({ type: "success", message: "CSV downloaded" });
     } catch (err) {

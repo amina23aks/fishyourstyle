@@ -326,11 +326,6 @@ export async function POST(request: NextRequest) {
     let orderTotal = 0;
     const productRevenue = 0;
 
-    console.log("[api/orders] Order payload prepared", {
-      hasUser: Boolean(orderToSave.userId),
-      items: orderToSave.items.length,
-    });
-
     const ordersCollection = db.collection("orders");
     const productsCollection = db.collection("products");
 
@@ -557,20 +552,12 @@ export async function POST(request: NextRequest) {
       const orderDoc = db.collection("orders").doc(createdOrderId);
       const snapshot = await orderDoc.get();
       const createdData = snapshot.data();
-      console.log("[api/orders] Order created", {
-        orderId: createdOrderId,
-        createdAtType: createdData?.createdAt
-          ? createdData.createdAt.constructor?.name ?? typeof createdData.createdAt
-          : "missing",
-      });
       if (createdData) {
         savedOrder = firestoreDocToOrder(orderDoc.id, createdData);
       }
     }
 
     if (savedOrder) {
-      console.log(`[Orders API] Order ${savedOrder.id} created successfully`);
-      console.log(`[Orders API] Sending Telegram notification for ${savedOrder.id}`);
       try {
         await sendOrderTelegramNotification(savedOrder);
       } catch (error) {

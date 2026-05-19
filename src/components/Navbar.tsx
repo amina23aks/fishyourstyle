@@ -82,7 +82,7 @@ function HeartIcon() {
   );
 }
 
-export function Navbar() {
+function Navbar() {
   const pathname = usePathname();
   const t = useTranslations();
   const locale = useLocale();

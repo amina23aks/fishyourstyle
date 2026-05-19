@@ -126,13 +126,6 @@ export default function CheckoutClient() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log("[CheckoutClient] handleSubmit called");
-    console.log("[CheckoutClient] hasItems:", hasItems);
-    console.log("[CheckoutClient] items:", items);
-    console.log("[CheckoutClient] form:", form);
-    console.log("[CheckoutClient] deliveryMode:", deliveryMode);
-    console.log("[CheckoutClient] shippingPrice:", shippingPrice);
-
     if (!hasItems) {
       console.error("[CheckoutClient] Validation Failed: No items in cart");
       return;
@@ -142,14 +135,6 @@ export default function CheckoutClient() {
     setSuccess(null);
 
     // Validate required delivery fields. Email is only taken from authenticated users.
-    console.log("[CheckoutClient] Validating required fields...");
-    console.log("[CheckoutClient] Field validation check:", {
-      fullName: !!form.fullName,
-      phone: !!form.phone,
-      wilaya: !!form.wilaya,
-      address: !!form.address,
-    });
-
     if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
       console.error("[CheckoutClient] Validation Failed: Missing required fields", {
         fullName: !!form.fullName,
@@ -167,15 +152,12 @@ export default function CheckoutClient() {
       return;
     }
 
-    console.log("[CheckoutClient] Required fields validation passed.");
-
     if (shippingPrice == null) {
       console.error("[CheckoutClient] Validation Failed: Invalid shipping price (null)");
       setError(t("checkout.errorSelectWilaya"));
       return;
     }
 
-    console.log("[CheckoutClient] All validations passed. Building order payload...");
     setIsSubmitting(true);
 
     const normalizedItems = items.map((item) => normalizeCartItem(item));
@@ -191,13 +173,6 @@ export default function CheckoutClient() {
       setIsSubmitting(false);
       return;
     }
-    /*
-     * Testing checklist:
-     * - Unlimited product adds to cart and checkout succeeds.
-     * - Limited product with stockQty=0 is blocked.
-     * - Limited product decrements on order creation.
-     * - New order export shows category/design populated.
-     */
     const analyticsItems = normalizedItems.map((item) => ({
       item_id: item.id,
       item_name: item.name,
@@ -216,8 +191,6 @@ export default function CheckoutClient() {
     });
 
     try {
-      // Map cart items to order items
-      console.log("[CheckoutClient] Mapping cart items to order items...");
       const orderItems: OrderItem[] = normalizedItems.map((item) => ({
         id: item.id,
         slug: item.slug,
@@ -233,8 +206,6 @@ export default function CheckoutClient() {
         quantity: item.quantity,
         variantKey: item.variantKey,
       }));
-      console.log("[CheckoutClient] Order items mapped:", orderItems);
-
       // Build NewOrder object
       const newOrder: NewOrder = {
         userId: user?.uid,
@@ -256,33 +227,7 @@ export default function CheckoutClient() {
         status: "pending",
       };
 
-      console.log("[CheckoutClient] Validating payload:", newOrder);
-      console.log("[CheckoutClient] Payload summary:", {
-        itemsCount: newOrder.items.length,
-        customerEmail: newOrder.customerEmail,
-        shipping: {
-          customerName: newOrder.shipping.customerName,
-          phone: newOrder.shipping.phone,
-          wilaya: newOrder.shipping.wilaya,
-          mode: newOrder.shipping.mode,
-          price: newOrder.shipping.price,
-        },
-        subtotal: newOrder.subtotal,
-        shippingCost: newOrder.shippingCost,
-        total: newOrder.total,
-        paymentMethod: newOrder.paymentMethod,
-        status: newOrder.status,
-      });
-
-      // Send to API
-      console.log("[CheckoutClient] Sending POST request to /api/orders...");
       const response = await submitOrder(newOrder, user ?? null, { company: form.company.trim() });
-      console.log("[CheckoutClient] Response received:", {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-      });
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 400 && errorData?.error && errorData.error.includes("Some items are no longer available")) {
@@ -297,9 +242,7 @@ export default function CheckoutClient() {
       }
 
       const data = await response.json();
-      console.log("[CheckoutClient] Order created successfully:", data);
       const orderId = data.orderId;
-      console.log("[CheckoutClient] Order ID:", orderId);
 
       if (orderId) {
         trackPurchase({
@@ -322,23 +265,17 @@ export default function CheckoutClient() {
         });
       }
 
-      // Clear cart on success
-      console.log("[CheckoutClient] Clearing cart...");
       clearCart();
 
-      // Show success state
       setSuccess({ orderId });
-      console.log("[CheckoutClient] Success state set, will redirect in 2 seconds...");
 
       // Redirect after a short delay
       setTimeout(() => {
-        console.log("[CheckoutClient] Redirecting to orders page...");
         router.push(`${localizePathname(locale, "/orders")}?status=success&orderId=${orderId}`);
       }, 2000);
     } catch (err) {
       console.error("[CheckoutClient] Error in handleSubmit:", err);
       const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
-      console.error("[CheckoutClient] Error message:", errorMessage);
       setError(errorMessage);
       setIsSubmitting(false);
     }
