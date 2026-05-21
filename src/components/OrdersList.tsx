@@ -56,19 +56,21 @@ export default function OrdersList() {
   const searchParams = useSearchParams();
   const { openModal } = useAuthModal();
   const { user, loading: authLoading } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMoreOrders, setHasMoreOrders] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [streamWarning, setStreamWarning] = useState<string | null>(null);
 
   const PAGE_SIZE = 5;
 
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
+  const [emailOrders, setEmailOrders] = useState<Order[]>([]);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreOrders, setHasMoreOrders] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
   const userCursorRef = useRef<QueryDocumentSnapshot | null>(null);
   const emailCursorRef = useRef<QueryDocumentSnapshot | null>(null);
-  const activeRequestIdRef = useRef(0);
-  const isFetchingRef = useRef(false);
+  const requestIdRef = useRef(0);
+  const isLoadingMoreRef = useRef(false);
 
   const successOrderId = searchParams.get("orderId");
   const statusParam = searchParams.get("status");
@@ -80,9 +82,7 @@ export default function OrdersList() {
     return (
       <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
         <p className="font-medium">{t("orders.successTitle")}</p>
-        <p className="mt-1 text-sm">
-          {t("orders.successSubtitle").replace("{id}", successOrderId)}
-        </p>
+        <p className="mt-1 text-sm">{t("orders.successSubtitle").replace("{id}", successOrderId)}</p>
       </div>
     );
   }, [showSuccessBanner, successOrderId, t]);
@@ -103,117 +103,149 @@ export default function OrdersList() {
     } as Order;
   }, []);
 
-  const fetchOrderPage = useCallback(async (append: boolean) => {
-    if (!user) return;
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-    const requestId = activeRequestIdRef.current + 1;
-    activeRequestIdRef.current = requestId;
+  const mergedOrders = useMemo(() => {
+    const merged = new Map<string, Order>();
+    userOrders.forEach((order) => merged.set(order.id, order));
+    emailOrders.forEach((order) => merged.set(order.id, order));
+    return Array.from(merged.values()).sort((a, b) => {
+      const aDate = toDateSafe(a.createdAt);
+      const bDate = toDateSafe(b.createdAt);
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return bDate.getTime() - aDate.getTime();
+    });
+  }, [emailOrders, userOrders]);
 
-    if (append) {
-      setIsLoadingMore(true);
-    } else {
-      setIsLoadingOrders(true);
-    }
-    setError(null);
-    setStreamWarning(null);
+  const streamWarning = useMemo(() => {
+    if (!userError && !emailError) return null;
+    if (userError && emailError) return `${t("orders.errorLoadingTitle")}: ${t("orders.retry")}`;
+    return "Some order history could not be loaded yet. Please retry in a moment.";
+  }, [emailError, t, userError]);
 
-    try {
-      const db = getDb();
-      if (!db) throw new Error("Unable to connect to orders. Please try again.");
+  const fullPageError = useMemo(() => {
+    if (mergedOrders.length > 0) return null;
+    if (userError && emailError) return userError;
+    return null;
+  }, [mergedOrders.length, userError, emailError]);
 
-      const ordersRef = collection(db, "orders");
-      const baseUserConstraints: QueryConstraint[] = [
-        where("userId", "==", user.uid),
-        orderBy("createdAt", "desc"),
-        orderBy(documentId(), "desc"),
-        limit(PAGE_SIZE),
-      ];
-      const baseEmailConstraints: QueryConstraint[] = user.email
-        ? [
-            where("customerEmail", "==", user.email),
-            orderBy("createdAt", "desc"),
-            orderBy(documentId(), "desc"),
-            limit(PAGE_SIZE),
-          ]
-        : [];
+  const fetchOrderPage = useCallback(
+    async (append: boolean) => {
+      if (!user) return;
+      if (append && isLoadingMoreRef.current) return;
 
-      const userQuery = query(
-        ordersRef,
-        ...(append && userCursorRef.current
-          ? [...baseUserConstraints.slice(0, -1), startAfter(userCursorRef.current), limit(PAGE_SIZE)]
-          : baseUserConstraints),
-      );
-      const emailQuery = user.email
-        ? query(
-            ordersRef,
-            ...(append && emailCursorRef.current
-              ? [...baseEmailConstraints.slice(0, -1), startAfter(emailCursorRef.current), limit(PAGE_SIZE)]
-              : baseEmailConstraints),
-          )
-        : null;
+      const reqId = requestIdRef.current + 1;
+      requestIdRef.current = reqId;
 
-      const [userOrdersResult, emailOrdersResult] = await Promise.allSettled([
-        getDocs(userQuery),
-        emailQuery ? getDocs(emailQuery) : Promise.resolve(null),
-      ]);
-      if (requestId !== activeRequestIdRef.current) return;
-
-      const userOrdersSnapshot = userOrdersResult.status === "fulfilled" ? userOrdersResult.value : null;
-      const emailOrdersSnapshot = emailOrdersResult.status === "fulfilled" ? emailOrdersResult.value : null;
-
-      const userError = userOrdersResult.status === "rejected" ? userOrdersResult.reason : null;
-      const emailError = emailOrdersResult.status === "rejected" ? emailOrdersResult.reason : null;
-
-      if (!userOrdersSnapshot && !emailOrdersSnapshot) {
-        throw (userError || emailError || new Error("Failed to fetch orders"));
-      }
-
-      userCursorRef.current = userOrdersSnapshot?.docs.at(-1) ?? (append ? userCursorRef.current : null);
-      emailCursorRef.current = emailOrdersSnapshot?.docs.at(-1) ?? (append ? emailCursorRef.current : null);
-
-      const merged = new Map<string, Order>();
       if (append) {
-        orders.forEach((order) => merged.set(order.id, order));
+        isLoadingMoreRef.current = true;
+        setLoadingMore(true);
+      } else {
+        setLoadingInitial(true);
+        setUserError(null);
+        setEmailError(null);
       }
 
-      userOrdersSnapshot?.docs.forEach((doc) => merged.set(doc.id, mapDocToOrder(doc)));
-      emailOrdersSnapshot?.docs.forEach((doc) => merged.set(doc.id, mapDocToOrder(doc)));
+      try {
+        const db = getDb();
+        if (!db) throw new Error("Unable to connect to orders. Please try again.");
 
-      const mergedOrders = Array.from(merged.values()).sort((a, b) => {
-        const aDate = toDateSafe(a.createdAt);
-        const bDate = toDateSafe(b.createdAt);
-        if (!aDate && !bDate) return 0;
-        if (!aDate) return 1;
-        if (!bDate) return -1;
-        return bDate.getTime() - aDate.getTime();
-      });
+        const ordersRef = collection(db, "orders");
 
-      setOrders(mergedOrders);
-      const userHasMore = (userOrdersSnapshot?.size ?? 0) === PAGE_SIZE;
-      const emailHasMore = Boolean(user.email) && (emailOrdersSnapshot?.size ?? 0) === PAGE_SIZE;
-      setHasMoreOrders(userHasMore || emailHasMore);
-      if (userError || emailError) {
-        setStreamWarning("Some order history could not be loaded yet. Please retry in a moment.");
+        const userConstraints: QueryConstraint[] = [
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc"),
+          orderBy(documentId(), "desc"),
+          ...(append && userCursorRef.current ? [startAfter(userCursorRef.current)] : []),
+          limit(PAGE_SIZE),
+        ];
+
+        const emailConstraints: QueryConstraint[] = user.email
+          ? [
+              where("customerEmail", "==", user.email),
+              orderBy("createdAt", "desc"),
+              orderBy(documentId(), "desc"),
+              ...(append && emailCursorRef.current ? [startAfter(emailCursorRef.current)] : []),
+              limit(PAGE_SIZE),
+            ]
+          : [];
+
+        const [userResult, emailResult] = await Promise.allSettled([
+          getDocs(query(ordersRef, ...userConstraints)),
+          user.email ? getDocs(query(ordersRef, ...emailConstraints)) : Promise.resolve(null),
+        ]);
+
+        if (reqId !== requestIdRef.current) return;
+
+        const userSnapshot = userResult.status === "fulfilled" ? userResult.value : null;
+        const emailSnapshot = emailResult.status === "fulfilled" ? emailResult.value : null;
+
+        const nextUserError = userResult.status === "rejected"
+          ? (userResult.reason instanceof Error ? userResult.reason.message : t("common.unexpectedError"))
+          : null;
+        const nextEmailError = emailResult.status === "rejected"
+          ? (emailResult.reason instanceof Error ? emailResult.reason.message : t("common.unexpectedError"))
+          : null;
+
+        setUserError(nextUserError);
+        setEmailError(nextEmailError);
+
+        if (userSnapshot) {
+          userCursorRef.current = userSnapshot.docs.at(-1) ?? (append ? userCursorRef.current : null);
+          const mapped = userSnapshot.docs.map((doc) => mapDocToOrder(doc));
+          setUserOrders((prev) => {
+            const merged = new Map<string, Order>();
+            (append ? prev : []).forEach((o) => merged.set(o.id, o));
+            mapped.forEach((o) => merged.set(o.id, o));
+            return Array.from(merged.values());
+          });
+        } else if (!append) {
+          setUserOrders([]);
+          userCursorRef.current = null;
+        }
+
+        if (emailSnapshot) {
+          emailCursorRef.current = emailSnapshot.docs.at(-1) ?? (append ? emailCursorRef.current : null);
+          const mapped = emailSnapshot.docs.map((doc) => mapDocToOrder(doc));
+          setEmailOrders((prev) => {
+            const merged = new Map<string, Order>();
+            (append ? prev : []).forEach((o) => merged.set(o.id, o));
+            mapped.forEach((o) => merged.set(o.id, o));
+            return Array.from(merged.values());
+          });
+        } else if (!append && !user.email) {
+          setEmailOrders([]);
+          emailCursorRef.current = null;
+        }
+
+        const userHasMore = (userSnapshot?.size ?? 0) === PAGE_SIZE;
+        const emailHasMore = Boolean(user.email) && (emailSnapshot?.size ?? 0) === PAGE_SIZE;
+        setHasMoreOrders(userHasMore || emailHasMore);
+      } finally {
+        if (reqId === requestIdRef.current) {
+          if (append) {
+            isLoadingMoreRef.current = false;
+            setLoadingMore(false);
+          } else {
+            setLoadingInitial(false);
+          }
+        }
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
-      setError(errorMessage);
-      console.error("Failed to fetch orders:", err);
-    } finally {
-      isFetchingRef.current = false;
-      setIsLoadingOrders(false);
-      setIsLoadingMore(false);
-    }
-  }, [mapDocToOrder, orders, t, user]);
+    },
+    [mapDocToOrder, t, user],
+  );
 
   const fetchOrders = useCallback(async () => {
     if (!user) {
-      setOrders([]);
-      setIsLoadingOrders(false);
+      setUserOrders([]);
+      setEmailOrders([]);
+      setLoadingInitial(false);
+      setLoadingMore(false);
+      setHasMoreOrders(false);
+      setUserError(null);
+      setEmailError(null);
       userCursorRef.current = null;
       emailCursorRef.current = null;
-      setHasMoreOrders(false);
       return;
     }
 
@@ -223,21 +255,21 @@ export default function OrdersList() {
   }, [fetchOrderPage, user]);
 
   const loadMoreOrders = useCallback(async () => {
-    if (!hasMoreOrders || isLoadingMore) return;
+    if (!hasMoreOrders || loadingMore) return;
     await fetchOrderPage(true);
-  }, [fetchOrderPage, hasMoreOrders, isLoadingMore]);
+  }, [fetchOrderPage, hasMoreOrders, loadingMore]);
 
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
+    if (authLoading) return;
 
     if (user) {
       fetchOrders();
     } else {
-      setOrders([]);
-      setIsLoadingOrders(false);
-      setError(null);
+      setUserOrders([]);
+      setEmailOrders([]);
+      setLoadingInitial(false);
+      setUserError(null);
+      setEmailError(null);
     }
   }, [authLoading, fetchOrders, user]);
 
@@ -245,7 +277,6 @@ export default function OrdersList() {
     router.push(localizePathname(locale, `/orders/${orderId}`));
   };
 
-  // Helpers
   const getItemsSummary = (order: Order): string => {
     if (order.items.length === 0) return t("orders.emptyOrder");
     if (order.items.length === 1) {
@@ -311,7 +342,6 @@ export default function OrdersList() {
     </div>
   );
 
-  // --- UI STATES ---
   if (authLoading) {
     return (
       <div className="space-y-4">
@@ -321,7 +351,6 @@ export default function OrdersList() {
     );
   }
 
-  // Guest
   if (!user) {
     return (
       <div className="space-y-6">
@@ -346,8 +375,7 @@ export default function OrdersList() {
     );
   }
 
-  // Loading state for user orders
-  if (isLoadingOrders) {
+  if (loadingInitial && mergedOrders.length === 0) {
     return (
       <div className="space-y-4">
         {successBanner}
@@ -356,14 +384,13 @@ export default function OrdersList() {
     );
   }
 
-  // Error state
-  if (error) {
+  if (fullPageError) {
     return (
       <div className="space-y-4">
         {successBanner}
         <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-6 text-rose-50 shadow-inner shadow-rose-900/30">
           <p className="font-medium mb-2">{t("orders.errorLoadingTitle")}</p>
-          <p className="text-sm mb-4">{error}</p>
+          <p className="text-sm mb-4">{fullPageError}</p>
           <button
             onClick={fetchOrders}
             className="rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
@@ -375,8 +402,7 @@ export default function OrdersList() {
     );
   }
 
-  // Logged-in: Empty state
-  if (orders.length === 0) {
+  if (mergedOrders.length === 0) {
     return (
       <div className="space-y-4">
         {successBanner}
@@ -394,7 +420,6 @@ export default function OrdersList() {
     );
   }
 
-  // Logged-in: Orders exists
   return (
     <div className="space-y-4">
       {successBanner}
@@ -411,7 +436,7 @@ export default function OrdersList() {
         </div>
       )}
       <div className="grid gap-4">
-        {orders.map((order) => {
+        {mergedOrders.map((order) => {
           const firstItem = order.items[0];
           const canCancel = order.status === "pending";
           const canEdit = order.status === "pending";
@@ -425,16 +450,9 @@ export default function OrdersList() {
               data-can-edit={canEdit}
             >
               <div className="flex gap-4">
-                {/* Product thumbnail */}
                 {firstItem && (
                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                    <Image
-                      src={firstItem.image}
-                      alt={firstItem.name}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
+                    <Image src={firstItem.image} alt={firstItem.name} fill sizes="64px" className="object-cover" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -445,14 +463,12 @@ export default function OrdersList() {
                       </p>
                       <h3 className="text-lg font-semibold text-white mt-1">{getItemsSummary(order)}</h3>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(order.status)}`}
-                        >
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(order.status)}`}>
                           {getStatusLabel(order.status)}
                         </span>
                         {canEdit && (
                           <button
-                            onClick={event => {
+                            onClick={(event) => {
                               event.stopPropagation();
                               router.push(localizePathname(locale, `/orders/${order.id}?edit=true`));
                             }}
@@ -465,18 +481,14 @@ export default function OrdersList() {
                     </div>
                     <div className="text-right text-sky-100 mt-2 md:mt-0">
                       <p className="text-sm">{createdAtDate ? createdAtDate.toLocaleString() : "—"}</p>
-                      <p className="text-base font-semibold text-white mt-1">
-                        {new Intl.NumberFormat("en-US").format(order.total)} DZD
-                      </p>
+                      <p className="text-base font-semibold text-white mt-1">{new Intl.NumberFormat("en-US").format(order.total)} DZD</p>
                     </div>
                   </div>
                   <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
                     <div>
                       <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.customerLabel")}</dt>
                       <dd className="text-sm font-medium text-white mt-1">{order.shipping.customerName}</dd>
-                      {order.customerEmail && (
-                        <dd className="text-sm text-sky-100 mt-0.5">{order.customerEmail}</dd>
-                      )}
+                      {order.customerEmail && <dd className="text-sm text-sky-100 mt-0.5">{order.customerEmail}</dd>}
                       <dd className="text-sm text-sky-200 mt-0.5">{order.shipping.phone}</dd>
                     </div>
                     <div>
@@ -504,10 +516,10 @@ export default function OrdersList() {
           <button
             type="button"
             onClick={loadMoreOrders}
-            disabled={isLoadingMore}
+            disabled={loadingMore}
             className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isLoadingMore ? t("orders.loading") : "Load more"}
+            {loadingMore ? t("orders.loading") : "Load more"}
           </button>
         </div>
       )}
