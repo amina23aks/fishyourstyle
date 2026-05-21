@@ -324,7 +324,12 @@ export async function POST(request: NextRequest) {
     let loyaltyDiscountAmount = 0;
     let loyaltyApplied = false;
     let orderTotal = 0;
-    const productRevenue = 0;
+    const fallbackProductRevenue = orderToSave.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const productRevenue =
+      typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : fallbackProductRevenue;
 
     console.log("[api/orders] Order payload prepared", {
       hasUser: Boolean(orderToSave.userId),
