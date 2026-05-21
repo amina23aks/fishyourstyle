@@ -4,7 +4,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  documentId,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  startAfter,
+  where,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
+} from "firebase/firestore";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
@@ -47,7 +58,14 @@ export default function OrdersList() {
   const { user, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreOrders, setHasMoreOrders] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const PAGE_SIZE = 5;
+
+  const [userCursor, setUserCursor] = useState<QueryDocumentSnapshot | null>(null);
+  const [emailCursor, setEmailCursor] = useState<QueryDocumentSnapshot | null>(null);
 
   const successOrderId = searchParams.get("orderId");
   const statusParam = searchParams.get("status");
@@ -66,54 +84,70 @@ export default function OrdersList() {
     );
   }, [showSuccessBanner, successOrderId, t]);
 
-  const fetchOrders = useCallback(async () => {
-    if (!user) {
-      setOrders([]);
-      setIsLoadingOrders(false);
-      return;
-    }
+  const mapDocToOrder = useCallback((doc: { id: string; data: () => unknown }) => {
+    const data = doc.data() as Record<string, unknown>;
+    const createdAtValue = (data.createdAt as string | { toDate?: () => Date } | undefined) ?? "";
 
-    setIsLoadingOrders(true);
+    return {
+      id: doc.id,
+      ...data,
+      createdAt:
+        typeof createdAtValue === "string"
+          ? createdAtValue
+          : createdAtValue?.toDate
+            ? createdAtValue.toDate().toISOString()
+            : "",
+    } as Order;
+  }, []);
+
+  const fetchOrderPage = useCallback(async (append: boolean) => {
+    if (!user) return;
+
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoadingOrders(true);
+    }
     setError(null);
 
     try {
       const db = getDb();
-      if (!db) {
-        throw new Error("Unable to connect to orders. Please try again.");
-      }
+      if (!db) throw new Error("Unable to connect to orders. Please try again.");
 
       const ordersRef = collection(db, "orders");
-      const userOrdersPromise = getDocs(query(ordersRef, where("userId", "==", user.uid)));
-      const emailOrdersPromise = user.email
-        ? getDocs(query(ordersRef, where("customerEmail", "==", user.email)))
-        : Promise.resolve(null);
+      const baseUserConstraints: QueryConstraint[] = [
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc"),
+        orderBy(documentId(), "desc"),
+        limit(PAGE_SIZE),
+      ];
+      const baseEmailConstraints: QueryConstraint[] = user.email
+        ? [
+            where("customerEmail", "==", user.email),
+            orderBy("createdAt", "desc"),
+            orderBy(documentId(), "desc"),
+            limit(PAGE_SIZE),
+          ]
+        : [];
 
-      const [userOrdersSnapshot, emailOrdersSnapshot] = await Promise.all([userOrdersPromise, emailOrdersPromise]);
+      const userQuery = query(ordersRef, ...(append && userCursor ? [...baseUserConstraints.slice(0, -1), startAfter(userCursor), limit(PAGE_SIZE)] : baseUserConstraints));
+      const emailQuery = user.email
+        ? query(ordersRef, ...(append && emailCursor ? [...baseEmailConstraints.slice(0, -1), startAfter(emailCursor), limit(PAGE_SIZE)] : baseEmailConstraints))
+        : null;
+
+      const [userOrdersSnapshot, emailOrdersSnapshot] = await Promise.all([
+        getDocs(userQuery),
+        emailQuery ? getDocs(emailQuery) : Promise.resolve(null),
+      ]);
+
+      setUserCursor(userOrdersSnapshot.docs.at(-1) ?? (append ? userCursor : null));
+      setEmailCursor(emailOrdersSnapshot?.docs.at(-1) ?? (append ? emailCursor : null));
 
       const merged = new Map<string, Order>();
-      const mapDocToOrder = (doc: { id: string; data: () => unknown }) => {
-        const data = doc.data() as Record<string, unknown>;
-        const createdAtValue = (data.createdAt as string | { toDate?: () => Date } | undefined) ?? "";
+      (append ? orders : []).forEach((order) => merged.set(order.id, order));
 
-        return {
-          id: doc.id,
-          ...data,
-          createdAt:
-            typeof createdAtValue === "string"
-              ? createdAtValue
-              : createdAtValue?.toDate
-                ? createdAtValue.toDate().toISOString()
-                : "",
-        } as Order;
-      };
-
-      userOrdersSnapshot.docs.forEach((doc) => {
-        merged.set(doc.id, mapDocToOrder(doc));
-      });
-
-      emailOrdersSnapshot?.docs.forEach((doc) => {
-        merged.set(doc.id, mapDocToOrder(doc));
-      });
+      userOrdersSnapshot.docs.forEach((doc) => merged.set(doc.id, mapDocToOrder(doc)));
+      emailOrdersSnapshot?.docs.forEach((doc) => merged.set(doc.id, mapDocToOrder(doc)));
 
       const mergedOrders = Array.from(merged.values()).sort((a, b) => {
         const aDate = toDateSafe(a.createdAt);
@@ -124,15 +158,39 @@ export default function OrdersList() {
         return bDate.getTime() - aDate.getTime();
       });
 
-      setOrders(mergedOrders.slice(0, 20));
+      setOrders(mergedOrders);
+      const userHasMore = userOrdersSnapshot.size === PAGE_SIZE;
+      const emailHasMore = Boolean(user.email) && (emailOrdersSnapshot?.size ?? 0) === PAGE_SIZE;
+      setHasMoreOrders(userHasMore || emailHasMore);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       setError(errorMessage);
       console.error("Failed to fetch orders:", err);
     } finally {
       setIsLoadingOrders(false);
+      setIsLoadingMore(false);
     }
-  }, [t, user]);
+  }, [emailCursor, mapDocToOrder, orders, t, user, userCursor]);
+
+  const fetchOrders = useCallback(async () => {
+    if (!user) {
+      setOrders([]);
+      setIsLoadingOrders(false);
+      setUserCursor(null);
+      setEmailCursor(null);
+      setHasMoreOrders(false);
+      return;
+    }
+
+    setUserCursor(null);
+    setEmailCursor(null);
+    await fetchOrderPage(false);
+  }, [fetchOrderPage, user]);
+
+  const loadMoreOrders = useCallback(async () => {
+    if (!hasMoreOrders || isLoadingMore) return;
+    await fetchOrderPage(true);
+  }, [fetchOrderPage, hasMoreOrders, isLoadingMore]);
 
   useEffect(() => {
     if (authLoading) {
@@ -394,6 +452,18 @@ export default function OrdersList() {
           );
         })}
       </div>
+      {hasMoreOrders && (
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={loadMoreOrders}
+            disabled={isLoadingMore}
+            className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isLoadingMore ? t("orders.loading") : "Load more"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
