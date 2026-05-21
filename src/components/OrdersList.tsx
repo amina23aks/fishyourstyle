@@ -3,8 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  collection,
+  documentId,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  startAfter,
+  where,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
+} from "firebase/firestore";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
@@ -45,9 +56,21 @@ export default function OrdersList() {
   const searchParams = useSearchParams();
   const { openModal } = useAuthModal();
   const { user, loading: authLoading } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  const PAGE_SIZE = 5;
+
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
+  const [emailOrders, setEmailOrders] = useState<Order[]>([]);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreOrders, setHasMoreOrders] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const userCursorRef = useRef<QueryDocumentSnapshot | null>(null);
+  const emailCursorRef = useRef<QueryDocumentSnapshot | null>(null);
+  const requestIdRef = useRef(0);
+  const isLoadingMoreRef = useRef(false);
 
   const successOrderId = searchParams.get("orderId");
   const statusParam = searchParams.get("status");
@@ -59,92 +82,194 @@ export default function OrdersList() {
     return (
       <div className="rounded-2xl border border-emerald-200/60 bg-emerald-500/15 px-4 py-3 text-emerald-50 shadow-inner shadow-emerald-900/30">
         <p className="font-medium">{t("orders.successTitle")}</p>
-        <p className="mt-1 text-sm">
-          {t("orders.successSubtitle").replace("{id}", successOrderId)}
-        </p>
+        <p className="mt-1 text-sm">{t("orders.successSubtitle").replace("{id}", successOrderId)}</p>
       </div>
     );
   }, [showSuccessBanner, successOrderId, t]);
 
-  const fetchOrders = useCallback(async () => {
-    if (!user) {
-      setOrders([]);
-      setIsLoadingOrders(false);
-      return;
-    }
+  const mapDocToOrder = useCallback((doc: { id: string; data: () => unknown }) => {
+    const data = doc.data() as Record<string, unknown>;
+    const createdAtValue = (data.createdAt as string | { toDate?: () => Date } | undefined) ?? "";
 
-    setIsLoadingOrders(true);
-    setError(null);
+    return {
+      id: doc.id,
+      ...data,
+      createdAt:
+        typeof createdAtValue === "string"
+          ? createdAtValue
+          : createdAtValue?.toDate
+            ? createdAtValue.toDate().toISOString()
+            : "",
+    } as Order;
+  }, []);
 
-    try {
-      const db = getDb();
-      if (!db) {
-        throw new Error("Unable to connect to orders. Please try again.");
+  const mergedOrders = useMemo(() => {
+    const merged = new Map<string, Order>();
+    userOrders.forEach((order) => merged.set(order.id, order));
+    emailOrders.forEach((order) => merged.set(order.id, order));
+    return Array.from(merged.values()).sort((a, b) => {
+      const aDate = toDateSafe(a.createdAt);
+      const bDate = toDateSafe(b.createdAt);
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return bDate.getTime() - aDate.getTime();
+    });
+  }, [emailOrders, userOrders]);
+
+  const streamWarning = useMemo(() => {
+    if (!userError && !emailError) return null;
+    if (userError && emailError) return `${t("orders.errorLoadingTitle")}: ${t("orders.retry")}`;
+    return "Some order history could not be loaded yet. Please retry in a moment.";
+  }, [emailError, t, userError]);
+
+  const fullPageError = useMemo(() => {
+    if (mergedOrders.length > 0) return null;
+    if (userError && emailError) return userError;
+    return null;
+  }, [mergedOrders.length, userError, emailError]);
+
+  const fetchOrderPage = useCallback(
+    async (append: boolean) => {
+      if (!user) return;
+      if (append && isLoadingMoreRef.current) return;
+
+      const reqId = requestIdRef.current + 1;
+      requestIdRef.current = reqId;
+
+      if (append) {
+        isLoadingMoreRef.current = true;
+        setLoadingMore(true);
+      } else {
+        setLoadingInitial(true);
+        setUserError(null);
+        setEmailError(null);
       }
 
-      const ordersRef = collection(db, "orders");
-      const userOrdersPromise = getDocs(query(ordersRef, where("userId", "==", user.uid)));
-      const emailOrdersPromise = user.email
-        ? getDocs(query(ordersRef, where("customerEmail", "==", user.email)))
-        : Promise.resolve(null);
+      try {
+        const db = getDb();
+        if (!db) throw new Error("Unable to connect to orders. Please try again.");
 
-      const [userOrdersSnapshot, emailOrdersSnapshot] = await Promise.all([userOrdersPromise, emailOrdersPromise]);
+        const ordersRef = collection(db, "orders");
 
-      const merged = new Map<string, Order>();
-      const mapDocToOrder = (doc: { id: string; data: () => unknown }) => {
-        const data = doc.data() as Record<string, unknown>;
-        const createdAtValue = (data.createdAt as string | { toDate?: () => Date } | undefined) ?? "";
+        const userConstraints: QueryConstraint[] = [
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc"),
+          orderBy(documentId(), "desc"),
+          ...(append && userCursorRef.current ? [startAfter(userCursorRef.current)] : []),
+          limit(PAGE_SIZE),
+        ];
 
-        return {
-          id: doc.id,
-          ...data,
-          createdAt:
-            typeof createdAtValue === "string"
-              ? createdAtValue
-              : createdAtValue?.toDate
-                ? createdAtValue.toDate().toISOString()
-                : "",
-        } as Order;
-      };
+        const emailConstraints: QueryConstraint[] = user.email
+          ? [
+              where("customerEmail", "==", user.email),
+              orderBy("createdAt", "desc"),
+              orderBy(documentId(), "desc"),
+              ...(append && emailCursorRef.current ? [startAfter(emailCursorRef.current)] : []),
+              limit(PAGE_SIZE),
+            ]
+          : [];
 
-      userOrdersSnapshot.docs.forEach((doc) => {
-        merged.set(doc.id, mapDocToOrder(doc));
-      });
+        const [userResult, emailResult] = await Promise.allSettled([
+          getDocs(query(ordersRef, ...userConstraints)),
+          user.email ? getDocs(query(ordersRef, ...emailConstraints)) : Promise.resolve(null),
+        ]);
 
-      emailOrdersSnapshot?.docs.forEach((doc) => {
-        merged.set(doc.id, mapDocToOrder(doc));
-      });
+        if (reqId !== requestIdRef.current) return;
 
-      const mergedOrders = Array.from(merged.values()).sort((a, b) => {
-        const aDate = toDateSafe(a.createdAt);
-        const bDate = toDateSafe(b.createdAt);
-        if (!aDate && !bDate) return 0;
-        if (!aDate) return 1;
-        if (!bDate) return -1;
-        return bDate.getTime() - aDate.getTime();
-      });
+        const userSnapshot = userResult.status === "fulfilled" ? userResult.value : null;
+        const emailSnapshot = emailResult.status === "fulfilled" ? emailResult.value : null;
 
-      setOrders(mergedOrders.slice(0, 20));
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
-      setError(errorMessage);
-      console.error("Failed to fetch orders:", err);
-    } finally {
-      setIsLoadingOrders(false);
-    }
-  }, [t, user]);
+        const nextUserError = userResult.status === "rejected"
+          ? (userResult.reason instanceof Error ? userResult.reason.message : t("common.unexpectedError"))
+          : null;
+        const nextEmailError = emailResult.status === "rejected"
+          ? (emailResult.reason instanceof Error ? emailResult.reason.message : t("common.unexpectedError"))
+          : null;
 
-  useEffect(() => {
-    if (authLoading) {
+        setUserError(nextUserError);
+        setEmailError(nextEmailError);
+
+        if (userSnapshot) {
+          userCursorRef.current = userSnapshot.docs.at(-1) ?? (append ? userCursorRef.current : null);
+          const mapped = userSnapshot.docs.map((doc) => mapDocToOrder(doc));
+          setUserOrders((prev) => {
+            const merged = new Map<string, Order>();
+            (append ? prev : []).forEach((o) => merged.set(o.id, o));
+            mapped.forEach((o) => merged.set(o.id, o));
+            return Array.from(merged.values());
+          });
+        } else if (!append) {
+          setUserOrders([]);
+          userCursorRef.current = null;
+        }
+
+        if (emailSnapshot) {
+          emailCursorRef.current = emailSnapshot.docs.at(-1) ?? (append ? emailCursorRef.current : null);
+          const mapped = emailSnapshot.docs.map((doc) => mapDocToOrder(doc));
+          setEmailOrders((prev) => {
+            const merged = new Map<string, Order>();
+            (append ? prev : []).forEach((o) => merged.set(o.id, o));
+            mapped.forEach((o) => merged.set(o.id, o));
+            return Array.from(merged.values());
+          });
+        } else if (!append && !user.email) {
+          setEmailOrders([]);
+          emailCursorRef.current = null;
+        }
+
+        const userHasMore = (userSnapshot?.size ?? 0) === PAGE_SIZE;
+        const emailHasMore = Boolean(user.email) && (emailSnapshot?.size ?? 0) === PAGE_SIZE;
+        setHasMoreOrders(userHasMore || emailHasMore);
+      } finally {
+        if (reqId === requestIdRef.current) {
+          if (append) {
+            isLoadingMoreRef.current = false;
+            setLoadingMore(false);
+          } else {
+            setLoadingInitial(false);
+          }
+        }
+      }
+    },
+    [mapDocToOrder, t, user],
+  );
+
+  const fetchOrders = useCallback(async () => {
+    if (!user) {
+      setUserOrders([]);
+      setEmailOrders([]);
+      setLoadingInitial(false);
+      setLoadingMore(false);
+      setHasMoreOrders(false);
+      setUserError(null);
+      setEmailError(null);
+      userCursorRef.current = null;
+      emailCursorRef.current = null;
       return;
     }
+
+    userCursorRef.current = null;
+    emailCursorRef.current = null;
+    await fetchOrderPage(false);
+  }, [fetchOrderPage, user]);
+
+  const loadMoreOrders = useCallback(async () => {
+    if (!hasMoreOrders || loadingMore) return;
+    await fetchOrderPage(true);
+  }, [fetchOrderPage, hasMoreOrders, loadingMore]);
+
+  useEffect(() => {
+    if (authLoading) return;
 
     if (user) {
       fetchOrders();
     } else {
-      setOrders([]);
-      setIsLoadingOrders(false);
-      setError(null);
+      setUserOrders([]);
+      setEmailOrders([]);
+      setLoadingInitial(false);
+      setUserError(null);
+      setEmailError(null);
     }
   }, [authLoading, fetchOrders, user]);
 
@@ -152,7 +277,6 @@ export default function OrdersList() {
     router.push(localizePathname(locale, `/orders/${orderId}`));
   };
 
-  // Helpers
   const getItemsSummary = (order: Order): string => {
     if (order.items.length === 0) return t("orders.emptyOrder");
     if (order.items.length === 1) {
@@ -218,7 +342,6 @@ export default function OrdersList() {
     </div>
   );
 
-  // --- UI STATES ---
   if (authLoading) {
     return (
       <div className="space-y-4">
@@ -228,7 +351,6 @@ export default function OrdersList() {
     );
   }
 
-  // Guest
   if (!user) {
     return (
       <div className="space-y-6">
@@ -253,8 +375,7 @@ export default function OrdersList() {
     );
   }
 
-  // Loading state for user orders
-  if (isLoadingOrders) {
+  if (loadingInitial && mergedOrders.length === 0) {
     return (
       <div className="space-y-4">
         {successBanner}
@@ -263,14 +384,13 @@ export default function OrdersList() {
     );
   }
 
-  // Error state
-  if (error) {
+  if (fullPageError) {
     return (
       <div className="space-y-4">
         {successBanner}
         <div className="rounded-2xl border border-rose-200/60 bg-rose-500/15 p-6 text-rose-50 shadow-inner shadow-rose-900/30">
           <p className="font-medium mb-2">{t("orders.errorLoadingTitle")}</p>
-          <p className="text-sm mb-4">{error}</p>
+          <p className="text-sm mb-4">{fullPageError}</p>
           <button
             onClick={fetchOrders}
             className="rounded-lg border border-rose-200/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
@@ -282,8 +402,7 @@ export default function OrdersList() {
     );
   }
 
-  // Logged-in: Empty state
-  if (orders.length === 0) {
+  if (mergedOrders.length === 0) {
     return (
       <div className="space-y-4">
         {successBanner}
@@ -301,12 +420,23 @@ export default function OrdersList() {
     );
   }
 
-  // Logged-in: Orders exists
   return (
     <div className="space-y-4">
       {successBanner}
+      {streamWarning && (
+        <div className="rounded-2xl border border-amber-200/60 bg-amber-500/15 p-4 text-amber-50 shadow-inner shadow-amber-900/30">
+          <p className="text-sm">{streamWarning}</p>
+          <button
+            type="button"
+            onClick={fetchOrders}
+            className="mt-3 rounded-lg border border-amber-200/40 bg-amber-500/20 px-4 py-2 text-sm font-semibold text-amber-50 transition hover:bg-amber-500/30"
+          >
+            {t("orders.retry")}
+          </button>
+        </div>
+      )}
       <div className="grid gap-4">
-        {orders.map((order) => {
+        {mergedOrders.map((order) => {
           const firstItem = order.items[0];
           const canCancel = order.status === "pending";
           const canEdit = order.status === "pending";
@@ -320,16 +450,9 @@ export default function OrdersList() {
               data-can-edit={canEdit}
             >
               <div className="flex gap-4">
-                {/* Product thumbnail */}
                 {firstItem && (
                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                    <Image
-                      src={firstItem.image}
-                      alt={firstItem.name}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
+                    <Image src={firstItem.image} alt={firstItem.name} fill sizes="64px" className="object-cover" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -340,14 +463,12 @@ export default function OrdersList() {
                       </p>
                       <h3 className="text-lg font-semibold text-white mt-1">{getItemsSummary(order)}</h3>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(order.status)}`}
-                        >
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(order.status)}`}>
                           {getStatusLabel(order.status)}
                         </span>
                         {canEdit && (
                           <button
-                            onClick={event => {
+                            onClick={(event) => {
                               event.stopPropagation();
                               router.push(localizePathname(locale, `/orders/${order.id}?edit=true`));
                             }}
@@ -360,18 +481,14 @@ export default function OrdersList() {
                     </div>
                     <div className="text-right text-sky-100 mt-2 md:mt-0">
                       <p className="text-sm">{createdAtDate ? createdAtDate.toLocaleString() : "—"}</p>
-                      <p className="text-base font-semibold text-white mt-1">
-                        {new Intl.NumberFormat("en-US").format(order.total)} DZD
-                      </p>
+                      <p className="text-base font-semibold text-white mt-1">{new Intl.NumberFormat("en-US").format(order.total)} DZD</p>
                     </div>
                   </div>
                   <dl className="mt-4 grid gap-3 md:grid-cols-2 border-t border-white/10 pt-4">
                     <div>
                       <dt className="text-xs uppercase tracking-[0.18em] text-sky-300">{t("orders.customerLabel")}</dt>
                       <dd className="text-sm font-medium text-white mt-1">{order.shipping.customerName}</dd>
-                      {order.customerEmail && (
-                        <dd className="text-sm text-sky-100 mt-0.5">{order.customerEmail}</dd>
-                      )}
+                      {order.customerEmail && <dd className="text-sm text-sky-100 mt-0.5">{order.customerEmail}</dd>}
                       <dd className="text-sm text-sky-200 mt-0.5">{order.shipping.phone}</dd>
                     </div>
                     <div>
@@ -394,6 +511,18 @@ export default function OrdersList() {
           );
         })}
       </div>
+      {hasMoreOrders && (
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={loadMoreOrders}
+            disabled={loadingMore}
+            className="inline-flex items-center rounded-lg border border-sky-200/40 bg-sky-500/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500/60 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {loadingMore ? t("orders.loading") : "Load more"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
