@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import type { Order } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { useAuthModal } from "@/context/auth-modal";
@@ -48,6 +48,8 @@ export default function OrdersList() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
 
   const successOrderId = searchParams.get("orderId");
   const statusParam = searchParams.get("status");
@@ -67,14 +69,21 @@ export default function OrdersList() {
   }, [showSuccessBanner, successOrderId, t]);
 
   const fetchOrders = useCallback(async () => {
+    if (inFlightRef.current) return;
+
     if (!user) {
       setOrders([]);
       setIsLoadingOrders(false);
+      setWarning(null);
       return;
     }
 
+    inFlightRef.current = true;
     setIsLoadingOrders(true);
-    setError(null);
+    if (orders.length === 0) {
+      setError(null);
+    }
+    setWarning(null);
 
     try {
       const db = getDb();
@@ -83,12 +92,22 @@ export default function OrdersList() {
       }
 
       const ordersRef = collection(db, "orders");
-      const userOrdersPromise = getDocs(query(ordersRef, where("userId", "==", user.uid)));
+      const userOrdersPromise = getDocs(query(ordersRef, where("userId", "==", user.uid), limit(5)));
       const emailOrdersPromise = user.email
-        ? getDocs(query(ordersRef, where("customerEmail", "==", user.email)))
+        ? getDocs(query(ordersRef, where("customerEmail", "==", user.email), limit(5)))
         : Promise.resolve(null);
 
-      const [userOrdersSnapshot, emailOrdersSnapshot] = await Promise.all([userOrdersPromise, emailOrdersPromise]);
+      const [userOrdersResult, emailOrdersResult] = await Promise.allSettled([userOrdersPromise, emailOrdersPromise]);
+
+      const userOrdersSnapshot = userOrdersResult.status === "fulfilled" ? userOrdersResult.value : null;
+      const emailOrdersSnapshot = emailOrdersResult.status === "fulfilled" ? emailOrdersResult.value : null;
+
+      const userFailed = userOrdersResult.status === "rejected";
+      const emailFailed = emailOrdersResult.status === "rejected";
+
+      if (userFailed && emailFailed) {
+        throw new Error(t("orders.errorLoadingTitle"));
+      }
 
       const merged = new Map<string, Order>();
       const mapDocToOrder = (doc: { id: string; data: () => unknown }) => {
@@ -107,7 +126,7 @@ export default function OrdersList() {
         } as Order;
       };
 
-      userOrdersSnapshot.docs.forEach((doc) => {
+      userOrdersSnapshot?.docs.forEach((doc) => {
         merged.set(doc.id, mapDocToOrder(doc));
       });
 
@@ -124,15 +143,20 @@ export default function OrdersList() {
         return bDate.getTime() - aDate.getTime();
       });
 
-      setOrders(mergedOrders.slice(0, 20));
+      setOrders(mergedOrders);
+
+      if (userFailed || emailFailed) {
+        setWarning(t("orders.retry"));
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       setError(errorMessage);
       console.error("Failed to fetch orders:", err);
     } finally {
       setIsLoadingOrders(false);
+      inFlightRef.current = false;
     }
-  }, [t, user]);
+  }, [orders.length, t, user]);
 
   useEffect(() => {
     if (authLoading) {
@@ -254,7 +278,7 @@ export default function OrdersList() {
   }
 
   // Loading state for user orders
-  if (isLoadingOrders) {
+  if (isLoadingOrders && orders.length === 0) {
     return (
       <div className="space-y-4">
         {successBanner}
@@ -264,7 +288,7 @@ export default function OrdersList() {
   }
 
   // Error state
-  if (error) {
+  if (error && orders.length === 0) {
     return (
       <div className="space-y-4">
         {successBanner}
@@ -305,6 +329,17 @@ export default function OrdersList() {
   return (
     <div className="space-y-4">
       {successBanner}
+      {warning && (
+        <div className="rounded-2xl border border-amber-200/60 bg-amber-500/15 p-4 text-amber-50 shadow-inner shadow-amber-900/30">
+          <p className="text-sm mb-2">{warning}</p>
+          <button
+            onClick={fetchOrders}
+            className="rounded-lg border border-amber-200/40 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-50 transition hover:bg-amber-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+          >
+            {t("orders.retry")}
+          </button>
+        </div>
+      )}
       <div className="grid gap-4">
         {orders.map((order) => {
           const firstItem = order.items[0];
