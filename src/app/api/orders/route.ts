@@ -776,8 +776,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const ordersQuery = ordersCollection.orderBy("createdAt", "desc") as Query<DocumentData>;
-    const ordersSnapshot = await ordersQuery.get();
+    const requestedLimit = Number.parseInt(searchParams.get("limit") ?? "10", 10);
+    const normalizedLimit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : 10;
+    const pageLimit = Math.min(normalizedLimit, 50);
+    const cursorCreatedAtRaw = searchParams.get("cursorCreatedAt");
+    const cursorId = searchParams.get("cursorId")?.trim();
+
+    let ordersQuery = ordersCollection.orderBy("createdAt", "desc").orderBy("__name__", "desc") as Query<DocumentData>;
+
+    if (cursorCreatedAtRaw && cursorId) {
+      const cursorDate = new Date(cursorCreatedAtRaw);
+      if (!Number.isNaN(cursorDate.getTime())) {
+        ordersQuery = ordersQuery.startAfter(Timestamp.fromDate(cursorDate), cursorId);
+      }
+    }
+
+    const ordersSnapshot = await ordersQuery.limit(pageLimit).get();
 
     ordersSnapshot.forEach((doc) => {
       const data = doc.data();
@@ -786,7 +800,17 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(orders);
+    const lastDoc = ordersSnapshot.docs.at(-1);
+    const lastCreatedAt = lastDoc?.get("createdAt");
+    const nextCursor =
+      lastDoc && lastCreatedAt instanceof Timestamp
+        ? {
+            cursorCreatedAt: lastCreatedAt.toDate().toISOString(),
+            cursorId: lastDoc.id,
+          }
+        : null;
+
+    return NextResponse.json({ orders, nextCursor, limit: pageLimit });
   } catch (error) {
     console.error("[api/orders] GET error", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch orders";
