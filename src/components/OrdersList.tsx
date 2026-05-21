@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   collection,
   documentId,
@@ -61,11 +61,14 @@ export default function OrdersList() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreOrders, setHasMoreOrders] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streamWarning, setStreamWarning] = useState<string | null>(null);
 
   const PAGE_SIZE = 5;
 
-  const [userCursor, setUserCursor] = useState<QueryDocumentSnapshot | null>(null);
-  const [emailCursor, setEmailCursor] = useState<QueryDocumentSnapshot | null>(null);
+  const userCursorRef = useRef<QueryDocumentSnapshot | null>(null);
+  const emailCursorRef = useRef<QueryDocumentSnapshot | null>(null);
+  const activeRequestIdRef = useRef(0);
+  const isFetchingRef = useRef(false);
 
   const successOrderId = searchParams.get("orderId");
   const statusParam = searchParams.get("status");
@@ -102,6 +105,10 @@ export default function OrdersList() {
 
   const fetchOrderPage = useCallback(async (append: boolean) => {
     if (!user) return;
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    const requestId = activeRequestIdRef.current + 1;
+    activeRequestIdRef.current = requestId;
 
     if (append) {
       setIsLoadingMore(true);
@@ -109,6 +116,7 @@ export default function OrdersList() {
       setIsLoadingOrders(true);
     }
     setError(null);
+    setStreamWarning(null);
 
     try {
       const db = getDb();
@@ -130,23 +138,46 @@ export default function OrdersList() {
           ]
         : [];
 
-      const userQuery = query(ordersRef, ...(append && userCursor ? [...baseUserConstraints.slice(0, -1), startAfter(userCursor), limit(PAGE_SIZE)] : baseUserConstraints));
+      const userQuery = query(
+        ordersRef,
+        ...(append && userCursorRef.current
+          ? [...baseUserConstraints.slice(0, -1), startAfter(userCursorRef.current), limit(PAGE_SIZE)]
+          : baseUserConstraints),
+      );
       const emailQuery = user.email
-        ? query(ordersRef, ...(append && emailCursor ? [...baseEmailConstraints.slice(0, -1), startAfter(emailCursor), limit(PAGE_SIZE)] : baseEmailConstraints))
+        ? query(
+            ordersRef,
+            ...(append && emailCursorRef.current
+              ? [...baseEmailConstraints.slice(0, -1), startAfter(emailCursorRef.current), limit(PAGE_SIZE)]
+              : baseEmailConstraints),
+          )
         : null;
 
-      const [userOrdersSnapshot, emailOrdersSnapshot] = await Promise.all([
+      const [userOrdersResult, emailOrdersResult] = await Promise.allSettled([
         getDocs(userQuery),
         emailQuery ? getDocs(emailQuery) : Promise.resolve(null),
       ]);
+      if (requestId !== activeRequestIdRef.current) return;
 
-      setUserCursor(userOrdersSnapshot.docs.at(-1) ?? (append ? userCursor : null));
-      setEmailCursor(emailOrdersSnapshot?.docs.at(-1) ?? (append ? emailCursor : null));
+      const userOrdersSnapshot = userOrdersResult.status === "fulfilled" ? userOrdersResult.value : null;
+      const emailOrdersSnapshot = emailOrdersResult.status === "fulfilled" ? emailOrdersResult.value : null;
+
+      const userError = userOrdersResult.status === "rejected" ? userOrdersResult.reason : null;
+      const emailError = emailOrdersResult.status === "rejected" ? emailOrdersResult.reason : null;
+
+      if (!userOrdersSnapshot && !emailOrdersSnapshot) {
+        throw (userError || emailError || new Error("Failed to fetch orders"));
+      }
+
+      userCursorRef.current = userOrdersSnapshot?.docs.at(-1) ?? (append ? userCursorRef.current : null);
+      emailCursorRef.current = emailOrdersSnapshot?.docs.at(-1) ?? (append ? emailCursorRef.current : null);
 
       const merged = new Map<string, Order>();
-      (append ? orders : []).forEach((order) => merged.set(order.id, order));
+      if (append) {
+        orders.forEach((order) => merged.set(order.id, order));
+      }
 
-      userOrdersSnapshot.docs.forEach((doc) => merged.set(doc.id, mapDocToOrder(doc)));
+      userOrdersSnapshot?.docs.forEach((doc) => merged.set(doc.id, mapDocToOrder(doc)));
       emailOrdersSnapshot?.docs.forEach((doc) => merged.set(doc.id, mapDocToOrder(doc)));
 
       const mergedOrders = Array.from(merged.values()).sort((a, b) => {
@@ -159,31 +190,35 @@ export default function OrdersList() {
       });
 
       setOrders(mergedOrders);
-      const userHasMore = userOrdersSnapshot.size === PAGE_SIZE;
+      const userHasMore = (userOrdersSnapshot?.size ?? 0) === PAGE_SIZE;
       const emailHasMore = Boolean(user.email) && (emailOrdersSnapshot?.size ?? 0) === PAGE_SIZE;
       setHasMoreOrders(userHasMore || emailHasMore);
+      if (userError || emailError) {
+        setStreamWarning("Some order history could not be loaded yet. Please retry in a moment.");
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t("common.unexpectedError");
       setError(errorMessage);
       console.error("Failed to fetch orders:", err);
     } finally {
+      isFetchingRef.current = false;
       setIsLoadingOrders(false);
       setIsLoadingMore(false);
     }
-  }, [emailCursor, mapDocToOrder, orders, t, user, userCursor]);
+  }, [mapDocToOrder, orders, t, user]);
 
   const fetchOrders = useCallback(async () => {
     if (!user) {
       setOrders([]);
       setIsLoadingOrders(false);
-      setUserCursor(null);
-      setEmailCursor(null);
+      userCursorRef.current = null;
+      emailCursorRef.current = null;
       setHasMoreOrders(false);
       return;
     }
 
-    setUserCursor(null);
-    setEmailCursor(null);
+    userCursorRef.current = null;
+    emailCursorRef.current = null;
     await fetchOrderPage(false);
   }, [fetchOrderPage, user]);
 
@@ -363,6 +398,18 @@ export default function OrdersList() {
   return (
     <div className="space-y-4">
       {successBanner}
+      {streamWarning && (
+        <div className="rounded-2xl border border-amber-200/60 bg-amber-500/15 p-4 text-amber-50 shadow-inner shadow-amber-900/30">
+          <p className="text-sm">{streamWarning}</p>
+          <button
+            type="button"
+            onClick={fetchOrders}
+            className="mt-3 rounded-lg border border-amber-200/40 bg-amber-500/20 px-4 py-2 text-sm font-semibold text-amber-50 transition hover:bg-amber-500/30"
+          >
+            {t("orders.retry")}
+          </button>
+        </div>
+      )}
       <div className="grid gap-4">
         {orders.map((order) => {
           const firstItem = order.items[0];
