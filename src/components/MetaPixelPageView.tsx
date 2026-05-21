@@ -7,16 +7,17 @@ import { pageView } from "@/lib/metaPixel";
 export default function MetaPixelPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const hasTrackedInitialRef = useRef(false);
+  const lastTrackedLocationRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!pathname) return;
-    if (!hasTrackedInitialRef.current) {
-      hasTrackedInitialRef.current = true;
-      return;
-    }
 
-    // Meta Pixel page view on client-side route change.
+    const query = searchParams?.toString();
+    const locationKey = query ? `${pathname}?${query}` : pathname;
+
+    if (lastTrackedLocationRef.current === locationKey) return;
+
+    lastTrackedLocationRef.current = locationKey;
     pageView();
   }, [pathname, searchParams]);
 
