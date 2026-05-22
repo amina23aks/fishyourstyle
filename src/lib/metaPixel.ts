@@ -33,17 +33,19 @@ type MetaPixelOrder = {
   currency: string;
 };
 
-const safeFbq = (eventName: string, params?: MetaPixelParams): void => {
+const safeFbq = (eventName: string, params?: MetaPixelParams): boolean => {
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
-  if (!pixelId) return;
-  if (typeof window === "undefined") return;
-  if (typeof window.fbq !== "function") return;
-  if (!(window.fbq as { loaded?: boolean }).loaded) return;
+  if (!pixelId) return false;
+  if (typeof window === "undefined") return false;
+  if (typeof window.fbq !== "function") return false;
+  if (!(window.fbq as { loaded?: boolean }).loaded) return false;
   if (params) {
     window.fbq("track", eventName, params);
   } else {
     window.fbq("track", eventName);
   }
+
+  return true;
 };
 
 const buildContents = (items: MetaPixelItem[]) =>
@@ -53,9 +55,7 @@ const buildContents = (items: MetaPixelItem[]) =>
     item_price: item.price,
   }));
 
-export const pageView = (): void => {
-  safeFbq("PageView");
-};
+export const pageView = (): boolean => safeFbq("PageView");
 
 export const viewContent = (product: MetaPixelProduct): void => {
   const params: MetaPixelParams = {

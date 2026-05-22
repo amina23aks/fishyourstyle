@@ -7,17 +7,48 @@ import { pageView } from "@/lib/metaPixel";
 export default function MetaPixelPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const hasTrackedInitialRef = useRef(false);
+  const lastTrackedLocationRef = useRef<string | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!pathname) return;
-    if (!hasTrackedInitialRef.current) {
-      hasTrackedInitialRef.current = true;
-      return;
-    }
 
-    // Meta Pixel page view on client-side route change.
-    pageView();
+    const query = searchParams?.toString();
+    const locationKey = query ? `${pathname}?${query}` : pathname;
+
+    if (lastTrackedLocationRef.current === locationKey) return;
+
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
+    const maxAttempts = 10;
+    const retryDelayMs = 150;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const tryTrack = (attempt: number) => {
+      if (requestId !== requestIdRef.current) return;
+      if (lastTrackedLocationRef.current === locationKey) return;
+
+      const didTrack = pageView();
+      if (didTrack) {
+        lastTrackedLocationRef.current = locationKey;
+        return;
+      }
+
+      if (attempt >= maxAttempts) return;
+
+      timeoutId = setTimeout(() => {
+        tryTrack(attempt + 1);
+      }, retryDelayMs);
+    };
+
+    tryTrack(1);
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [pathname, searchParams]);
 
   return null;

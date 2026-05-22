@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Script from "next/script";
 import { Suspense } from "react";
 import OceanBackdrop from "@/components/OceanBackdrop";
@@ -106,23 +105,21 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
 
-fbq('init', '${metaPixelId}');
-fbq('track', 'PageView');`}
+fbq('init', '${metaPixelId}');`}
           </Script>
         ) : null}
       </head>
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">
         {enableMetaPixel ? (
-          <Image
-            src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
-            alt=""
-            width={1}
-            height={1}
-            unoptimized
-            priority
-            style={{ display: "none" }}
-            aria-hidden="true"
-          />
+          <noscript>
+            <img
+              src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
+              alt=""
+              width="1"
+              height="1"
+              style={{ display: "none" }}
+            />
+          </noscript>
         ) : null}
         <Suspense fallback={null}>
           {enableMetaPixel ? <MetaPixelPageView /> : null}
