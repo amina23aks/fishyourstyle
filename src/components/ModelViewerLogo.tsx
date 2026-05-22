@@ -4,7 +4,7 @@ export default function ModelViewerLogo() {
   return (
     <model-viewer
       src="/logo-3d.glb"
-      loading="eager"
+      loading="lazy"
       camera-controls
       auto-rotate
       rotation-per-second="120deg"
