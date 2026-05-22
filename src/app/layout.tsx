@@ -107,6 +107,7 @@ fbq('init', '${metaPixelId}');`}
       <body className="ocean-page relative flex min-h-screen flex-col overflow-x-hidden antialiased font-sans">
         {enableMetaPixel ? (
           <noscript>
+            {/* eslint-disable-next-line @next/next/no-img-element -- Meta Pixel noscript fallback for JS-disabled browsers */}
             <img
               src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
               alt=""
