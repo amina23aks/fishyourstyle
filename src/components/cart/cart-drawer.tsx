@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -339,7 +340,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         >
                           <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-white/10">
                             <Image
-                              src={item.image}
+                              src={getCloudinaryDeliveryUrl(item.image, { width: 160 })}
                               alt={item.name}
                               fill
                               sizes="80px"
