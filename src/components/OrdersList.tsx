@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -452,7 +453,7 @@ export default function OrdersList() {
               <div className="flex gap-4">
                 {firstItem && (
                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                    <Image src={firstItem.image} alt={firstItem.name} fill sizes="64px" className="object-cover" />
+                    <Image src={getCloudinaryDeliveryUrl(firstItem.image, { width: 128 })} alt={firstItem.name} fill sizes="64px" className="object-cover" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
