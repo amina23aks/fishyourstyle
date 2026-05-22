@@ -90,11 +90,6 @@ export default async function RootLayout({
   }
 })();`}
         </Script>
-        <Script
-          src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
-          type="module"
-          strategy="lazyOnload"
-        />
         {enableMetaPixel ? (
           <Script id="meta-pixel" strategy="afterInteractive">
             {`!function(f,b,e,v,n,t,s)
