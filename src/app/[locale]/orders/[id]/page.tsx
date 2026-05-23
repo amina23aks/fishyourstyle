@@ -48,12 +48,13 @@ function toDateSafe(value: unknown): Date | null {
 type EditOrderModalProps = {
   order: Order;
   open: boolean;
+  currentUser: { getIdToken: () => Promise<string> } | null;
   onClose: () => void;
   onUpdated: (updatedOrder: Order) => void;
   onError: (message: string) => void;
 };
 
-function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderModalProps) {
+function EditOrderModal({ order, open, currentUser, onClose, onUpdated, onError }: EditOrderModalProps) {
   const t = useTranslations();
   const [shipping, setShipping] = useState<ShippingInfo>(order.shipping);
   const [notes, setNotes] = useState<string>(order.notes ?? "");
@@ -109,20 +110,20 @@ function EditOrderModal({ order, open, onClose, onUpdated, onError }: EditOrderM
     onError("");
 
     try {
-      const normalizedItems = items.map((item) => ({
-        ...item,
-        variantKey: `${item.id}-${item.colorCode}-${item.size}`,
-      }));
+      const token = await currentUser?.getIdToken();
+      if (!token) {
+        throw new Error("Login required to edit or cancel this order.");
+      }
 
       const response = await fetch(`/api/orders/${order.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           shipping,
           notes,
-          items: normalizedItems,
         }),
       });
 
@@ -555,8 +556,15 @@ export default function OrderDetailsPage() {
     setCancelError(null);
 
     try {
+      const token = await user?.getIdToken();
+      if (!token) {
+        throw new Error("Login required to edit or cancel this order.");
+      }
       const response = await fetch(`/api/orders/${order.id}`, {
         method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -964,6 +972,7 @@ export default function OrderDetailsPage() {
       <EditOrderModal
         order={order}
         open={showEditModal}
+        currentUser={user}
         onClose={() => setShowEditModal(false)}
         onUpdated={handleOrderUpdated}
         onError={(message) => setEditError(message || null)}

@@ -435,12 +435,37 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         cancelledAt: FieldValue.serverTimestamp(),
       });
     } else {
+      const decoded = await requireAuthenticatedUser(request);
+      const isOrderOwner = Boolean(decoded?.uid) && Boolean(order.userId) && order.userId === decoded?.uid;
+      const isPendingOrder = order.status === "pending";
+      let canEditAsAdmin = false;
+
       try {
         await requireAdmin(request);
-      } catch (error) {
-        const status = error instanceof AdminAuthError ? error.status : 401;
-        const message = error instanceof Error ? error.message : "Unable to verify admin access.";
-        return NextResponse.json({ error: status === 403 ? "Forbidden" : "Authentication required", message }, { status });
+        canEditAsAdmin = true;
+      } catch {
+        canEditAsAdmin = false;
+      }
+
+      if (!canEditAsAdmin) {
+        if (!decoded) {
+          return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+        }
+        if (!isOrderOwner) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        if (!isPendingOrder) {
+          return NextResponse.json(
+            { error: "Only pending orders can be edited." },
+            { status: 400 }
+          );
+        }
+        if (payload?.items !== undefined || payload?.status !== undefined || payload?.returnCost !== undefined) {
+          return NextResponse.json(
+            { error: "Only shipping/contact fields and notes can be edited." },
+            { status: 403 }
+          );
+        }
       }
 
       if (order.status !== "pending") {
@@ -465,10 +490,19 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         );
       }
 
-      const updatedShipping: ShippingInfo = normalizedShippingPatch
+      const customerSafeShippingPatch =
+        !canEditAsAdmin && normalizedShippingPatch
+          ? (() => {
+              const { price: _ignoredPrice, ...rest } = normalizedShippingPatch;
+              void _ignoredPrice;
+              return rest;
+            })()
+          : normalizedShippingPatch;
+
+      const updatedShipping: ShippingInfo = customerSafeShippingPatch
         ? {
             ...order.shipping,
-            ...normalizedShippingPatch,
+            ...customerSafeShippingPatch,
           }
         : order.shipping;
 
