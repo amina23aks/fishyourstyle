@@ -195,6 +195,16 @@ function normalizeCostPrice(value: unknown): number {
   return Number.isFinite(parsed) ? Math.max(parsed, 0) : 0;
 }
 
+function resolveProductSellPrice(data: DocumentData): number | null {
+  const candidates = [data.finalPrice, data.sellPrice, data.price];
+  for (const candidate of candidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate >= 0) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 function hasInvalidOrderPhone(data: unknown): boolean {
   if (!isPlainObject(data) || !isPlainObject(data.shipping)) return false;
   const phone = data.shipping.phone;
@@ -392,6 +402,20 @@ export async function POST(request: NextRequest) {
             const name = typeof data.name === "string" ? data.name : productId;
             throw new Error(`Insufficient stock for ${name}`);
           }
+        }
+      }
+
+      for (const item of orderToSave.items) {
+        const productData = productSnapshots.get(item.id);
+        if (!productData) {
+          throw new Error("Order verification failed");
+        }
+        const serverPrice = resolveProductSellPrice(productData);
+        if (serverPrice === null) {
+          throw new Error("Order verification failed");
+        }
+        if (Math.abs(item.price - serverPrice) > 1) {
+          throw new Error("Order verification failed");
         }
       }
 

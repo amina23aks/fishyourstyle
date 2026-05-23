@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { isFirebaseConfigured } from "@/lib/firebaseConfig";
 import type { Order, OrderItem, OrderStatus, ShippingInfo } from "@/types/order";
 import { AdminAuthError, getAdminResources, isAdminConfigured, requireAdmin } from "@/lib/firebaseAdmin";
@@ -166,6 +167,24 @@ function isValidOrderItems(items: unknown): items is OrderItem[] {
 
 function calculateSubtotal(items: OrderItem[]): number {
   return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+function parseBearerToken(request: NextRequest): string | null {
+  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+  if (!authHeader) return null;
+  const [scheme, value] = authHeader.split(" ");
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !value) return null;
+  return value.trim();
+}
+
+async function requireAuthenticatedUser(request: NextRequest): Promise<DecodedIdToken | null> {
+  const token = parseBearerToken(request);
+  if (!token) return null;
+  try {
+    return await getAuth().verifyIdToken(token);
+  } catch {
+    return null;
+  }
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
@@ -395,6 +414,14 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const isCancelAction = !hasBody || payload?.status === "cancelled";
 
     if (isCancelAction) {
+      const decoded = await requireAuthenticatedUser(request);
+      if (!decoded) {
+        return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      }
+      if (!order.userId || order.userId !== decoded.uid) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
       if (order.status !== "pending") {
         return NextResponse.json(
           { error: "Only pending orders can be cancelled." },
@@ -408,6 +435,14 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         cancelledAt: FieldValue.serverTimestamp(),
       });
     } else {
+      try {
+        await requireAdmin(request);
+      } catch (error) {
+        const status = error instanceof AdminAuthError ? error.status : 401;
+        const message = error instanceof Error ? error.message : "Unable to verify admin access.";
+        return NextResponse.json({ error: status === 403 ? "Forbidden" : "Authentication required", message }, { status });
+      }
+
       if (order.status !== "pending") {
         return NextResponse.json(
           { error: "Only pending orders can be edited." },
