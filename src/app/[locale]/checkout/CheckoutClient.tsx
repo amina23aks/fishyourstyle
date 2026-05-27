@@ -10,7 +10,6 @@ import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
 import { doc, onSnapshot } from "firebase/firestore";
 import {
-  ECONOMIC_SHIPPING,
   getEconomicShippingByWilaya,
   type ShippingMode,
 } from "@/data/shipping";
@@ -24,6 +23,7 @@ import { initiateCheckout, purchase } from "@/lib/metaPixel";
 import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
+import { ALGERIA_WILAYAS, normalizeWilaya } from "@/data/algeriaWilayas";
 
 type CheckoutFormState = {
   fullName: string;
@@ -136,7 +136,9 @@ export default function CheckoutClient() {
 
     // Validate required delivery fields. Email is only taken from authenticated users.
 
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
+    const normalizedWilaya = normalizeWilaya(form.wilaya);
+
+    if (!form.fullName || !form.phone || !normalizedWilaya || !form.address) {
       setError(t("checkout.errorRequiredFields"));
       return;
     }
@@ -217,7 +219,7 @@ export default function CheckoutClient() {
         shipping: {
           customerName: form.fullName,
           phone: form.phone.trim(),
-          wilaya: form.wilaya,
+          wilaya: normalizedWilaya,
           address: form.address,
           mode: deliveryMode,
           price: shippingPrice,
@@ -378,26 +380,21 @@ export default function CheckoutClient() {
                   <label className="text-xs font-medium text-sky-100" htmlFor="wilaya">
                     {t("checkout.wilayaLabel")}<span className="text-rose-200"> *</span>
                   </label>
-                  <select
+                  <input
                     id="wilaya"
+                    type="text"
                     value={form.wilaya}
                     onChange={(event) => handleChange("wilaya", event.target.value)}
-                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    list="checkout-wilayas"
+                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    placeholder={t("checkout.wilayaPlaceholder")}
                     required
-                  >
-                    <option value="" className="bg-slate-900 text-sky-900">
-                      {t("checkout.wilayaPlaceholder")}
-                    </option>
-                    {ECONOMIC_SHIPPING.map((wilaya) => (
-                      <option
-                        key={wilaya.wilaya}
-                        value={wilaya.wilaya}
-                        className="bg-slate-900 text-white"
-                      >
-                        {wilaya.wilaya}
-                      </option>
+                  />
+                  <datalist id="checkout-wilayas">
+                    {ALGERIA_WILAYAS.map((wilaya) => (
+                      <option key={wilaya.code} value={wilaya.label} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div className="space-y-1">

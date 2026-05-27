@@ -14,11 +14,10 @@ import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
 import { trackViewCart } from "@/lib/analytics";
 import {
-  ECONOMIC_SHIPPING,
   getEconomicShippingByWilaya,
   type ShippingMode,
-  type WilayaShipping,
 } from "@/data/shipping";
+import { ALGERIA_WILAYAS, normalizeWilaya } from "@/data/algeriaWilayas";
 import type { NewOrder, OrderItem } from "@/types/order";
 import { useAuth } from "@/context/auth";
 import { getDb } from "@/lib/firebaseClient";
@@ -135,7 +134,9 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
     setSuccess(null);
 
     // Validate required delivery fields. Email is only taken from authenticated users.
-    if (!form.fullName || !form.phone || !form.wilaya || !form.address) {
+    const normalizedWilaya = normalizeWilaya(form.wilaya);
+
+    if (!form.fullName || !form.phone || !normalizedWilaya || !form.address) {
       setError(t("cart.errorRequiredFields"));
       return;
     }
@@ -176,7 +177,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
         shipping: {
           customerName: form.fullName,
           phone: form.phone.trim(),
-          wilaya: form.wilaya,
+          wilaya: normalizedWilaya,
           address: form.address,
           mode: deliveryMode,
           price: shippingPrice,
@@ -480,20 +481,21 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       <label className="text-xs text-sky-100" htmlFor="drawer-wilaya">
                         {t("cart.wilayaLabel")}<span className="text-rose-200"> *</span>
                       </label>
-                      <select
+                      <input
                         id="drawer-wilaya"
+                        type="text"
                         value={form.wilaya}
                         onChange={(event) => setForm((prev) => ({ ...prev, wilaya: event.target.value }))}
+                        list="drawer-wilayas"
                         className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        placeholder={t("cart.selectWilaya")}
                         required
-                      >
-                        <option value="">{t("cart.selectWilaya")}</option>
-                        {ECONOMIC_SHIPPING.map((entry: WilayaShipping) => (
-                          <option key={entry.wilaya} value={entry.wilaya}>
-                            {entry.wilaya}
-                          </option>
+                      />
+                      <datalist id="drawer-wilayas">
+                        {ALGERIA_WILAYAS.map((entry) => (
+                          <option key={entry.code} value={entry.label} />
                         ))}
-                      </select>
+                      </datalist>
                     </div>
                     <div className="space-y-2">
                       <span className="text-xs text-sky-100">{t("cart.deliveryModeLabel")}</span>

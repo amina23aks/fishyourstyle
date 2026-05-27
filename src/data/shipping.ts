@@ -1,3 +1,5 @@
+import { normalizeWilaya } from "@/data/algeriaWilayas";
+
 export type ShippingMode = "home" | "desk";
 
 export type WilayaShipping = {
@@ -70,7 +72,6 @@ export const ECONOMIC_SHIPPING: WilayaShipping[] = [
 export function getEconomicShippingByWilaya(
   wilaya: string,
 ): WilayaShipping | undefined {
-  return ECONOMIC_SHIPPING.find(
-    (w) => w.wilaya.toLowerCase() === wilaya.toLowerCase(),
-  );
+  const normalized = normalizeWilaya(wilaya) ?? wilaya.trim();
+  return ECONOMIC_SHIPPING.find((w) => w.wilaya.toLowerCase() === normalized.toLowerCase());
 }
