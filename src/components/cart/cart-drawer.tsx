@@ -55,6 +55,7 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
   const [deliveryModeTouched, setDeliveryModeTouched] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wilayaError, setWilayaError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ orderId: string } | null>(null);
   const viewCartTrackedRef = useRef(false);
   const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
@@ -132,12 +133,19 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
     setError(null);
     setSuccess(null);
+    setWilayaError(null);
 
     // Validate required delivery fields. Email is only taken from authenticated users.
     const normalizedWilaya = normalizeWilaya(form.wilaya);
 
-    if (!form.fullName || !form.phone || !normalizedWilaya || !form.address) {
+    if (!form.fullName || !form.phone || !form.address) {
       setError(t("cart.errorRequiredFields"));
+      return;
+    }
+
+    if (!normalizedWilaya) {
+      setWilayaError(t("cart.errorWilayaListOnly"));
+      setError(t("cart.errorSelectWilaya"));
       return;
     }
 
@@ -485,7 +493,11 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         id="drawer-wilaya"
                         type="text"
                         value={form.wilaya}
-                        onChange={(event) => setForm((prev) => ({ ...prev, wilaya: event.target.value }))}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setForm((prev) => ({ ...prev, wilaya: value }));
+                          setWilayaError(normalizeWilaya(value) ? null : t("cart.errorWilayaListOnly"));
+                        }}
                         list="drawer-wilayas"
                         className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         placeholder={t("cart.selectWilaya")}
@@ -496,6 +508,11 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                           <option key={entry.code} value={entry.label} />
                         ))}
                       </datalist>
+                      {wilayaError ? (
+                        <p id="drawer-wilaya-error" className="text-xs text-rose-200">
+                          {wilayaError}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="space-y-2">
                       <span className="text-xs text-sky-100">{t("cart.deliveryModeLabel")}</span>

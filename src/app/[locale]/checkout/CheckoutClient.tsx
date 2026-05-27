@@ -51,6 +51,7 @@ export default function CheckoutClient() {
   const [deliveryMode, setDeliveryMode] = useState<ShippingMode>("home");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wilayaError, setWilayaError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ orderId: string } | null>(null);
   const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false);
   const [loyaltyRewardPercent, setLoyaltyRewardPercent] = useState(8);
@@ -122,6 +123,9 @@ export default function CheckoutClient() {
 
   const handleChange = (field: keyof CheckoutFormState, value: string) => {
     setForm((previous) => ({ ...previous, [field]: value }));
+    if (field === "wilaya") {
+      setWilayaError(normalizeWilaya(value) ? null : t("checkout.errorWilayaListOnly"));
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -133,13 +137,20 @@ export default function CheckoutClient() {
 
     setError(null);
     setSuccess(null);
+    setWilayaError(null);
 
     // Validate required delivery fields. Email is only taken from authenticated users.
 
     const normalizedWilaya = normalizeWilaya(form.wilaya);
 
-    if (!form.fullName || !form.phone || !normalizedWilaya || !form.address) {
+    if (!form.fullName || !form.phone || !form.address) {
       setError(t("checkout.errorRequiredFields"));
+      return;
+    }
+
+    if (!normalizedWilaya) {
+      setWilayaError(t("checkout.errorWilayaListOnly"));
+      setError(t("checkout.errorSelectWilaya"));
       return;
     }
 
@@ -395,6 +406,11 @@ export default function CheckoutClient() {
                       <option key={wilaya.code} value={wilaya.label} />
                     ))}
                   </datalist>
+                  {wilayaError ? (
+                    <p id="checkout-wilaya-error" className="text-xs text-rose-200">
+                      {wilayaError}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="space-y-1">
