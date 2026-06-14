@@ -15,6 +15,7 @@ export type ProductFormValues = {
   discountPercent: string;
   costPrice: string;
   status: "active" | "inactive";
+  featuredDrops: string[];
   category: AdminProductCategory;
   designTheme: string;
   designThemeCustom: string;
@@ -134,6 +135,7 @@ const defaultValues: ProductFormValues = {
   discountPercent: "0",
   costPrice: "",
   status: "active",
+  featuredDrops: [],
   category: "hoodies",
   designTheme: "simple",
   designThemeCustom: "",
@@ -292,6 +294,10 @@ export function ProductForm({
     ...initialValues,
     colors: initialColors,
     images: initialImages,
+    featuredDrops: normalizeStringArray(
+      initialValues?.featuredDrops,
+      defaultValues.featuredDrops,
+    ),
     soldOutSizes: normalizeStringArray(
       initialValues?.soldOutSizes,
       defaultValues.soldOutSizes,
@@ -362,6 +368,10 @@ export function ProductForm({
       ...initialValues,
       colors: normalizeColors(initialValues?.colors, prev.colors),
       images: normalizeImages(initialValues?.images ?? prev.images),
+      featuredDrops: normalizeStringArray(
+        initialValues?.featuredDrops,
+        prev.featuredDrops,
+      ),
       soldOutSizes: normalizeStringArray(
         initialValues?.soldOutSizes,
         prev.soldOutSizes,
@@ -813,6 +823,36 @@ export function ProductForm({
               homepage featured drops.
             </p>
           </div>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-sky-100/90 shadow-inner shadow-sky-900/30 md:col-span-2">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-white/40 bg-white/5 text-emerald-400 focus:ring-2 focus:ring-white/40"
+              checked={values.featuredDrops.includes("flow")}
+              onChange={(event) => {
+                setValues((prev) => {
+                  const withoutFlow = prev.featuredDrops.filter(
+                    (slug) => slug !== "flow",
+                  );
+                  return {
+                    ...prev,
+                    featuredDrops: event.target.checked
+                      ? [...withoutFlow, "flow"]
+                      : withoutFlow,
+                  };
+                });
+              }}
+            />
+            <span className="space-y-1">
+              <span className="block font-semibold text-white">
+                Show in FLOW — DROP 01
+              </span>
+              <span className="block text-xs text-sky-100/70">
+                Only active products checked here appear in the homepage FLOW
+                featured drop.
+              </span>
+            </span>
+          </label>
 
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-sky-900/30">
             <label className="space-y-2 text-sm text-sky-100/90">

@@ -48,6 +48,7 @@ export type AdminProduct = {
   images: { main: string; gallery: string[] };
   gender?: "unisex" | "men" | "women";
   status: AdminProductStatus;
+  featuredDrops?: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -291,6 +292,7 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
         ? (data.gender as AdminProduct["gender"])
         : undefined,
     status: data.status === "inactive" ? "inactive" : "active",
+    featuredDrops: parseStringArray(data.featuredDrops),
     createdAt:
       (data.createdAt as Timestamp) ??
       (serverTimestamp() as unknown as Timestamp),
@@ -343,6 +345,7 @@ function sanitizeCreate(
     images: input.images ?? { main: "", gallery: [] },
     gender: input.gender ?? null,
     status: input.status === "inactive" ? "inactive" : "active",
+    featuredDrops: parseStringArray(input.featuredDrops),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -452,6 +455,8 @@ function sanitizeUpdate(
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
   if (patch.status !== undefined)
     payload.status = patch.status === "inactive" ? "inactive" : "active";
+  if (patch.featuredDrops !== undefined)
+    payload.featuredDrops = parseStringArray(patch.featuredDrops);
 
   return removeUndefinedDeep(payload) as WithFieldValue<
     Partial<AdminProductWrite>

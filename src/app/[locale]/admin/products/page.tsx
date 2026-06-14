@@ -66,6 +66,7 @@ const defaultForm: ProductFormValues = {
   discountPercent: "0",
   costPrice: "",
   status: "active",
+  featuredDrops: [],
   category: "", // Will be set from categories list
   designTheme: "simple",
   designThemeCustom: "",
@@ -401,6 +402,7 @@ export default function AdminProductsPage() {
         costPrice: Math.max(Number(values.costPrice || 0), 0),
         category: values.category,
         status: values.status,
+        featuredDrops: values.featuredDrops,
         designTheme,
         sizes: values.sizes,
         colors: values.colors,
@@ -500,6 +502,7 @@ export default function AdminProductsPage() {
       costPrice: product.costPrice ? product.costPrice.toString() : "",
       category: product.category,
       status: product.status ?? "active",
+      featuredDrops: product.featuredDrops ?? [],
       designTheme: product.designTheme || "simple",
       designThemeCustom: "",
       stockMode: derivedStock.stockMode,
@@ -665,6 +668,13 @@ export default function AdminProductsPage() {
                               <p className="font-mono text-[10px] text-sky-100/55">
                                 ID: {product.id}
                               </p>
+                              {(product.featuredDrops ?? []).includes(
+                                "flow",
+                              ) ? (
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100">
+                                  FLOW drop
+                                </p>
+                              ) : null}
                             </div>
                           </div>
                           <span className="text-xs uppercase text-sky-100/80">
@@ -814,6 +824,11 @@ export default function AdminProductsPage() {
                           <p className="font-mono text-[10px] text-sky-100/55">
                             ID: {product.id}
                           </p>
+                          {(product.featuredDrops ?? []).includes("flow") ? (
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100">
+                              FLOW drop
+                            </p>
+                          ) : null}
                           <p className="break-words text-xs uppercase text-sky-100/80">
                             {product.category}
                           </p>

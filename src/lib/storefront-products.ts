@@ -77,6 +77,7 @@ export type StorefrontProduct = {
   inStock: boolean;
   images: StorefrontProductImages;
   tags?: string[];
+  featuredDrops?: string[];
   status: StorefrontProductStatus;
 };
 
@@ -259,6 +260,7 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: imagesValue,
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
+    featuredDrops: parseStringArray(data.featuredDrops),
     status:
       typeof data.status === "string" && data.status.trim()
         ? (data.status as StorefrontProductStatus)
@@ -309,6 +311,57 @@ function clampPageSize(value: number | undefined, fallback = 8): number {
     Math.max(Math.floor(Number.isFinite(parsed) ? parsed : fallback), 1),
     48,
   );
+}
+
+export async function fetchStorefrontProductsByFeaturedDrop({
+  slug,
+  pageSize = 4,
+}: {
+  slug: string;
+  pageSize?: number;
+}): Promise<StorefrontProduct[]> {
+  if (!isFirebaseConfigured()) {
+    console.warn(
+      "Firebase env vars are missing; returning an empty featured drop product list.",
+    );
+    return [];
+  }
+
+  const safeSlug = slug.trim();
+  if (!safeSlug) return [];
+  const safeLimit = clampPageSize(pageSize, 4);
+
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const snapshot = await getDocs(
+      query(
+        productsRef,
+        where("status", "==", "active"),
+        where("featuredDrops", "array-contains", safeSlug),
+        limit(safeLimit),
+      ),
+    );
+    return snapshot.docs
+      .map((doc) => normalizeProduct(doc.data(), doc.id))
+      .filter(
+        (product) =>
+          product.status === "active" &&
+          (product.featuredDrops ?? []).includes(safeSlug),
+      );
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      console.warn(
+        "Firestore permission denied while reading featured drop products; returning empty list.",
+      );
+    } else {
+      console.error(
+        "Failed to fetch featured drop products from Firestore, returning empty list:",
+        error,
+      );
+    }
+    return [];
+  }
 }
 
 export async function fetchStorefrontProductsByIds(

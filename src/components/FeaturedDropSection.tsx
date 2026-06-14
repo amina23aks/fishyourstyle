@@ -12,8 +12,8 @@ export type FeaturedDropConfig = {
   label: string;
   buttonText: string;
   buttonLink: string;
-  selectedProductIds: string[];
-  isActive: boolean;
+  maxProducts: number;
+  active: boolean;
 };
 
 type FeaturedDropProduct = Product & {
@@ -79,30 +79,12 @@ function mapStorefrontToProduct(sp: StorefrontProduct): FeaturedDropProduct {
   };
 }
 
-function selectDropProducts(
-  products: StorefrontProduct[],
-  selectedProductIds: string[],
-) {
-  if (selectedProductIds.length === 0) {
-    return products.slice(0, 4);
-  }
-
-  const productsById = new Map(
-    products.map((product) => [product.id, product]),
-  );
-  return selectedProductIds
-    .map((productId) => productsById.get(productId))
-    .filter((product): product is StorefrontProduct => Boolean(product))
-    .slice(0, 4);
-}
-
 export default function FeaturedDropSection({ drop, locale, products }: Props) {
-  if (!drop.isActive) return null;
+  if (!drop.active) return null;
 
-  const dropProducts = selectDropProducts(
-    products,
-    drop.selectedProductIds,
-  ).map(mapStorefrontToProduct);
+  const dropProducts = products
+    .slice(0, drop.maxProducts)
+    .map(mapStorefrontToProduct);
 
   return (
     <section

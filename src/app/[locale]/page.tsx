@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import FeaturedDropSection, {
   type FeaturedDropConfig,
 } from "@/components/FeaturedDropSection";
 import FAQAccordion from "@/components/FAQAccordion";
 import { faqItems } from "@/data/faqItems";
+import HomeClient from "./home-client";
 import { resolveLocale, type Locale } from "@/i18n/config";
+import { localizePathname } from "@/i18n/paths";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
 import {
@@ -20,9 +23,15 @@ import {
   siteUrl,
 } from "@/lib/seo";
 import {
-  fetchStorefrontProductsByIds,
+  fetchStorefrontProductsByFeaturedDrop,
   fetchStorefrontProductsPage,
+  type StorefrontProduct,
 } from "@/lib/storefront-products";
+import type { Product } from "@/types/product";
+import {
+  getSelectableCollections,
+  getSelectableDesigns,
+} from "@/lib/categories";
 
 export const revalidate = 300;
 
@@ -84,16 +93,81 @@ export async function generateMetadata({
   };
 }
 
-const flowDropConfig: FeaturedDropConfig = {
+const homeSettings = {
+  showFeaturedDrop: true,
+  showHomeShopSection: false,
+  featuredDropSlug: "flow",
+} as const;
+
+const flowDropConfig: FeaturedDropConfig & {
+  slug: typeof homeSettings.featuredDropSlug;
+} = {
+  slug: "flow",
   title: "FLOW — DROP 01",
+  label: "Find Your Flow.",
   subtitle:
     "The first chapter of Fish Your Style. A collection inspired by finding your own rhythm.",
-  label: "Find Your Flow.",
   buttonText: "Discover FLOW",
-  buttonLink: "/shop",
-  selectedProductIds: [],
-  isActive: true,
+  buttonLink: "#flow-drop",
+  maxProducts: 4,
+  active: true,
 };
+
+function mapStorefrontToProduct(sp: StorefrontProduct): Product {
+  const mainImage = sp.images?.main || "/placeholder.png";
+  const gallery = sp.images?.gallery ?? [];
+  const colors = (sp.colors ?? []).map((color) => {
+    if (typeof color === "string") {
+      return { id: color, labelFr: color, labelAr: color, image: mainImage };
+    }
+    const id = typeof color.id === "string" && color.id ? color.id : mainImage;
+    const labelFr =
+      typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
+    const labelAr =
+      typeof color.labelAr === "string" && color.labelAr
+        ? color.labelAr
+        : labelFr;
+    const image =
+      typeof color.image === "string" && color.image ? color.image : mainImage;
+    return { id, labelFr, labelAr, image };
+  });
+  return {
+    id: sp.id,
+    slug: sp.slug,
+    nameFr: sp.name,
+    nameAr: sp.name,
+    category: sp.category,
+    kind: sp.category,
+    fit: "regular",
+    priceDzd: sp.finalPrice ?? sp.basePrice,
+    currency: "DZD",
+    gender: sp.gender ?? "",
+    sizes: sp.sizes ?? [],
+    colors,
+    soldOutSizes: sp.soldOutSizes,
+    soldOutColorCodes: sp.soldOutColorCodes,
+    sizeGuideEnabled: sp.sizeGuideEnabled ?? false,
+    sizeGuideImageUrl: sp.sizeGuideImageUrl ?? null,
+    sizeGuideImagePublicId: sp.sizeGuideImagePublicId ?? null,
+    images: { main: mainImage, gallery },
+    descriptionFr: sp.description ?? "",
+    descriptionAr: sp.description ?? "",
+    status: "active",
+    designTheme: sp.designTheme || "simple",
+    tags: sp.tags ?? [],
+    discountPercent: sp.discountPercent ?? 0,
+    stockMode: sp.stockMode,
+    stockQty: sp.stockQty,
+    inStock: sp.inStock ?? true,
+  } as Product & {
+    designTheme?: string;
+    tags?: string[];
+    discountPercent?: number;
+    stockMode?: "unlimited" | "limited";
+    stockQty?: number;
+    inStock?: boolean;
+  };
+}
 
 export default async function Home({
   params,
@@ -104,16 +178,51 @@ export default async function Home({
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
   const t = createTranslator(messages);
-  const featuredProducts = await (
-    flowDropConfig.selectedProductIds.length > 0
-      ? fetchStorefrontProductsByIds(flowDropConfig.selectedProductIds)
-      : fetchStorefrontProductsPage({ pageSize: 4 }).then(
-          (page) => page.products,
-        )
-  ).catch((error) => {
-    console.error("Failed to fetch featured drop products:", error);
-    return [];
-  });
+  const featuredProducts =
+    homeSettings.showFeaturedDrop && flowDropConfig.active
+      ? await fetchStorefrontProductsByFeaturedDrop({
+          slug: homeSettings.featuredDropSlug,
+          pageSize: flowDropConfig.maxProducts,
+        }).catch((error) => {
+          console.error("Failed to fetch featured drop products:", error);
+          return [];
+        })
+      : [];
+
+  let shopPreviewErrorMessage: string | null = null;
+  let shopPreviewCategories: Awaited<
+    ReturnType<typeof getSelectableCollections>
+  > = [];
+  let shopPreviewDesignThemes: Awaited<
+    ReturnType<typeof getSelectableDesigns>
+  > = [];
+  const shopPreviewProducts = homeSettings.showHomeShopSection
+    ? await fetchStorefrontProductsPage({ pageSize: 8 })
+        .then((page) => page.products.map(mapStorefrontToProduct))
+        .catch((error) => {
+          console.error(
+            "Failed to fetch homepage shop preview products:",
+            error,
+          );
+          shopPreviewErrorMessage = "Products are temporarily unavailable.";
+          return [];
+        })
+    : [];
+
+  if (homeSettings.showHomeShopSection) {
+    try {
+      shopPreviewCategories = await getSelectableCollections();
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+      shopPreviewCategories = [];
+    }
+    try {
+      shopPreviewDesignThemes = await getSelectableDesigns();
+    } catch (error) {
+      console.error("Failed to fetch design themes:", error);
+      shopPreviewDesignThemes = [];
+    }
+  }
 
   const websiteStructuredData = {
     "@context": "https://schema.org",
@@ -166,11 +275,52 @@ export default async function Home({
       </div>
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
-        <FeaturedDropSection
-          drop={flowDropConfig}
-          locale={locale}
-          products={featuredProducts}
-        />
+        {homeSettings.showFeaturedDrop ? (
+          <FeaturedDropSection
+            drop={flowDropConfig}
+            locale={locale}
+            products={featuredProducts}
+          />
+        ) : null}
+
+        {homeSettings.showHomeShopSection ? (
+          <section className="space-y-4" id="shop-search">
+            <div className="flex flex-col gap-2 md:max-w-2xl">
+              <p className="text-sm uppercase tracking-[0.28em] text-white/90">
+                {t("shop.headerEyebrow")}
+              </p>
+              <h2 className="text-2xl font-semibold text-white">
+                {t("shop.headerTitle")}
+              </h2>
+              <p className="text-white/80">
+                {t("shop.headerDescriptionLine1")}
+                <br />
+                {t("shop.headerDescriptionLine2")}
+              </p>
+            </div>
+
+            <HomeClient
+              products={shopPreviewProducts}
+              categories={shopPreviewCategories}
+              designThemes={shopPreviewDesignThemes}
+            />
+            {shopPreviewErrorMessage ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
+                {shopPreviewErrorMessage}
+              </div>
+            ) : null}
+
+            <div className="flex w-full justify-center pt-2">
+              <Link
+                href={localizePathname(locale, "/shop")}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-black/30 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              >
+                {t("shop.exploreMoreCta")}
+                <span aria-hidden>→</span>
+              </Link>
+            </div>
+          </section>
+        ) : null}
 
         <section className="space-y-8 rounded-3xl bg-sky-900/90 px-6 py-14 text-sky-50 shadow-lg shadow-sky-200/60 md:px-10">
           <div className="flex flex-col gap-3">
