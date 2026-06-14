@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import Hero from "@/components/Hero";
+import FeaturedDropSection, {
+  type FeaturedDropConfig,
+} from "@/components/FeaturedDropSection";
 import FAQAccordion from "@/components/FAQAccordion";
 import { faqItems } from "@/data/faqItems";
-import { localizePathname } from "@/i18n/paths";
 import { resolveLocale, type Locale } from "@/i18n/config";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
@@ -18,6 +19,7 @@ import {
   siteName,
   siteUrl,
 } from "@/lib/seo";
+import { fetchStorefrontProductsPage } from "@/lib/storefront-products";
 
 export const revalidate = 300;
 
@@ -79,28 +81,16 @@ export async function generateMetadata({
   };
 }
 
-const flowDropCards = [
-  {
-    title: "Find Your Flow",
-    tone: "from-sky-300/30 via-cyan-200/10 to-slate-950",
-    accent: "Rhythm",
-  },
-  {
-    title: "Not Lost. Exploring.",
-    tone: "from-blue-500/30 via-slate-900 to-stone-300/20",
-    accent: "Explore",
-  },
-  {
-    title: "The Ocean Never Rushes.",
-    tone: "from-slate-950 via-blue-950 to-teal-300/20",
-    accent: "Patience",
-  },
-  {
-    title: "Not Behind. Just On My Way.",
-    tone: "from-amber-200/30 via-slate-900 to-sky-700/20",
-    accent: "Purpose",
-  },
-];
+const flowDropConfig: FeaturedDropConfig = {
+  title: "FLOW — DROP 01",
+  subtitle:
+    "The first chapter of Fish Your Style. A collection inspired by finding your own rhythm.",
+  label: "Find Your Flow.",
+  buttonText: "Discover FLOW",
+  buttonLink: "/shop",
+  selectedProductIds: [],
+  isActive: true,
+};
 
 export default async function Home({
   params,
@@ -111,6 +101,12 @@ export default async function Home({
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
   const t = createTranslator(messages);
+  const featuredProducts = await fetchStorefrontProductsPage({ pageSize: 4 })
+    .then((page) => page.products)
+    .catch((error) => {
+      console.error("Failed to fetch featured drop products:", error);
+      return [];
+    });
 
   const websiteStructuredData = {
     "@context": "https://schema.org",
@@ -163,62 +159,11 @@ export default async function Home({
       </div>
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
-        <section
-          id="flow-drop-01"
-          className="overflow-hidden rounded-[2rem] border border-white/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.24),transparent_34%),linear-gradient(135deg,rgba(8,47,73,0.96),rgba(15,23,42,0.98)_48%,rgba(120,113,108,0.32))] px-5 py-16 text-white shadow-[0_24px_70px_rgba(2,6,23,0.55)] sm:px-8 md:py-20 lg:px-12"
-        >
-          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-            <div className="max-w-xl space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-cyan-100/85">
-                Find Your Flow.
-              </p>
-              <div className="space-y-4">
-                <h2 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                  FLOW — DROP 01
-                </h2>
-                <p className="max-w-lg text-base leading-8 text-sky-50/[0.82] sm:text-lg">
-                  The first chapter of Fish Your Style. A collection inspired by
-                  finding your own rhythm.
-                </p>
-              </div>
-              <Link
-                href={localizePathname(locale, "/shop")}
-                className="inline-flex items-center justify-center rounded-full bg-stone-100 px-6 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 shadow-[0_12px_30px_rgba(14,165,233,0.22)] transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-              >
-                Discover FLOW
-                <span className="ml-2" aria-hidden>
-                  →
-                </span>
-              </Link>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {flowDropCards.map((card, index) => (
-                <article
-                  key={card.title}
-                  className="group relative min-h-64 overflow-hidden rounded-3xl border border-white/15 bg-white/[0.08] p-5 shadow-[0_18px_45px_rgba(2,6,23,0.35)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-white/35 hover:bg-white/[0.12]"
-                >
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${card.tone}`}
-                  />
-                  <div className="absolute inset-x-6 top-6 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
-                  <div className="relative flex h-full flex-col justify-between gap-12">
-                    <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.24em] text-white/65">
-                      <span>{card.accent}</span>
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="h-24 rounded-[2rem] border border-white/15 bg-[linear-gradient(120deg,rgba(255,255,255,0.16),rgba(255,255,255,0.03))] shadow-inner shadow-white/10" />
-                      <h3 className="text-2xl font-semibold leading-tight text-white">
-                        {card.title}
-                      </h3>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
+        <FeaturedDropSection
+          drop={flowDropConfig}
+          locale={locale}
+          products={featuredProducts}
+        />
 
         <section className="space-y-8 rounded-3xl bg-sky-900/90 px-6 py-14 text-sky-50 shadow-lg shadow-sky-200/60 md:px-10">
           <div className="flex flex-col gap-3">
