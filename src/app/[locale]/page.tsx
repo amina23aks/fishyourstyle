@@ -4,16 +4,6 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import FAQAccordion from "@/components/FAQAccordion";
 import { faqItems } from "@/data/faqItems";
-import {
-  fetchStorefrontProductsPage,
-  type StorefrontProduct,
-} from "@/lib/storefront-products";
-import type { Product } from "@/types/product";
-import HomeClient from "./home-client";
-import {
-  getSelectableCollections,
-  getSelectableDesigns,
-} from "@/lib/categories";
 import { localizePathname } from "@/i18n/paths";
 import { resolveLocale, type Locale } from "@/i18n/config";
 import { getMessages } from "@/i18n/get-messages";
@@ -36,18 +26,19 @@ const homeMetadataByLocale: Record<
   { title: string; description: string }
 > = {
   en: {
-    title: "Fish Your Style — Streetwear for every mood",
+    title: "Fish Your Style — FLOW DROP 01",
     description:
-      "Discover streetwear for every style, every mood, and every moment with Fish Your Style.",
+      "Discover FLOW — DROP 01, the first Fish Your Style chapter inspired by finding your own rhythm.",
   },
   fr: {
-    title: "Fish Your Style — Streetwear pour chaque humeur",
+    title: "Fish Your Style — FLOW DROP 01",
     description:
-      "Découvrez le streetwear Fish Your Style pour chaque style, chaque humeur et chaque moment.",
+      "Découvrez FLOW — DROP 01, le premier chapitre Fish Your Style inspiré par votre propre rythme.",
   },
   ar: {
-    title: "Fish Your Style — ستريت وير لكل مزاج",
-    description: "اكتشف ستريت وير Fish Your Style لكل أسلوب وكل مزاج وكل لحظة.",
+    title: "Fish Your Style — FLOW DROP 01",
+    description:
+      "اكتشف FLOW — DROP 01، الفصل الأول من Fish Your Style لإيجاد إيقاعك الخاص.",
   },
 };
 
@@ -88,59 +79,28 @@ export async function generateMetadata({
   };
 }
 
-function mapStorefrontToProduct(sp: StorefrontProduct): Product {
-  const mainImage = sp.images?.main || "/placeholder.png";
-  const gallery = sp.images?.gallery ?? [];
-  const colors = (sp.colors ?? []).map((color) => {
-    if (typeof color === "string") {
-      return { id: color, labelFr: color, labelAr: color, image: mainImage };
-    }
-    const id = typeof color.id === "string" && color.id ? color.id : mainImage;
-    const labelFr =
-      typeof color.labelFr === "string" && color.labelFr ? color.labelFr : id;
-    const labelAr =
-      typeof color.labelAr === "string" && color.labelAr
-        ? color.labelAr
-        : labelFr;
-    const image =
-      typeof color.image === "string" && color.image ? color.image : mainImage;
-    return { id, labelFr, labelAr, image };
-  });
-  return {
-    id: sp.id,
-    slug: sp.slug,
-    nameFr: sp.name,
-    nameAr: sp.name,
-    category: sp.category,
-    kind: sp.category,
-    fit: "regular",
-    priceDzd: sp.finalPrice ?? sp.basePrice,
-    currency: "DZD",
-    gender: sp.gender ?? "",
-    sizes: sp.sizes ?? [],
-    colors,
-    sizeGuideEnabled: sp.sizeGuideEnabled ?? false,
-    sizeGuideImageUrl: sp.sizeGuideImageUrl ?? null,
-    sizeGuideImagePublicId: sp.sizeGuideImagePublicId ?? null,
-    images: { main: mainImage, gallery },
-    descriptionFr: sp.description ?? "",
-    descriptionAr: sp.description ?? "",
-    status: "active",
-    designTheme: sp.designTheme || "simple",
-    tags: sp.tags ?? [],
-    discountPercent: sp.discountPercent ?? 0,
-    stockMode: sp.stockMode,
-    stockQty: sp.stockQty,
-    inStock: sp.inStock ?? true,
-  } as Product & {
-    designTheme?: string;
-    tags?: string[];
-    discountPercent?: number;
-    stockMode?: "unlimited" | "limited";
-    stockQty?: number;
-    inStock?: boolean;
-  };
-}
+const flowDropCards = [
+  {
+    title: "Find Your Flow",
+    tone: "from-sky-300/30 via-cyan-200/10 to-slate-950",
+    accent: "Rhythm",
+  },
+  {
+    title: "Not Lost. Exploring.",
+    tone: "from-blue-500/30 via-slate-900 to-stone-300/20",
+    accent: "Explore",
+  },
+  {
+    title: "The Ocean Never Rushes.",
+    tone: "from-slate-950 via-blue-950 to-teal-300/20",
+    accent: "Patience",
+  },
+  {
+    title: "Not Behind. Just On My Way.",
+    tone: "from-amber-200/30 via-slate-900 to-sky-700/20",
+    accent: "Purpose",
+  },
+];
 
 export default async function Home({
   params,
@@ -151,29 +111,6 @@ export default async function Home({
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
   const t = createTranslator(messages);
-  let errorMessage: string | null = null;
-  let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
-  let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
-  const storefrontProducts = await fetchStorefrontProductsPage({ pageSize: 8 })
-    .then((page) => page.products)
-    .catch((error) => {
-      console.error("Failed to fetch products:", error);
-      errorMessage = "Products are temporarily unavailable.";
-      return [];
-    });
-  try {
-    categories = await getSelectableCollections();
-  } catch (error) {
-    console.error("Failed to fetch categories:", error);
-    categories = [];
-  }
-  try {
-    designThemes = await getSelectableDesigns();
-  } catch (error) {
-    console.error("Failed to fetch design themes:", error);
-    designThemes = [];
-  }
-  const products = storefrontProducts.map(mapStorefrontToProduct);
 
   const websiteStructuredData = {
     "@context": "https://schema.org",
@@ -226,40 +163,60 @@ export default async function Home({
       </div>
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
-        <section className="space-y-4" id="shop-search">
-          <div className="flex flex-col gap-2 md:max-w-2xl">
-            <p className="text-sm uppercase tracking-[0.28em] text-white/90">
-              {t("shop.headerEyebrow")}
-            </p>
-            <h2 className="text-2xl font-semibold text-white">
-              {t("shop.headerTitle")}
-            </h2>
-            <p className="text-white/80">
-              {t("shop.headerDescriptionLine1")}
-              <br />
-              {t("shop.headerDescriptionLine2")}
-            </p>
-          </div>
-
-          <HomeClient
-            products={products}
-            categories={categories}
-            designThemes={designThemes}
-          />
-          {errorMessage ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
-              {errorMessage}
+        <section
+          id="flow-drop-01"
+          className="overflow-hidden rounded-[2rem] border border-white/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.24),transparent_34%),linear-gradient(135deg,rgba(8,47,73,0.96),rgba(15,23,42,0.98)_48%,rgba(120,113,108,0.32))] px-5 py-16 text-white shadow-[0_24px_70px_rgba(2,6,23,0.55)] sm:px-8 md:py-20 lg:px-12"
+        >
+          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+            <div className="max-w-xl space-y-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-cyan-100/85">
+                Find Your Flow.
+              </p>
+              <div className="space-y-4">
+                <h2 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                  FLOW — DROP 01
+                </h2>
+                <p className="max-w-lg text-base leading-8 text-sky-50/[0.82] sm:text-lg">
+                  The first chapter of Fish Your Style. A collection inspired by
+                  finding your own rhythm.
+                </p>
+              </div>
+              <Link
+                href={localizePathname(locale, "/shop")}
+                className="inline-flex items-center justify-center rounded-full bg-stone-100 px-6 py-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-950 shadow-[0_12px_30px_rgba(14,165,233,0.22)] transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              >
+                Discover FLOW
+                <span className="ml-2" aria-hidden>
+                  →
+                </span>
+              </Link>
             </div>
-          ) : null}
 
-          <div className="flex w-full justify-center pt-2">
-            <Link
-              href={localizePathname(locale, "/shop")}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-black/30 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-            >
-              {t("shop.exploreMoreCta")}
-              <span aria-hidden>→</span>
-            </Link>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {flowDropCards.map((card, index) => (
+                <article
+                  key={card.title}
+                  className="group relative min-h-64 overflow-hidden rounded-3xl border border-white/15 bg-white/[0.08] p-5 shadow-[0_18px_45px_rgba(2,6,23,0.35)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-white/35 hover:bg-white/[0.12]"
+                >
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-br ${card.tone}`}
+                  />
+                  <div className="absolute inset-x-6 top-6 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
+                  <div className="relative flex h-full flex-col justify-between gap-12">
+                    <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.24em] text-white/65">
+                      <span>{card.accent}</span>
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="h-24 rounded-[2rem] border border-white/15 bg-[linear-gradient(120deg,rgba(255,255,255,0.16),rgba(255,255,255,0.03))] shadow-inner shadow-white/10" />
+                      <h3 className="text-2xl font-semibold leading-tight text-white">
+                        {card.title}
+                      </h3>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
