@@ -13,8 +13,15 @@ import {
   type AdminProduct,
   type AdminProductInput,
 } from "@/lib/admin-products";
-import { uploadImageToCloudinary, uploadImageToCloudinaryWithMetadata } from "@/lib/cloudinary";
-import { CANONICAL_CATEGORY_SLUGS, CANONICAL_DESIGN_SLUGS, type SelectableItem } from "@/lib/categories-shared";
+import {
+  uploadImageToCloudinary,
+  uploadImageToCloudinaryWithMetadata,
+} from "@/lib/cloudinary";
+import {
+  CANONICAL_CATEGORY_SLUGS,
+  CANONICAL_DESIGN_SLUGS,
+  type SelectableItem,
+} from "@/lib/categories-shared";
 import type { SelectableOption } from "@/types/selectable";
 
 type Toast = { type: "success" | "error"; message: string };
@@ -31,7 +38,9 @@ const toSelectableCategoryOption = (item: SelectableItem): SelectableOption => {
     id: item.id,
     name: item.label,
     slug,
-    isDefault: CANONICAL_CATEGORY_SLUGS.includes(slug as (typeof CANONICAL_CATEGORY_SLUGS)[number]),
+    isDefault: CANONICAL_CATEGORY_SLUGS.includes(
+      slug as (typeof CANONICAL_CATEGORY_SLUGS)[number],
+    ),
   };
 };
 
@@ -41,7 +50,9 @@ const toSelectableDesignOption = (item: SelectableItem): SelectableOption => {
     id: item.id,
     name: item.label,
     slug,
-    isDefault: CANONICAL_DESIGN_SLUGS.includes(slug as (typeof CANONICAL_DESIGN_SLUGS)[number]),
+    isDefault: CANONICAL_DESIGN_SLUGS.includes(
+      slug as (typeof CANONICAL_DESIGN_SLUGS)[number],
+    ),
   };
 };
 
@@ -54,6 +65,7 @@ const defaultForm: ProductFormValues = {
   basePrice: "",
   discountPercent: "0",
   costPrice: "",
+  status: "active",
   category: "", // Will be set from categories list
   designTheme: "simple",
   designThemeCustom: "",
@@ -79,8 +91,13 @@ function slugify(value: string) {
     .replace(/-+/g, "-");
 }
 
-function buildImagesFromList(images: string[]): { main: string; gallery: string[] } {
-  const filtered = Array.from(new Set((images ?? []).map(String).filter(Boolean)));
+function buildImagesFromList(images: string[]): {
+  main: string;
+  gallery: string[];
+} {
+  const filtered = Array.from(
+    new Set((images ?? []).map(String).filter(Boolean)),
+  );
   const [main, ...gallery] = filtered;
   return { main: main ?? "", gallery };
 }
@@ -96,7 +113,8 @@ function deriveStockState(product: AdminProduct) {
     product.stockMode ??
     (product.inStock === false
       ? "limited"
-      : typeof product.stockQty === "number" || typeof product.stock === "number"
+      : typeof product.stockQty === "number" ||
+          typeof product.stock === "number"
         ? "limited"
         : "unlimited");
   if (mode === "limited") {
@@ -110,7 +128,8 @@ function deriveStockState(product: AdminProduct) {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
-  const [productsCursor, setProductsCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [productsCursor, setProductsCursor] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMoreProducts, setHasMoreProducts] = useState(false);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -119,7 +138,8 @@ export default function AdminProductsPage() {
   const [uploadingSizeGuide, setUploadingSizeGuide] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [formInitial, setFormInitial] = useState<ProductFormValues>(defaultForm);
+  const [formInitial, setFormInitial] =
+    useState<ProductFormValues>(defaultForm);
   const [formKey, setFormKey] = useState(() => Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<AdminProduct | null>(null);
@@ -136,17 +156,32 @@ export default function AdminProductsPage() {
       map.set(slug, { ...theme, slug });
     });
     products.forEach((product) => {
-      const rawTheme = typeof product.designTheme === "string" ? product.designTheme.trim() : "";
+      const rawTheme =
+        typeof product.designTheme === "string"
+          ? product.designTheme.trim()
+          : "";
       if (!rawTheme) return;
       const slug = rawTheme.toLowerCase();
       if (!map.has(slug)) {
-        map.set(slug, { id: slug, slug, name: rawTheme, isDefault: slug === "simple" });
+        map.set(slug, {
+          id: slug,
+          slug,
+          name: rawTheme,
+          isDefault: slug === "simple",
+        });
       }
     });
     if (!map.has("simple")) {
-      map.set("simple", { id: "simple", slug: "simple", name: "Simple", isDefault: true });
+      map.set("simple", {
+        id: "simple",
+        slug: "simple",
+        name: "Simple",
+        isDefault: true,
+      });
     }
-    const sorted = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
     const simpleIndex = sorted.findIndex((theme) => theme.slug === "simple");
     if (simpleIndex > 0) {
       const [simpleTheme] = sorted.splice(simpleIndex, 1);
@@ -156,7 +191,8 @@ export default function AdminProductsPage() {
   }, [designThemes, products]);
 
   const coerceCollectionsAndDesigns = useCallback(
-    (payload: { collections: SelectableItem[]; designs: SelectableItem[] }) => payload,
+    (payload: { collections: SelectableItem[]; designs: SelectableItem[] }) =>
+      payload,
     [],
   );
 
@@ -179,7 +215,9 @@ export default function AdminProductsPage() {
 
   const loadCategories = useCallback(async () => {
     try {
-      const res = await fetch("/api/categories?type=category", { cache: "no-store" });
+      const res = await fetch("/api/categories?type=category", {
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error("Failed to fetch categories");
       const fetched = (await res.json()) as SelectableItem[];
       setCategories(fetched.map(toSelectableCategoryOption));
@@ -190,7 +228,9 @@ export default function AdminProductsPage() {
 
   const loadDesignThemes = useCallback(async () => {
     try {
-      const res = await fetch("/api/categories?type=design", { cache: "no-store" });
+      const res = await fetch("/api/categories?type=design", {
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error("Failed to fetch design themes");
       const fetched = (await res.json()) as SelectableItem[];
       setDesignThemes(fetched.map(toSelectableDesignOption));
@@ -208,7 +248,8 @@ export default function AdminProductsPage() {
       setProductsCursor(page.nextCursor);
       setHasMoreProducts(Boolean(page.nextCursor));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load products";
+      const message =
+        err instanceof Error ? err.message : "Failed to load products";
       setError(message);
     } finally {
       setLoading(false);
@@ -220,12 +261,16 @@ export default function AdminProductsPage() {
     setLoadingMoreProducts(true);
     setError(null);
     try {
-      const page = await listAdminProductsPage(ADMIN_PRODUCTS_PAGE_SIZE, productsCursor);
+      const page = await listAdminProductsPage(
+        ADMIN_PRODUCTS_PAGE_SIZE,
+        productsCursor,
+      );
       setProducts((prev) => [...prev, ...page.products]);
       setProductsCursor(page.nextCursor);
       setHasMoreProducts(Boolean(page.nextCursor));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load more products";
+      const message =
+        err instanceof Error ? err.message : "Failed to load more products";
       setError(message);
     } finally {
       setLoadingMoreProducts(false);
@@ -257,7 +302,6 @@ export default function AdminProductsPage() {
     loadCollectionsAndDesigns();
   }, [loadCollectionsAndDesigns]);
 
-
   useEffect(() => {
     if (!pendingDelete) return;
     cancelButtonRef.current?.focus();
@@ -273,7 +317,9 @@ export default function AdminProductsPage() {
   const handleUploadImage = useCallback(
     async (file: File) => {
       if (!cloudinaryConfigured) {
-        throw new Error("Cloudinary is not configured. Save without an image or add credentials.");
+        throw new Error(
+          "Cloudinary is not configured. Save without an image or add credentials.",
+        );
       }
 
       setUploadingImage(true);
@@ -283,7 +329,8 @@ export default function AdminProductsPage() {
         showToast({ type: "success", message: "Image uploaded to Cloudinary" });
         return url;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to upload image";
+        const message =
+          err instanceof Error ? err.message : "Failed to upload image";
         showToast({ type: "error", message });
         throw err;
       } finally {
@@ -296,17 +343,23 @@ export default function AdminProductsPage() {
   const handleUploadSizeGuide = useCallback(
     async (file: File) => {
       if (!cloudinaryConfigured) {
-        throw new Error("Cloudinary is not configured. Save without an image or add credentials.");
+        throw new Error(
+          "Cloudinary is not configured. Save without an image or add credentials.",
+        );
       }
 
       setUploadingSizeGuide(true);
       setError(null);
       try {
         const result = await uploadImageToCloudinaryWithMetadata(file);
-        showToast({ type: "success", message: "Size guide uploaded to Cloudinary" });
+        showToast({
+          type: "success",
+          message: "Size guide uploaded to Cloudinary",
+        });
         return result;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to upload size guide";
+        const message =
+          err instanceof Error ? err.message : "Failed to upload size guide";
         showToast({ type: "error", message });
         throw err;
       } finally {
@@ -328,33 +381,47 @@ export default function AdminProductsPage() {
       setError(null);
       const designTheme = values.designTheme || "simple";
       const images = buildImagesFromList(values.images);
-      const normalizedStockMode = values.stockMode === "limited" ? "limited" : "unlimited";
+      const normalizedStockMode =
+        values.stockMode === "limited" ? "limited" : "unlimited";
       const parsedStockQty =
-        normalizedStockMode === "limited" ? Math.max(Number(values.stockQty || 0), 0) : undefined;
+        normalizedStockMode === "limited"
+          ? Math.max(Number(values.stockQty || 0), 0)
+          : undefined;
       const sizeGuideEnabled = Boolean(values.sizeGuideEnabled);
       const payload: AdminProductInput = {
         name: values.name.trim(),
         slug: slugify(values.name),
         basePrice: Number(values.basePrice || 0),
         discountPercent: Number(values.discountPercent || 0),
-        finalPrice: Math.max(Number(values.basePrice || 0) * (1 - Number(values.discountPercent || 0) / 100), 0),
+        finalPrice: Math.max(
+          Number(values.basePrice || 0) *
+            (1 - Number(values.discountPercent || 0) / 100),
+          0,
+        ),
         costPrice: Math.max(Number(values.costPrice || 0), 0),
         category: values.category,
+        status: values.status,
         designTheme,
         sizes: values.sizes,
         colors: values.colors,
         sizeGuideEnabled,
-        sizeGuideImageUrl: sizeGuideEnabled && values.sizeGuideImageUrl ? values.sizeGuideImageUrl : null,
+        sizeGuideImageUrl:
+          sizeGuideEnabled && values.sizeGuideImageUrl
+            ? values.sizeGuideImageUrl
+            : null,
         sizeGuideImagePublicId:
-          sizeGuideEnabled && values.sizeGuideImagePublicId ? values.sizeGuideImagePublicId : null,
+          sizeGuideEnabled && values.sizeGuideImagePublicId
+            ? values.sizeGuideImagePublicId
+            : null,
         soldOutSizes: values.soldOutSizes,
         soldOutColorCodes: values.soldOutColorCodes,
         images,
         stockMode: normalizedStockMode,
         stockQty: parsedStockQty,
-        inStock: normalizedStockMode === "limited" ? (parsedStockQty ?? 0) > 0 : true,
+        inStock:
+          normalizedStockMode === "limited" ? (parsedStockQty ?? 0) > 0 : true,
       };
-      
+
       // Only include description if it's explicitly set (not empty string)
       if (values.description && values.description.trim() !== "") {
         payload.description = values.description.trim();
@@ -363,7 +430,11 @@ export default function AdminProductsPage() {
       // Only include gender if it's explicitly set (not empty string)
       if (values.gender && values.gender.trim() !== "") {
         const genderValue = values.gender.trim().toLowerCase();
-        if (genderValue === "unisex" || genderValue === "men" || genderValue === "women") {
+        if (
+          genderValue === "unisex" ||
+          genderValue === "men" ||
+          genderValue === "women"
+        ) {
           payload.gender = genderValue;
         }
       }
@@ -379,7 +450,8 @@ export default function AdminProductsPage() {
         resetForm();
         void loadProducts();
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to save product";
+        const message =
+          err instanceof Error ? err.message : "Failed to save product";
         setError(message);
         showToast({ type: "error", message });
       } finally {
@@ -399,13 +471,16 @@ export default function AdminProductsPage() {
     try {
       await deleteAdminProduct(pendingDelete.id);
       showToast({ type: "success", message: "Product deleted" });
-      setProducts((prev) => prev.filter((product) => product.id !== pendingDelete.id));
+      setProducts((prev) =>
+        prev.filter((product) => product.id !== pendingDelete.id),
+      );
       if (editingId === pendingDelete.id) {
         resetForm();
       }
       setPendingDelete(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete product";
+      const message =
+        err instanceof Error ? err.message : "Failed to delete product";
       setError(message);
       showToast({ type: "error", message });
     } finally {
@@ -415,7 +490,7 @@ export default function AdminProductsPage() {
 
   const startEdit = useCallback((product: AdminProduct) => {
     setEditingId(product.id);
-    
+
     const derivedStock = deriveStockState(product);
     setFormInitial({
       name: product.name,
@@ -424,20 +499,32 @@ export default function AdminProductsPage() {
       discountPercent: product.discountPercent?.toString() ?? "0",
       costPrice: product.costPrice ? product.costPrice.toString() : "",
       category: product.category,
+      status: product.status ?? "active",
       designTheme: product.designTheme || "simple",
       designThemeCustom: "",
       stockMode: derivedStock.stockMode,
-      stockQty: derivedStock.stockMode === "limited" ? String(derivedStock.stockQty ?? 0) : "",
+      stockQty:
+        derivedStock.stockMode === "limited"
+          ? String(derivedStock.stockQty ?? 0)
+          : "",
       sizes: (product.sizes || [])
         .map((size) => size.toUpperCase())
-        .filter((size): size is (typeof allowedSizes)[number] => allowedSizes.includes(size as (typeof allowedSizes)[number])),
+        .filter((size): size is (typeof allowedSizes)[number] =>
+          allowedSizes.includes(size as (typeof allowedSizes)[number]),
+        ),
       colors: product.colors,
       sizeGuideEnabled: product.sizeGuideEnabled ?? false,
       sizeGuideImageUrl: product.sizeGuideImageUrl ?? "",
       sizeGuideImagePublicId: product.sizeGuideImagePublicId ?? "",
       soldOutSizes: product.soldOutSizes ?? [],
       soldOutColorCodes: product.soldOutColorCodes ?? [],
-      images: Array.from(new Set([product.images.main, ...(product.images.gallery ?? [])].filter(Boolean))),
+      images: Array.from(
+        new Set(
+          [product.images.main, ...(product.images.gallery ?? [])].filter(
+            Boolean,
+          ),
+        ),
+      ),
       gender: product.gender ?? "",
     });
     setFormKey(Date.now());
@@ -446,10 +533,15 @@ export default function AdminProductsPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.3em] text-sky-200">Products</p>
-        <h1 className="text-3xl font-semibold text-white sm:text-4xl">Admin products</h1>
+        <p className="text-xs uppercase tracking-[0.3em] text-sky-200">
+          Products
+        </p>
+        <h1 className="text-3xl font-semibold text-white sm:text-4xl">
+          Admin products
+        </h1>
         <p className="max-w-2xl text-sm text-sky-100/85 sm:text-base">
-          Manage the catalog in real-time: upload imagery to Cloudinary, keep Firestore in sync, and export what you see.
+          Manage the catalog in real-time: upload imagery to Cloudinary, keep
+          Firestore in sync, and export what you see.
         </p>
         <div className="hidden flex-wrap gap-3 md:flex">
           <a
@@ -496,8 +588,12 @@ export default function AdminProductsPage() {
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-white">Current products</p>
-              <p className="text-xs text-sky-100/70">Compact list with quick edit/delete.</p>
+              <p className="text-sm font-semibold text-white">
+                Current products
+              </p>
+              <p className="text-xs text-sky-100/70">
+                Compact list with quick edit/delete.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -513,11 +609,12 @@ export default function AdminProductsPage() {
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
             <div className="hidden overflow-x-auto md:block">
               <div className="min-w-[720px]">
-                <div className="grid grid-cols-6 gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-100/70">
+                <div className="grid grid-cols-7 gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-100/70">
                   <span className="col-span-2">Product</span>
                   <span>Category</span>
                   <span>Price</span>
                   <span>Stock</span>
+                  <span>Status</span>
                   <span>In stock?</span>
                   <span className="text-right">Actions</span>
                 </div>
@@ -530,15 +627,19 @@ export default function AdminProductsPage() {
                 ) : (
                   <ul className="divide-y divide-white/10">
                     {products.map((product) => {
-                      const mainImage = product.images.main || product.images.gallery[0];
+                      const mainImage =
+                        product.images.main || product.images.gallery[0];
                       const derivedStock = deriveStockState(product);
                       const isLimited = derivedStock.stockMode === "limited";
-                      const stockCount = isLimited ? derivedStock.stockQty ?? 0 : null;
-                      const safeStockCount = typeof stockCount === "number" ? stockCount : 0;
+                      const stockCount = isLimited
+                        ? (derivedStock.stockQty ?? 0)
+                        : null;
+                      const safeStockCount =
+                        typeof stockCount === "number" ? stockCount : 0;
                       return (
                         <li
                           key={product.id}
-                          className="grid grid-cols-6 items-center gap-3 px-4 py-3 text-sm text-sky-50"
+                          className="grid grid-cols-7 items-center gap-3 px-4 py-3 text-sm text-sky-50"
                         >
                           <div className="col-span-2 flex items-center gap-3">
                             {mainImage ? (
@@ -555,18 +656,32 @@ export default function AdminProductsPage() {
                               </span>
                             )}
                             <div className="space-y-1">
-                              <p className="font-semibold text-white">{product.name}</p>
-                              <p className="text-[11px] text-sky-100/70">{product.designTheme}</p>
+                              <p className="font-semibold text-white">
+                                {product.name}
+                              </p>
+                              <p className="text-[11px] text-sky-100/70">
+                                {product.designTheme}
+                              </p>
+                              <p className="font-mono text-[10px] text-sky-100/55">
+                                ID: {product.id}
+                              </p>
                             </div>
                           </div>
-                          <span className="text-xs uppercase text-sky-100/80">{product.category}</span>
+                          <span className="text-xs uppercase text-sky-100/80">
+                            {product.category}
+                          </span>
                           <div className="space-y-1 text-sm">
                             <p className="font-semibold text-white">
                               {new Intl.NumberFormat("fr-DZ", {
                                 style: "currency",
                                 currency: "DZD",
                                 maximumFractionDigits: 0,
-                              }).format(Math.max(product.finalPrice ?? product.basePrice, 0))}
+                              }).format(
+                                Math.max(
+                                  product.finalPrice ?? product.basePrice,
+                                  0,
+                                ),
+                              )}
                             </p>
                             {product.discountPercent > 0 ? (
                               <p className="text-[11px] text-sky-100/70">
@@ -590,12 +705,27 @@ export default function AdminProductsPage() {
                           <div className="space-y-1 text-sm">
                             <span
                               className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-(isLimited ? safeStockCount > 0 : true)
+                                product.status === "active"
+                                  ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
+                                  : "bg-amber-500/15 text-amber-50 ring-1 ring-amber-500/40"
+                              }`}
+                            >
+                              {product.status === "active" ? "Active" : "Draft"}
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                (isLimited ? safeStockCount > 0 : true)
                                   ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
                                   : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
                               }`}
                             >
-                              {isLimited ? (safeStockCount > 0 ? "Yes" : "No") : "Yes"}
+                              {isLimited
+                                ? safeStockCount > 0
+                                  ? "Yes"
+                                  : "No"
+                                : "Yes"}
                             </span>
                           </div>
                           <div className="flex items-center justify-end gap-2">
@@ -624,7 +754,10 @@ export default function AdminProductsPage() {
             {loading ? (
               <div className="space-y-3 p-3 md:hidden">
                 {[...Array(3)].map((_, index) => (
-                  <div key={index} className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                  <div
+                    key={index}
+                    className="rounded-2xl border border-white/10 bg-white/10 p-4"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="h-14 w-14 rounded-xl bg-white/10" />
                       <div className="flex-1 space-y-2">
@@ -642,11 +775,15 @@ export default function AdminProductsPage() {
             ) : (
               <ul className="grid gap-3 p-3 md:hidden">
                 {products.map((product) => {
-                  const mainImage = product.images.main || product.images.gallery[0];
+                  const mainImage =
+                    product.images.main || product.images.gallery[0];
                   const derivedStock = deriveStockState(product);
                   const isLimited = derivedStock.stockMode === "limited";
-                  const stockCount = isLimited ? derivedStock.stockQty ?? 0 : null;
-                  const safeStockCount = typeof stockCount === "number" ? stockCount : 0;
+                  const stockCount = isLimited
+                    ? (derivedStock.stockQty ?? 0)
+                    : null;
+                  const safeStockCount =
+                    typeof stockCount === "number" ? stockCount : 0;
 
                   return (
                     <li
@@ -668,39 +805,74 @@ export default function AdminProductsPage() {
                           </span>
                         )}
                         <div className="min-w-0 flex-1 space-y-1">
-                          <p className="break-words font-semibold text-white">{product.name}</p>
-                          <p className="text-[11px] text-sky-100/70">{product.designTheme}</p>
-                          <p className="break-words text-xs uppercase text-sky-100/80">{product.category}</p>
+                          <p className="break-words font-semibold text-white">
+                            {product.name}
+                          </p>
+                          <p className="text-[11px] text-sky-100/70">
+                            {product.designTheme}
+                          </p>
+                          <p className="font-mono text-[10px] text-sky-100/55">
+                            ID: {product.id}
+                          </p>
+                          <p className="break-words text-xs uppercase text-sky-100/80">
+                            {product.category}
+                          </p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-950/25 p-3 text-xs text-sky-100/80">
                         <div>
-                          <p className="uppercase tracking-[0.16em] text-sky-200/70">Price</p>
+                          <p className="uppercase tracking-[0.16em] text-sky-200/70">
+                            Price
+                          </p>
                           <p className="mt-1 font-semibold text-white">
                             {new Intl.NumberFormat("fr-DZ", {
                               style: "currency",
                               currency: "DZD",
                               maximumFractionDigits: 0,
-                            }).format(Math.max(product.finalPrice ?? product.basePrice, 0))}
+                            }).format(
+                              Math.max(
+                                product.finalPrice ?? product.basePrice,
+                                0,
+                              ),
+                            )}
                           </p>
                         </div>
                         <div>
-                          <p className="uppercase tracking-[0.16em] text-sky-200/70">Stock</p>
-                          <p className="mt-1 font-semibold text-white">{isLimited ? `${stockCount} pcs` : "Unlimited"}</p>
+                          <p className="uppercase tracking-[0.16em] text-sky-200/70">
+                            Stock
+                          </p>
+                          <p className="mt-1 font-semibold text-white">
+                            {isLimited ? `${stockCount} pcs` : "Unlimited"}
+                          </p>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            (isLimited ? safeStockCount > 0 : true)
-                              ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
-                              : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
-                          }`}
-                        >
-                          {isLimited ? (safeStockCount > 0 ? "In stock" : "Out of stock") : "In stock"}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              product.status === "active"
+                                ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
+                                : "bg-amber-500/15 text-amber-50 ring-1 ring-amber-500/40"
+                            }`}
+                          >
+                            {product.status === "active" ? "Active" : "Draft"}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              (isLimited ? safeStockCount > 0 : true)
+                                ? "bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-500/40"
+                                : "bg-rose-500/15 text-rose-50 ring-1 ring-rose-500/40"
+                            }`}
+                          >
+                            {isLimited
+                              ? safeStockCount > 0
+                                ? "In stock"
+                                : "Out of stock"
+                              : "In stock"}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -724,9 +896,15 @@ export default function AdminProductsPage() {
               </ul>
             )}
           </div>
-          <div ref={productsInfiniteScrollRef} className="h-4" aria-hidden="true" />
+          <div
+            ref={productsInfiniteScrollRef}
+            className="h-4"
+            aria-hidden="true"
+          />
           {loadingMoreProducts ? (
-            <p className="pt-4 text-center text-sm text-sky-100/70">Loading more products...</p>
+            <p className="pt-4 text-center text-sm text-sky-100/70">
+              Loading more products...
+            </p>
           ) : null}
         </section>
 
@@ -738,7 +916,11 @@ export default function AdminProductsPage() {
             key={formKey}
             mode={editingId ? "edit" : "create"}
             heading="Create / Edit product"
-            subheading={editingId ? "You are editing an existing product" : "Add a new product"}
+            subheading={
+              editingId
+                ? "You are editing an existing product"
+                : "Add a new product"
+            }
             submitLabel={editingId ? "Save changes" : "Add product"}
             initialValues={formInitial}
             loading={saving}
@@ -777,7 +959,10 @@ export default function AdminProductsPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="space-y-2">
-              <h2 id="delete-product-title" className="text-xl font-semibold text-white">
+              <h2
+                id="delete-product-title"
+                className="text-xl font-semibold text-white"
+              >
                 Delete product?
               </h2>
               <p className="text-sm text-sky-100/80">This cannot be undone.</p>
@@ -812,7 +997,10 @@ function ProductTableSkeleton() {
   return (
     <div className="divide-y divide-white/10">
       {[...Array(4)].map((_, index) => (
-        <div key={index} className="grid grid-cols-6 items-center gap-3 px-4 py-4 text-sm text-sky-100/70">
+        <div
+          key={index}
+          className="grid grid-cols-7 items-center gap-3 px-4 py-4 text-sm text-sky-100/70"
+        >
           <div className="col-span-2 flex items-center gap-3">
             <span className="h-12 w-12 rounded-xl bg-white/10" />
             <div className="space-y-2">

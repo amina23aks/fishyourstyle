@@ -19,7 +19,10 @@ import {
   siteName,
   siteUrl,
 } from "@/lib/seo";
-import { fetchStorefrontProductsPage } from "@/lib/storefront-products";
+import {
+  fetchStorefrontProductsByIds,
+  fetchStorefrontProductsPage,
+} from "@/lib/storefront-products";
 
 export const revalidate = 300;
 
@@ -101,12 +104,16 @@ export default async function Home({
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
   const t = createTranslator(messages);
-  const featuredProducts = await fetchStorefrontProductsPage({ pageSize: 4 })
-    .then((page) => page.products)
-    .catch((error) => {
-      console.error("Failed to fetch featured drop products:", error);
-      return [];
-    });
+  const featuredProducts = await (
+    flowDropConfig.selectedProductIds.length > 0
+      ? fetchStorefrontProductsByIds(flowDropConfig.selectedProductIds)
+      : fetchStorefrontProductsPage({ pageSize: 4 }).then(
+          (page) => page.products,
+        )
+  ).catch((error) => {
+    console.error("Failed to fetch featured drop products:", error);
+    return [];
+  });
 
   const websiteStructuredData = {
     "@context": "https://schema.org",
