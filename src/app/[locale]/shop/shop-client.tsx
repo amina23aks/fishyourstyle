@@ -21,6 +21,7 @@ import {
   filterPublicDesignPills,
   getPublicShopCategoryVisibility,
   isPublicComingSoonCollection,
+  type PublicShopFilterSettings,
 } from "@/lib/filter-config";
 
 type StorefrontCursor = {
@@ -51,6 +52,7 @@ type ShopClientProps = {
   errorMessage?: string | null;
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
+  shopFilterSettings: PublicShopFilterSettings;
 };
 
 export default function ShopClient({
@@ -60,6 +62,7 @@ export default function ShopClient({
   errorMessage,
   categories,
   designThemes,
+  shopFilterSettings,
 }: ShopClientProps) {
   const t = useTranslations();
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
@@ -132,10 +135,23 @@ export default function ShopClient({
       });
 
       return {
-        categoryPills: filterPublicCollectionPills(pills.categoryPills),
-        designPills: filterPublicDesignPills(pills.designPills),
+        categoryPills: filterPublicCollectionPills(
+          pills.categoryPills,
+          shopFilterSettings,
+        ),
+        designPills: filterPublicDesignPills(
+          pills.designPills,
+          shopFilterSettings,
+        ),
       };
-    }, [categories, collectionFilter, designThemes, filterProducts, products]);
+    }, [
+      categories,
+      collectionFilter,
+      designThemes,
+      filterProducts,
+      products,
+      shopFilterSettings,
+    ]);
 
   const handleCollectionFilterChange = useCallback(
     (nextCollection: string) => {
@@ -248,7 +264,7 @@ export default function ShopClient({
     designFilter === "all" &&
     !search.trim() &&
     filteredProducts.length === 0 &&
-    isPublicComingSoonCollection(collectionFilter);
+    isPublicComingSoonCollection(collectionFilter, shopFilterSettings);
   const showDesignFilters = allDesignPills.length > 1;
 
   return (
@@ -277,7 +293,7 @@ export default function ShopClient({
               <div className="flex flex-wrap gap-2">
                 {collectionPills.map((pill) => {
                   const active = collectionFilter === pill.value;
-                  const visibility = getPublicShopCategoryVisibility(pill.value);
+                  const visibility = getPublicShopCategoryVisibility(pill.value, shopFilterSettings);
                   const isComingSoon = visibility?.isComingSoon === true;
                   return (
                     <button
@@ -285,16 +301,22 @@ export default function ShopClient({
                       type="button"
                       onClick={() => handleCollectionFilterChange(pill.value)}
                       className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        active
-                          ? "border-white bg-white text-slate-900"
-                          : isComingSoon
-                            ? "border-amber-100/30 bg-white/5 text-white/75 hover:border-amber-100/45 hover:bg-amber-100/10"
-                            : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                        active && isComingSoon
+                          ? "border-amber-100/70 bg-amber-100/90 text-slate-950 shadow-sm shadow-amber-950/20"
+                          : active
+                            ? "border-white bg-white text-slate-900"
+                            : isComingSoon
+                              ? "border-amber-100/30 bg-white/5 text-white/75 hover:border-amber-100/45 hover:bg-amber-100/10"
+                              : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
                       }`}
                     >
                       <span>{pill.label}</span>
                       {isComingSoon ? (
-                        <span className="ml-2 rounded-full border border-amber-100/25 bg-amber-100/10 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] text-amber-50/75">
+                        <span className={`ml-2 rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
+                            active
+                              ? "border-slate-950/15 bg-slate-950/10 text-slate-950/80"
+                              : "border-amber-100/25 bg-amber-100/10 text-amber-50/75"
+                          }`}>
                           soon
                         </span>
                       ) : null}

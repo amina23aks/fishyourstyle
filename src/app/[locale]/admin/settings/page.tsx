@@ -1,4 +1,5 @@
 import HomeSettingsForm from "./HomeSettingsForm";
+import ShopFiltersSettingsForm from "./ShopFiltersSettingsForm";
 
 export default function AdminSettingsPage() {
   return (
@@ -13,6 +14,8 @@ export default function AdminSettingsPage() {
       </div>
 
       <HomeSettingsForm />
+
+      <ShopFiltersSettingsForm />
     </div>
   );
 }

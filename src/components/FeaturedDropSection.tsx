@@ -81,12 +81,12 @@ export default function FeaturedDropSection({ drop, products }: Props) {
     .slice(0, drop.maxProducts)
     .map(mapStorefrontToProduct);
   const productGridClassName =
-    "grid justify-center gap-5 [grid-template-columns:minmax(0,240px)] min-[380px]:[grid-template-columns:repeat(auto-fit,minmax(150px,240px))] sm:gap-6 lg:gap-8";
+    "grid justify-start gap-5 [grid-template-columns:minmax(0,240px)] min-[380px]:[grid-template-columns:repeat(auto-fit,minmax(150px,240px))] sm:gap-6 lg:gap-8";
 
   return (
     <section
       id="flow-drop"
-      className="space-y-6 rounded-[1.75rem] border border-cyan-50/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.16),transparent_30%),linear-gradient(135deg,rgba(24,94,128,0.92),rgba(40,91,119,0.94)_50%,rgba(79,113,125,0.88))] px-4 py-7 text-white shadow-[0_16px_42px_rgba(8,47,73,0.24)] sm:px-6 sm:py-8 lg:px-8"
+      className="space-y-6 rounded-[1.75rem] border border-cyan-100/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.22),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.14),transparent_34%),linear-gradient(135deg,rgba(10,68,101,0.96),rgba(14,49,77,0.97)_52%,rgba(75,91,94,0.74))] px-4 py-7 text-white shadow-[0_18px_52px_rgba(8,47,73,0.34)] sm:px-6 sm:py-8 lg:px-8"
     >
       <div className="mx-auto max-w-2xl space-y-3 text-center sm:space-y-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-cyan-50/80">
