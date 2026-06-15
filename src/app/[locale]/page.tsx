@@ -6,6 +6,7 @@ import FeaturedDropSection, {
   type FeaturedDropConfig,
 } from "@/components/FeaturedDropSection";
 import FAQAccordion from "@/components/FAQAccordion";
+import NewsletterSection from "@/components/NewsletterSection";
 import { faqItems } from "@/data/faqItems";
 import HomeClient from "./home-client";
 import { resolveLocale, type Locale } from "@/i18n/config";
@@ -264,6 +265,8 @@ export default async function Home({
             products={featuredProducts}
           />
         ) : null}
+
+        <NewsletterSection locale={locale} />
 
         {homeSettings.showHomeShopSection ? (
           <section className="space-y-4" id="shop-search">
