@@ -82,23 +82,23 @@ export default function FeaturedDropSection({ drop, products }: Props) {
     .map(mapStorefrontToProduct);
   const productGridClassName =
     dropProducts.length < 4
-      ? "mx-auto grid w-full max-w-3xl grid-cols-1 gap-5 min-[380px]:grid-cols-2 sm:gap-6 lg:gap-8"
-      : "grid grid-cols-1 gap-5 min-[380px]:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8";
+      ? "mx-auto grid w-full max-w-2xl grid-cols-1 gap-4 min-[380px]:grid-cols-2 sm:gap-5 lg:gap-6"
+      : "grid grid-cols-1 gap-4 min-[380px]:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6";
 
   return (
     <section
       id="flow-drop"
-      className="space-y-7 rounded-[2rem] border border-cyan-100/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.24),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.18),transparent_32%),linear-gradient(135deg,rgba(12,82,120,0.96),rgba(22,67,100,0.97)_48%,rgba(41,86,110,0.94))] px-4 py-10 text-white shadow-[0_22px_60px_rgba(8,47,73,0.32)] sm:space-y-8 sm:px-6 md:py-12 lg:px-10"
+      className="space-y-6 rounded-[1.75rem] border border-cyan-50/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.20),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.16),transparent_30%),linear-gradient(135deg,rgba(18,91,128,0.94),rgba(33,82,111,0.95)_52%,rgba(62,101,118,0.90))] px-4 py-8 text-white shadow-[0_18px_48px_rgba(8,47,73,0.26)] sm:space-y-7 sm:px-6 md:py-10 lg:px-8"
     >
-      <div className="mx-auto max-w-2xl space-y-4 text-center sm:space-y-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.34em] text-cyan-50/85">
+      <div className="max-w-2xl space-y-3 text-left sm:space-y-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-cyan-50/80">
           {drop.label}
         </p>
-        <div className="space-y-3 sm:space-y-4">
-          <h2 className="text-3xl font-semibold uppercase tracking-[0.08em] text-white sm:text-5xl">
+        <div className="space-y-2.5 sm:space-y-3">
+          <h2 className="text-2xl font-semibold uppercase tracking-[0.10em] text-white sm:text-4xl">
             {drop.title}
           </h2>
-          <p className="mx-auto max-w-xl text-base leading-7 text-sky-50/85 sm:text-lg sm:leading-8">
+          <p className="max-w-xl text-sm leading-6 text-sky-50/82 sm:text-base sm:leading-7">
             {drop.subtitle}
           </p>
         </div>
