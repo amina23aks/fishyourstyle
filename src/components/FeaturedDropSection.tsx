@@ -81,7 +81,7 @@ export default function FeaturedDropSection({ drop, products }: Props) {
     .slice(0, drop.maxProducts)
     .map(mapStorefrontToProduct);
   const productGridClassName =
-    "grid justify-start gap-5 [grid-template-columns:minmax(0,240px)] min-[380px]:[grid-template-columns:repeat(2,minmax(0,240px))] sm:gap-6 lg:[grid-template-columns:repeat(4,minmax(0,240px))] lg:gap-8";
+    "grid grid-cols-1 justify-start gap-5 min-[380px]:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8";
 
   return (
     <section
@@ -105,7 +105,9 @@ export default function FeaturedDropSection({ drop, products }: Props) {
       {dropProducts.length > 0 ? (
         <div className={productGridClassName}>
           {dropProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <div key={product.id} className="w-full max-w-[240px]">
+              <ProductCard product={product} />
+            </div>
           ))}
         </div>
       ) : (
