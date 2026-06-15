@@ -15,6 +15,7 @@ const navItems = [
   { href: "/admin/favorites", label: "Favorites" },
   { href: "/admin/wishlist", label: "Wishlist" },
   { href: "/admin/contact", label: "Contact" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 export default function AdminClientLayout({

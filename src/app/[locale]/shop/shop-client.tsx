@@ -16,6 +16,13 @@ import {
   isDesignFilterAvailableForCategory,
 } from "@/lib/dependent-filter-options";
 import { useTranslations } from "@/i18n/I18nProvider";
+import {
+  filterPublicCollectionPills,
+  filterPublicDesignPills,
+  getPublicShopCategoryVisibility,
+  isPublicComingSoonCollection,
+  type PublicShopFilterSettings,
+} from "@/lib/filter-config";
 
 type StorefrontCursor = {
   id: string;
@@ -45,6 +52,7 @@ type ShopClientProps = {
   errorMessage?: string | null;
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
+  shopFilterSettings: PublicShopFilterSettings;
 };
 
 export default function ShopClient({
@@ -54,6 +62,7 @@ export default function ShopClient({
   errorMessage,
   categories,
   designThemes,
+  shopFilterSettings,
 }: ShopClientProps) {
   const t = useTranslations();
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
@@ -117,16 +126,32 @@ export default function ShopClient({
   }, [collectionFilter, designFilter, nextCursor]);
 
   const { categoryPills: collectionPills, designPills: allDesignPills } =
-    useMemo(
-      () =>
-        buildDependentFilterPills({
-          products: filterProducts ?? products,
-          categories,
-          designThemes,
-          selectedCategory: collectionFilter,
-        }),
-      [categories, collectionFilter, designThemes, filterProducts, products],
-    );
+    useMemo(() => {
+      const pills = buildDependentFilterPills({
+        products: filterProducts ?? products,
+        categories,
+        designThemes,
+        selectedCategory: collectionFilter,
+      });
+
+      return {
+        categoryPills: filterPublicCollectionPills(
+          pills.categoryPills,
+          shopFilterSettings,
+        ),
+        designPills: filterPublicDesignPills(
+          pills.designPills,
+          shopFilterSettings,
+        ),
+      };
+    }, [
+      categories,
+      collectionFilter,
+      designThemes,
+      filterProducts,
+      products,
+      shopFilterSettings,
+    ]);
 
   const handleCollectionFilterChange = useCallback(
     (nextCollection: string) => {
@@ -231,6 +256,17 @@ export default function ShopClient({
     });
   }, [collectionFilter, designFilter, loadedProducts, search]);
 
+  const selectedCollectionLabel =
+    collectionPills.find((pill) => pill.value === collectionFilter)?.label ??
+    collectionFilter;
+  const showComingSoonEmptyState =
+    collectionFilter !== "all" &&
+    designFilter === "all" &&
+    !search.trim() &&
+    filteredProducts.length === 0 &&
+    isPublicComingSoonCollection(collectionFilter, shopFilterSettings);
+  const showDesignFilters = allDesignPills.length > 1;
+
   return (
     <>
       <div className="mb-6 flex flex-col gap-4">
@@ -257,50 +293,67 @@ export default function ShopClient({
               <div className="flex flex-wrap gap-2">
                 {collectionPills.map((pill) => {
                   const active = collectionFilter === pill.value;
+                  const visibility = getPublicShopCategoryVisibility(pill.value, shopFilterSettings);
+                  const isComingSoon = visibility?.isComingSoon === true;
                   return (
                     <button
                       key={pill.value}
                       type="button"
                       onClick={() => handleCollectionFilterChange(pill.value)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        active
-                          ? "border-white bg-white text-slate-900"
-                          : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                      className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        active && isComingSoon
+                          ? "border-amber-100/70 bg-amber-100/90 text-slate-950 shadow-sm shadow-amber-950/20"
+                          : active
+                            ? "border-white bg-white text-slate-900"
+                            : isComingSoon
+                              ? "border-amber-100/30 bg-white/5 text-white/75 hover:border-amber-100/45 hover:bg-amber-100/10"
+                              : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
                       }`}
                     >
-                      {pill.label}
+                      <span>{pill.label}</span>
+                      {isComingSoon ? (
+                        <span className={`ml-2 rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
+                            active
+                              ? "border-slate-950/15 bg-slate-950/10 text-slate-950/80"
+                              : "border-amber-100/25 bg-amber-100/10 text-amber-50/75"
+                          }`}>
+                          soon
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-100">
-                Design
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {allDesignPills.map((pill) => {
-                  const active = designFilter === pill.value;
-                  return (
-                    <button
-                      key={pill.value}
-                      type="button"
-                      onClick={() =>
-                        startTransition(() => setDesignFilter(pill.value))
-                      }
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        active
-                          ? "border-white bg-white text-slate-900"
-                          : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                      }`}
-                    >
-                      {pill.label}
-                    </button>
-                  );
-                })}
+            {showDesignFilters ? (
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.25em] text-slate-100">
+                  Design
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {allDesignPills.map((pill) => {
+                    const active = designFilter === pill.value;
+                    return (
+                      <button
+                        key={pill.value}
+                        type="button"
+                        onClick={() =>
+                          startTransition(() => setDesignFilter(pill.value))
+                        }
+                        className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? "border-white bg-white text-slate-900"
+                            : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -322,8 +375,28 @@ export default function ShopClient({
           {errorMessage}
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/80 min-h-[350px] flex items-center justify-center">
-          No products in this category yet.
+        <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-cyan-50/15 bg-white/[0.04] p-5 text-center text-white/80">
+          {showComingSoonEmptyState ? (
+            <div className="w-full max-w-md rounded-[1.75rem] border border-cyan-50/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.18),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.16),transparent_34%),linear-gradient(135deg,rgba(14,76,111,0.78),rgba(28,72,99,0.82))] px-6 py-8 shadow-[0_20px_50px_rgba(8,47,73,0.28)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-50/75">
+                NEXT DROP
+              </p>
+              <h2 className="mt-3 text-2xl font-semibold uppercase tracking-[0.12em] text-white">
+                {selectedCollectionLabel}
+              </h2>
+              <p className="mt-2 text-sm font-semibold uppercase tracking-[0.26em] text-amber-50/80">
+                COMING SOON
+              </p>
+              <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-sky-50/78">
+                The next chapter is being prepared.
+              </p>
+              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-50/55">
+                Stay tuned.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm">No products in this category yet.</p>
+          )}
         </div>
       ) : (
         <div className="mt-10 grid min-h-[350px] grid-cols-2 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">

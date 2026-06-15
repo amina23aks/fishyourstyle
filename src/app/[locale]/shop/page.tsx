@@ -20,6 +20,7 @@ import {
   getDefaultSocialImages,
   getOpenGraphLocale,
 } from "@/lib/seo";
+import { getShopFilterSettings } from "@/lib/shop-filter-settings";
 
 export const revalidate = 300;
 
@@ -144,6 +145,7 @@ export default async function ShopPage() {
   let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
   let nextCursor: StorefrontProductsCursor | null = null;
   let filterProducts: StorefrontFilterProduct[] = [];
+  const shopFilterSettings = await getShopFilterSettings();
   try {
     const firstPage = await fetchStorefrontProductsPage({ pageSize: 8 });
     storefrontProducts = firstPage.products;
@@ -188,6 +190,7 @@ export default async function ShopPage() {
         errorMessage={errorMessage}
         categories={categories}
         designThemes={designThemes}
+        shopFilterSettings={shopFilterSettings}
       />
     </main>
   );

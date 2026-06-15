@@ -32,6 +32,7 @@ import {
   getSelectableCollections,
   getSelectableDesigns,
 } from "@/lib/categories";
+import { getHomeSettings } from "@/lib/home-settings";
 
 export const revalidate = 300;
 
@@ -92,26 +93,6 @@ export async function generateMetadata({
     },
   };
 }
-
-const homeSettings = {
-  showFeaturedDrop: true,
-  showHomeShopSection: false,
-  featuredDropSlug: "flow",
-} as const;
-
-const flowDropConfig: FeaturedDropConfig & {
-  slug: typeof homeSettings.featuredDropSlug;
-} = {
-  slug: "flow",
-  title: "FLOW — DROP 01",
-  label: "Find Your Flow.",
-  subtitle:
-    "The first chapter of Fish Your Style. A collection inspired by finding your own rhythm.",
-  buttonText: "Discover FLOW",
-  buttonLink: "#flow-drop",
-  maxProducts: 4,
-  active: true,
-};
 
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const mainImage = sp.images?.main || "/placeholder.png";
@@ -178,6 +159,8 @@ export default async function Home({
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
   const t = createTranslator(messages);
+  const homeSettings = await getHomeSettings();
+  const flowDropConfig: FeaturedDropConfig = homeSettings.featuredDrop;
   const featuredProducts =
     homeSettings.showFeaturedDrop && flowDropConfig.active
       ? await fetchStorefrontProductsByFeaturedDrop({
@@ -278,7 +261,6 @@ export default async function Home({
         {homeSettings.showFeaturedDrop ? (
           <FeaturedDropSection
             drop={flowDropConfig}
-            locale={locale}
             products={featuredProducts}
           />
         ) : null}
