@@ -261,7 +261,6 @@ export default async function Home({
         {homeSettings.showFeaturedDrop ? (
           <FeaturedDropSection
             drop={flowDropConfig}
-            locale={locale}
             products={featuredProducts}
           />
         ) : null}

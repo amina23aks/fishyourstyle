@@ -111,7 +111,13 @@ export default function HomeSettingsForm() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          ...settings,
+          featuredDrop: {
+            ...settings.featuredDrop,
+            active: settings.showFeaturedDrop,
+          },
+        }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
@@ -138,7 +144,7 @@ export default function HomeSettingsForm() {
     <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="grid gap-4 md:grid-cols-2">
         <ToggleField
-          label="Show Featured Drop"
+          label="Show Featured Drop Section"
           checked={settings.showFeaturedDrop}
           onChange={(checked) =>
             setSettings((previous) => ({ ...previous, showFeaturedDrop: checked }))
@@ -178,11 +184,6 @@ export default function HomeSettingsForm() {
               onChange={(event) => updateFeaturedDrop("maxProducts", Number(event.target.value))}
             />
           </label>
-          <ToggleField
-            label="Featured Drop Active"
-            checked={settings.featuredDrop.active}
-            onChange={(checked) => updateFeaturedDrop("active", checked)}
-          />
         </div>
 
         <label className="mt-4 block space-y-2 text-sm font-semibold text-sky-50">

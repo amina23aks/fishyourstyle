@@ -50,11 +50,13 @@ export function normalizeHomeSettings(input: unknown): HomeSettings {
       ? (data.featuredDrop as Record<string, unknown>)
       : {};
 
+  const showFeaturedDrop = booleanOrDefault(
+    data.showFeaturedDrop,
+    defaultHomeSettings.showFeaturedDrop,
+  );
+
   return {
-    showFeaturedDrop: booleanOrDefault(
-      data.showFeaturedDrop,
-      defaultHomeSettings.showFeaturedDrop,
-    ),
+    showFeaturedDrop,
     showHomeShopSection: booleanOrDefault(
       data.showHomeShopSection,
       defaultHomeSettings.showHomeShopSection,
@@ -85,10 +87,7 @@ export function normalizeHomeSettings(input: unknown): HomeSettings {
         featuredDrop.maxProducts,
         defaultHomeSettings.featuredDrop.maxProducts,
       ),
-      active: booleanOrDefault(
-        featuredDrop.active,
-        defaultHomeSettings.featuredDrop.active,
-      ),
+      active: showFeaturedDrop,
     },
   };
 }
