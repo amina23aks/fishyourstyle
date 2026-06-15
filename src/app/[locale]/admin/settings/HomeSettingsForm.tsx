@@ -171,8 +171,6 @@ export default function HomeSettingsForm() {
         <div className="grid gap-4 md:grid-cols-2">
           <TextField label="Featured Drop Title" value={settings.featuredDrop.title} onChange={(value) => updateFeaturedDrop("title", value)} />
           <TextField label="Featured Drop Label" value={settings.featuredDrop.label} onChange={(value) => updateFeaturedDrop("label", value)} />
-          <TextField label="Button Text" value={settings.featuredDrop.buttonText} onChange={(value) => updateFeaturedDrop("buttonText", value)} />
-          <TextField label="Button Link" value={settings.featuredDrop.buttonLink} onChange={(value) => updateFeaturedDrop("buttonLink", value)} />
           <label className="space-y-2 text-sm font-semibold text-sky-50">
             <span>Max Products</span>
             <input

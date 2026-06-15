@@ -16,6 +16,11 @@ import {
   isDesignFilterAvailableForCategory,
 } from "@/lib/dependent-filter-options";
 import { useTranslations } from "@/i18n/I18nProvider";
+import {
+  filterPublicCollectionPills,
+  filterPublicDesignPills,
+  isPublicComingSoonCollection,
+} from "@/lib/filter-config";
 
 type StorefrontCursor = {
   id: string;
@@ -117,16 +122,19 @@ export default function ShopClient({
   }, [collectionFilter, designFilter, nextCursor]);
 
   const { categoryPills: collectionPills, designPills: allDesignPills } =
-    useMemo(
-      () =>
-        buildDependentFilterPills({
-          products: filterProducts ?? products,
-          categories,
-          designThemes,
-          selectedCategory: collectionFilter,
-        }),
-      [categories, collectionFilter, designThemes, filterProducts, products],
-    );
+    useMemo(() => {
+      const pills = buildDependentFilterPills({
+        products: filterProducts ?? products,
+        categories,
+        designThemes,
+        selectedCategory: collectionFilter,
+      });
+
+      return {
+        categoryPills: filterPublicCollectionPills(pills.categoryPills),
+        designPills: filterPublicDesignPills(pills.designPills),
+      };
+    }, [categories, collectionFilter, designThemes, filterProducts, products]);
 
   const handleCollectionFilterChange = useCallback(
     (nextCollection: string) => {
@@ -231,6 +239,17 @@ export default function ShopClient({
     });
   }, [collectionFilter, designFilter, loadedProducts, search]);
 
+  const selectedCollectionLabel =
+    collectionPills.find((pill) => pill.value === collectionFilter)?.label ??
+    collectionFilter;
+  const showComingSoonEmptyState =
+    collectionFilter !== "all" &&
+    designFilter === "all" &&
+    !search.trim() &&
+    filteredProducts.length === 0 &&
+    isPublicComingSoonCollection(collectionFilter);
+  const showDesignFilters = allDesignPills.length > 1;
+
   return (
     <>
       <div className="mb-6 flex flex-col gap-4">
@@ -275,32 +294,34 @@ export default function ShopClient({
               </div>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-100">
-                Design
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {allDesignPills.map((pill) => {
-                  const active = designFilter === pill.value;
-                  return (
-                    <button
-                      key={pill.value}
-                      type="button"
-                      onClick={() =>
-                        startTransition(() => setDesignFilter(pill.value))
-                      }
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        active
-                          ? "border-white bg-white text-slate-900"
-                          : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
-                      }`}
-                    >
-                      {pill.label}
-                    </button>
-                  );
-                })}
+            {showDesignFilters ? (
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.25em] text-slate-100">
+                  Design
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {allDesignPills.map((pill) => {
+                    const active = designFilter === pill.value;
+                    return (
+                      <button
+                        key={pill.value}
+                        type="button"
+                        onClick={() =>
+                          startTransition(() => setDesignFilter(pill.value))
+                        }
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? "border-white bg-white text-slate-900"
+                            : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -322,8 +343,19 @@ export default function ShopClient({
           {errorMessage}
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/80 min-h-[350px] flex items-center justify-center">
-          No products in this category yet.
+        <div className="flex min-h-[350px] items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/80">
+          {showComingSoonEmptyState ? (
+            <div className="max-w-md space-y-2">
+              <h2 className="text-2xl font-semibold text-white">
+                {selectedCollectionLabel} — Coming Soon
+              </h2>
+              <p className="text-sm text-white/75">
+                We’re preparing this category for an upcoming drop.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm">No products in this category yet.</p>
+          )}
         </div>
       ) : (
         <div className="mt-10 grid min-h-[350px] grid-cols-2 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
