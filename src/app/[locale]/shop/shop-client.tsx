@@ -379,13 +379,19 @@ export default function ShopClient({
           {showComingSoonEmptyState ? (
             <div className="w-full max-w-md rounded-[1.75rem] border border-cyan-50/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.18),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.16),transparent_34%),linear-gradient(135deg,rgba(14,76,111,0.78),rgba(28,72,99,0.82))] px-6 py-8 shadow-[0_20px_50px_rgba(8,47,73,0.28)]">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-50/75">
-                Next drop
+                NEXT DROP
               </p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
-                {selectedCollectionLabel} — Coming Soon
+              <h2 className="mt-3 text-2xl font-semibold uppercase tracking-[0.12em] text-white">
+                {selectedCollectionLabel}
               </h2>
+              <p className="mt-2 text-sm font-semibold uppercase tracking-[0.26em] text-amber-50/80">
+                COMING SOON
+              </p>
               <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-sky-50/78">
-                We’re preparing this category for an upcoming drop.
+                The next chapter is being prepared.
+              </p>
+              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-50/55">
+                Stay tuned.
               </p>
             </div>
           ) : (
