@@ -284,17 +284,17 @@ export default function ShopClient({
                       key={pill.value}
                       type="button"
                       onClick={() => handleCollectionFilterChange(pill.value)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         active
                           ? "border-white bg-white text-slate-900"
                           : isComingSoon
-                            ? "border-amber-100/25 bg-amber-100/10 text-amber-50/80 hover:border-amber-100/45 hover:bg-amber-100/15"
+                            ? "border-amber-100/30 bg-white/5 text-white/75 hover:border-amber-100/45 hover:bg-amber-100/10"
                             : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
                       }`}
                     >
                       <span>{pill.label}</span>
                       {isComingSoon ? (
-                        <span className="ml-1.5 text-[10px] uppercase tracking-[0.18em] text-amber-100/70">
+                        <span className="ml-2 rounded-full border border-amber-100/25 bg-amber-100/10 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] text-amber-50/75">
                           soon
                         </span>
                       ) : null}
@@ -319,7 +319,7 @@ export default function ShopClient({
                         onClick={() =>
                           startTransition(() => setDesignFilter(pill.value))
                         }
-                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                           active
                             ? "border-white bg-white text-slate-900"
                             : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
