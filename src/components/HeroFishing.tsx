@@ -2,12 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useLocale, useTranslations } from "@/i18n/I18nProvider";
-import { localizePathname } from "@/i18n/paths";
+import { useTranslations } from "@/i18n/I18nProvider";
 
 export default function HeroFishing() {
   const t = useTranslations();
-  const locale = useLocale();
   const heroBubbles = [
     { size: 12, left: "44%", delay: "0s", duration: "9s" },
     { size: 10, left: "48%", delay: "1.2s", duration: "10s" },
@@ -95,10 +93,10 @@ export default function HeroFishing() {
             </p>
             <div className="flex flex-wrap justify-start gap-4 pt-3">
               <Link
-                href={localizePathname(locale, "/shop")}
+                href="#flow-drop"
                 className="btn-shine rounded-full bg-white/20 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(125,211,252,0.35)] active:scale-[0.98]"
               >
-                {t("hero.shopNow")}
+                Discover FLOW
               </Link>
             </div>
           </div>

@@ -52,6 +52,8 @@ export type StorefrontFilterProduct = {
   status: "active";
 };
 
+type StorefrontProductStatus = "active" | "inactive" | "draft" | "hidden";
+
 export type StorefrontProduct = {
   id: string;
   slug: string;
@@ -75,7 +77,8 @@ export type StorefrontProduct = {
   inStock: boolean;
   images: StorefrontProductImages;
   tags?: string[];
-  status: "active" | "inactive";
+  featuredDrops?: string[];
+  status: StorefrontProductStatus;
 };
 
 function normalizeImagesField(images: unknown): StorefrontProductImages {
@@ -257,7 +260,11 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: imagesValue,
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
-    status: data.status === "inactive" ? "inactive" : "active",
+    featuredDrops: parseStringArray(data.featuredDrops),
+    status:
+      typeof data.status === "string" && data.status.trim()
+        ? (data.status as StorefrontProductStatus)
+        : "active",
   };
 }
 
@@ -304,6 +311,110 @@ function clampPageSize(value: number | undefined, fallback = 8): number {
     Math.max(Math.floor(Number.isFinite(parsed) ? parsed : fallback), 1),
     48,
   );
+}
+
+export async function fetchStorefrontProductsByFeaturedDrop({
+  slug,
+  pageSize = 4,
+}: {
+  slug: string;
+  pageSize?: number;
+}): Promise<StorefrontProduct[]> {
+  if (!isFirebaseConfigured()) {
+    console.warn(
+      "Firebase env vars are missing; returning an empty featured drop product list.",
+    );
+    return [];
+  }
+
+  const safeSlug = slug.trim();
+  if (!safeSlug) return [];
+  const safeLimit = clampPageSize(pageSize, 4);
+
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const snapshot = await getDocs(
+      query(
+        productsRef,
+        where("status", "==", "active"),
+        where("featuredDrops", "array-contains", safeSlug),
+        limit(safeLimit),
+      ),
+    );
+    return snapshot.docs
+      .map((doc) => normalizeProduct(doc.data(), doc.id))
+      .filter(
+        (product) =>
+          product.status === "active" &&
+          (product.featuredDrops ?? []).includes(safeSlug),
+      );
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      console.warn(
+        "Firestore permission denied while reading featured drop products; returning empty list.",
+      );
+    } else {
+      console.error(
+        "Failed to fetch featured drop products from Firestore, returning empty list:",
+        error,
+      );
+    }
+    return [];
+  }
+}
+
+export async function fetchStorefrontProductsByIds(
+  productIds: string[],
+): Promise<StorefrontProduct[]> {
+  if (!isFirebaseConfigured()) {
+    console.warn(
+      "Firebase env vars are missing; returning an empty selected product list.",
+    );
+    return [];
+  }
+
+  const uniqueIds = Array.from(
+    new Set(productIds.map((id) => id.trim()).filter(Boolean)),
+  );
+  if (uniqueIds.length === 0) return [];
+
+  const chunks: string[][] = [];
+  for (let index = 0; index < uniqueIds.length; index += 10) {
+    chunks.push(uniqueIds.slice(index, index + 10));
+  }
+
+  try {
+    const db = getServerDb();
+    const productsRef = collection(db, "products");
+    const snapshots = await Promise.all(
+      chunks.map((chunk) =>
+        getDocs(
+          query(
+            productsRef,
+            where("status", "==", "active"),
+            where(documentId(), "in", chunk),
+          ),
+        ),
+      ),
+    );
+    const products = snapshots.flatMap((snapshot) =>
+      snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id)),
+    );
+    return products.filter((product) => product.status === "active");
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      console.warn(
+        "Firestore permission denied while reading selected storefront products; returning empty list.",
+      );
+    } else {
+      console.error(
+        "Failed to fetch selected storefront products from Firestore, returning empty list:",
+        error,
+      );
+    }
+    return [];
+  }
 }
 
 export async function fetchStorefrontProductsPage({

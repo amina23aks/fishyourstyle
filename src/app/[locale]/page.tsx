@@ -2,20 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import Hero from "@/components/Hero";
+import FeaturedDropSection, {
+  type FeaturedDropConfig,
+} from "@/components/FeaturedDropSection";
 import FAQAccordion from "@/components/FAQAccordion";
 import { faqItems } from "@/data/faqItems";
-import {
-  fetchStorefrontProductsPage,
-  type StorefrontProduct,
-} from "@/lib/storefront-products";
-import type { Product } from "@/types/product";
 import HomeClient from "./home-client";
-import {
-  getSelectableCollections,
-  getSelectableDesigns,
-} from "@/lib/categories";
-import { localizePathname } from "@/i18n/paths";
 import { resolveLocale, type Locale } from "@/i18n/config";
+import { localizePathname } from "@/i18n/paths";
 import { getMessages } from "@/i18n/get-messages";
 import { createTranslator } from "@/i18n/translator";
 import {
@@ -28,6 +22,16 @@ import {
   siteName,
   siteUrl,
 } from "@/lib/seo";
+import {
+  fetchStorefrontProductsByFeaturedDrop,
+  fetchStorefrontProductsPage,
+  type StorefrontProduct,
+} from "@/lib/storefront-products";
+import type { Product } from "@/types/product";
+import {
+  getSelectableCollections,
+  getSelectableDesigns,
+} from "@/lib/categories";
 
 export const revalidate = 300;
 
@@ -36,18 +40,19 @@ const homeMetadataByLocale: Record<
   { title: string; description: string }
 > = {
   en: {
-    title: "Fish Your Style — Streetwear for every mood",
+    title: "Fish Your Style — FLOW DROP 01",
     description:
-      "Discover streetwear for every style, every mood, and every moment with Fish Your Style.",
+      "Discover FLOW — DROP 01, the first Fish Your Style chapter inspired by finding your own rhythm.",
   },
   fr: {
-    title: "Fish Your Style — Streetwear pour chaque humeur",
+    title: "Fish Your Style — FLOW DROP 01",
     description:
-      "Découvrez le streetwear Fish Your Style pour chaque style, chaque humeur et chaque moment.",
+      "Découvrez FLOW — DROP 01, le premier chapitre Fish Your Style inspiré par votre propre rythme.",
   },
   ar: {
-    title: "Fish Your Style — ستريت وير لكل مزاج",
-    description: "اكتشف ستريت وير Fish Your Style لكل أسلوب وكل مزاج وكل لحظة.",
+    title: "Fish Your Style — FLOW DROP 01",
+    description:
+      "اكتشف FLOW — DROP 01، الفصل الأول من Fish Your Style لإيجاد إيقاعك الخاص.",
   },
 };
 
@@ -88,6 +93,26 @@ export async function generateMetadata({
   };
 }
 
+const homeSettings = {
+  showFeaturedDrop: true,
+  showHomeShopSection: false,
+  featuredDropSlug: "flow",
+} as const;
+
+const flowDropConfig: FeaturedDropConfig & {
+  slug: typeof homeSettings.featuredDropSlug;
+} = {
+  slug: "flow",
+  title: "FLOW — DROP 01",
+  label: "Find Your Flow.",
+  subtitle:
+    "The first chapter of Fish Your Style. A collection inspired by finding your own rhythm.",
+  buttonText: "Discover FLOW",
+  buttonLink: "#flow-drop",
+  maxProducts: 4,
+  active: true,
+};
+
 function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const mainImage = sp.images?.main || "/placeholder.png";
   const gallery = sp.images?.gallery ?? [];
@@ -119,6 +144,8 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     gender: sp.gender ?? "",
     sizes: sp.sizes ?? [],
     colors,
+    soldOutSizes: sp.soldOutSizes,
+    soldOutColorCodes: sp.soldOutColorCodes,
     sizeGuideEnabled: sp.sizeGuideEnabled ?? false,
     sizeGuideImageUrl: sp.sizeGuideImageUrl ?? null,
     sizeGuideImagePublicId: sp.sizeGuideImagePublicId ?? null,
@@ -151,29 +178,51 @@ export default async function Home({
   const locale = resolveLocale(localeParam);
   const messages = await getMessages(locale);
   const t = createTranslator(messages);
-  let errorMessage: string | null = null;
-  let categories: Awaited<ReturnType<typeof getSelectableCollections>> = [];
-  let designThemes: Awaited<ReturnType<typeof getSelectableDesigns>> = [];
-  const storefrontProducts = await fetchStorefrontProductsPage({ pageSize: 8 })
-    .then((page) => page.products)
-    .catch((error) => {
-      console.error("Failed to fetch products:", error);
-      errorMessage = "Products are temporarily unavailable.";
-      return [];
-    });
-  try {
-    categories = await getSelectableCollections();
-  } catch (error) {
-    console.error("Failed to fetch categories:", error);
-    categories = [];
+  const featuredProducts =
+    homeSettings.showFeaturedDrop && flowDropConfig.active
+      ? await fetchStorefrontProductsByFeaturedDrop({
+          slug: homeSettings.featuredDropSlug,
+          pageSize: flowDropConfig.maxProducts,
+        }).catch((error) => {
+          console.error("Failed to fetch featured drop products:", error);
+          return [];
+        })
+      : [];
+
+  let shopPreviewErrorMessage: string | null = null;
+  let shopPreviewCategories: Awaited<
+    ReturnType<typeof getSelectableCollections>
+  > = [];
+  let shopPreviewDesignThemes: Awaited<
+    ReturnType<typeof getSelectableDesigns>
+  > = [];
+  const shopPreviewProducts = homeSettings.showHomeShopSection
+    ? await fetchStorefrontProductsPage({ pageSize: 8 })
+        .then((page) => page.products.map(mapStorefrontToProduct))
+        .catch((error) => {
+          console.error(
+            "Failed to fetch homepage shop preview products:",
+            error,
+          );
+          shopPreviewErrorMessage = "Products are temporarily unavailable.";
+          return [];
+        })
+    : [];
+
+  if (homeSettings.showHomeShopSection) {
+    try {
+      shopPreviewCategories = await getSelectableCollections();
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+      shopPreviewCategories = [];
+    }
+    try {
+      shopPreviewDesignThemes = await getSelectableDesigns();
+    } catch (error) {
+      console.error("Failed to fetch design themes:", error);
+      shopPreviewDesignThemes = [];
+    }
   }
-  try {
-    designThemes = await getSelectableDesigns();
-  } catch (error) {
-    console.error("Failed to fetch design themes:", error);
-    designThemes = [];
-  }
-  const products = storefrontProducts.map(mapStorefrontToProduct);
 
   const websiteStructuredData = {
     "@context": "https://schema.org",
@@ -226,42 +275,52 @@ export default async function Home({
       </div>
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
-        <section className="space-y-4" id="shop-search">
-          <div className="flex flex-col gap-2 md:max-w-2xl">
-            <p className="text-sm uppercase tracking-[0.28em] text-white/90">
-              {t("shop.headerEyebrow")}
-            </p>
-            <h2 className="text-2xl font-semibold text-white">
-              {t("shop.headerTitle")}
-            </h2>
-            <p className="text-white/80">
-              {t("shop.headerDescriptionLine1")}
-              <br />
-              {t("shop.headerDescriptionLine2")}
-            </p>
-          </div>
-
-          <HomeClient
-            products={products}
-            categories={categories}
-            designThemes={designThemes}
+        {homeSettings.showFeaturedDrop ? (
+          <FeaturedDropSection
+            drop={flowDropConfig}
+            locale={locale}
+            products={featuredProducts}
           />
-          {errorMessage ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
-              {errorMessage}
-            </div>
-          ) : null}
+        ) : null}
 
-          <div className="flex w-full justify-center pt-2">
-            <Link
-              href={localizePathname(locale, "/shop")}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-black/30 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-            >
-              {t("shop.exploreMoreCta")}
-              <span aria-hidden>→</span>
-            </Link>
-          </div>
-        </section>
+        {homeSettings.showHomeShopSection ? (
+          <section className="space-y-4" id="shop-search">
+            <div className="flex flex-col gap-2 md:max-w-2xl">
+              <p className="text-sm uppercase tracking-[0.28em] text-white/90">
+                {t("shop.headerEyebrow")}
+              </p>
+              <h2 className="text-2xl font-semibold text-white">
+                {t("shop.headerTitle")}
+              </h2>
+              <p className="text-white/80">
+                {t("shop.headerDescriptionLine1")}
+                <br />
+                {t("shop.headerDescriptionLine2")}
+              </p>
+            </div>
+
+            <HomeClient
+              products={shopPreviewProducts}
+              categories={shopPreviewCategories}
+              designThemes={shopPreviewDesignThemes}
+            />
+            {shopPreviewErrorMessage ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
+                {shopPreviewErrorMessage}
+              </div>
+            ) : null}
+
+            <div className="flex w-full justify-center pt-2">
+              <Link
+                href={localizePathname(locale, "/shop")}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-black/30 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              >
+                {t("shop.exploreMoreCta")}
+                <span aria-hidden>→</span>
+              </Link>
+            </div>
+          </section>
+        ) : null}
 
         <section className="space-y-8 rounded-3xl bg-sky-900/90 px-6 py-14 text-sky-50 shadow-lg shadow-sky-200/60 md:px-10">
           <div className="flex flex-col gap-3">
