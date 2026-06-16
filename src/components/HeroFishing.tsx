@@ -96,7 +96,7 @@ export default function HeroFishing() {
                 href="#flow-drop"
                 className="btn-shine rounded-full bg-white/20 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 backdrop-blur transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(125,211,252,0.35)] active:scale-[0.98]"
               >
-                Discover FLOW
+                Shop Now
               </Link>
             </div>
           </div>
