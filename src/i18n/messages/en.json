@@ -270,5 +270,19 @@
   "wishlist.title": "Wishlist",
   "wishlist.description": "Leave your email to get notified about discounts and updates on your favorites.",
   "wishlist.cta": "Join wishlist",
-  "orders.guestCheckoutNote": "You can complete your order without logging in. Later, if you log in with the same email, it will show up under My Orders."
+  "orders.guestCheckoutNote": "You can complete your order without logging in. Later, if you log in with the same email, it will show up under My Orders.",
+  "dropUpdates.eyebrow": "DROP UPDATES",
+  "dropUpdates.title": "STAY IN THE CURRENT",
+  "dropUpdates.subtitle": "Be first to know about new drops, restocks, and exclusive updates.",
+  "dropUpdates.newDropsTitle": "NEW DROPS",
+  "dropUpdates.newDropsBody": "Discover upcoming collections before they launch.",
+  "dropUpdates.earlyAccessTitle": "EARLY ACCESS",
+  "dropUpdates.earlyAccessBody": "Get notified before pieces go public.",
+  "dropUpdates.restockAlertsTitle": "RESTOCK ALERTS",
+  "dropUpdates.restockAlertsBody": "Never miss your favorite pieces again.",
+  "dropUpdates.cta": "Join The Current",
+  "dropUpdates.emailLabel": "Email address",
+  "dropUpdates.emailPlaceholder": "you@example.com",
+  "dropUpdates.success": "You’re in. We’ll keep you updated.",
+  "dropUpdates.invalidEmail": "Please enter a valid email."
 }
