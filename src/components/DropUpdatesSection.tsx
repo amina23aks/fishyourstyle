@@ -120,7 +120,7 @@ export default function DropUpdatesSection() {
         />
         <button
           type="submit"
-          className="min-h-12 rounded-full bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-500 px-6 text-sm font-bold uppercase tracking-[0.08em] text-slate-950 shadow-lg shadow-sky-950/30 transition hover:-translate-y-0.5 hover:from-cyan-100 hover:via-sky-200 hover:to-blue-400"
+          className="min-h-10 rounded-full bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-500 px-4 text-[0.72rem] font-bold uppercase tracking-[0.08em] text-slate-950 shadow-lg shadow-sky-950/30 transition hover:-translate-y-0.5 hover:from-cyan-100 hover:via-sky-200 hover:to-blue-400 sm:min-h-12 sm:px-6 sm:text-sm"
         >
           {t("dropUpdates.cta")}
         </button>
