@@ -22,6 +22,7 @@ export type PublicShopCategoryFilter = {
 export type PublicShopDesignFilter = {
   label: string;
   isVisibleOnShop: boolean;
+  isComingSoon: boolean;
 };
 
 export type PublicShopFilterSettings = {
@@ -38,8 +39,8 @@ export const defaultPublicShopFilterSettings: PublicShopFilterSettings = {
     sweatshirts: { label: "Sweatshirts", isVisibleOnShop: false, isComingSoon: false },
   },
   designs: {
-    flow: { label: "Flow", isVisibleOnShop: true },
-    simple: { label: "Simple", isVisibleOnShop: false },
+    flow: { label: "Flow", isVisibleOnShop: true, isComingSoon: false },
+    simple: { label: "Simple", isVisibleOnShop: false, isComingSoon: false },
   },
 };
 
@@ -99,4 +100,18 @@ export function isPublicComingSoonCollection(
   settings: PublicShopFilterSettings = defaultPublicShopFilterSettings,
 ): boolean {
   return getPublicShopCategoryVisibility(value, settings)?.isComingSoon === true;
+}
+
+export function getPublicShopDesignVisibility(
+  value: string,
+  settings: PublicShopFilterSettings = defaultPublicShopFilterSettings,
+): PublicShopDesignFilter | null {
+  return settings.designs[normalizeValue(value)] ?? null;
+}
+
+export function isPublicComingSoonDesign(
+  value: string,
+  settings: PublicShopFilterSettings = defaultPublicShopFilterSettings,
+): boolean {
+  return getPublicShopDesignVisibility(value, settings)?.isComingSoon === true;
 }

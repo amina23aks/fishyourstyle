@@ -20,7 +20,9 @@ import {
   filterPublicCollectionPills,
   filterPublicDesignPills,
   getPublicShopCategoryVisibility,
+  getPublicShopDesignVisibility,
   isPublicComingSoonCollection,
+  isPublicComingSoonDesign,
   type PublicShopFilterSettings,
 } from "@/lib/filter-config";
 
@@ -256,15 +258,20 @@ export default function ShopClient({
     });
   }, [collectionFilter, designFilter, loadedProducts, search]);
 
-  const selectedCollectionLabel =
-    collectionPills.find((pill) => pill.value === collectionFilter)?.label ??
-    collectionFilter;
+  const selectedComingSoonLabel =
+    designFilter !== "all"
+      ? allDesignPills.find((pill) => pill.value === designFilter)?.label ??
+        designFilter
+      : collectionPills.find((pill) => pill.value === collectionFilter)?.label ??
+        collectionFilter;
   const showComingSoonEmptyState =
-    collectionFilter !== "all" &&
-    designFilter === "all" &&
     !search.trim() &&
     filteredProducts.length === 0 &&
-    isPublicComingSoonCollection(collectionFilter, shopFilterSettings);
+    ((collectionFilter !== "all" &&
+      designFilter === "all" &&
+      isPublicComingSoonCollection(collectionFilter, shopFilterSettings)) ||
+      (designFilter !== "all" &&
+        isPublicComingSoonDesign(designFilter, shopFilterSettings)));
   const showDesignFilters = allDesignPills.length > 1;
 
   return (
@@ -334,6 +341,8 @@ export default function ShopClient({
                 <div className="flex flex-wrap gap-2">
                   {allDesignPills.map((pill) => {
                     const active = designFilter === pill.value;
+                    const visibility = getPublicShopDesignVisibility(pill.value, shopFilterSettings);
+                    const isComingSoon = visibility?.isComingSoon === true;
                     return (
                       <button
                         key={pill.value}
@@ -342,12 +351,25 @@ export default function ShopClient({
                           startTransition(() => setDesignFilter(pill.value))
                         }
                         className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                          active
-                            ? "border-white bg-white text-slate-900"
-                            : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
+                          active && isComingSoon
+                            ? "border-amber-100/70 bg-amber-100/90 text-slate-950 shadow-sm shadow-amber-950/20"
+                            : active
+                              ? "border-white bg-white text-slate-900"
+                              : isComingSoon
+                                ? "border-amber-100/30 bg-white/5 text-white/75 hover:border-amber-100/45 hover:bg-amber-100/10"
+                                : "border-white/20 bg-white/5 text-white/80 hover:border-white/40"
                         }`}
                       >
-                        {pill.label}
+                        <span>{pill.label}</span>
+                        {isComingSoon ? (
+                          <span className={`ml-2 rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
+                              active
+                                ? "border-slate-950/15 bg-slate-950/10 text-slate-950/80"
+                                : "border-amber-100/25 bg-amber-100/10 text-amber-50/75"
+                            }`}>
+                            soon
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -377,20 +399,20 @@ export default function ShopClient({
       ) : filteredProducts.length === 0 ? (
         <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-cyan-50/15 bg-white/[0.04] p-5 text-center text-white/80">
           {showComingSoonEmptyState ? (
-            <div className="w-full max-w-md rounded-[1.75rem] border border-cyan-50/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.18),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.16),transparent_34%),linear-gradient(135deg,rgba(14,76,111,0.78),rgba(28,72,99,0.82))] px-6 py-8 shadow-[0_20px_50px_rgba(8,47,73,0.28)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-50/75">
+            <div className="w-full max-w-md rounded-[1.75rem] border border-cyan-50/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.18),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.16),transparent_34%),linear-gradient(135deg,rgba(14,76,111,0.78),rgba(28,72,99,0.82))] px-7 py-9 shadow-[0_20px_50px_rgba(8,47,73,0.28)]">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-amber-50/72">
                 NEXT DROP
               </p>
-              <h2 className="mt-3 text-2xl font-semibold uppercase tracking-[0.12em] text-white">
-                {selectedCollectionLabel}
+              <h2 className="mt-4 text-3xl font-semibold uppercase tracking-[0.06em] text-white">
+                {selectedComingSoonLabel}
               </h2>
-              <p className="mt-2 text-sm font-semibold uppercase tracking-[0.26em] text-amber-50/80">
+              <p className="mt-3 text-sm font-semibold uppercase tracking-[0.14em] text-amber-50/85">
                 COMING SOON
               </p>
-              <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-sky-50/78">
+              <p className="mx-auto mt-5 max-w-sm text-base leading-7 text-sky-50/82">
                 The next chapter is being prepared.
               </p>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-50/55">
+              <p className="mt-1.5 text-sm font-medium text-sky-50/62">
                 Stay tuned.
               </p>
             </div>

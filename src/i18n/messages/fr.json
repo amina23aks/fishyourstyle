@@ -270,5 +270,19 @@
   "wishlist.title": "Liste de souhaits",
   "wishlist.description": "Laissez votre email pour être informé(e) des promotions et des nouveautés sur vos favoris.",
   "wishlist.cta": "S’inscrire",
-  "orders.guestCheckoutNote": "Vous pouvez finaliser votre commande sans vous connecter. Plus tard, si vous vous connectez avec le même email, elle apparaîtra dans Mes commandes."
+  "orders.guestCheckoutNote": "Vous pouvez finaliser votre commande sans vous connecter. Plus tard, si vous vous connectez avec le même email, elle apparaîtra dans Mes commandes.",
+  "dropUpdates.eyebrow": "ACTUALITÉS DES DROPS",
+  "dropUpdates.title": "RECEVEZ LES ACTUALITÉS DES DROPS",
+  "dropUpdates.subtitle": "Soyez les premiers informés des nouveaux drops, réassorts et actualités exclusives.",
+  "dropUpdates.newDropsTitle": "NOUVEAUX DROPS",
+  "dropUpdates.newDropsBody": "Découvrez les prochaines collections avant leur lancement.",
+  "dropUpdates.earlyAccessTitle": "ACCÈS ANTICIPÉ",
+  "dropUpdates.earlyAccessBody": "Recevez une notification avant la mise en ligne des pièces.",
+  "dropUpdates.restockAlertsTitle": "ALERTES RÉASSORT",
+  "dropUpdates.restockAlertsBody": "Ne manquez plus vos pièces favorites.",
+  "dropUpdates.cta": "Attraper le prochain drop",
+  "dropUpdates.emailLabel": "Adresse email",
+  "dropUpdates.emailPlaceholder": "vous@example.com",
+  "dropUpdates.success": "C’est fait. Nous vous tiendrons informé.",
+  "dropUpdates.invalidEmail": "Veuillez saisir une adresse email valide."
 }

@@ -37,11 +37,13 @@ function normalizeDesign(slug: string, input: unknown): PublicShopDesignFilter {
   const fallback = defaultPublicShopFilterSettings.designs[slug] ?? {
     label: slug,
     isVisibleOnShop: false,
+    isComingSoon: false,
   };
   const data = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
   return {
     label: stringOrDefault(data.label, fallback.label),
     isVisibleOnShop: booleanOrDefault(data.isVisibleOnShop, fallback.isVisibleOnShop),
+    isComingSoon: booleanOrDefault(data.isComingSoon, fallback.isComingSoon),
   };
 }
 

@@ -76,7 +76,7 @@ export default function ShopFiltersSettingsForm() {
 
   function updateDesign(
     slug: string,
-    key: "label" | "isVisibleOnShop",
+    key: "label" | "isVisibleOnShop" | "isComingSoon",
     value: string | boolean,
   ) {
     setSettings((previous) => ({
@@ -162,7 +162,7 @@ export default function ShopFiltersSettingsForm() {
         <h2 className="text-xl font-semibold text-white">Design filters</h2>
         <div className="space-y-3">
           {Object.entries(settings.designs).map(([slug, design]) => (
-            <div key={slug} className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-[1fr_auto] md:items-center">
+            <div key={slug} className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-[1fr_auto_auto] md:items-center">
               <label className="space-y-2 text-sm font-semibold text-sky-50">
                 <span>{slug}</span>
                 <input
@@ -175,6 +175,11 @@ export default function ShopFiltersSettingsForm() {
                 label="Visible on shop"
                 checked={design.isVisibleOnShop}
                 onChange={(checked) => updateDesign(slug, "isVisibleOnShop", checked)}
+              />
+              <CheckboxField
+                label="Coming soon"
+                checked={design.isComingSoon}
+                onChange={(checked) => updateDesign(slug, "isComingSoon", checked)}
               />
             </div>
           ))}

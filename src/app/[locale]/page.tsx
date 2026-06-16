@@ -6,6 +6,7 @@ import FeaturedDropSection, {
   type FeaturedDropConfig,
 } from "@/components/FeaturedDropSection";
 import FAQAccordion from "@/components/FAQAccordion";
+import DropUpdatesSection from "@/components/DropUpdatesSection";
 import { faqItems } from "@/data/faqItems";
 import HomeClient from "./home-client";
 import { resolveLocale, type Locale } from "@/i18n/config";
@@ -337,6 +338,8 @@ export default async function Home({
             ))}
           </div>
         </section>
+
+        <DropUpdatesSection />
 
         <div className="flex flex-col gap-6">
           <div className="h-px w-full bg-gradient-to-r from-transparent via-sky-200/40 to-transparent" />
