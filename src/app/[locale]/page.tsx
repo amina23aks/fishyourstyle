@@ -6,6 +6,7 @@ import FeaturedDropSection, {
   type FeaturedDropConfig,
 } from "@/components/FeaturedDropSection";
 import FAQAccordion from "@/components/FAQAccordion";
+import HomeDropUpdatesSection from "@/components/HomeDropUpdatesSection";
 import { faqItems } from "@/data/faqItems";
 import HomeClient from "./home-client";
 import { resolveLocale, type Locale } from "@/i18n/config";
@@ -303,6 +304,8 @@ export default async function Home({
             </div>
           </section>
         ) : null}
+
+        <HomeDropUpdatesSection />
 
         <section className="space-y-8 rounded-3xl bg-sky-900/90 px-6 py-14 text-sky-50 shadow-lg shadow-sky-200/60 md:px-10">
           <div className="flex flex-col gap-3">
