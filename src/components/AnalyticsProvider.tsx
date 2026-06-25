@@ -66,21 +66,25 @@ export default function AnalyticsProvider({ children }: AnalyticsProviderProps) 
 
   return (
     <>
-      <Script
-        id="ga-gtag"
-        src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
-        strategy="afterInteractive"
-        onLoad={() => setIsGtagReady(true)}
-      />
-      <Script id="ga-gtag-init" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);}
-          window.gtag('consent','default',{ad_storage:'denied', analytics_storage:'denied'});
-          window.gtag('js', new Date());
-          window.gtag('config', '${measurementId}', { send_page_view: false, debug_mode: ${debugMode ? "true" : "false"} });
-        `}
-      </Script>
+      {measurementId ? (
+        <>
+          <Script
+            id="ga-gtag"
+            src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
+            strategy="afterInteractive"
+            onLoad={() => setIsGtagReady(true)}
+          />
+          <Script id="ga-gtag-init" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);}
+              window.gtag('consent','default',{ad_storage:'denied', analytics_storage:'denied'});
+              window.gtag('js', new Date());
+              window.gtag('config', '${measurementId}', { send_page_view: false, debug_mode: ${debugMode ? "true" : "false"} });
+            `}
+          </Script>
+        </>
+      ) : null}
       {children}
     </>
   );
