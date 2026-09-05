@@ -86,4 +86,15 @@ export const hasAvailableVariants = (product: Product): boolean => {
   return hasAvailableColor && hasAvailableSize;
 };
 
+export function buildCartVariantSelection(
+  color: ProductColorOption | null | undefined,
+  size: string,
+) {
+  return {
+    colorName: color?.label ?? color?.hex ?? "Standard",
+    colorCode: color?.hex ?? "default",
+    size,
+  };
+}
+
 export { normalizeHexValue };
