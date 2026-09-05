@@ -165,7 +165,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
   const [mainImage, ...gallery] = normalizedImages;
   const colors = (sp.colors ?? []).map((color) => {
     if (typeof color === "string") {
-      return { id: color, labelFr: color, labelAr: color, image: mainImage };
+      return { id: color, labelFr: color, labelAr: color };
     }
     const id = typeof color.id === "string" && color.id ? color.id : mainImage;
     const labelFr =
@@ -175,7 +175,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
         ? color.labelAr
         : labelFr;
     const image =
-      typeof color.image === "string" && color.image ? color.image : mainImage;
+      typeof color.image === "string" && color.image ? color.image : undefined;
     return { id, labelFr, labelAr, image };
   });
   return {
@@ -195,6 +195,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): Product {
     sizeGuideImageUrl: sp.sizeGuideImageUrl ?? null,
     sizeGuideImagePublicId: sp.sizeGuideImagePublicId ?? null,
     images: { main: mainImage, gallery },
+    imageColorAssignments: sp.imageColorAssignments,
     descriptionFr: sp.description ?? "",
     descriptionAr: sp.description ?? "",
     status: "active",

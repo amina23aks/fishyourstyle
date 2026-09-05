@@ -19,6 +19,8 @@ import {
 } from "firebase/firestore";
 
 import { getDb } from "./firebaseClient";
+import { normalizeImageColorAssignments } from "./image-color-assignments";
+import type { ProductImageColorAssignment } from "@/types/product";
 
 export type AdminProductCategory = string;
 export type AdminProductStatus = "active" | "inactive";
@@ -46,6 +48,7 @@ export type AdminProduct = {
   stock?: number;
   inStock: boolean;
   images: { main: string; gallery: string[] };
+  imageColorAssignments?: ProductImageColorAssignment[];
   gender?: "unisex" | "men" | "women";
   status: AdminProductStatus;
   featuredDrops?: string[];
@@ -287,6 +290,10 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
       typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
     inStock: resolvedInStock,
     images: normalizeImages(data.images),
+    imageColorAssignments: normalizeImageColorAssignments(
+      data.imageColorAssignments,
+      [normalizeImages(data.images).main, ...normalizeImages(data.images).gallery],
+    ),
     gender:
       typeof data.gender === "string"
         ? (data.gender as AdminProduct["gender"])
@@ -343,6 +350,10 @@ function sanitizeCreate(
     stock: stockMode === "limited" ? (stockQty ?? 0) : undefined,
     inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: input.images ?? { main: "", gallery: [] },
+    imageColorAssignments: normalizeImageColorAssignments(
+      input.imageColorAssignments,
+      [input.images?.main ?? "", ...(input.images?.gallery ?? [])],
+    ),
     gender: input.gender ?? null,
     status: input.status === "inactive" ? "inactive" : "active",
     featuredDrops: parseStringArray(input.featuredDrops),
@@ -452,6 +463,11 @@ function sanitizeUpdate(
       nextMode === "limited" ? Boolean(quantity && quantity > 0) : true;
   }
   if (patch.images !== undefined) payload.images = patch.images;
+  if (patch.imageColorAssignments !== undefined)
+    payload.imageColorAssignments = normalizeImageColorAssignments(
+      patch.imageColorAssignments,
+      patch.images ? [patch.images.main, ...patch.images.gallery] : undefined,
+    );
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
   if (patch.status !== undefined)
     payload.status = patch.status === "inactive" ? "inactive" : "active";

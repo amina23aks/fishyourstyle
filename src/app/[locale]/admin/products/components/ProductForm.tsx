@@ -27,6 +27,7 @@ export type ProductFormValues = {
   soldOutColorCodes: string[];
   gender?: "unisex" | "men" | "women" | "";
   images: string[];
+  imageColorAssignments: { image: string; color: string }[];
   sizeGuideEnabled: boolean;
   sizeGuideImageUrl: string;
   sizeGuideImagePublicId: string;
@@ -147,6 +148,7 @@ const defaultValues: ProductFormValues = {
   soldOutColorCodes: [],
   gender: "",
   images: [],
+  imageColorAssignments: [],
   sizeGuideEnabled: false,
   sizeGuideImageUrl: "",
   sizeGuideImagePublicId: "",
@@ -294,6 +296,9 @@ export function ProductForm({
     ...initialValues,
     colors: initialColors,
     images: initialImages,
+    imageColorAssignments: (initialValues?.imageColorAssignments ?? []).filter(
+      (entry) => initialImages.includes(entry.image),
+    ),
     featuredDrops: normalizeStringArray(
       initialValues?.featuredDrops,
       defaultValues.featuredDrops,
@@ -368,6 +373,7 @@ export function ProductForm({
       ...initialValues,
       colors: normalizeColors(initialValues?.colors, prev.colors),
       images: normalizeImages(initialValues?.images ?? prev.images),
+      imageColorAssignments: initialValues?.imageColorAssignments ?? [],
       featuredDrops: normalizeStringArray(
         initialValues?.featuredDrops,
         prev.featuredDrops,
@@ -1508,26 +1514,44 @@ export function ProductForm({
                   values.images.map((url, index) => (
                     <div
                       key={`${url}-${index}`}
-                      className="relative h-20 w-20 overflow-hidden rounded-xl border border-white/15"
+                      className="w-36 overflow-hidden rounded-xl border border-white/15 bg-[#0b2e55]/70"
                     >
-                      <Image
-                        src={url}
-                        alt={`Product ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
+                      <div className="relative h-28 w-full">
+                        <Image src={url} alt={`Product ${index + 1}`} fill className="object-cover" />
+                        {index === 0 ? <span className="absolute left-1 top-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-[#0b2e55]">Primary</span> : null}
                       <button
                         type="button"
                         onClick={() =>
                           setValues((prev) => ({
                             ...prev,
                             images: prev.images.filter((_, i) => i !== index),
+                            imageColorAssignments: prev.imageColorAssignments.filter((entry) => entry.image !== url),
                           }))
                         }
                         className="absolute right-1 top-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white hover:bg-black/90"
                       >
                         ✕
                       </button>
+                      </div>
+                      <label className="block space-y-1 p-2 text-[10px] font-semibold uppercase tracking-wide text-sky-100">
+                        <span>Color</span>
+                        <select
+                          value={values.imageColorAssignments.find((entry) => entry.image === url)?.color ?? ""}
+                          onChange={(event) => setValues((prev) => ({
+                            ...prev,
+                            imageColorAssignments: [
+                              ...prev.imageColorAssignments.filter((entry) => entry.image !== url),
+                              ...(event.target.value ? [{ image: url, color: event.target.value }] : []),
+                            ],
+                          }))}
+                          className="w-full rounded-lg border border-white/15 bg-[#0b2e55] px-2 py-1.5 text-xs normal-case tracking-normal text-white outline-none focus:border-sky-200"
+                        >
+                          <option value="">All colors</option>
+                          {values.colors.filter((color) => color.hex.trim()).map((color, colorIndex) => (
+                            <option key={`${color.hex}-${colorIndex}`} value={color.hex}>{color.hex}</option>
+                          ))}
+                        </select>
+                      </label>
                     </div>
                   ))
                 )}

@@ -5,6 +5,12 @@ import { ProductCard } from "./shop/product-card";
 import type { Product } from "@/types/product";
 import type { SelectableItem } from "@/lib/categories-shared";
 import { buildDependentFilterPills, isDesignFilterAvailableForCategory } from "@/lib/dependent-filter-options";
+import {
+  filterPublicCollectionPills,
+  filterPublicDesignPills,
+  type PublicShopFilterSettings,
+} from "@/lib/filter-config";
+import { filterHomepageProducts } from "@/lib/homepage-product-filter";
 
 type Props = {
   products: (Product & {
@@ -25,25 +31,28 @@ type Props = {
   })[];
   categories?: SelectableItem[];
   designThemes?: SelectableItem[];
+  shopFilterSettings?: PublicShopFilterSettings;
 };
 
-export default function HomeClient({ products, allProducts, categories, designThemes }: Props) {
+export default function HomeClient({ products, allProducts, categories, designThemes, shopFilterSettings }: Props) {
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
   const [designFilter, setDesignFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const filterSourceProducts = allProducts ?? products;
 
-  const { categoryPills: collectionPills, designPills } = useMemo(
-    () =>
-      buildDependentFilterPills({
+  const { collectionPills, designPills } = useMemo(() => {
+      const built = buildDependentFilterPills({
         products: filterSourceProducts,
         categories,
         designThemes,
         selectedCategory: collectionFilter,
-      }),
-    [categories, collectionFilter, designThemes, filterSourceProducts],
-  );
+      });
+      return {
+        collectionPills: filterPublicCollectionPills(built.categoryPills, shopFilterSettings),
+        designPills: filterPublicDesignPills(built.designPills, shopFilterSettings),
+      };
+    }, [categories, collectionFilter, designThemes, filterSourceProducts, shopFilterSettings]);
 
   const handleCollectionFilterChange = useCallback(
     (nextCollection: string) => {
@@ -62,19 +71,10 @@ export default function HomeClient({ products, allProducts, categories, designTh
   );
 
   const filteredProducts = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const hasActiveFilter = collectionFilter !== "all" || designFilter !== "all" || Boolean(term);
-    const sourceProducts = hasActiveFilter ? filterSourceProducts : products;
-
-    return sourceProducts.filter((product) => {
-      const category = (product.category as string)?.toLowerCase();
-      const design = (product.designTheme ?? "simple").toLowerCase();
-      if (collectionFilter !== "all" && category !== collectionFilter.toLowerCase()) return false;
-      if (designFilter !== "all" && design !== designFilter.toLowerCase()) return false;
-      if (!term) return true;
-      const tags = (product.tags ?? []) as string[];
-      const haystack = `${product.nameFr} ${tags.join(" ")}`.toLowerCase();
-      return haystack.includes(term);
+    return filterHomepageProducts(products, filterSourceProducts, {
+      category: collectionFilter,
+      design: designFilter,
+      search,
     });
   }, [collectionFilter, designFilter, filterSourceProducts, products, search]);
 

@@ -58,6 +58,12 @@ export type ProductImages = {
   gallery: string[];
 };
 
+/** Optional, non-exclusive metadata connecting gallery images to color variants. */
+export type ProductImageColorAssignment = {
+  image: string;
+  color: string;
+};
+
 /**
  * Complete product definition matching the products.json structure.
  * All products are stored in JSON and loaded via src/lib/products.ts.
@@ -99,6 +105,8 @@ export type Product = {
   soldOutColorCodes?: string[];
   /** Product images */
   images: ProductImages;
+  /** Per-image color metadata. Absent on legacy products. */
+  imageColorAssignments?: ProductImageColorAssignment[];
   /** French product description */
   descriptionFr: string;
   /** Arabic product description */

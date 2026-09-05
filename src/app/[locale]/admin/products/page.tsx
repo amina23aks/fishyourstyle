@@ -78,6 +78,7 @@ const defaultForm: ProductFormValues = {
   soldOutColorCodes: [],
   gender: "",
   images: [],
+  imageColorAssignments: [],
   sizeGuideEnabled: false,
   sizeGuideImageUrl: "",
   sizeGuideImagePublicId: "",
@@ -418,6 +419,7 @@ export default function AdminProductsPage() {
         soldOutSizes: values.soldOutSizes,
         soldOutColorCodes: values.soldOutColorCodes,
         images,
+        imageColorAssignments: values.imageColorAssignments,
         stockMode: normalizedStockMode,
         stockQty: parsedStockQty,
         inStock:
@@ -528,6 +530,7 @@ export default function AdminProductsPage() {
           ),
         ),
       ),
+      imageColorAssignments: product.imageColorAssignments ?? [],
       gender: product.gender ?? "",
     });
     setFormKey(Date.now());

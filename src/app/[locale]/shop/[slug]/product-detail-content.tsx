@@ -21,6 +21,7 @@ import {
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
+import { imagesForProductColor } from "@/lib/image-color-assignments";
 import { useFavorites } from "@/hooks/use-favorites";
 import { viewContent } from "@/lib/metaPixel";
 import { useTranslations } from "@/i18n/I18nProvider";
@@ -98,10 +99,10 @@ export function ProductDetailContent({
     [product.images.gallery, product.images.main],
   );
 
-  const imageList = useMemo(
-    () => (allImages.length > 0 ? allImages : [product.images.main]),
-    [allImages, product.images.main],
-  );
+  const imageList = useMemo(() => {
+    if (activeColor) return imagesForProductColor(product, activeColor.hex);
+    return allImages.length > 0 ? allImages : [product.images.main];
+  }, [activeColor, allImages, product]);
   const displayImageList = useMemo(
     () =>
       imageList.map((image) =>
@@ -426,9 +427,7 @@ export function ProductDetailContent({
                     onSelect={() => {
                       if (isSoldOut) return;
                       setActiveColor(color);
-                      setActiveImage(
-                        Math.min(index, Math.max(imageList.length - 1, 0)),
-                      );
+                      setActiveImage(0);
                       setSelectionError(null);
                     }}
                     size="sm"

@@ -30,6 +30,7 @@ import {
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
+import { firstImageForProductColor } from "@/lib/image-color-assignments";
 import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import { normalizeProductStock } from "@/lib/stock";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -72,9 +73,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const [selectedColor, setSelectedColor] = useState<typeof colorOptions[number] | null>(initialColor);
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
   const images = useMemo(() => {
-    const base = [product.images.main, ...(product.images.gallery ?? [])].filter(Boolean);
-    return base.length > 0 ? base : [product.images.main];
-  }, [product.images.gallery, product.images.main]);
+    const base = [
+      product.images.main,
+      ...(product.images.gallery ?? []),
+      ...colorOptions.map((color) => color.image).filter((image): image is string => Boolean(image)),
+    ].filter(Boolean);
+    const unique = Array.from(new Set(base));
+    return unique.length > 0 ? unique : [product.images.main];
+  }, [colorOptions, product.images.gallery, product.images.main]);
   const optimizedImages = useMemo(
     () => images.map((image) => getCloudinaryDeliveryUrl(image, { width: 640 })),
     [images],
@@ -194,10 +200,11 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     touchStartX.current = null;
   };
 
-  const handleSelectColor = (color: typeof colorOptions[number], index: number) => {
+  const handleSelectColor = (color: typeof colorOptions[number]) => {
     if (color.soldOut) return;
     setSelectedColor(color);
-    setActiveIndex(Math.min(index, Math.max(images.length - 1, 0)));
+    const matchingIndex = images.indexOf(firstImageForProductColor(product, color.hex));
+    setActiveIndex(matchingIndex >= 0 ? matchingIndex : 0);
     setSelectionWarning(null);
   };
 
@@ -434,7 +441,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                       selected={selectedColor?.hex === color.hex}
                       onSelect={() => {
                         if (isSoldOut) return;
-                        handleSelectColor(color, index);
+                        handleSelectColor(color);
                       }}
                       size="card"
                       showLabel={false}
