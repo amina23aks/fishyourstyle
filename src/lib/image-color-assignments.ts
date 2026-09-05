@@ -2,6 +2,17 @@ import type { Product, ProductImageColorAssignment } from "@/types/product";
 
 const normalize = (value: string | undefined) => (value ?? "").trim().toLowerCase();
 
+export function allProductImages(product: Product): string[] {
+  const images = Array.from(new Set([
+    product.images.main,
+    ...(product.images.gallery ?? []),
+    ...product.colors.flatMap((entry) =>
+      typeof entry !== "string" && entry.image ? [entry.image] : [],
+    ),
+  ].filter(Boolean)));
+  return images.length ? images : ["/placeholder.png"];
+}
+
 export function normalizeImageColorAssignments(
   value: unknown,
   validImages?: string[],
@@ -45,4 +56,20 @@ export function imagesForProductColor(product: Product, color: string): string[]
 
 export function firstImageForProductColor(product: Product, color: string): string {
   return imagesForProductColor(product, color)[0] || product.images.main || "/placeholder.png";
+}
+
+export function productCardImagesForColor(
+  product: Product,
+  color?: string,
+): { base: string; hover?: string } {
+  const all = allProductImages(product);
+  const matching = color ? imagesForProductColor(product, color) : [];
+  const base = matching[0] || all[0] || "/placeholder.png";
+  const hover = matching.find((image) => image !== base) ?? all.find((image) => image !== base);
+  return { base, hover };
+}
+
+export function galleryIndexForColor(product: Product, color: string): number {
+  const index = allProductImages(product).indexOf(firstImageForProductColor(product, color));
+  return index >= 0 ? index : 0;
 }

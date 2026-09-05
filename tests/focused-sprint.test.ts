@@ -3,8 +3,11 @@ import test from "node:test";
 
 import { filterPublicCollectionPills } from "../src/lib/filter-config";
 import { filterHomepageProducts, HOMEPAGE_CATALOG_LIMIT } from "../src/lib/homepage-product-filter";
-import { firstImageForProductColor, imagesForProductColor, normalizeImageColorAssignments } from "../src/lib/image-color-assignments";
+import { allProductImages, firstImageForProductColor, galleryIndexForColor, imagesForProductColor, normalizeImageColorAssignments, productCardImagesForColor } from "../src/lib/image-color-assignments";
 import { normalizeShopFilterSettings } from "../src/lib/shop-filter-normalization";
+import { formatAdminColorOption, normalizeAdminProductColors } from "../src/lib/admin-color-options";
+import { PRODUCT_SIZES, isProductSize } from "../src/lib/product-sizes";
+import { buildCartVariantSelection } from "../src/lib/product-variants";
 import type { Product } from "../src/types/product";
 
 const category = (slug: string, label: string) => ({ id: slug, slug, label, isDefault: false });
@@ -54,4 +57,55 @@ test("old products and legacy color.image remain compatible", () => {
   assert.equal(firstImageForProductColor(product("old"), "#000000"), "main.jpg");
   const legacy = { ...product("legacy"), colors: [{ hex: "#000000", image: "legacy.jpg" }] };
   assert.equal(firstImageForProductColor(legacy, "#000000"), "legacy.jpg");
+});
+
+test("detail color selection changes only the active index and retains every thumbnail", () => {
+  const assigned = {
+    ...product("gallery"),
+    imageColorAssignments: [{ image: "black-2.jpg", color: "#000000" }],
+  };
+  const selectedColor = "#000000";
+  const thumbnailsBefore = allProductImages(assigned);
+  const activeImage = galleryIndexForColor(assigned, selectedColor);
+  assert.equal(thumbnailsBefore[activeImage], "black-2.jpg");
+  assert.deepEqual(allProductImages(assigned), thumbnailsBefore);
+  const manuallySelectedImage = 0;
+  assert.equal(selectedColor, "#000000");
+  assert.equal(manuallySelectedImage, 0);
+});
+
+test("product card base and hover images prefer assignments without mutating color", () => {
+  const selectedColor = "#000000";
+  const assigned = {
+    ...product("card"),
+    imageColorAssignments: [
+      { image: "black-1.jpg", color: selectedColor },
+      { image: "black-2.jpg", color: selectedColor },
+    ],
+  };
+  assert.deepEqual(productCardImagesForColor(assigned, selectedColor), {
+    base: "black-1.jpg",
+    hover: "black-2.jpg",
+  });
+  assert.equal(selectedColor, "#000000");
+});
+
+test("admin color labels remain optional and selectors show label plus hex", () => {
+  assert.equal(formatAdminColorOption({ hex: "#8ACFC7", labelFr: "Bleu ciel" }), "Bleu ciel — #8ACFC7");
+  assert.equal(formatAdminColorOption({ hex: "#8ACFC7" }), "#8ACFC7");
+  const serialized = normalizeAdminProductColors([{ hex: "#5C4033", labelFr: "Marron" }]);
+  assert.deepEqual(normalizeAdminProductColors(JSON.parse(JSON.stringify(serialized))), serialized);
+  assert.deepEqual(normalizeAdminProductColors(["#8ACFC7"]), [{ hex: "#8ACFC7" }]);
+});
+
+test("all RUN213 sizes are canonical while existing sizes remain compatible", () => {
+  assert.deepEqual(PRODUCT_SIZES, ["TU", "XS", "S", "M", "L", "XL", "XXL", "XXXL"]);
+  assert.ok(["S", "M", "L", "XL", "XXL"].every(isProductSize));
+});
+
+test("cart variant selection preserves the exact selected size and color", () => {
+  assert.deepEqual(
+    buildCartVariantSelection({ hex: "#000000", label: "Noir", soldOut: false }, "XXXL"),
+    { colorName: "Noir", colorCode: "#000000", size: "XXXL" },
+  );
 });

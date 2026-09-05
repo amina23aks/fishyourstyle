@@ -7,6 +7,8 @@ import Image from "next/image";
 import { useAuth } from "@/context/auth";
 import type { AdminProductCategory } from "@/lib/admin-products";
 import type { SelectableOption } from "@/types/selectable";
+import { PRODUCT_SIZES, type ProductSize } from "@/lib/product-sizes";
+import { formatAdminColorOption } from "@/lib/admin-color-options";
 
 export type ProductFormValues = {
   name: string;
@@ -21,8 +23,8 @@ export type ProductFormValues = {
   designThemeCustom: string;
   stockMode: "unlimited" | "limited";
   stockQty: string;
-  sizes: ("S" | "M" | "L" | "XL" | "XXL")[];
-  colors: { hex: string }[];
+  sizes: ProductSize[];
+  colors: { hex: string; labelFr?: string; image?: string }[];
   soldOutSizes: string[];
   soldOutColorCodes: string[];
   gender?: "unisex" | "men" | "women" | "";
@@ -71,13 +73,17 @@ const normalizeColors = (
     }
 
     if (item && typeof item === "object") {
-      const obj = item as { hex?: unknown; id?: unknown };
+      const obj = item as { hex?: unknown; id?: unknown; labelFr?: unknown; label?: unknown; image?: unknown };
       const hex =
         (typeof obj.hex === "string" && obj.hex.trim()) ||
         (typeof obj.id === "string" && obj.id.trim()) ||
         null;
       if (hex) {
-        acc.push({ hex });
+        const labelFr =
+          (typeof obj.labelFr === "string" && obj.labelFr.trim()) ||
+          (typeof obj.label === "string" && obj.label.trim()) || undefined;
+        const image = typeof obj.image === "string" && obj.image.trim() ? obj.image.trim() : undefined;
+        acc.push({ hex, ...(labelFr ? { labelFr } : {}), ...(image ? { image } : {}) });
       }
     }
 
@@ -435,7 +441,11 @@ export function ProductForm({
         return;
       }
       const normalizedColors = values.colors
-        .map((color) => ({ hex: color.hex.trim() }))
+        .map((color) => ({
+          hex: color.hex.trim(),
+          ...(color.labelFr?.trim() ? { labelFr: color.labelFr.trim() } : {}),
+          ...(color.image?.trim() ? { image: color.image.trim() } : {}),
+        }))
         .filter((color) => Boolean(color.hex));
       const sizeSet = new Set(
         values.sizes.map((size) => size.trim().toUpperCase()),
@@ -1127,7 +1137,7 @@ export function ProductForm({
           <div className="space-y-2 text-sm text-sky-100/90">
             <span className="font-semibold text-white">Sizes</span>
             <div className="flex flex-wrap gap-2">
-              {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
+              {PRODUCT_SIZES.map((size) => {
                 const checked = values.sizes.includes(size);
                 return (
                   <label
@@ -1311,7 +1321,7 @@ export function ProductForm({
                             setValues((prev) => {
                               const previousHex = prev.colors[index]?.hex ?? "";
                               const nextColors = prev.colors.map((entry, i) =>
-                                i === index ? { hex: nextHex } : entry,
+                                i === index ? { ...entry, hex: nextHex } : entry,
                               );
                               const prevNormalized = normalizeHexValue(
                                 previousHex || hexValue,
@@ -1341,6 +1351,11 @@ export function ProductForm({
                               return {
                                 ...prev,
                                 colors: nextColors,
+                                imageColorAssignments: prev.imageColorAssignments.map((assignment) =>
+                                  normalizeHexValue(assignment.color) === prevNormalized
+                                    ? { ...assignment, color: nextHex }
+                                    : assignment,
+                                ),
                                 soldOutColorCodes: nextSoldOutColorCodes,
                               };
                             });
@@ -1392,7 +1407,12 @@ export function ProductForm({
                             return {
                               ...prev,
                               colors: prev.colors.map((entry, i) =>
-                                i === index ? { hex: nextHex } : entry,
+                                i === index ? { ...entry, hex: nextHex } : entry,
+                              ),
+                              imageColorAssignments: prev.imageColorAssignments.map((assignment) =>
+                                normalizeHexValue(assignment.color) === prevNormalized
+                                  ? { ...assignment, color: nextHex }
+                                  : assignment,
                               ),
                               soldOutColorCodes: nextSoldOutColorCodes,
                             };
@@ -1400,6 +1420,19 @@ export function ProductForm({
                         }}
                         className="w-28 rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs text-white shadow-inner shadow-sky-900/40 focus:border-white/40 focus:outline-none"
                         placeholder="#000000"
+                      />
+                      <input
+                        type="text"
+                        value={color.labelFr ?? ""}
+                        onChange={(event) => setValues((prev) => ({
+                          ...prev,
+                          colors: prev.colors.map((entry, i) =>
+                            i === index ? { ...entry, labelFr: event.target.value } : entry,
+                          ),
+                        }))}
+                        className="w-32 rounded-md border border-white/20 bg-white/5 px-2 py-1 text-xs text-white shadow-inner shadow-sky-900/40 focus:border-white/40 focus:outline-none"
+                        placeholder="Color name"
+                        aria-label={`Color name ${index + 1}`}
                       />
                       <button
                         type="button"
@@ -1428,6 +1461,9 @@ export function ProductForm({
                                 (entry) =>
                                   normalizeHexValue(entry) !==
                                   normalizeHexValue(removedHex),
+                              ),
+                              imageColorAssignments: prev.imageColorAssignments.filter(
+                                (assignment) => normalizeHexValue(assignment.color) !== normalizeHexValue(removedHex),
                               ),
                             };
                           })
@@ -1546,11 +1582,26 @@ export function ProductForm({
                           }))}
                           className="w-full rounded-lg border border-white/15 bg-[#0b2e55] px-2 py-1.5 text-xs normal-case tracking-normal text-white outline-none focus:border-sky-200"
                         >
-                          <option value="">All colors</option>
+                          <option value="">All colors / No specific color</option>
                           {values.colors.filter((color) => color.hex.trim()).map((color, colorIndex) => (
-                            <option key={`${color.hex}-${colorIndex}`} value={color.hex}>{color.hex}</option>
+                            <option key={`${color.hex}-${colorIndex}`} value={color.hex}>
+                              {formatAdminColorOption(color)}
+                            </option>
                           ))}
                         </select>
+                        {(() => {
+                          const assignedColor = values.colors.find(
+                            (color) => normalizeHexValue(color.hex) === normalizeHexValue(
+                              values.imageColorAssignments.find((entry) => entry.image === url)?.color ?? "",
+                            ),
+                          );
+                          return assignedColor ? (
+                            <span className="flex items-center gap-1.5 normal-case tracking-normal text-sky-100/80">
+                              <span className="h-3 w-3 rounded-full border border-white/30" style={{ backgroundColor: assignedColor.hex }} />
+                              {formatAdminColorOption(assignedColor)}
+                            </span>
+                          ) : null;
+                        })()}
                       </label>
                     </div>
                   ))

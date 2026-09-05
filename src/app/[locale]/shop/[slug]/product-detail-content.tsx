@@ -18,10 +18,11 @@ import { normalizeProductStock } from "@/lib/stock";
 import {
   buildProductColorOptions,
   buildProductSizeOptions,
+  buildCartVariantSelection,
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
-import { imagesForProductColor } from "@/lib/image-color-assignments";
+import { allProductImages, galleryIndexForColor } from "@/lib/image-color-assignments";
 import { useFavorites } from "@/hooks/use-favorites";
 import { viewContent } from "@/lib/metaPixel";
 import { useTranslations } from "@/i18n/I18nProvider";
@@ -94,15 +95,9 @@ export function ProductDetailContent({
   const sizeGuideImageUrl = product.sizeGuideImageUrl ?? null;
   const showSizeGuide = Boolean(product.sizeGuideEnabled && sizeGuideImageUrl);
 
-  const allImages = useMemo(
-    () => [product.images.main, ...product.images.gallery].filter(Boolean),
-    [product.images.gallery, product.images.main],
-  );
-
   const imageList = useMemo(() => {
-    if (activeColor) return imagesForProductColor(product, activeColor.hex);
-    return allImages.length > 0 ? allImages : [product.images.main];
-  }, [activeColor, allImages, product]);
+    return allProductImages(product);
+  }, [product]);
   const displayImageList = useMemo(
     () =>
       imageList.map((image) =>
@@ -186,7 +181,6 @@ export function ProductDetailContent({
   const currentImage =
     imageList[activeImage] ??
     imageList[0] ??
-    allImages[0] ??
     product.images.main ??
     "/placeholder.png";
   const displayCurrentImage =
@@ -218,9 +212,11 @@ export function ProductDetailContent({
       return false;
     }
 
-    const colorName = activeColor?.label ?? activeColor?.hex ?? "Standard";
-    const colorCode = activeColor?.hex ?? "default";
-    const size = selectedSize ?? "Taille unique";
+    const selectedVariant = buildCartVariantSelection(
+      activeColor,
+      selectedSize ?? "Taille unique",
+    );
+    const { colorName, colorCode, size } = selectedVariant;
 
     const variantKey = `${product.id}-${colorCode}-${size}`.toLowerCase();
     const existingQuantity = getItemQuantity(variantKey);
@@ -427,7 +423,7 @@ export function ProductDetailContent({
                     onSelect={() => {
                       if (isSoldOut) return;
                       setActiveColor(color);
-                      setActiveImage(0);
+                      setActiveImage(galleryIndexForColor(product, color.hex));
                       setSelectionError(null);
                     }}
                     size="sm"
