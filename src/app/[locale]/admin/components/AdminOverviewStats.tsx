@@ -5,10 +5,9 @@ import { collection, doc, documentId, getDoc, getDocs, limit, orderBy, query, wh
 import type { Timestamp } from "firebase/firestore";
 import {
   Area,
-  Bar,
+  AreaChart,
   CartesianGrid,
   Cell,
-  ComposedChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -19,6 +18,13 @@ import {
 
 import { getDb } from "@/lib/firebaseClient";
 import { dateKeyInTZ } from "@/lib/dateKeys";
+import {
+  buildOrderAxisTicks,
+  completeAdminTrendSeries,
+  formatAdminChartCompactDzd,
+  formatAdminChartDate,
+  formatAdminChartDzd,
+} from "@/lib/admin-overview-chart";
 
 const SUMMARY_DOC_PATH = ["adminStats", "summary"] as const;
 const DAILY_COLLECTION = "adminStatsDaily";
@@ -434,7 +440,7 @@ export function AdminOverviewStats() {
   });
   const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
   const [trendMetric, setTrendMetric] = useState<"orders" | "revenue" | "netProfit">("orders");
-  const [rangeKey, setRangeKey] = useState<RangeKey>("7d");
+  const [rangeKey, setRangeKey] = useState<RangeKey>("30d");
 
   const rangeMeta = useMemo<RangeMeta>(() => {
     const todayKey = dateKeyInTZ(new Date(), TIME_ZONE);
@@ -679,20 +685,10 @@ export function AdminOverviewStats() {
     [dailyStats]
   );
 
-  const trendSeries = useMemo(() => {
-    return rangeMeta.points.map((point) => {
-      const match = dailyStatsByKey.get(point.dateKey);
-      return {
-        ...point,
-        orders: match?.orders ?? 0,
-        revenue: match?.revenue ?? 0,
-        netProfit: match?.netProfit ?? 0,
-        costOfGoodsSold: match?.costOfGoodsSold ?? 0,
-        incompleteProfitOrders: match?.incompleteProfitOrders ?? 0,
-        incompleteProfitItems: match?.incompleteProfitItems ?? 0,
-      };
-    });
-  }, [dailyStatsByKey, rangeMeta.points]);
+  const trendSeries = useMemo(
+    () => completeAdminTrendSeries(rangeMeta.points, dailyStats),
+    [dailyStats, rangeMeta.points],
+  );
 
   const previousTrendSeries = useMemo(() => {
     return previousRangeMeta.points.map((point) => {
@@ -955,7 +951,6 @@ export function AdminOverviewStats() {
     [topProducts]
   );
 
-  const chartMoneyKey = trendMetric === "netProfit" ? "netProfit" : "revenue";
   const chartMoneyLabel = trendMetric === "netProfit" ? "Net profit" : "Revenue";
   const chartMoneyTotal = trendMetric === "netProfit" ? currentNetProfitTotal : currentRevenueTotal;
   const chartIncompleteProfitOrders = useMemo(
@@ -975,9 +970,9 @@ export function AdminOverviewStats() {
     return `${formatCurrency(chartMoneyTotal)}${suffix}`;
   }, [chartIncompleteProfitItems, chartIncompleteProfitOrders, chartMoneyTotal, currentOrdersTotal, trendMetric]);
 
-  const isChartEmpty = useMemo(
-    () => trendSeries.every((point) => point.orders === 0 && point.revenue === 0 && point.netProfit === 0),
-    [trendSeries]
+  const orderAxisTicks = useMemo(
+    () => buildOrderAxisTicks(trendSeries.map((point) => point.orders)),
+    [trendSeries],
   );
   const donutData = useMemo(
     () =>
@@ -1163,47 +1158,54 @@ export function AdminOverviewStats() {
             <div className="mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-10 text-sm text-sky-100/80">
               Loading analytics…
             </div>
-          ) : isChartEmpty ? (
-            <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-10 text-center text-sm text-sky-100/80">
-              <p className="text-base font-semibold text-white">No data yet for {rangeLabel}</p>
-              <p className="mt-2 text-xs text-sky-100/70">Create a test order to populate analytics.</p>
-            </div>
           ) : (
             <div className="mt-6 h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={trendSeries}>
+                <AreaChart data={trendSeries} margin={{ top: 12, right: 8, bottom: 0, left: 0 }}>
+                  <defs>
+                    <linearGradient id="adminTrendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.28} />
+                      <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid stroke="rgba(148, 163, 184, 0.12)" strokeDasharray="3 3" />
                   <XAxis
                     dataKey="label"
                     tick={{ fill: "rgba(226, 232, 240, 0.7)", fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
+                    interval="preserveStartEnd"
+                    minTickGap={32}
                   />
                   <YAxis
-                    width={40}
+                    width={trendMetric === "orders" ? 36 : 72}
                     tick={{ fill: "rgba(226, 232, 240, 0.7)", fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
-                    domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.2)]}
+                    allowDecimals={trendMetric !== "orders"}
+                    ticks={trendMetric === "orders" ? orderAxisTicks : undefined}
+                    domain={trendMetric === "orders" ? [0, orderAxisTicks.at(-1) ?? 1] : [0, "auto"]}
                     tickFormatter={(value) =>
-                      trendMetric === "orders" ? formatCount(Number(value)) : `${formatCount(Number(value))} DA`
+                      trendMetric === "orders"
+                        ? formatCount(Number(value))
+                        : formatAdminChartCompactDzd(Number(value))
                     }
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
-                    content={({ active, payload, label }) => {
+                    cursor={{ stroke: "rgba(186, 230, 253, 0.35)", strokeWidth: 1 }}
+                    content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
-                      const ordersValue = payload.find((entry) => entry.dataKey === "orders")?.value ?? 0;
-                      const moneyValue = payload.find((entry) => entry.dataKey === chartMoneyKey)?.value ?? 0;
                       const point = payload[0]?.payload as TrendPoint | undefined;
+                      if (!point) return null;
+                      const value = Number(point[trendMetric]);
+                      const metricLabel = trendMetric === "orders" ? "Orders" : chartMoneyLabel;
                       return (
                         <div className="rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-sky-100 shadow-xl">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-sky-200">{label}</p>
-                          <p className="mt-1 text-sm font-semibold text-white">
-                            {formatCount(Number(ordersValue))} orders
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-sky-200">
+                            {formatAdminChartDate(point.dateKey)}
                           </p>
-                          <p className="text-sm text-sky-100/80">
-                            {chartMoneyLabel}: {formatCurrency(Number(moneyValue))}
+                          <p className="mt-1 text-sm font-semibold text-white">
+                            {metricLabel}: {trendMetric === "orders" ? formatCount(value) : formatAdminChartDzd(value)}
                           </p>
                           {trendMetric === "netProfit" && point && point.incompleteProfitItems > 0 ? (
                             <p className="mt-1 text-[11px] text-amber-100/80">
@@ -1214,15 +1216,18 @@ export function AdminOverviewStats() {
                       );
                     }}
                   />
-                  <Bar dataKey="orders" fill="rgba(14, 165, 233, 0.6)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
                   <Area
-                    dataKey={chartMoneyKey}
-                    stroke="rgba(52, 211, 153, 0.8)"
-                    fill="rgba(52, 211, 153, 0.15)"
+                    type="monotone"
+                    dataKey={trendMetric}
+                    stroke="#38bdf8"
+                    fill="url(#adminTrendFill)"
                     strokeWidth={2}
+                    dot={{ r: 2.5, fill: "#bae6fd", stroke: "#0284c7", strokeWidth: 1 }}
+                    activeDot={{ r: 5, fill: "#e0f2fe", stroke: "#0284c7", strokeWidth: 2 }}
+                    connectNulls
                     isAnimationActive={false}
                   />
-                </ComposedChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           )}
