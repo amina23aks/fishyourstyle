@@ -23,6 +23,7 @@ import {
   type SelectableItem,
 } from "@/lib/categories-shared";
 import type { SelectableOption } from "@/types/selectable";
+import { PRODUCT_SIZES, isProductSize } from "@/lib/product-sizes";
 
 type Toast = { type: "success" | "error"; message: string };
 
@@ -56,7 +57,6 @@ const toSelectableDesignOption = (item: SelectableItem): SelectableOption => {
   };
 };
 
-const allowedSizes = ["S", "M", "L", "XL", "XXL"] as const;
 const ADMIN_PRODUCTS_PAGE_SIZE = 5;
 
 const defaultForm: ProductFormValues = {
@@ -78,6 +78,7 @@ const defaultForm: ProductFormValues = {
   soldOutColorCodes: [],
   gender: "",
   images: [],
+  imageColorAssignments: [],
   sizeGuideEnabled: false,
   sizeGuideImageUrl: "",
   sizeGuideImagePublicId: "",
@@ -418,6 +419,7 @@ export default function AdminProductsPage() {
         soldOutSizes: values.soldOutSizes,
         soldOutColorCodes: values.soldOutColorCodes,
         images,
+        imageColorAssignments: values.imageColorAssignments,
         stockMode: normalizedStockMode,
         stockQty: parsedStockQty,
         inStock:
@@ -512,9 +514,8 @@ export default function AdminProductsPage() {
           : "",
       sizes: (product.sizes || [])
         .map((size) => size.toUpperCase())
-        .filter((size): size is (typeof allowedSizes)[number] =>
-          allowedSizes.includes(size as (typeof allowedSizes)[number]),
-        ),
+        .filter(isProductSize)
+        .sort((a, b) => PRODUCT_SIZES.indexOf(a) - PRODUCT_SIZES.indexOf(b)),
       colors: product.colors,
       sizeGuideEnabled: product.sizeGuideEnabled ?? false,
       sizeGuideImageUrl: product.sizeGuideImageUrl ?? "",
@@ -528,6 +529,7 @@ export default function AdminProductsPage() {
           ),
         ),
       ),
+      imageColorAssignments: product.imageColorAssignments ?? [],
       gender: product.gender ?? "",
     });
     setFormKey(Date.now());

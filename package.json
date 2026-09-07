@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src",
+    "test": "tsx --test tests/**/*.test.ts",
     "seed:categories": "tsx --env-file .env.local scripts/seed-categories.ts",
     "seed:designThemes": "tsx --env-file .env.local scripts/seed-design-themes.ts",
     "seed:products": "tsx --env-file .env.local scripts/seed-products.ts",

@@ -15,6 +15,8 @@ import {
 import { getServerDb } from "./firestore";
 import { isFirebaseConfigured } from "./firebaseConfig";
 import type { SelectableItem } from "./categories-shared";
+import { normalizeImageColorAssignments } from "./image-color-assignments";
+import type { ProductImageColorAssignment } from "@/types/product";
 
 export type StorefrontProductImages = {
   main: string;
@@ -76,6 +78,7 @@ export type StorefrontProduct = {
   stockQty?: number;
   inStock: boolean;
   images: StorefrontProductImages;
+  imageColorAssignments?: ProductImageColorAssignment[];
   tags?: string[];
   featuredDrops?: string[];
   status: StorefrontProductStatus;
@@ -259,6 +262,10 @@ function normalizeProduct(data: DocumentData, id: string): StorefrontProduct {
     stockQty,
     inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: imagesValue,
+    imageColorAssignments: normalizeImageColorAssignments(data.imageColorAssignments, [
+      imagesValue.main,
+      ...imagesValue.gallery,
+    ]),
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : undefined,
     featuredDrops: parseStringArray(data.featuredDrops),
     status:

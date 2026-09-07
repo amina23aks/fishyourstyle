@@ -19,6 +19,10 @@ import {
 } from "firebase/firestore";
 
 import { getDb } from "./firebaseClient";
+import { normalizeImageColorAssignments } from "./image-color-assignments";
+import type { ProductImageColorAssignment } from "@/types/product";
+import { normalizeAdminProductColors } from "./admin-color-options";
+export { normalizeAdminProductColors } from "./admin-color-options";
 
 export type AdminProductCategory = string;
 export type AdminProductStatus = "active" | "inactive";
@@ -35,7 +39,7 @@ export type AdminProduct = {
   category: AdminProductCategory;
   designTheme: string;
   sizes: string[];
-  colors: { hex: string; image?: string }[];
+  colors: { hex: string; labelFr?: string; image?: string }[];
   sizeGuideEnabled: boolean;
   sizeGuideImageUrl?: string | null;
   sizeGuideImagePublicId?: string | null;
@@ -46,6 +50,7 @@ export type AdminProduct = {
   stock?: number;
   inStock: boolean;
   images: { main: string; gallery: string[] };
+  imageColorAssignments?: ProductImageColorAssignment[];
   gender?: "unisex" | "men" | "women";
   status: AdminProductStatus;
   featuredDrops?: string[];
@@ -96,44 +101,6 @@ function parseStringArray(value: unknown): string[] {
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
-  }
-  return [];
-}
-
-function parseColorObjects(value: unknown): AdminProduct["colors"] {
-  const normalizeEntry = (item: unknown) => {
-    if (typeof item === "string") {
-      const hex = item.trim();
-      return hex ? { hex } : null;
-    }
-    if (item && typeof item === "object") {
-      const obj = item as { id?: unknown; hex?: unknown; image?: unknown };
-      const hex =
-        (typeof obj.hex === "string" && obj.hex.trim()) ||
-        (typeof obj.id === "string" && obj.id.trim()) ||
-        null;
-      if (!hex) return null;
-      const image =
-        typeof obj.image === "string" && obj.image.trim()
-          ? obj.image.trim()
-          : undefined;
-      const result: AdminProduct["colors"][number] = image
-        ? { hex, image }
-        : { hex };
-      return result;
-    }
-    return null;
-  };
-
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    const normalized = value
-      .map(normalizeEntry)
-      .filter((item): item is NonNullable<ReturnType<typeof normalizeEntry>> =>
-        Boolean(item),
-      );
-    if (normalized.length === 0 && value.length === 0) return [];
-    return normalized;
   }
   return [];
 }
@@ -264,7 +231,7 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
     designTheme:
       typeof data.designTheme === "string" ? data.designTheme : "simple",
     sizes: parseStringArray(data.sizes),
-    colors: parseColorObjects(data.colors),
+    colors: normalizeAdminProductColors(data.colors),
     sizeGuideEnabled:
       typeof data.sizeGuideEnabled === "boolean"
         ? data.sizeGuideEnabled
@@ -287,6 +254,10 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
       typeof data.stock === "number" ? data.stock : Number(data.stock ?? 0),
     inStock: resolvedInStock,
     images: normalizeImages(data.images),
+    imageColorAssignments: normalizeImageColorAssignments(
+      data.imageColorAssignments,
+      [normalizeImages(data.images).main, ...normalizeImages(data.images).gallery],
+    ),
     gender:
       typeof data.gender === "string"
         ? (data.gender as AdminProduct["gender"])
@@ -305,7 +276,7 @@ function normalizeProduct(data: DocumentData, id: string): AdminProduct {
 function sanitizeCreate(
   input: AdminProductInput,
 ): WithFieldValue<AdminProductWrite> {
-  const normalizedColors = parseColorObjects(input.colors);
+  const normalizedColors = normalizeAdminProductColors(input.colors);
   const soldOutSizes = parseStringArray(input.soldOutSizes);
   const soldOutColorCodes = parseStringArray(input.soldOutColorCodes);
   const stockMode = input.stockMode === "limited" ? "limited" : "unlimited";
@@ -343,6 +314,10 @@ function sanitizeCreate(
     stock: stockMode === "limited" ? (stockQty ?? 0) : undefined,
     inStock: stockMode === "limited" ? (stockQty ?? 0) > 0 : true,
     images: input.images ?? { main: "", gallery: [] },
+    imageColorAssignments: normalizeImageColorAssignments(
+      input.imageColorAssignments,
+      [input.images?.main ?? "", ...(input.images?.gallery ?? [])],
+    ),
     gender: input.gender ?? null,
     status: input.status === "inactive" ? "inactive" : "active",
     featuredDrops: parseStringArray(input.featuredDrops),
@@ -404,7 +379,7 @@ function sanitizeUpdate(
   if (patch.designTheme !== undefined) payload.designTheme = patch.designTheme;
   if (patch.sizes !== undefined) payload.sizes = patch.sizes;
   if (patch.colors !== undefined)
-    payload.colors = parseColorObjects(patch.colors);
+    payload.colors = normalizeAdminProductColors(patch.colors);
   if (patch.sizeGuideEnabled !== undefined) {
     payload.sizeGuideEnabled = patch.sizeGuideEnabled;
     if (!patch.sizeGuideEnabled) {
@@ -452,6 +427,11 @@ function sanitizeUpdate(
       nextMode === "limited" ? Boolean(quantity && quantity > 0) : true;
   }
   if (patch.images !== undefined) payload.images = patch.images;
+  if (patch.imageColorAssignments !== undefined)
+    payload.imageColorAssignments = normalizeImageColorAssignments(
+      patch.imageColorAssignments,
+      patch.images ? [patch.images.main, ...patch.images.gallery] : undefined,
+    );
   if (patch.gender !== undefined) payload.gender = patch.gender ?? null;
   if (patch.status !== undefined)
     payload.status = patch.status === "inactive" ? "inactive" : "active";

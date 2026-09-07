@@ -27,9 +27,11 @@ import { Swatch } from "./swatch";
 import {
   buildProductColorOptions,
   buildProductSizeOptions,
+  buildCartVariantSelection,
   hasAvailableVariants,
   resolveSwatchHex,
 } from "@/lib/product-variants";
+import { galleryIndexForColor, productCardImagesForColor } from "@/lib/image-color-assignments";
 import { getCloudinaryDeliveryUrl } from "@/lib/cloudinary";
 import { normalizeProductStock } from "@/lib/stock";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -72,9 +74,14 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const [selectedColor, setSelectedColor] = useState<typeof colorOptions[number] | null>(initialColor);
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
   const images = useMemo(() => {
-    const base = [product.images.main, ...(product.images.gallery ?? [])].filter(Boolean);
-    return base.length > 0 ? base : [product.images.main];
-  }, [product.images.gallery, product.images.main]);
+    const base = [
+      product.images.main,
+      ...(product.images.gallery ?? []),
+      ...colorOptions.map((color) => color.image).filter((image): image is string => Boolean(image)),
+    ].filter(Boolean);
+    const unique = Array.from(new Set(base));
+    return unique.length > 0 ? unique : [product.images.main];
+  }, [colorOptions, product.images.gallery, product.images.main]);
   const optimizedImages = useMemo(
     () => images.map((image) => getCloudinaryDeliveryUrl(image, { width: 640 })),
     [images],
@@ -111,10 +118,13 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
   const productDesignTheme = product.designTheme ?? "";
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const displayCurrentImage = optimizedImages[activeIndex] ?? getCloudinaryDeliveryUrl(currentImage, { width: 640 });
-  const nextImage = images.length > 0 ? images[(activeIndex + 1) % images.length] : product.images.main;
-  const displayNextImage = optimizedImages.length > 0
-    ? optimizedImages[(activeIndex + 1) % optimizedImages.length]
-    : getCloudinaryDeliveryUrl(nextImage, { width: 640 });
+  const preferredHoverImage = selectedColor
+    ? productCardImagesForColor(product, selectedColor.hex).hover
+    : images.find((image) => image !== currentImage);
+  const displayNextImage = getCloudinaryDeliveryUrl(
+    preferredHoverImage ?? currentImage,
+    { width: 640 },
+  );
   const isSelectionPartial = hasColorSelection !== hasSizeSelection;
   const selectionHelper = useMemo(
     () => (isSelectionPartial ? t("shop.selectColorSizeHelper") : null),
@@ -194,10 +204,10 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     touchStartX.current = null;
   };
 
-  const handleSelectColor = (color: typeof colorOptions[number], index: number) => {
+  const handleSelectColor = (color: typeof colorOptions[number]) => {
     if (color.soldOut) return;
     setSelectedColor(color);
-    setActiveIndex(Math.min(index, Math.max(images.length - 1, 0)));
+    setActiveIndex(galleryIndexForColor(product, color.hex));
     setSelectionWarning(null);
   };
 
@@ -223,8 +233,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       return false;
     }
     const sizeChoice = selectedSize ?? availableSizes[0]?.value ?? sizeOptions[0]?.value ?? "Taille unique";
-    const colorName = color?.label ?? color?.hex ?? "Standard";
-    const colorCode = color?.hex ?? "default";
+    const { colorName, colorCode, size } = buildCartVariantSelection(color, sizeChoice);
 
     const variantKey = `${product.id}-${colorCode}-${sizeChoice}`.toLowerCase();
     const existingQuantity = getItemQuantity(variantKey);
@@ -252,7 +261,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       image: currentImage ?? product.images.main,
       colorName,
       colorCode,
-      size: sizeChoice,
+      size,
       quantity: 1,
       maxQuantity: availableStock ?? undefined,
     });
@@ -342,7 +351,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
               currentImage={currentImage}
               displayCurrentImage={displayCurrentImage}
               displayNextImage={displayNextImage}
-              hasNextImage={images.length > 1}
+              hasNextImage={Boolean(preferredHoverImage)}
               productName={product.nameFr}
               imageRef={imageRef}
             />
@@ -434,7 +443,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                       selected={selectedColor?.hex === color.hex}
                       onSelect={() => {
                         if (isSoldOut) return;
-                        handleSelectColor(color, index);
+                        handleSelectColor(color);
                       }}
                       size="card"
                       showLabel={false}
