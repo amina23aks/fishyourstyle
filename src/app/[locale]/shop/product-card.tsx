@@ -37,7 +37,6 @@ import { normalizeProductStock } from "@/lib/stock";
 import { useFavorites } from "@/hooks/use-favorites";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { runAfterNextPaint } from "@/lib/defer";
-import { isMentalistCategory, MENTALIST_UNIT_PRICE } from "@/lib/mentalist-bundle";
 
 type ProductWithInventory = Product & { stockMode?: "unlimited" | "limited"; stockQty?: number; inStock?: boolean };
 
@@ -116,7 +115,6 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     Boolean(selectedSizeOption?.soldOut);
 
   const productCategory = product.category ?? "";
-  const publicPrice = isMentalistCategory(productCategory) ? MENTALIST_UNIT_PRICE : product.priceDzd;
   const productDesignTheme = product.designTheme ?? "";
   const currentImage = images[activeIndex] ?? images[0] ?? product.images.main;
   const displayCurrentImage = optimizedImages[activeIndex] ?? getCloudinaryDeliveryUrl(currentImage, { width: 640 });
@@ -258,7 +256,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
       design: productDesignTheme,
       stockMode,
       stockQty,
-      price: publicPrice,
+      price: product.priceDzd,
       currency: product.currency,
       image: currentImage ?? product.images.main,
       colorName,
@@ -289,7 +287,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
     product.id,
     product.images.main,
     product.nameFr,
-    publicPrice,
+    product.priceDzd,
     product.slug,
     sizeOptions,
     availableSizes,
@@ -335,7 +333,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             slug={product.slug}
             name={product.nameFr}
             image={currentImage ?? product.images.main ?? ""}
-            price={publicPrice}
+            price={product.priceDzd}
             currency={product.currency}
             inStock={!isOutOfStock}
           />
@@ -406,7 +404,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
             <h2 className="text-sm font-semibold leading-tight text-white line-clamp-2 sm:text-base">{product.nameFr}</h2>
 
             <div className="flex items-center justify-between gap-3">
-              {!isMentalistCategory(productCategory) && product.discountPercent && product.discountPercent > 0 ? (
+              {product.discountPercent && product.discountPercent > 0 ? (
                 <div className="flex items-center gap-2">
                   <p className="text-base font-bold text-emerald-200 tabular-nums sm:text-lg">
                     {formatPrice(Math.max(product.priceDzd * (1 - product.discountPercent / 100), 0))}
@@ -417,7 +415,7 @@ function ProductCardComponent({ product, loading = false }: ProductCardProps) {
                   <p className="text-xs font-semibold text-white/60 line-through">{formatPrice(product.priceDzd)}</p>
                 </div>
               ) : (
-                <p className="text-base font-bold text-white tabular-nums sm:text-lg">{formatPrice(publicPrice)}</p>
+                <p className="text-base font-bold text-white tabular-nums sm:text-lg">{formatPrice(product.priceDzd)}</p>
               )}
             </div>
           </div>

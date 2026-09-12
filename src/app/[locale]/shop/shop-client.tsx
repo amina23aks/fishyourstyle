@@ -25,7 +25,7 @@ import {
   isPublicComingSoonDesign,
   type PublicShopFilterSettings,
 } from "@/lib/filter-config";
-import { isMentalistCategory } from "@/lib/mentalist-bundle";
+import { isMentalistDesignTheme } from "@/lib/mentalist-bundle";
 
 type StorefrontCursor = {
   id: string;
@@ -274,7 +274,7 @@ export default function ShopClient({
       (designFilter !== "all" &&
         isPublicComingSoonDesign(designFilter, shopFilterSettings)));
   const showDesignFilters = allDesignPills.length > 1;
-  const showMentalistPricing = isMentalistCategory(collectionFilter);
+  const showMentalistPricing = isMentalistDesignTheme(designFilter);
 
   return (
     <>

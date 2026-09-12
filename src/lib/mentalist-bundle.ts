@@ -7,11 +7,11 @@ export type MentalistBundleTotals = {
   total: number;
 };
 
-/** Accepts the human label and the common slug forms used by category records. */
-export function isMentalistCategory(category: unknown): boolean {
-  if (typeof category !== "string") return false;
-  const normalized = category.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return normalized === "the-mentalist" || normalized === "mentalist";
+/** Matches the canonical Product.designTheme value and its normalized slug form. */
+export function isMentalistDesignTheme(designTheme: unknown): boolean {
+  if (typeof designTheme !== "string") return false;
+  const normalized = designTheme.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return normalized === "the-mentalist";
 }
 
 /** Prices complete groups of three first, then the one- or two-item remainder. */
@@ -31,16 +31,16 @@ export function calculateMentalistBundle(quantity: number): MentalistBundleTotal
   };
 }
 
-export type BundleCartLine = { category?: string; price: number; quantity: number };
+export type BundleCartLine = { design?: string; price: number; quantity: number };
 
 export function calculateCartPricing(items: readonly BundleCartLine[]) {
   const mentalistQuantity = items.reduce(
-    (sum, item) => sum + (isMentalistCategory(item.category) ? Math.max(0, Math.floor(item.quantity)) : 0),
+    (sum, item) => sum + (isMentalistDesignTheme(item.design) ? Math.max(0, Math.floor(item.quantity)) : 0),
     0,
   );
   const mentalist = calculateMentalistBundle(mentalistQuantity);
   const regularSubtotal = items.reduce(
-    (sum, item) => sum + (isMentalistCategory(item.category) ? 0 : item.price * item.quantity),
+    (sum, item) => sum + (isMentalistDesignTheme(item.design) ? 0 : item.price * item.quantity),
     0,
   );
 

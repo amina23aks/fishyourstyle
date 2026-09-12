@@ -21,7 +21,7 @@ import {
   isPlainObject,
   isValidEmail,
 } from "@/lib/apiProtection";
-import { calculateCartPricing, isMentalistCategory, MENTALIST_UNIT_PRICE } from "@/lib/mentalist-bundle";
+import { calculateCartPricing, isMentalistDesignTheme, MENTALIST_UNIT_PRICE } from "@/lib/mentalist-bundle";
 
 const ADMIN_STATS_DOC = "adminStats/summary";
 const ORDER_RATE_LIMIT = {
@@ -415,16 +415,18 @@ export async function POST(request: NextRequest) {
         if (serverPrice === null) {
           throw new Error("Order verification failed");
         }
-        const serverCategory = productData.category;
-        const expectedPrice = isMentalistCategory(serverCategory) ? MENTALIST_UNIT_PRICE : serverPrice;
-        if (Math.abs(item.price - expectedPrice) > 1) {
+        const isMentalist = isMentalistDesignTheme(productData.designTheme);
+        if (isMentalist && Math.abs(serverPrice - MENTALIST_UNIT_PRICE) > 1) {
+          throw new Error("The Mentalist product price is misconfigured");
+        }
+        if (Math.abs(item.price - serverPrice) > 1) {
           throw new Error("Order verification failed");
         }
       }
 
-      // Never trust client totals or category snapshots: eligibility comes from product records.
+      // Never trust client design snapshots: eligibility comes from product records.
       const serverPricing = calculateCartPricing(orderToSave.items.map((item) => ({
-        category: productSnapshots.get(item.id)?.category,
+        design: productSnapshots.get(item.id)?.designTheme,
         price: item.price,
         quantity: item.quantity,
       })));
@@ -514,7 +516,8 @@ export async function POST(request: NextRequest) {
         (sum, item) => sum + item.itemCostPrice * item.quantity,
         0,
       );
-      const netProfit = itemsWithMetadata.reduce((sum, item) => sum + item.itemProfitTotal, 0);
+      // The bundle changes revenue, never the individual canonical cost snapshots.
+      const netProfit = orderSubtotal - costOfGoodsSold;
 
       for (const item of itemsWithMetadata) {
         const productData = productSnapshots.get(item.id);
@@ -649,14 +652,17 @@ export async function POST(request: NextRequest) {
       const isStockError =
         error.message.toLowerCase().includes("insufficient stock") ||
         error.message.toLowerCase().includes("product not found");
+      const isMentalistConfigurationError = error.message === "The Mentalist product price is misconfigured";
 
       return NextResponse.json(
         {
           error: isStockError
             ? "Some items are no longer available. Please review your cart."
-            : `Failed to create order: ${error.message}`,
+            : isMentalistConfigurationError
+              ? "A The Mentalist product has an invalid price. Please contact the store before ordering."
+              : `Failed to create order: ${error.message}`,
         },
-        { status: isStockError ? 400 : 500 },
+        { status: isStockError ? 400 : isMentalistConfigurationError ? 409 : 500 },
       );
     }
 
