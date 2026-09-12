@@ -21,6 +21,7 @@ import {
   isPlainObject,
   isValidEmail,
 } from "@/lib/apiProtection";
+import { calculateCartPricing, isMentalistCategory, MENTALIST_UNIT_PRICE } from "@/lib/mentalist-bundle";
 
 const ADMIN_STATS_DOC = "adminStats/summary";
 const ORDER_RATE_LIMIT = {
@@ -325,10 +326,10 @@ export async function POST(request: NextRequest) {
     };
     const todayKey = dateKeyInTZ(new Date(), "Africa/Algiers");
     const weekKey = weekKeyInTZ(new Date(), "Africa/Algiers");
-    const orderSubtotal = typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : 0;
+    let orderSubtotal = typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : 0;
     const orderShippingCost =
       typeof orderToSave.shippingCost === "number" ? orderToSave.shippingCost : 0;
-    const orderTotalBeforeDiscount = orderSubtotal + orderShippingCost;
+    let orderTotalBeforeDiscount = orderSubtotal + orderShippingCost;
     const defaultLoyaltyPercent = 8;
     let loyaltyDiscountPercent = 0;
     let loyaltyDiscountAmount = 0;
@@ -338,7 +339,7 @@ export async function POST(request: NextRequest) {
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
-    const productRevenue =
+    let productRevenue =
       typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : fallbackProductRevenue;
 
     console.log("[api/orders] Order payload prepared", {
@@ -414,10 +415,22 @@ export async function POST(request: NextRequest) {
         if (serverPrice === null) {
           throw new Error("Order verification failed");
         }
-        if (Math.abs(item.price - serverPrice) > 1) {
+        const serverCategory = productData.category;
+        const expectedPrice = isMentalistCategory(serverCategory) ? MENTALIST_UNIT_PRICE : serverPrice;
+        if (Math.abs(item.price - expectedPrice) > 1) {
           throw new Error("Order verification failed");
         }
       }
+
+      // Never trust client totals or category snapshots: eligibility comes from product records.
+      const serverPricing = calculateCartPricing(orderToSave.items.map((item) => ({
+        category: productSnapshots.get(item.id)?.category,
+        price: item.price,
+        quantity: item.quantity,
+      })));
+      orderSubtotal = serverPricing.subtotal;
+      productRevenue = orderSubtotal;
+      orderTotalBeforeDiscount = serverPricing.subtotalBeforeDiscount + orderShippingCost;
 
       if (userData) {
         const rewardAvailable = Boolean(userData.loyaltyRewardAvailable);
@@ -531,6 +544,10 @@ export async function POST(request: NextRequest) {
       orderDataForFirestore = {
         ...orderDataForFirestore,
         items: itemsWithMetadata,
+        subtotal: orderSubtotal,
+        mentalistDropSubtotal: serverPricing.mentalist.subtotalBeforeDiscount,
+        bundleDiscount: serverPricing.bundleDiscount,
+        mentalistDropTotal: serverPricing.mentalist.total,
         totalBeforeDiscount: orderTotalBeforeDiscount,
         total: orderTotal,
         costOfGoodsSold,
@@ -613,6 +630,9 @@ export async function POST(request: NextRequest) {
         orderId: createdOrderId,
         totals: {
           subtotal: orderSubtotal,
+          mentalistDropSubtotal: orderDataForFirestore.mentalistDropSubtotal,
+          bundleDiscount: orderDataForFirestore.bundleDiscount,
+          mentalistDropTotal: orderDataForFirestore.mentalistDropTotal,
           shippingCost: orderShippingCost,
           discountPercent: loyaltyApplied ? loyaltyDiscountPercent : 0,
           discountAmount: loyaltyApplied ? loyaltyDiscountAmount : 0,
@@ -693,6 +713,9 @@ function firestoreDocToOrder(docId: string, data: DocumentData, includeAdminFina
     notes: data.notes,
     subtotal: data.subtotal,
     shippingCost: data.shippingCost,
+    mentalistDropSubtotal: typeof data.mentalistDropSubtotal === "number" ? data.mentalistDropSubtotal : undefined,
+    bundleDiscount: typeof data.bundleDiscount === "number" ? data.bundleDiscount : undefined,
+    mentalistDropTotal: typeof data.mentalistDropTotal === "number" ? data.mentalistDropTotal : undefined,
     totalBeforeDiscount: data.totalBeforeDiscount,
     discountType: data.discountType,
     discountPercent: data.discountPercent,

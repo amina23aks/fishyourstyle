@@ -237,6 +237,14 @@ export default function AdminOrderDetailPage({ params }: Props) {
                   <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Subtotal</p>
                   <p className="text-white">{formatCurrency(order.subtotal)}</p>
                 </div>
+                {typeof order.mentalistDropSubtotal === "number" && order.mentalistDropSubtotal > 0 ? (
+                  <div className="space-y-1 sm:col-span-2 rounded-xl border border-cyan-100/10 bg-white/5 p-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-sky-200">The Mentalist bundle</p>
+                    <div className="flex justify-between"><span>Drop subtotal</span><span>{formatCurrency(order.mentalistDropSubtotal)}</span></div>
+                    <div className="flex justify-between text-emerald-200"><span>Bundle discount</span><span>-{formatCurrency(order.bundleDiscount ?? 0)}</span></div>
+                    <div className="flex justify-between font-semibold text-white"><span>Final drop total</span><span>{formatCurrency(order.mentalistDropTotal ?? 0)}</span></div>
+                  </div>
+                ) : null}
                 <div className="space-y-1">
                   <p className="text-xs uppercase tracking-[0.2em] text-sky-200">Shipping</p>
                   <p className="text-white">{formatCurrency(order.shippingCost)}</p>

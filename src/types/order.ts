@@ -91,6 +91,12 @@ export type Order = {
   notes?: string;
   /** Subtotal (sum of item prices * quantities) */
   subtotal: number;
+  /** The Mentalist items at their 2,900 DZD public unit price. */
+  mentalistDropSubtotal?: number;
+  /** Automatic multi-buy saving applied to The Mentalist items. */
+  bundleDiscount?: number;
+  /** Final total for The Mentalist items after bundle pricing. */
+  mentalistDropTotal?: number;
   /** Shipping cost */
   shippingCost: number;
   /** Total before any discount */

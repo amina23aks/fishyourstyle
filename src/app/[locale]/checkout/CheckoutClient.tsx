@@ -536,6 +536,11 @@ export default function CheckoutClient() {
               </ul>
 
               <div className="mt-3 space-y-1 border-t border-white/10 pt-3 text-sm">
+                {totals.mentalist.quantity > 0 ? <>
+                  <div className="flex items-center justify-between text-sky-100"><span>The Mentalist drop subtotal</span><span className="tabular-nums">{totals.mentalist.subtotalBeforeDiscount} DZD</span></div>
+                  <div className="flex items-center justify-between text-emerald-200"><span>Bundle discount</span><span className="tabular-nums">-{totals.bundleDiscount} DZD</span></div>
+                  <div className="flex items-center justify-between text-sky-100"><span>Final drop total</span><span className="tabular-nums">{totals.mentalist.total} DZD</span></div>
+                </> : null}
                 <div className="flex items-center justify-between text-sky-100">
                   <span>{t("cart.subtotal")}</span>
                   <span className="tabular-nums">{totals.subtotal} DZD</span>

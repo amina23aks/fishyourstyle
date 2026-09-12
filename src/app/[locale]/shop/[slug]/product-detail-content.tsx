@@ -27,6 +27,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { viewContent } from "@/lib/metaPixel";
 import { useTranslations } from "@/i18n/I18nProvider";
 import { runAfterNextPaint } from "@/lib/defer";
+import { isMentalistCategory, MENTALIST_UNIT_PRICE } from "@/lib/mentalist-bundle";
 
 const formatPrice = (value: number, currency: Product["currency"]) =>
   `${new Intl.NumberFormat("fr-DZ").format(value)} ${currency}`;
@@ -45,6 +46,7 @@ export function ProductDetailContent({
   suggestedProducts?: Product[];
 }) {
   const t = useTranslations();
+  const publicPrice = isMentalistCategory(product.category) ? MENTALIST_UNIT_PRICE : product.priceDzd;
   const collectionName =
     product.designTheme && product.designTheme !== "simple"
       ? capitalizeLabel(product.designTheme)
@@ -147,12 +149,12 @@ export function ProductDetailContent({
     viewItemTrackedRef.current = product.id;
     trackViewItem({
       currency: product.currency ?? "DZD",
-      value: product.priceDzd,
+      value: publicPrice,
       items: [
         {
           item_id: product.id,
           item_name: product.nameFr,
-          price: product.priceDzd,
+          price: publicPrice,
           quantity: 1,
         },
       ],
@@ -161,10 +163,10 @@ export function ProductDetailContent({
     viewContent({
       id: product.id,
       name: product.nameFr,
-      price: product.priceDzd,
+      price: publicPrice,
       currency: product.currency ?? "DZD",
     });
-  }, [product.currency, product.id, product.nameFr, product.priceDzd]);
+  }, [product.currency, product.id, product.nameFr, publicPrice]);
 
   useEffect(() => {
     if (!isSizeGuideOpen) return;
@@ -243,7 +245,7 @@ export function ProductDetailContent({
       design: product.designTheme ?? "",
       stockMode: stockState.stockMode,
       stockQty: stockState.stockQty,
-      price: product.priceDzd,
+      price: publicPrice,
       currency: product.currency,
       image: imageList[activeImage] ?? product.images.main,
       colorName,
@@ -380,7 +382,7 @@ export function ProductDetailContent({
             <h1 className="text-xl font-semibold text-white leading-tight sm:text-2xl">
               {product.nameFr}
             </h1>
-            {product.discountPercent && product.discountPercent > 0 ? (
+            {!isMentalistCategory(product.category) && product.discountPercent && product.discountPercent > 0 ? (
               <div className="flex items-center gap-2">
                 <p className="text-2xl font-bold text-emerald-200 sm:text-[26px]">
                   {formatPrice(
@@ -400,7 +402,7 @@ export function ProductDetailContent({
               </div>
             ) : (
               <p className="text-2xl font-bold text-white sm:text-[26px]">
-                {formatPrice(product.priceDzd, product.currency)}
+                {formatPrice(publicPrice, product.currency)}
               </p>
             )}
           </div>
@@ -591,7 +593,7 @@ export function ProductDetailContent({
                       slug: product.slug,
                       name: product.nameFr,
                       image: currentImage,
-                      price: product.priceDzd,
+                      price: publicPrice,
                       currency: product.currency,
                       inStock: !isOutOfStock,
                       addedAt: new Date().toISOString(),

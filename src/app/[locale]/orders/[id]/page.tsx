@@ -932,6 +932,11 @@ export default function OrderDetailsPage() {
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-sm shadow-sky-900/30 backdrop-blur lg:sticky lg:top-8">
               <h2 className="text-lg font-semibold text-white mb-4">{t("orders.orderSummaryTitle")}</h2>
               <dl className="space-y-3">
+                {typeof order.mentalistDropSubtotal === "number" && order.mentalistDropSubtotal > 0 ? <>
+                  <div className="flex items-center justify-between text-sm"><dt className="text-sky-100">The Mentalist drop subtotal</dt><dd className="text-white">{new Intl.NumberFormat("fr-DZ").format(order.mentalistDropSubtotal)} DZD</dd></div>
+                  <div className="flex items-center justify-between text-sm text-emerald-200"><dt>Bundle discount</dt><dd>-{new Intl.NumberFormat("fr-DZ").format(order.bundleDiscount ?? 0)} DZD</dd></div>
+                  <div className="flex items-center justify-between text-sm"><dt className="text-sky-100">Final drop total</dt><dd className="font-semibold text-white">{new Intl.NumberFormat("fr-DZ").format(order.mentalistDropTotal ?? 0)} DZD</dd></div>
+                </> : null}
                 <div className="flex items-center justify-between text-sm">
                   <dt className="text-sky-100">{t("orders.editModalSubtotalLabel")}</dt>
                   <dd className="font-semibold text-white">

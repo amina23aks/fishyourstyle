@@ -576,6 +576,13 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
                     {/* Order Summary - Display costs above button */}
                     <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                      {totals.mentalist.quantity > 0 ? (
+                        <div className="space-y-1 border-b border-white/10 pb-2">
+                          <div className="flex justify-between text-xs text-sky-100"><span>The Mentalist drop subtotal</span><span>{formatCurrency(totals.mentalist.subtotalBeforeDiscount)}</span></div>
+                          <div className="flex justify-between text-xs text-emerald-200"><span>Bundle discount</span><span>-{formatCurrency(totals.bundleDiscount)}</span></div>
+                          <div className="flex justify-between text-xs font-semibold text-white"><span>Final drop total</span><span>{formatCurrency(totals.mentalist.total)}</span></div>
+                        </div>
+                      ) : null}
                       <div className="flex items-center justify-between text-xs text-sky-100">
                         <span>{t("cart.subtotal")}</span>
                         <span className="tabular-nums text-white">{formatCurrency(totals.subtotal)}</span>
