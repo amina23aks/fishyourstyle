@@ -6,7 +6,7 @@ import type { FeaturedDropConfig } from "@/components/FeaturedDropSection";
 export type HomeSettings = {
   showFeaturedDrop: boolean;
   showHomeShopSection: boolean;
-  featuredDropSlug: "flow";
+  featuredDropSlug: "mentalist";
   featuredDrop: FeaturedDropConfig;
 };
 
@@ -16,14 +16,13 @@ export const HOME_SETTINGS_DOCUMENT = "home";
 export const defaultHomeSettings: HomeSettings = {
   showFeaturedDrop: true,
   showHomeShopSection: false,
-  featuredDropSlug: "flow",
+  featuredDropSlug: "mentalist",
   featuredDrop: {
-    title: "FLOW — DROP 01",
-    label: "Find Your Flow.",
-    subtitle:
-      "The first chapter of Fish Your Style. A collection inspired by finding your own rhythm.",
-    buttonText: "Discover FLOW",
-    buttonLink: "#flow-drop",
+    title: "THE MENTALIST DROP",
+    label: "THE MENTALIST",
+    subtitle: "Read the signs. Pick your design. Wear the obsession.",
+    buttonText: "Discover The Mentalist",
+    buttonLink: "#mentalist-drop",
     maxProducts: 4,
     active: true,
   },
@@ -54,6 +53,8 @@ export function normalizeHomeSettings(input: unknown): HomeSettings {
     data.showFeaturedDrop,
     defaultHomeSettings.showFeaturedDrop,
   );
+  const isMentalistSettings = data.featuredDropSlug === "mentalist";
+  const activeDrop: Record<string, unknown> = isMentalistSettings ? featuredDrop : {};
 
   return {
     showFeaturedDrop,
@@ -61,30 +62,30 @@ export function normalizeHomeSettings(input: unknown): HomeSettings {
       data.showHomeShopSection,
       defaultHomeSettings.showHomeShopSection,
     ),
-    featuredDropSlug: "flow",
+    featuredDropSlug: "mentalist",
     featuredDrop: {
       title: stringOrDefault(
-        featuredDrop.title,
+        activeDrop.title,
         defaultHomeSettings.featuredDrop.title,
       ),
       label: stringOrDefault(
-        featuredDrop.label,
+        activeDrop.label,
         defaultHomeSettings.featuredDrop.label,
       ),
       subtitle: stringOrDefault(
-        featuredDrop.subtitle,
+        activeDrop.subtitle,
         defaultHomeSettings.featuredDrop.subtitle,
       ),
       buttonText: stringOrDefault(
-        featuredDrop.buttonText,
+        activeDrop.buttonText,
         defaultHomeSettings.featuredDrop.buttonText,
       ),
       buttonLink: stringOrDefault(
-        featuredDrop.buttonLink,
+        activeDrop.buttonLink,
         defaultHomeSettings.featuredDrop.buttonLink,
       ),
       maxProducts: maxProductsOrDefault(
-        featuredDrop.maxProducts,
+        activeDrop.maxProducts,
         defaultHomeSettings.featuredDrop.maxProducts,
       ),
       active: showFeaturedDrop,

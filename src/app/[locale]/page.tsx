@@ -164,12 +164,12 @@ export default async function Home({
   const messages = await getMessages(locale);
   const t = createTranslator(messages);
   const homeSettings = await getHomeSettings();
-  const flowDropConfig: FeaturedDropConfig = homeSettings.featuredDrop;
+  const mentalistDropConfig: FeaturedDropConfig = homeSettings.featuredDrop;
   const featuredProducts =
-    homeSettings.showFeaturedDrop && flowDropConfig.active
+    homeSettings.showFeaturedDrop && mentalistDropConfig.active
       ? await fetchStorefrontProductsByFeaturedDrop({
           slug: homeSettings.featuredDropSlug,
-          pageSize: flowDropConfig.maxProducts,
+          pageSize: mentalistDropConfig.maxProducts,
         }).catch((error) => {
           console.error("Failed to fetch featured drop products:", error);
           return [];
@@ -268,7 +268,8 @@ export default async function Home({
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-12 sm:px-6 lg:px-8">
         {homeSettings.showFeaturedDrop ? (
           <FeaturedDropSection
-            drop={flowDropConfig}
+            drop={mentalistDropConfig}
+            dropSlug={homeSettings.featuredDropSlug}
             products={featuredProducts}
           />
         ) : null}
