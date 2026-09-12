@@ -24,6 +24,7 @@ import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
 import { ALGERIA_WILAYAS, normalizeWilaya } from "@/data/algeriaWilayas";
+import MobileWilayaSelect from "@/components/MobileWilayaSelect";
 
 type CheckoutFormState = {
   fullName: string;
@@ -388,18 +389,24 @@ export default function CheckoutClient() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-sky-100" htmlFor="wilaya">
+                  <label className="text-xs font-medium text-sky-100" htmlFor="checkout-wilaya-desktop">
                     {t("checkout.wilayaLabel")}<span className="text-rose-200"> *</span>
                   </label>
+                  <MobileWilayaSelect
+                    id="checkout-wilaya-mobile"
+                    label={t("checkout.wilayaLabel")}
+                    value={form.wilaya}
+                    placeholder={t("checkout.wilayaPlaceholder")}
+                    onSelect={(value) => handleChange("wilaya", value)}
+                  />
                   <input
-                    id="wilaya"
+                    id="checkout-wilaya-desktop"
                     type="text"
                     value={form.wilaya}
                     onChange={(event) => handleChange("wilaya", event.target.value)}
                     list="checkout-wilayas"
-                    className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    className="hidden w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white shadow-inner shadow-sky-900/20 placeholder:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 md:block"
                     placeholder={t("checkout.wilayaPlaceholder")}
-                    required
                   />
                   <datalist id="checkout-wilayas">
                     {ALGERIA_WILAYAS.map((wilaya) => (
@@ -539,7 +546,6 @@ export default function CheckoutClient() {
                 {totals.mentalist.quantity > 0 ? <>
                   <div className="flex items-center justify-between text-sky-100"><span>The Mentalist drop subtotal</span><span className="tabular-nums">{totals.mentalist.subtotalBeforeDiscount} DZD</span></div>
                   <div className="flex items-center justify-between text-emerald-200"><span>Bundle discount</span><span className="tabular-nums">-{totals.bundleDiscount} DZD</span></div>
-                  <div className="flex items-center justify-between text-sky-100"><span>Final drop total</span><span className="tabular-nums">{totals.mentalist.total} DZD</span></div>
                 </> : null}
                 <div className="flex items-center justify-between text-sky-100">
                   <span>{t("cart.subtotal")}</span>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
 import { AdminAuthError, getAdminResources, requireAdminOrExportToken } from "@/lib/firebaseAdmin";
+import { allocateOrderLineRevenue } from "@/lib/order-accounting";
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 500;
@@ -192,13 +193,26 @@ export async function GET(request: NextRequest) {
         accountingNetProfit,
       });
 
+      const allocatedLines = allocateOrderLineRevenue(
+        itemsRaw.map((item) => {
+          const line = item as Record<string, unknown>;
+          return {
+            design: typeof line.design === "string" ? line.design : undefined,
+            price: typeof line.price === "number" ? line.price : 0,
+            quantity: typeof line.quantity === "number" ? line.quantity : 0,
+            itemCostPrice: typeof line.itemCostPrice === "number" ? line.itemCostPrice : 0,
+          };
+        }),
+        typeof data.mentalistDropTotal === "number" ? data.mentalistDropTotal : undefined,
+      );
       itemsRaw.forEach((item, index) => {
         const itemData = item as Record<string, unknown>;
         const itemQty = typeof itemData.quantity === "number" ? itemData.quantity : 0;
         const itemUnitPrice = typeof itemData.price === "number" ? itemData.price : 0;
         const itemCostPrice = typeof itemData.itemCostPrice === "number" ? itemData.itemCostPrice : 0;
-        const itemProfit = typeof itemData.itemProfit === "number" ? itemData.itemProfit : itemUnitPrice - itemCostPrice;
-        const itemProfitTotal = typeof itemData.itemProfitTotal === "number" ? itemData.itemProfitTotal : itemProfit * itemQty;
+        const allocated = allocatedLines[index];
+        const itemProfitTotal = allocated?.contribution ?? (itemUnitPrice - itemCostPrice) * itemQty;
+        const itemProfit = itemQty > 0 ? itemProfitTotal / itemQty : 0;
         orderItems.push({
           rowKey: `${doc.id}_${index}`,
           orderId: doc.id,
@@ -210,7 +224,7 @@ export async function GET(request: NextRequest) {
           itemName: typeof itemData.name === "string" ? itemData.name : "",
           itemQty,
           itemUnitPrice,
-          itemTotal: itemQty * itemUnitPrice,
+          itemTotal: allocated?.allocatedRevenue ?? itemQty * itemUnitPrice,
           paymentMethod: typeof data.paymentMethod === "string" ? data.paymentMethod : "",
           category: typeof itemData.category === "string" ? itemData.category : "",
           design: typeof itemData.design === "string" ? itemData.design : "",

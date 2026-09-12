@@ -498,15 +498,13 @@ export async function POST(request: NextRequest) {
         const categoryFromCart = typeof item.category === "string" ? item.category.trim() : "";
         const designFromCart = typeof item.design === "string" ? item.design.trim() : "";
         const category =
-          categoryFromCart ||
           (typeof productData?.category === "string" && productData.category.trim()
             ? productData.category
-            : "");
+            : categoryFromCart);
         const design =
-          designFromCart ||
           (typeof productData?.designTheme === "string" && productData.designTheme.trim()
             ? productData.designTheme
-            : "");
+            : designFromCart);
         const itemCostPrice = normalizeCostPrice(productData?.costPrice ?? productData?.purchasePrice);
         const itemProfit = item.price - itemCostPrice;
         const itemProfitTotal = itemProfit * item.quantity;

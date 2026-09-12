@@ -11,6 +11,7 @@ import {
   hasHoneypotValue,
   isPlainObject,
 } from "@/lib/apiProtection";
+import { calculateCartPricing } from "@/lib/mentalist-bundle";
 
 function isPendingStatus(status: string | null | undefined): boolean {
   return (status ?? "").toLowerCase() === "pending";
@@ -71,6 +72,9 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>, in
     },
     notes: typeof data.notes === "string" ? data.notes : undefined,
     subtotal: Number(data.subtotal ?? 0),
+    mentalistDropSubtotal: typeof data.mentalistDropSubtotal === "number" ? data.mentalistDropSubtotal : undefined,
+    bundleDiscount: typeof data.bundleDiscount === "number" ? data.bundleDiscount : undefined,
+    mentalistDropTotal: typeof data.mentalistDropTotal === "number" ? data.mentalistDropTotal : undefined,
     shippingCost: Number(data.shippingCost ?? 0),
     total: Number(data.total ?? 0),
     paymentMethod: (data.paymentMethod as Order["paymentMethod"]) ?? "COD",
@@ -163,10 +167,6 @@ function isValidOrderItems(items: unknown): items is OrderItem[] {
     (item as OrderItem).quantity > 0 &&
     typeof (item as OrderItem).variantKey === "string"
   );
-}
-
-function calculateSubtotal(items: OrderItem[]): number {
-  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 }
 
 function parseBearerToken(request: NextRequest): string | null {
@@ -517,7 +517,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           { status: 400 }
         );
       }
-      const subtotal = calculateSubtotal(updatedItems);
+      const pricing = calculateCartPricing(updatedItems.map((item) => ({
+        design: item.design,
+        price: item.price,
+        quantity: item.quantity,
+      })));
+      const subtotal = pricing.subtotal;
       const shippingCost =
         typeof updatedShipping.price === "number" ? updatedShipping.price : order.shippingCost;
       const total = subtotal + shippingCost;
@@ -531,13 +536,16 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         return { ...item, itemCostPrice, itemProfit, itemProfitTotal };
       });
       const costOfGoodsSold = itemsWithProfit.reduce((sum, item) => sum + item.itemCostPrice * item.quantity, 0);
-      const netProfit = itemsWithProfit.reduce((sum, item) => sum + item.itemProfitTotal, 0);
+      const netProfit = subtotal - costOfGoodsSold;
 
       const updateData: Record<string, unknown> = {
         shipping: updatedShipping,
         items: itemsWithProfit,
         notes: updatedNotes ?? null,
         subtotal,
+        mentalistDropSubtotal: pricing.mentalist.subtotalBeforeDiscount,
+        bundleDiscount: pricing.bundleDiscount,
+        mentalistDropTotal: pricing.mentalist.total,
         shippingCost,
         total,
         costOfGoodsSold,

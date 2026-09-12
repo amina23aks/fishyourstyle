@@ -26,6 +26,7 @@ import { useLocale, useTranslations } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
 import { runAfterNextPaint } from "@/lib/defer";
+import MobileWilayaSelect from "@/components/MobileWilayaSelect";
 
 type CartDrawerProps = {
   open: boolean;
@@ -486,11 +487,21 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs text-sky-100" htmlFor="drawer-wilaya">
+                      <label className="text-xs text-sky-100" htmlFor="drawer-wilaya-desktop">
                         {t("cart.wilayaLabel")}<span className="text-rose-200"> *</span>
                       </label>
+                      <MobileWilayaSelect
+                        id="drawer-wilaya-mobile"
+                        label={t("cart.wilayaLabel")}
+                        value={form.wilaya}
+                        placeholder={t("cart.selectWilaya")}
+                        onSelect={(value) => {
+                          setForm((prev) => ({ ...prev, wilaya: value }));
+                          setWilayaError(null);
+                        }}
+                      />
                       <input
-                        id="drawer-wilaya"
+                        id="drawer-wilaya-desktop"
                         type="text"
                         value={form.wilaya}
                         onChange={(event) => {
@@ -499,9 +510,8 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                           setWilayaError(normalizeWilaya(value) ? null : t("cart.errorWilayaListOnly"));
                         }}
                         list="drawer-wilayas"
-                        className="w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        className="hidden w-full rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white shadow-inner shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 md:block"
                         placeholder={t("cart.selectWilaya")}
-                        required
                       />
                       <datalist id="drawer-wilayas">
                         {ALGERIA_WILAYAS.map((entry) => (
@@ -580,7 +590,6 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                         <div className="space-y-1 border-b border-white/10 pb-2">
                           <div className="flex justify-between text-xs text-sky-100"><span>The Mentalist drop subtotal</span><span>{formatCurrency(totals.mentalist.subtotalBeforeDiscount)}</span></div>
                           <div className="flex justify-between text-xs text-emerald-200"><span>Bundle discount</span><span>-{formatCurrency(totals.bundleDiscount)}</span></div>
-                          <div className="flex justify-between text-xs font-semibold text-white"><span>Final drop total</span><span>{formatCurrency(totals.mentalist.total)}</span></div>
                         </div>
                       ) : null}
                       <div className="flex items-center justify-between text-xs text-sky-100">

@@ -180,7 +180,6 @@ export default function CartPage() {
               {totals.mentalist.quantity > 0 ? <>
                 <div className="flex items-center justify-between text-xs text-sky-200"><span>The Mentalist drop subtotal ({totals.mentalist.quantity} tees)</span><span>{formatPrice(totals.mentalist.subtotalBeforeDiscount)}</span></div>
                 <div className="flex items-center justify-between text-sm text-emerald-200"><span>Bundle discount</span><span>-{formatPrice(totals.bundleDiscount)}</span></div>
-                <div className="flex items-center justify-between text-sm font-semibold text-white"><span>Final drop total</span><span>{formatPrice(totals.mentalist.total)}</span></div>
               </> : null}
               <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm font-semibold text-white"><span>Subtotal</span><span>{formatPrice(totals.subtotal)}</span></div>
               <div className="flex items-center justify-between text-xs text-sky-200">

@@ -9,6 +9,7 @@ import { fetchOrderById, updateOrderStatus } from "@/lib/admin-orders";
 import type { Order, OrderStatus } from "@/types/order";
 import { ColorDot } from "@/components/ColorDot";
 import { colorCodeToHex } from "@/lib/colorUtils";
+import { allocateOrderLineRevenue } from "@/lib/order-accounting";
 import { useLocale } from "@/i18n/I18nProvider";
 import { localizePathname } from "@/i18n/paths";
 
@@ -157,6 +158,10 @@ export default function AdminOrderDetailPage({ params }: Props) {
       complete: complete && order.profitSnapshotComplete === true,
     };
   }, [order]);
+  const allocatedLines = useMemo(
+    () => order ? allocateOrderLineRevenue(order.items, order.mentalistDropTotal) : [],
+    [order],
+  );
 
   const saveReturnCost = useCallback(async () => {
     if (!order) return;
@@ -242,7 +247,6 @@ export default function AdminOrderDetailPage({ params }: Props) {
                     <p className="text-xs uppercase tracking-[0.2em] text-sky-200">The Mentalist bundle</p>
                     <div className="flex justify-between"><span>Drop subtotal</span><span>{formatCurrency(order.mentalistDropSubtotal)}</span></div>
                     <div className="flex justify-between text-emerald-200"><span>Bundle discount</span><span>-{formatCurrency(order.bundleDiscount ?? 0)}</span></div>
-                    <div className="flex justify-between font-semibold text-white"><span>Final drop total</span><span>{formatCurrency(order.mentalistDropTotal ?? 0)}</span></div>
                   </div>
                 ) : null}
                 <div className="space-y-1">
@@ -333,7 +337,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
           <section className="space-y-3 rounded-3xl border border-white/10 bg-white/10 p-5 shadow-inner shadow-sky-900/40">
             <h3 className="text-lg font-semibold text-white">Items</h3>
                 <div className="divide-y divide-white/5">
-              {order.items.map((item) => (
+              {order.items.map((item, index) => (
                 <div key={item.variantKey} className="flex flex-col gap-2 py-3 text-sm text-sky-100/85">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -349,9 +353,9 @@ export default function AdminOrderDetailPage({ params }: Props) {
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-sky-100/70">
                     <span>Qty: {item.quantity}</span>
-                    <span>Line total: {formatCurrency(item.price * item.quantity)}</span>
+                    <span>Allocated revenue: {formatCurrency(allocatedLines[index]?.allocatedRevenue ?? item.price * item.quantity)}</span>
                     <span>Cost: {formatCurrency(typeof item.itemCostPrice === "number" ? item.itemCostPrice : 0)}</span>
-                    <span>Profit: {formatCurrency(typeof item.itemProfitTotal === "number" ? item.itemProfitTotal : (item.price - (item.itemCostPrice ?? 0)) * item.quantity)}</span>
+                    <span>Profit: {formatCurrency(allocatedLines[index]?.contribution ?? (item.price - (item.itemCostPrice ?? 0)) * item.quantity)}</span>
                   </div>
                 </div>
               ))}
