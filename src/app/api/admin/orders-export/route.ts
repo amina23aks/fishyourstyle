@@ -142,7 +142,9 @@ export async function GET(request: NextRequest) {
         return sum + (typeof itemData.quantity === "number" ? itemData.quantity : 0);
       }, 0);
       const costOfGoodsSold = typeof data.costOfGoodsSold === "number" ? data.costOfGoodsSold : 0;
-      const netProfit = typeof data.netProfit === "number" ? data.netProfit : 0;
+      // Export the reconciled merchandise contribution, not a legacy sum of
+      // undiscounted item profit snapshots.
+      const netProfit = subtotal - costOfGoodsSold;
       const status = typeof data.status === "string" ? data.status : "";
       const returnCost = typeof data.returnCost === "number" ? data.returnCost : 0;
       const accountingRevenue = status === "delivered" ? subtotal : 0;

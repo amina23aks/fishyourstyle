@@ -22,6 +22,7 @@ import {
   isValidEmail,
 } from "@/lib/apiProtection";
 import { calculateCartPricing, isMentalistDesignTheme, MENTALIST_UNIT_PRICE } from "@/lib/mentalist-bundle";
+import { allocateOrderLineRevenue } from "@/lib/order-accounting";
 
 const ADMIN_STATS_DOC = "adminStats/summary";
 const ORDER_RATE_LIMIT = {
@@ -510,14 +511,21 @@ export async function POST(request: NextRequest) {
         const itemProfitTotal = itemProfit * item.quantity;
         return { ...item, category, design, itemCostPrice, itemProfit, itemProfitTotal };
       });
-      const costOfGoodsSold = itemsWithMetadata.reduce(
+      const allocations = allocateOrderLineRevenue(itemsWithMetadata, serverPricing.mentalist.total);
+      const itemsWithAllocatedProfit = itemsWithMetadata.map((item, index) => ({
+        ...item,
+        allocatedRevenue: allocations[index].allocatedRevenue,
+        itemProfit: item.quantity > 0 ? allocations[index].contribution / item.quantity : 0,
+        itemProfitTotal: allocations[index].contribution,
+      }));
+      const costOfGoodsSold = itemsWithAllocatedProfit.reduce(
         (sum, item) => sum + item.itemCostPrice * item.quantity,
         0,
       );
       // The bundle changes revenue, never the individual canonical cost snapshots.
       const netProfit = orderSubtotal - costOfGoodsSold;
 
-      for (const item of itemsWithMetadata) {
+      for (const item of itemsWithAllocatedProfit) {
         const productData = productSnapshots.get(item.id);
         const category =
           typeof productData?.category === "string" && productData.category.trim()
@@ -544,7 +552,7 @@ export async function POST(request: NextRequest) {
       createdOrderId = orderRef.id;
       orderDataForFirestore = {
         ...orderDataForFirestore,
-        items: itemsWithMetadata,
+        items: itemsWithAllocatedProfit,
         subtotal: orderSubtotal,
         mentalistDropSubtotal: serverPricing.mentalist.subtotalBeforeDiscount,
         bundleDiscount: serverPricing.bundleDiscount,
@@ -706,10 +714,11 @@ function firestoreDocToOrder(docId: string, data: DocumentData, includeAdminFina
     items: Array.isArray(data.items)
       ? data.items.map((item: unknown) => {
           if (includeAdminFinancials || !item || typeof item !== "object") return item;
-          const { itemCostPrice, itemProfit, itemProfitTotal, ...publicItem } = item as Record<string, unknown>;
+          const { itemCostPrice, itemProfit, itemProfitTotal, allocatedRevenue, ...publicItem } = item as Record<string, unknown>;
           void itemCostPrice;
           void itemProfit;
           void itemProfitTotal;
+          void allocatedRevenue;
           return publicItem;
         }) as Order["items"]
       : [],

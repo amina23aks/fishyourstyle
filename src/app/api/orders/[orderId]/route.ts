@@ -12,6 +12,7 @@ import {
   isPlainObject,
 } from "@/lib/apiProtection";
 import { calculateCartPricing } from "@/lib/mentalist-bundle";
+import { allocateOrderLineRevenue, calculateDeliveredAccounting } from "@/lib/order-accounting";
 
 function isPendingStatus(status: string | null | undefined): boolean {
   return (status ?? "").toLowerCase() === "pending";
@@ -55,10 +56,11 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>, in
     items: Array.isArray(data.items)
       ? data.items.map((item) => {
           if (includeAdminFinancials || !item || typeof item !== "object") return item;
-          const { itemCostPrice, itemProfit, itemProfitTotal, ...publicItem } = item as Record<string, unknown>;
+          const { itemCostPrice, itemProfit, itemProfitTotal, allocatedRevenue, ...publicItem } = item as Record<string, unknown>;
           void itemCostPrice;
           void itemProfit;
           void itemProfitTotal;
+          void allocatedRevenue;
           return publicItem;
         }) as Order["items"]
       : [],
@@ -322,6 +324,23 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           orderUpdate.returnCost = Math.max(Number(nextReturnCost), 0);
         }
 
+        const snapshotSubtotal = Number(orderData.subtotal ?? 0);
+        const snapshotCogs = Number(orderData.costOfGoodsSold ?? 0);
+        if (normalizedNextStatus === "delivered") {
+          const delivered = calculateDeliveredAccounting({
+            subtotal: snapshotSubtotal,
+            costOfGoodsSold: snapshotCogs,
+            returnCost: typeof orderUpdate.returnCost === "number" ? orderUpdate.returnCost : Number(orderData.returnCost ?? 0),
+          });
+          orderUpdate.accountingRevenue = delivered.revenue;
+          orderUpdate.accountingCostOfGoodsSold = delivered.costOfGoodsSold;
+          orderUpdate.accountingNetProfit = delivered.netProfit;
+        } else if (normalizedNextStatus === "returned") {
+          orderUpdate.accountingRevenue = 0;
+          orderUpdate.accountingCostOfGoodsSold = 0;
+          orderUpdate.accountingNetProfit = -Number(orderUpdate.returnCost ?? 0);
+        }
+
         const shouldCountLoyalty =
           normalizedNextStatus === "delivered" &&
           normalizedPreviousStatus !== "delivered" &&
@@ -536,11 +555,18 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         return { ...item, itemCostPrice, itemProfit, itemProfitTotal };
       });
       const costOfGoodsSold = itemsWithProfit.reduce((sum, item) => sum + item.itemCostPrice * item.quantity, 0);
+      const allocations = allocateOrderLineRevenue(itemsWithProfit, pricing.mentalist.total);
+      const reconciledItems = itemsWithProfit.map((item, index) => ({
+        ...item,
+        allocatedRevenue: allocations[index].allocatedRevenue,
+        itemProfit: item.quantity > 0 ? allocations[index].contribution / item.quantity : 0,
+        itemProfitTotal: allocations[index].contribution,
+      }));
       const netProfit = subtotal - costOfGoodsSold;
 
       const updateData: Record<string, unknown> = {
         shipping: updatedShipping,
-        items: itemsWithProfit,
+        items: reconciledItems,
         notes: updatedNotes ?? null,
         subtotal,
         mentalistDropSubtotal: pricing.mentalist.subtotalBeforeDiscount,

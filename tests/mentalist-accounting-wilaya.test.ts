@@ -38,6 +38,16 @@ test("return adjustment keeps established accounting semantics", () => {
   assert.doesNotMatch(overview, /estimatedLineProfit/);
 });
 
+test("order writes and delivered transitions persist reconciled accounting", () => {
+  const createRoute = source("src/app/api/orders/route.ts");
+  const updateRoute = source("src/app/api/orders/[orderId]/route.ts");
+  assert.match(createRoute, /allocatedRevenue: allocations\[index\]\.allocatedRevenue/);
+  assert.match(createRoute, /itemProfitTotal: allocations\[index\]\.contribution/);
+  assert.match(updateRoute, /orderUpdate\.accountingRevenue = delivered\.revenue/);
+  assert.match(updateRoute, /orderUpdate\.accountingNetProfit = delivered\.netProfit/);
+  assert.match(updateRoute, /orderUpdate\.accountingNetProfit = -Number\(orderUpdate\.returnCost/);
+});
+
 test("visible summaries omit only the redundant Final drop total row", () => {
   for (const path of [
     "src/app/[locale]/checkout/CheckoutClient.tsx",

@@ -35,6 +35,8 @@ export type OrderItem = {
   itemProfit?: number;
   /** Admin-only line profit snapshot in DZD, captured at order time. */
   itemProfitTotal?: number;
+  /** Order-time line revenue after any allocated bundle discount. */
+  allocatedRevenue?: number;
   /** Variant key for uniqueness (id-colorCode-size) */
   variantKey: string;
 };
