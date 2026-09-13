@@ -442,6 +442,9 @@ export default function ShopClient({
                 </div>
               ))}
             </div>
+            <p className="mt-4 text-center text-xs text-[#F4EBDD]/55">
+              {t("shop.mentalistPromo.automaticDiscount")}
+            </p>
           </div>
         </section>
       ) : null}

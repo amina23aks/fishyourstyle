@@ -104,9 +104,11 @@ export default function FeaturedDropSection({ drop, dropSlug, products }: Props)
           <h2 className={isMentalist ? "text-3xl font-semibold tracking-[0.04em] text-[#F3E9D7] sm:text-4xl" : "text-3xl font-semibold tracking-tight text-white sm:text-4xl"}>
             {drop.label}
           </h2>
-          <p className={isMentalist ? "mx-auto max-w-xl text-sm leading-6 text-[#F3E9D7]/75 sm:text-base sm:leading-7" : "mx-auto max-w-xl text-sm leading-6 text-white/80 sm:text-base sm:leading-7"}>
-            {drop.subtitle}
-          </p>
+          {drop.subtitle ? (
+            <p className={isMentalist ? "mx-auto max-w-xl text-sm leading-6 text-[#F3E9D7]/75 sm:text-base sm:leading-7" : "mx-auto max-w-xl text-sm leading-6 text-white/80 sm:text-base sm:leading-7"}>
+              {drop.subtitle}
+            </p>
+          ) : null}
         </div>
       </div>
 

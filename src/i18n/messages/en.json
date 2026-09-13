@@ -286,10 +286,11 @@
   "dropUpdates.success": "You’re in. We’ll keep you updated.",
   "dropUpdates.invalidEmail": "Please enter a valid email.",
   "shop.mentalistPromo.brand": "THE MENTALIST",
-  "shop.mentalistPromo.heading": "PICK YOUR PACK",
+  "shop.mentalistPromo.heading": "PROMO PACK",
   "shop.mentalistPromo.supportingLine": "Mix any Mentalist designs.",
   "shop.mentalistPromo.tier1Label": "1 TEE",
   "shop.mentalistPromo.tier2Label": "2 TEES",
   "shop.mentalistPromo.tier3Label": "3 TEES",
-  "shop.mentalistPromo.saveLabel": "SAVE"
+  "shop.mentalistPromo.saveLabel": "SAVE",
+  "shop.mentalistPromo.automaticDiscount": "Discount applies automatically at checkout."
 }

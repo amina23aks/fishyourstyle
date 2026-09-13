@@ -286,10 +286,11 @@
   "dropUpdates.success": "تم تسجيلك. سنبقيك على اطلاع.",
   "dropUpdates.invalidEmail": "يرجى إدخال بريد إلكتروني صحيح.",
   "shop.mentalistPromo.brand": "THE MENTALIST",
-  "shop.mentalistPromo.heading": "اختر باقتك",
+  "shop.mentalistPromo.heading": "عرض الباقة",
   "shop.mentalistPromo.supportingLine": "اختر أي تصاميم من مجموعة Mentalist.",
   "shop.mentalistPromo.tier1Label": "1 تيشيرت",
   "shop.mentalistPromo.tier2Label": "2 تيشيرت",
   "shop.mentalistPromo.tier3Label": "3 تيشيرتات",
-  "shop.mentalistPromo.saveLabel": "وفّر"
+  "shop.mentalistPromo.saveLabel": "وفّر",
+  "shop.mentalistPromo.automaticDiscount": "يُطبّق الخصم تلقائيًا عند إتمام الطلب."
 }
