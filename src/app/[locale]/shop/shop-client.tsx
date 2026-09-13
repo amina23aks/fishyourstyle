@@ -414,8 +414,11 @@ export default function ShopClient({
             >
               {t("shop.mentalistPromo.heading")}
             </h2>
-            <p className="mt-1 text-sm text-[#F4EBDD]/70">
-              {t("shop.mentalistPromo.supportingLine")}
+            <p className="mt-1 text-sm font-bold uppercase tracking-[0.14em] text-[#D65349]">
+              {t("shop.mentalistPromo.action")}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-[#D65349]/85">
+              {t("shop.mentalistPromo.automaticDiscount")}
             </p>
 
             <div className="mt-4 grid gap-2 min-[390px]:grid-cols-3 sm:gap-3">
@@ -442,9 +445,6 @@ export default function ShopClient({
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-center text-xs text-[#F4EBDD]/55">
-              {t("shop.mentalistPromo.automaticDiscount")}
-            </p>
           </div>
         </section>
       ) : null}

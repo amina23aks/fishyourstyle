@@ -9,7 +9,7 @@ const messages = (locale: "en" | "fr" | "ar") =>
   JSON.parse(readFileSync(`src/i18n/messages/${locale}.json`, "utf8")) as Record<string, string>;
 
 test("Mentalist shop promo uses the existing translation hook instead of hardcoded copy", () => {
-  for (const key of ["brand", "heading", "supportingLine", "saveLabel", "automaticDiscount"]) {
+  for (const key of ["brand", "heading", "action", "saveLabel", "automaticDiscount"]) {
     assert.match(shopClient, new RegExp(`t\\(.[^)]*shop\\.mentalistPromo\\.${key}`));
   }
   assert.match(shopClient, /t\(`shop\.mentalistPromo\.tier\$\{tier\.quantity\}Label`\)/);
@@ -26,11 +26,11 @@ test("Mentalist shop promo uses the existing translation hook instead of hardcod
 
 test("Mentalist shop promo copy is complete in English, French, and Arabic", () => {
   const expected = {
-    en: ["THE MENTALIST", "PROMO PACK", "Mix any Mentalist designs.", "1 TEE", "2 TEES", "3 TEES", "SAVE", "Discount applies automatically at checkout."],
-    fr: ["THE MENTALIST", "PACK PROMO", "Mixez les designs Mentalist de votre choix.", "1 T-SHIRT", "2 T-SHIRTS", "3 T-SHIRTS", "ÉCONOMISEZ", "La réduction s’applique automatiquement au paiement."],
-    ar: ["THE MENTALIST", "عرض الباقة", "اختر أي تصاميم من مجموعة Mentalist.", "1 تيشيرت", "2 تيشيرت", "3 تيشيرتات", "وفّر", "يُطبّق الخصم تلقائيًا عند إتمام الطلب."],
+    en: ["THE MENTALIST", "PROMO PACK", "PICK WHAT YOU WANT", "1 TEE", "2 TEES", "3 TEES", "SAVE", "Discount applies automatically."],
+    fr: ["THE MENTALIST", "PACK PROMO", "CHOISIS CE QUE TU VEUX", "1 T-SHIRT", "2 T-SHIRTS", "3 T-SHIRTS", "ÉCONOMISEZ", "La réduction s’applique automatiquement."],
+    ar: ["THE MENTALIST", "عرض الباقة", "اختر ما يعجبك", "1 تيشيرت", "2 تيشيرت", "3 تيشيرتات", "وفّر", "يُطبّق الخصم تلقائيًا."],
   } as const;
-  const keys = ["brand", "heading", "supportingLine", "tier1Label", "tier2Label", "tier3Label", "saveLabel", "automaticDiscount"] as const;
+  const keys = ["brand", "heading", "action", "tier1Label", "tier2Label", "tier3Label", "saveLabel", "automaticDiscount"] as const;
 
   for (const locale of ["en", "fr", "ar"] as const) {
     const localeMessages = messages(locale);
@@ -38,6 +38,19 @@ test("Mentalist shop promo copy is complete in English, French, and Arabic", () 
       assert.equal(localeMessages[`shop.mentalistPromo.${key}`], expected[locale][index]);
     });
   }
+});
+
+test("homepage and shop share the localized Mentalist campaign hierarchy", () => {
+  const homepage = readFileSync("src/app/[locale]/page.tsx", "utf8");
+  const featuredDrop = readFileSync("src/components/FeaturedDropSection.tsx", "utf8");
+
+  for (const key of ["brand", "heading", "action", "automaticDiscount", "saveLabel"]) {
+    assert.match(homepage, new RegExp(`shop\\.mentalistPromo\\.${key}`));
+  }
+  assert.match(featuredDrop, /mentalistPromoCopy\.heading/);
+  assert.match(featuredDrop, /mentalistPromoCopy\.action/);
+  assert.match(featuredDrop, /mentalistPromoCopy\.automaticDiscount/);
+  assert.doesNotMatch(featuredDrop, /Mix any Mentalist designs/i);
 });
 
 test("Mentalist promo remains theme-gated and derives canonical prices and savings", () => {

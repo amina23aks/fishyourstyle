@@ -287,10 +287,10 @@
   "dropUpdates.invalidEmail": "Veuillez saisir une adresse email valide.",
   "shop.mentalistPromo.brand": "THE MENTALIST",
   "shop.mentalistPromo.heading": "PACK PROMO",
-  "shop.mentalistPromo.supportingLine": "Mixez les designs Mentalist de votre choix.",
+  "shop.mentalistPromo.action": "CHOISIS CE QUE TU VEUX",
   "shop.mentalistPromo.tier1Label": "1 T-SHIRT",
   "shop.mentalistPromo.tier2Label": "2 T-SHIRTS",
   "shop.mentalistPromo.tier3Label": "3 T-SHIRTS",
   "shop.mentalistPromo.saveLabel": "ÉCONOMISEZ",
-  "shop.mentalistPromo.automaticDiscount": "La réduction s’applique automatiquement au paiement."
+  "shop.mentalistPromo.automaticDiscount": "La réduction s’applique automatiquement."
 }

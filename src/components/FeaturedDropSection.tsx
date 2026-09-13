@@ -26,6 +26,14 @@ type Props = {
   drop: FeaturedDropConfig;
   dropSlug: string;
   products: StorefrontProduct[];
+  mentalistPromoCopy: {
+    brand: string;
+    heading: string;
+    action: string;
+    automaticDiscount: string;
+    tierLabels: [string, string, string];
+    saveLabel: string;
+  };
 };
 
 function mapStorefrontToProduct(sp: StorefrontProduct): FeaturedDropProduct {
@@ -77,7 +85,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): FeaturedDropProduct {
   };
 }
 
-export default function FeaturedDropSection({ drop, dropSlug, products }: Props) {
+export default function FeaturedDropSection({ drop, dropSlug, products, mentalistPromoCopy }: Props) {
   if (!drop.active) return null;
 
   const dropProducts = products
@@ -92,20 +100,22 @@ export default function FeaturedDropSection({ drop, dropSlug, products }: Props)
     <section
       id={`${dropSlug}-drop`}
       className={isMentalist
-        ? "relative isolate space-y-6 overflow-hidden rounded-[1.75rem] border border-[#B51F24]/45 bg-[#0B0B0B] px-4 py-6 text-[#F3E9D7] shadow-[0_18px_52px_rgba(11,11,11,0.45)] sm:px-6 sm:py-8 lg:px-8"
+        ? "relative isolate space-y-6 overflow-hidden rounded-[1.75rem] bg-[#0B0B0B] px-4 py-6 text-[#F3E9D7] shadow-[0_18px_52px_rgba(11,11,11,0.45)] sm:px-6 sm:py-8 lg:px-8"
         : "space-y-6 rounded-[1.75rem] border border-white/15 bg-slate-900 px-4 py-7 text-white sm:px-6 sm:py-8 lg:px-8"}
     >
       {isMentalist ? <div className="pointer-events-none absolute -right-16 -top-24 -z-10 h-64 w-64 rounded-full bg-[#B51F24]/20 blur-3xl" /> : null}
       <div className="mx-auto max-w-2xl space-y-3 text-center sm:space-y-4">
-        <p className={isMentalist ? "text-[11px] font-semibold uppercase tracking-[0.36em] text-[#D34832]" : "text-[11px] font-semibold uppercase tracking-[0.36em] text-white/80"}>
-          {drop.title}
-        </p>
+        {!isMentalist ? (
+          <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-white/80">
+            {drop.title}
+          </p>
+        ) : null}
         <div className="space-y-2.5 sm:space-y-3">
           <h2 className={isMentalist ? "text-3xl font-semibold tracking-[0.04em] text-[#F3E9D7] sm:text-4xl" : "text-3xl font-semibold tracking-tight text-white sm:text-4xl"}>
-            {drop.label}
+            {isMentalist ? mentalistPromoCopy.brand : drop.label}
           </h2>
-          {drop.subtitle ? (
-            <p className={isMentalist ? "mx-auto max-w-xl text-sm leading-6 text-[#F3E9D7]/75 sm:text-base sm:leading-7" : "mx-auto max-w-xl text-sm leading-6 text-white/80 sm:text-base sm:leading-7"}>
+          {!isMentalist && drop.subtitle ? (
+            <p className="mx-auto max-w-xl text-sm leading-6 text-white/80 sm:text-base sm:leading-7">
               {drop.subtitle}
             </p>
           ) : null}
@@ -113,19 +123,22 @@ export default function FeaturedDropSection({ drop, dropSlug, products }: Props)
       </div>
 
       {isMentalist ? (
-        <div className="mx-auto max-w-3xl rounded-2xl border border-[#B51F24]/45 bg-[#171313] p-3 sm:p-4">
-          <div className="flex flex-col gap-1 text-center sm:flex-row sm:items-end sm:justify-between sm:text-left">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#D34832]">Mix your Mentalist</p>
-              <p className="mt-1 text-xs text-[#F3E9D7]/65">Mix any Mentalist designs. Discount applied automatically.</p>
-            </div>
-          </div>
+        <div className="mx-auto max-w-3xl rounded-2xl border border-[#B51F24]/60 bg-[#171313] p-4 text-center sm:p-5">
+          <h3 className="text-xl font-bold uppercase tracking-[0.08em] text-[#F3E9D7] sm:text-2xl">
+            {mentalistPromoCopy.heading}
+          </h3>
+          <p className="mt-1 text-sm font-bold uppercase tracking-[0.14em] text-[#D34832]">
+            {mentalistPromoCopy.action}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-[#D34832]/85">
+            {mentalistPromoCopy.automaticDiscount}
+          </p>
           <div className="mt-3 grid gap-2 min-[390px]:grid-cols-3">
             {promoTiers.map((tier) => (
               <div key={tier.quantity} className="rounded-xl border border-[#F3E9D7]/10 bg-[#0B0B0B] px-3 py-3 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#F3E9D7]/65">{tier.quantity} {tier.quantity === 1 ? "Tee" : "Tees"}</p>
-                <p className="mt-1 text-base font-bold tabular-nums text-[#F3E9D7]">{new Intl.NumberFormat("en-US").format(tier.total)} DZD</p>
-                {tier.discount > 0 ? <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#D34832]">Save {new Intl.NumberFormat("en-US").format(tier.discount)} DZD</p> : <span className="mt-1 block h-[15px]" aria-hidden="true" />}
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#F3E9D7]/65">{mentalistPromoCopy.tierLabels[tier.quantity - 1]}</p>
+                <p className="mt-1 text-lg font-bold tabular-nums text-[#F3E9D7]" dir="ltr">{new Intl.NumberFormat("en-US").format(tier.total)} DZD</p>
+                {tier.discount > 0 ? <p className="mt-1 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.1em] text-[#D34832]" dir="ltr">{mentalistPromoCopy.saveLabel} {new Intl.NumberFormat("en-US").format(tier.discount)} DZD</p> : <span className="mt-1 block h-[15px]" aria-hidden="true" />}
               </div>
             ))}
           </div>
