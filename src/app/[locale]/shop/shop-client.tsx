@@ -25,6 +25,7 @@ import {
   isPublicComingSoonDesign,
   type PublicShopFilterSettings,
 } from "@/lib/filter-config";
+import { isMentalistDesignTheme } from "@/lib/mentalist-bundle";
 
 type StorefrontCursor = {
   id: string;
@@ -273,6 +274,7 @@ export default function ShopClient({
       (designFilter !== "all" &&
         isPublicComingSoonDesign(designFilter, shopFilterSettings)));
   const showDesignFilters = allDesignPills.length > 1;
+  const showMentalistPricing = isMentalistDesignTheme(designFilter);
 
   return (
     <>
@@ -391,6 +393,25 @@ export default function ShopClient({
           </div>
         </div>
       </div>
+
+      {showMentalistPricing ? (
+        <section className="mb-8 overflow-hidden rounded-3xl border border-cyan-100/20 bg-[linear-gradient(135deg,rgba(8,47,73,0.9),rgba(15,23,42,0.82))] p-5 shadow-[0_18px_45px_rgba(2,132,199,0.16)] sm:p-7" aria-labelledby="mentalist-pricing-title">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">Limited drop pricing</p>
+            <h2 id="mentalist-pricing-title" className="mt-2 text-2xl font-semibold text-white sm:text-3xl">The Mentalist Drop</h2>
+            <p className="mt-1 text-sm text-sky-100/80">Mix any designs from this drop</p>
+          </div>
+          <div className="mx-auto mt-5 grid max-w-3xl gap-3 sm:grid-cols-3">
+            {[["1 Tee", "2,900 DZD"], ["2 Tees", "5,400 DZD"], ["3 Tees", "7,500 DZD"]].map(([label, price]) => (
+              <div key={label} className="flex items-center justify-between rounded-2xl border border-white/15 bg-white/[0.07] px-5 py-4 sm:block sm:text-center">
+                <p className="text-sm font-medium text-cyan-100">{label}</p>
+                <p className="text-xl font-bold tabular-nums text-white sm:mt-1">{price}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-xs text-sky-100/70">Discount applies automatically at checkout</p>
+        </section>
+      ) : null}
 
       {errorMessage ? (
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">

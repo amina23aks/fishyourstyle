@@ -17,21 +17,20 @@ type FeaturedDropSettings = {
 type HomeSettings = {
   showFeaturedDrop: boolean;
   showHomeShopSection: boolean;
-  featuredDropSlug: "flow";
+  featuredDropSlug: "mentalist";
   featuredDrop: FeaturedDropSettings;
 };
 
 const fallbackSettings: HomeSettings = {
   showFeaturedDrop: true,
   showHomeShopSection: false,
-  featuredDropSlug: "flow",
+  featuredDropSlug: "mentalist",
   featuredDrop: {
-    title: "FLOW — DROP 01",
-    label: "Find Your Flow.",
-    subtitle:
-      "The first chapter of Fish Your Style. A collection inspired by finding your own rhythm.",
-    buttonText: "Discover FLOW",
-    buttonLink: "#flow-drop",
+    title: "THE MENTALIST DROP",
+    label: "THE MENTALIST",
+    subtitle: "Read the signs. Pick your design. Wear the obsession.",
+    buttonText: "Discover The Mentalist",
+    buttonLink: "#mentalist-drop",
     maxProducts: 4,
     active: true,
   },
@@ -162,9 +161,9 @@ export default function HomeSettingsForm() {
       <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div className="mb-4 space-y-1">
           <p className="text-xs uppercase tracking-[0.24em] text-sky-200">Featured drop</p>
-          <h2 className="text-xl font-semibold text-white">FLOW controls</h2>
+          <h2 className="text-xl font-semibold text-white">THE MENTALIST controls</h2>
           <p className="text-sm text-sky-100/75">
-            Product selection stays locked to featuredDrops: [&quot;flow&quot;].
+            Product selection uses featuredDrops: [&quot;mentalist&quot;].
           </p>
         </div>
 

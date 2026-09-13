@@ -84,6 +84,19 @@ export type StorefrontProduct = {
   status: StorefrontProductStatus;
 };
 
+export function selectFeaturedDropProducts(
+  products: StorefrontProduct[],
+  slug: string,
+  maxProducts: number,
+): StorefrontProduct[] {
+  const safeSlug = slug.trim();
+  const safeLimit = clampPageSize(maxProducts, 4);
+  return products
+    .filter((product) => product.status === "active" && (product.featuredDrops ?? []).includes(safeSlug))
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .slice(0, safeLimit);
+}
+
 function normalizeImagesField(images: unknown): StorefrontProductImages {
   const collected: string[] = [];
 
@@ -346,16 +359,15 @@ export async function fetchStorefrontProductsByFeaturedDrop({
         productsRef,
         where("status", "==", "active"),
         where("featuredDrops", "array-contains", safeSlug),
+        orderBy(documentId()),
         limit(safeLimit),
       ),
     );
-    return snapshot.docs
-      .map((doc) => normalizeProduct(doc.data(), doc.id))
-      .filter(
-        (product) =>
-          product.status === "active" &&
-          (product.featuredDrops ?? []).includes(safeSlug),
-      );
+    return selectFeaturedDropProducts(
+      snapshot.docs.map((doc) => normalizeProduct(doc.data(), doc.id)),
+      safeSlug,
+      safeLimit,
+    );
   } catch (error) {
     if (isPermissionDenied(error)) {
       console.warn(

@@ -13,6 +13,7 @@ import {
 import { trackAddToCart } from "@/lib/analytics";
 import { runAfterNextPaint } from "@/lib/defer";
 import { addToCart as trackMetaAddToCart } from "@/lib/metaPixel";
+import { calculateCartPricing } from "@/lib/mentalist-bundle";
 
 export type CartItem = {
   id: string;
@@ -53,6 +54,9 @@ export type AddItemPayload = {
 
 export type CartTotals = {
   subtotal: number;
+  subtotalBeforeDiscount: number;
+  bundleDiscount: number;
+  mentalist: ReturnType<typeof calculateCartPricing>["mentalist"];
 };
 
 export type CartContextValue = {
@@ -270,15 +274,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return item?.quantity ?? 0;
   }, []);
 
-  const totals = useMemo(
-    () => ({
-      subtotal: items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-      ),
-    }),
-    [items],
-  );
+  const totals = useMemo(() => calculateCartPricing(items), [items]);
 
   const totalQuantity = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity, 0),

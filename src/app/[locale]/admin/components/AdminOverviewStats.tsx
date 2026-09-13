@@ -25,6 +25,7 @@ import {
   formatAdminChartDate,
   formatAdminChartDzd,
 } from "@/lib/admin-overview-chart";
+import { calculateDeliveredAccounting } from "@/lib/order-accounting";
 
 const SUMMARY_DOC_PATH = ["adminStats", "summary"] as const;
 const DAILY_COLLECTION = "adminStatsDaily";
@@ -342,22 +343,20 @@ function getOrderProfitStats(
       return acc;
     }
 
+    let orderCogs = 0;
     items.forEach((item) => {
       const itemData = item as Record<string, unknown>;
       const quantity = typeof itemData.quantity === "number" ? itemData.quantity : 0;
-      const price = typeof itemData.price === "number" ? itemData.price : 0;
       const productId = typeof itemData.id === "string" ? itemData.id : "";
       const hasSnapshotCost = typeof itemData.itemCostPrice === "number";
       const snapshotCost = hasSnapshotCost ? normalizeKnownCost(itemData.itemCostPrice) : null;
       const currentCost = productId ? currentProductCosts.get(productId) : undefined;
       const costInfo = snapshotCost ?? currentCost ?? { cost: 0, hasKnownCost: false };
       const knownLineCost = costInfo.hasKnownCost ? costInfo.cost * quantity : 0;
-      const estimatedLineProfit = price * quantity - knownLineCost;
+      orderCogs += knownLineCost;
 
       acc.costOfGoodsSold += knownLineCost;
-      acc.netProfit += estimatedLineProfit;
       day.costOfGoodsSold += knownLineCost;
-      day.netProfit += estimatedLineProfit;
 
       if (!costInfo.hasKnownCost && quantity > 0) {
         orderMissingCost = true;
@@ -365,6 +364,19 @@ function getOrderProfitStats(
         day.incompleteProfitItems += 1;
       }
     });
+
+    const fallbackSubtotal = items.reduce((sum, item) => {
+      const itemData = item as Record<string, unknown>;
+      return sum + Number(itemData.price ?? 0) * Number(itemData.quantity ?? 0);
+    }, 0);
+    const finalSubtotal = typeof orderData.subtotal === "number" ? orderData.subtotal : fallbackSubtotal;
+    const accounting = calculateDeliveredAccounting({
+      subtotal: finalSubtotal,
+      costOfGoodsSold: orderCogs,
+      returnCost,
+    });
+    acc.netProfit += accounting.netProfit;
+    day.netProfit += accounting.netProfit;
 
     if (orderMissingCost) {
       acc.incompleteProfitOrders += 1;

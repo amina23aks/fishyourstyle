@@ -21,6 +21,8 @@ import {
   isPlainObject,
   isValidEmail,
 } from "@/lib/apiProtection";
+import { calculateCartPricing, isMentalistDesignTheme, MENTALIST_UNIT_PRICE } from "@/lib/mentalist-bundle";
+import { allocateOrderLineRevenue } from "@/lib/order-accounting";
 
 const ADMIN_STATS_DOC = "adminStats/summary";
 const ORDER_RATE_LIMIT = {
@@ -325,10 +327,10 @@ export async function POST(request: NextRequest) {
     };
     const todayKey = dateKeyInTZ(new Date(), "Africa/Algiers");
     const weekKey = weekKeyInTZ(new Date(), "Africa/Algiers");
-    const orderSubtotal = typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : 0;
+    let orderSubtotal = typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : 0;
     const orderShippingCost =
       typeof orderToSave.shippingCost === "number" ? orderToSave.shippingCost : 0;
-    const orderTotalBeforeDiscount = orderSubtotal + orderShippingCost;
+    let orderTotalBeforeDiscount = orderSubtotal + orderShippingCost;
     const defaultLoyaltyPercent = 8;
     let loyaltyDiscountPercent = 0;
     let loyaltyDiscountAmount = 0;
@@ -338,7 +340,7 @@ export async function POST(request: NextRequest) {
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
-    const productRevenue =
+    let productRevenue =
       typeof orderToSave.subtotal === "number" ? orderToSave.subtotal : fallbackProductRevenue;
 
     console.log("[api/orders] Order payload prepared", {
@@ -414,10 +416,24 @@ export async function POST(request: NextRequest) {
         if (serverPrice === null) {
           throw new Error("Order verification failed");
         }
+        const isMentalist = isMentalistDesignTheme(productData.designTheme);
+        if (isMentalist && Math.abs(serverPrice - MENTALIST_UNIT_PRICE) > 1) {
+          throw new Error("The Mentalist product price is misconfigured");
+        }
         if (Math.abs(item.price - serverPrice) > 1) {
           throw new Error("Order verification failed");
         }
       }
+
+      // Never trust client design snapshots: eligibility comes from product records.
+      const serverPricing = calculateCartPricing(orderToSave.items.map((item) => ({
+        design: productSnapshots.get(item.id)?.designTheme,
+        price: item.price,
+        quantity: item.quantity,
+      })));
+      orderSubtotal = serverPricing.subtotal;
+      productRevenue = orderSubtotal;
+      orderTotalBeforeDiscount = serverPricing.subtotalBeforeDiscount + orderShippingCost;
 
       if (userData) {
         const rewardAvailable = Boolean(userData.loyaltyRewardAvailable);
@@ -483,27 +499,33 @@ export async function POST(request: NextRequest) {
         const categoryFromCart = typeof item.category === "string" ? item.category.trim() : "";
         const designFromCart = typeof item.design === "string" ? item.design.trim() : "";
         const category =
-          categoryFromCart ||
           (typeof productData?.category === "string" && productData.category.trim()
             ? productData.category
-            : "");
+            : categoryFromCart);
         const design =
-          designFromCart ||
           (typeof productData?.designTheme === "string" && productData.designTheme.trim()
             ? productData.designTheme
-            : "");
+            : designFromCart);
         const itemCostPrice = normalizeCostPrice(productData?.costPrice ?? productData?.purchasePrice);
         const itemProfit = item.price - itemCostPrice;
         const itemProfitTotal = itemProfit * item.quantity;
         return { ...item, category, design, itemCostPrice, itemProfit, itemProfitTotal };
       });
-      const costOfGoodsSold = itemsWithMetadata.reduce(
+      const allocations = allocateOrderLineRevenue(itemsWithMetadata, serverPricing.mentalist.total);
+      const itemsWithAllocatedProfit = itemsWithMetadata.map((item, index) => ({
+        ...item,
+        allocatedRevenue: allocations[index].allocatedRevenue,
+        itemProfit: item.quantity > 0 ? allocations[index].contribution / item.quantity : 0,
+        itemProfitTotal: allocations[index].contribution,
+      }));
+      const costOfGoodsSold = itemsWithAllocatedProfit.reduce(
         (sum, item) => sum + item.itemCostPrice * item.quantity,
         0,
       );
-      const netProfit = itemsWithMetadata.reduce((sum, item) => sum + item.itemProfitTotal, 0);
+      // The bundle changes revenue, never the individual canonical cost snapshots.
+      const netProfit = orderSubtotal - costOfGoodsSold;
 
-      for (const item of itemsWithMetadata) {
+      for (const item of itemsWithAllocatedProfit) {
         const productData = productSnapshots.get(item.id);
         const category =
           typeof productData?.category === "string" && productData.category.trim()
@@ -530,7 +552,11 @@ export async function POST(request: NextRequest) {
       createdOrderId = orderRef.id;
       orderDataForFirestore = {
         ...orderDataForFirestore,
-        items: itemsWithMetadata,
+        items: itemsWithAllocatedProfit,
+        subtotal: orderSubtotal,
+        mentalistDropSubtotal: serverPricing.mentalist.subtotalBeforeDiscount,
+        bundleDiscount: serverPricing.bundleDiscount,
+        mentalistDropTotal: serverPricing.mentalist.total,
         totalBeforeDiscount: orderTotalBeforeDiscount,
         total: orderTotal,
         costOfGoodsSold,
@@ -613,6 +639,9 @@ export async function POST(request: NextRequest) {
         orderId: createdOrderId,
         totals: {
           subtotal: orderSubtotal,
+          mentalistDropSubtotal: orderDataForFirestore.mentalistDropSubtotal,
+          bundleDiscount: orderDataForFirestore.bundleDiscount,
+          mentalistDropTotal: orderDataForFirestore.mentalistDropTotal,
           shippingCost: orderShippingCost,
           discountPercent: loyaltyApplied ? loyaltyDiscountPercent : 0,
           discountAmount: loyaltyApplied ? loyaltyDiscountAmount : 0,
@@ -629,14 +658,17 @@ export async function POST(request: NextRequest) {
       const isStockError =
         error.message.toLowerCase().includes("insufficient stock") ||
         error.message.toLowerCase().includes("product not found");
+      const isMentalistConfigurationError = error.message === "The Mentalist product price is misconfigured";
 
       return NextResponse.json(
         {
           error: isStockError
             ? "Some items are no longer available. Please review your cart."
-            : `Failed to create order: ${error.message}`,
+            : isMentalistConfigurationError
+              ? "A The Mentalist product has an invalid price. Please contact the store before ordering."
+              : `Failed to create order: ${error.message}`,
         },
-        { status: isStockError ? 400 : 500 },
+        { status: isStockError ? 400 : isMentalistConfigurationError ? 409 : 500 },
       );
     }
 
@@ -682,10 +714,11 @@ function firestoreDocToOrder(docId: string, data: DocumentData, includeAdminFina
     items: Array.isArray(data.items)
       ? data.items.map((item: unknown) => {
           if (includeAdminFinancials || !item || typeof item !== "object") return item;
-          const { itemCostPrice, itemProfit, itemProfitTotal, ...publicItem } = item as Record<string, unknown>;
+          const { itemCostPrice, itemProfit, itemProfitTotal, allocatedRevenue, ...publicItem } = item as Record<string, unknown>;
           void itemCostPrice;
           void itemProfit;
           void itemProfitTotal;
+          void allocatedRevenue;
           return publicItem;
         }) as Order["items"]
       : [],
@@ -693,6 +726,9 @@ function firestoreDocToOrder(docId: string, data: DocumentData, includeAdminFina
     notes: data.notes,
     subtotal: data.subtotal,
     shippingCost: data.shippingCost,
+    mentalistDropSubtotal: typeof data.mentalistDropSubtotal === "number" ? data.mentalistDropSubtotal : undefined,
+    bundleDiscount: typeof data.bundleDiscount === "number" ? data.bundleDiscount : undefined,
+    mentalistDropTotal: typeof data.mentalistDropTotal === "number" ? data.mentalistDropTotal : undefined,
     totalBeforeDiscount: data.totalBeforeDiscount,
     discountType: data.discountType,
     discountPercent: data.discountPercent,

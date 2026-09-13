@@ -28,7 +28,9 @@ function categorySetting(slug: string, input: unknown, label?: string): PublicSh
 function designSetting(slug: string, input: unknown): PublicShopDesignFilter {
   const fallback = defaultPublicShopFilterSettings.designs[slug] ?? {
     label: slug,
-    isVisibleOnShop: false,
+    // Newly created Firestore design themes should surface without a second
+    // hidden-by-default settings step. Saved visibility still wins.
+    isVisibleOnShop: true,
     isComingSoon: false,
   };
   const data = input && typeof input === "object" ? input as Record<string, unknown> : {};

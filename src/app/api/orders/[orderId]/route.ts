@@ -11,6 +11,8 @@ import {
   hasHoneypotValue,
   isPlainObject,
 } from "@/lib/apiProtection";
+import { calculateCartPricing } from "@/lib/mentalist-bundle";
+import { allocateOrderLineRevenue, calculateDeliveredAccounting } from "@/lib/order-accounting";
 
 function isPendingStatus(status: string | null | undefined): boolean {
   return (status ?? "").toLowerCase() === "pending";
@@ -54,10 +56,11 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>, in
     items: Array.isArray(data.items)
       ? data.items.map((item) => {
           if (includeAdminFinancials || !item || typeof item !== "object") return item;
-          const { itemCostPrice, itemProfit, itemProfitTotal, ...publicItem } = item as Record<string, unknown>;
+          const { itemCostPrice, itemProfit, itemProfitTotal, allocatedRevenue, ...publicItem } = item as Record<string, unknown>;
           void itemCostPrice;
           void itemProfit;
           void itemProfitTotal;
+          void allocatedRevenue;
           return publicItem;
         }) as Order["items"]
       : [],
@@ -71,6 +74,9 @@ function firestoreDataToOrder(orderId: string, data: Record<string, unknown>, in
     },
     notes: typeof data.notes === "string" ? data.notes : undefined,
     subtotal: Number(data.subtotal ?? 0),
+    mentalistDropSubtotal: typeof data.mentalistDropSubtotal === "number" ? data.mentalistDropSubtotal : undefined,
+    bundleDiscount: typeof data.bundleDiscount === "number" ? data.bundleDiscount : undefined,
+    mentalistDropTotal: typeof data.mentalistDropTotal === "number" ? data.mentalistDropTotal : undefined,
     shippingCost: Number(data.shippingCost ?? 0),
     total: Number(data.total ?? 0),
     paymentMethod: (data.paymentMethod as Order["paymentMethod"]) ?? "COD",
@@ -163,10 +169,6 @@ function isValidOrderItems(items: unknown): items is OrderItem[] {
     (item as OrderItem).quantity > 0 &&
     typeof (item as OrderItem).variantKey === "string"
   );
-}
-
-function calculateSubtotal(items: OrderItem[]): number {
-  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 }
 
 function parseBearerToken(request: NextRequest): string | null {
@@ -320,6 +322,23 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           orderUpdate.returnCost = requestedReturnCost > 0 ? requestedReturnCost : 300;
         } else if (nextReturnCost !== undefined) {
           orderUpdate.returnCost = Math.max(Number(nextReturnCost), 0);
+        }
+
+        const snapshotSubtotal = Number(orderData.subtotal ?? 0);
+        const snapshotCogs = Number(orderData.costOfGoodsSold ?? 0);
+        if (normalizedNextStatus === "delivered") {
+          const delivered = calculateDeliveredAccounting({
+            subtotal: snapshotSubtotal,
+            costOfGoodsSold: snapshotCogs,
+            returnCost: typeof orderUpdate.returnCost === "number" ? orderUpdate.returnCost : Number(orderData.returnCost ?? 0),
+          });
+          orderUpdate.accountingRevenue = delivered.revenue;
+          orderUpdate.accountingCostOfGoodsSold = delivered.costOfGoodsSold;
+          orderUpdate.accountingNetProfit = delivered.netProfit;
+        } else if (normalizedNextStatus === "returned") {
+          orderUpdate.accountingRevenue = 0;
+          orderUpdate.accountingCostOfGoodsSold = 0;
+          orderUpdate.accountingNetProfit = -Number(orderUpdate.returnCost ?? 0);
         }
 
         const shouldCountLoyalty =
@@ -517,7 +536,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           { status: 400 }
         );
       }
-      const subtotal = calculateSubtotal(updatedItems);
+      const pricing = calculateCartPricing(updatedItems.map((item) => ({
+        design: item.design,
+        price: item.price,
+        quantity: item.quantity,
+      })));
+      const subtotal = pricing.subtotal;
       const shippingCost =
         typeof updatedShipping.price === "number" ? updatedShipping.price : order.shippingCost;
       const total = subtotal + shippingCost;
@@ -531,13 +555,23 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         return { ...item, itemCostPrice, itemProfit, itemProfitTotal };
       });
       const costOfGoodsSold = itemsWithProfit.reduce((sum, item) => sum + item.itemCostPrice * item.quantity, 0);
-      const netProfit = itemsWithProfit.reduce((sum, item) => sum + item.itemProfitTotal, 0);
+      const allocations = allocateOrderLineRevenue(itemsWithProfit, pricing.mentalist.total);
+      const reconciledItems = itemsWithProfit.map((item, index) => ({
+        ...item,
+        allocatedRevenue: allocations[index].allocatedRevenue,
+        itemProfit: item.quantity > 0 ? allocations[index].contribution / item.quantity : 0,
+        itemProfitTotal: allocations[index].contribution,
+      }));
+      const netProfit = subtotal - costOfGoodsSold;
 
       const updateData: Record<string, unknown> = {
         shipping: updatedShipping,
-        items: itemsWithProfit,
+        items: reconciledItems,
         notes: updatedNotes ?? null,
         subtotal,
+        mentalistDropSubtotal: pricing.mentalist.subtotalBeforeDiscount,
+        bundleDiscount: pricing.bundleDiscount,
+        mentalistDropTotal: pricing.mentalist.total,
         shippingCost,
         total,
         costOfGoodsSold,

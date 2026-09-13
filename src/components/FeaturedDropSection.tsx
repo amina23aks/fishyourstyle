@@ -1,6 +1,7 @@
 import { ProductCard } from "@/app/[locale]/shop/product-card";
 import type { StorefrontProduct } from "@/lib/storefront-products";
 import type { Product } from "@/types/product";
+import { calculateMentalistBundle } from "@/lib/mentalist-bundle";
 
 export type FeaturedDropConfig = {
   title: string;
@@ -23,6 +24,7 @@ type FeaturedDropProduct = Product & {
 
 type Props = {
   drop: FeaturedDropConfig;
+  dropSlug: string;
   products: StorefrontProduct[];
 };
 
@@ -75,7 +77,7 @@ function mapStorefrontToProduct(sp: StorefrontProduct): FeaturedDropProduct {
   };
 }
 
-export default function FeaturedDropSection({ drop, products }: Props) {
+export default function FeaturedDropSection({ drop, dropSlug, products }: Props) {
   if (!drop.active) return null;
 
   const dropProducts = products
@@ -83,37 +85,62 @@ export default function FeaturedDropSection({ drop, products }: Props) {
     .map(mapStorefrontToProduct);
   const productGridClassName =
     "grid grid-cols-1 justify-start gap-5 min-[380px]:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8";
+  const isMentalist = dropSlug === "mentalist";
+  const promoTiers = [1, 2, 3].map(calculateMentalistBundle);
 
   return (
     <section
-      id="flow-drop"
-      className="space-y-6 rounded-[1.75rem] border border-cyan-100/15 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.22),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(214,188,133,0.14),transparent_34%),linear-gradient(135deg,rgba(10,68,101,0.96),rgba(14,49,77,0.97)_52%,rgba(75,91,94,0.74))] px-4 py-7 text-white shadow-[0_18px_52px_rgba(8,47,73,0.34)] sm:px-6 sm:py-8 lg:px-8"
+      id={`${dropSlug}-drop`}
+      className={isMentalist
+        ? "relative isolate space-y-6 overflow-hidden rounded-[1.75rem] border border-[#B51F24]/45 bg-[#0B0B0B] px-4 py-6 text-[#F3E9D7] shadow-[0_18px_52px_rgba(11,11,11,0.45)] sm:px-6 sm:py-8 lg:px-8"
+        : "space-y-6 rounded-[1.75rem] border border-white/15 bg-slate-900 px-4 py-7 text-white sm:px-6 sm:py-8 lg:px-8"}
     >
+      {isMentalist ? <div className="pointer-events-none absolute -right-16 -top-24 -z-10 h-64 w-64 rounded-full bg-[#B51F24]/20 blur-3xl" /> : null}
       <div className="mx-auto max-w-2xl space-y-3 text-center sm:space-y-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-cyan-50/80">
+        <p className={isMentalist ? "text-[11px] font-semibold uppercase tracking-[0.36em] text-[#D34832]" : "text-[11px] font-semibold uppercase tracking-[0.36em] text-white/80"}>
           {drop.title}
         </p>
         <div className="space-y-2.5 sm:space-y-3">
-          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          <h2 className={isMentalist ? "text-3xl font-semibold tracking-[0.04em] text-[#F3E9D7] sm:text-4xl" : "text-3xl font-semibold tracking-tight text-white sm:text-4xl"}>
             {drop.label}
           </h2>
-          <p className="mx-auto max-w-xl text-sm leading-6 text-sky-50/84 sm:text-base sm:leading-7">
+          <p className={isMentalist ? "mx-auto max-w-xl text-sm leading-6 text-[#F3E9D7]/75 sm:text-base sm:leading-7" : "mx-auto max-w-xl text-sm leading-6 text-white/80 sm:text-base sm:leading-7"}>
             {drop.subtitle}
           </p>
         </div>
       </div>
 
+      {isMentalist ? (
+        <div className="mx-auto max-w-3xl rounded-2xl border border-[#B51F24]/45 bg-[#171313] p-3 sm:p-4">
+          <div className="flex flex-col gap-1 text-center sm:flex-row sm:items-end sm:justify-between sm:text-left">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#D34832]">Mix your Mentalist</p>
+              <p className="mt-1 text-xs text-[#F3E9D7]/65">Mix any Mentalist designs. Discount applied automatically.</p>
+            </div>
+          </div>
+          <div className="mt-3 grid gap-2 min-[390px]:grid-cols-3">
+            {promoTiers.map((tier) => (
+              <div key={tier.quantity} className="rounded-xl border border-[#F3E9D7]/10 bg-[#0B0B0B] px-3 py-3 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#F3E9D7]/65">{tier.quantity} {tier.quantity === 1 ? "Tee" : "Tees"}</p>
+                <p className="mt-1 text-base font-bold tabular-nums text-[#F3E9D7]">{new Intl.NumberFormat("en-US").format(tier.total)} DZD</p>
+                {tier.discount > 0 ? <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#D34832]">Save {new Intl.NumberFormat("en-US").format(tier.discount)} DZD</p> : <span className="mt-1 block h-[15px]" aria-hidden="true" />}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {dropProducts.length > 0 ? (
         <div className={productGridClassName}>
           {dropProducts.map((product) => (
-            <div key={product.id} className="w-full max-w-[240px]">
+            <div key={product.id} className="mx-auto w-full max-w-[240px]">
               <ProductCard product={product} />
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-cyan-50/15 bg-white/[0.08] p-6 text-center text-sm text-white/80">
-          FLOW products are coming soon.
+        <div className={isMentalist ? "rounded-2xl border border-[#B51F24]/35 bg-[#171313] p-5 text-center text-sm text-[#F3E9D7]/75" : "rounded-2xl border border-white/15 bg-white/[0.08] p-6 text-center text-sm text-white/80"}>
+          {isMentalist ? "The Mentalist products are coming soon." : "Featured products are coming soon."}
         </div>
       )}
     </section>

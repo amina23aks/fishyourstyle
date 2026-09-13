@@ -844,27 +844,27 @@ export function ProductForm({
             <input
               type="checkbox"
               className="mt-1 h-4 w-4 rounded border-white/40 bg-white/5 text-emerald-400 focus:ring-2 focus:ring-white/40"
-              checked={values.featuredDrops.includes("flow")}
+              checked={values.featuredDrops.includes("mentalist")}
               onChange={(event) => {
                 setValues((prev) => {
-                  const withoutFlow = prev.featuredDrops.filter(
-                    (slug) => slug !== "flow",
+                  const withoutMentalist = prev.featuredDrops.filter(
+                    (slug) => slug !== "mentalist",
                   );
                   return {
                     ...prev,
                     featuredDrops: event.target.checked
-                      ? [...withoutFlow, "flow"]
-                      : withoutFlow,
+                      ? [...withoutMentalist, "mentalist"]
+                      : withoutMentalist,
                   };
                 });
               }}
             />
             <span className="space-y-1">
               <span className="block font-semibold text-white">
-                Show in FLOW — DROP 01
+                Show in THE MENTALIST DROP
               </span>
               <span className="block text-xs text-sky-100/70">
-                Only active products checked here appear in the homepage FLOW
+                Only active products checked here appear in the homepage THE MENTALIST
                 featured drop.
               </span>
             </span>

@@ -671,10 +671,10 @@ export default function AdminProductsPage() {
                                 ID: {product.id}
                               </p>
                               {(product.featuredDrops ?? []).includes(
-                                "flow",
+                                "mentalist",
                               ) ? (
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100">
-                                  FLOW drop
+                                  THE MENTALIST drop
                                 </p>
                               ) : null}
                             </div>
@@ -826,9 +826,9 @@ export default function AdminProductsPage() {
                           <p className="font-mono text-[10px] text-sky-100/55">
                             ID: {product.id}
                           </p>
-                          {(product.featuredDrops ?? []).includes("flow") ? (
+                          {(product.featuredDrops ?? []).includes("mentalist") ? (
                             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100">
-                              FLOW drop
+                              THE MENTALIST drop
                             </p>
                           ) : null}
                           <p className="break-words text-xs uppercase text-sky-100/80">
