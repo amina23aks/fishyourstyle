@@ -25,7 +25,12 @@ import {
   isPublicComingSoonDesign,
   type PublicShopFilterSettings,
 } from "@/lib/filter-config";
-import { isMentalistDesignTheme } from "@/lib/mentalist-bundle";
+import {
+  calculateMentalistBundle,
+  isMentalistDesignTheme,
+} from "@/lib/mentalist-bundle";
+
+const mentalistPromoTiers = [1, 2, 3].map(calculateMentalistBundle);
 
 type StorefrontCursor = {
   id: string;
@@ -395,21 +400,49 @@ export default function ShopClient({
       </div>
 
       {showMentalistPricing ? (
-        <section className="mb-8 overflow-hidden rounded-3xl border border-cyan-100/20 bg-[linear-gradient(135deg,rgba(8,47,73,0.9),rgba(15,23,42,0.82))] p-5 shadow-[0_18px_45px_rgba(2,132,199,0.16)] sm:p-7" aria-labelledby="mentalist-pricing-title">
-          <div className="text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">Limited drop pricing</p>
-            <h2 id="mentalist-pricing-title" className="mt-2 text-2xl font-semibold text-white sm:text-3xl">The Mentalist Drop</h2>
-            <p className="mt-1 text-sm text-sky-100/80">Mix any designs from this drop</p>
+        <section
+          className="mb-8 overflow-hidden rounded-2xl border border-[#8F282B]/70 bg-[#111010] px-4 py-5 shadow-[0_16px_36px_rgba(0,0,0,0.24)] sm:px-6 sm:py-6"
+          aria-labelledby="mentalist-pricing-title"
+        >
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-[#C44A43]">
+              {t("shop.mentalistPromo.brand")}
+            </p>
+            <h2
+              id="mentalist-pricing-title"
+              className="mt-1.5 text-xl font-bold uppercase tracking-[0.08em] text-[#F4EBDD] sm:text-2xl"
+            >
+              {t("shop.mentalistPromo.heading")}
+            </h2>
+            <p className="mt-1 text-sm text-[#F4EBDD]/70">
+              {t("shop.mentalistPromo.supportingLine")}
+            </p>
+
+            <div className="mt-4 grid gap-2 min-[390px]:grid-cols-3 sm:gap-3">
+              {mentalistPromoTiers.map((tier) => (
+                <div
+                  key={tier.quantity}
+                  className="flex min-w-0 items-center justify-between rounded-xl border border-[#8F282B]/35 bg-[#191616] px-4 py-3 text-center min-[390px]:block min-[390px]:px-2"
+                >
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[#F4EBDD]/65">
+                    {t(`shop.mentalistPromo.tier${tier.quantity}Label`)}
+                  </p>
+                  <div className="min-w-0 min-[390px]:mt-1">
+                    <p className="whitespace-nowrap text-xl font-bold tabular-nums text-[#F4EBDD] sm:text-2xl" dir="ltr">
+                      {new Intl.NumberFormat("en-US").format(tier.total)} DZD
+                    </p>
+                    {tier.discount > 0 ? (
+                      <p className="mt-0.5 whitespace-nowrap text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[#D65349]" dir="ltr">
+                        {t("shop.mentalistPromo.saveLabel")} {new Intl.NumberFormat("en-US").format(tier.discount)} DZD
+                      </p>
+                    ) : (
+                      <span className="mt-0.5 hidden h-[13px] min-[390px]:block" aria-hidden="true" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="mx-auto mt-5 grid max-w-3xl gap-3 sm:grid-cols-3">
-            {[["1 Tee", "2,900 DZD"], ["2 Tees", "5,400 DZD"], ["3 Tees", "7,500 DZD"]].map(([label, price]) => (
-              <div key={label} className="flex items-center justify-between rounded-2xl border border-white/15 bg-white/[0.07] px-5 py-4 sm:block sm:text-center">
-                <p className="text-sm font-medium text-cyan-100">{label}</p>
-                <p className="text-xl font-bold tabular-nums text-white sm:mt-1">{price}</p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-center text-xs text-sky-100/70">Discount applies automatically at checkout</p>
         </section>
       ) : null}
 
