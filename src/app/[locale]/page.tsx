@@ -271,6 +271,16 @@ export default async function Home({
             drop={mentalistDropConfig}
             dropSlug={homeSettings.featuredDropSlug}
             products={featuredProducts}
+            mentalistPromoCopy={{
+              brand: t("shop.mentalistPromo.brand"),
+              heading: t("shop.mentalistPromo.heading"),
+              action: t("shop.mentalistPromo.action"),
+              automaticDiscount: t("shop.mentalistPromo.automaticDiscount"),
+              tierLabels: [1, 2, 3].map((quantity) =>
+                t(`shop.mentalistPromo.tier${quantity}Label`),
+              ) as [string, string, string],
+              saveLabel: t("shop.mentalistPromo.saveLabel"),
+            }}
           />
         ) : null}
 

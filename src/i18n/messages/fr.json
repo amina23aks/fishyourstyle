@@ -284,5 +284,13 @@
   "dropUpdates.emailLabel": "Adresse email",
   "dropUpdates.emailPlaceholder": "vous@example.com",
   "dropUpdates.success": "C’est fait. Nous vous tiendrons informé.",
-  "dropUpdates.invalidEmail": "Veuillez saisir une adresse email valide."
+  "dropUpdates.invalidEmail": "Veuillez saisir une adresse email valide.",
+  "shop.mentalistPromo.brand": "THE MENTALIST",
+  "shop.mentalistPromo.heading": "PACK PROMO",
+  "shop.mentalistPromo.action": "CHOISIS CE QUE TU VEUX",
+  "shop.mentalistPromo.tier1Label": "1 T-SHIRT",
+  "shop.mentalistPromo.tier2Label": "2 T-SHIRTS",
+  "shop.mentalistPromo.tier3Label": "3 T-SHIRTS",
+  "shop.mentalistPromo.saveLabel": "ÉCONOMISEZ",
+  "shop.mentalistPromo.automaticDiscount": "La réduction s’applique automatiquement."
 }

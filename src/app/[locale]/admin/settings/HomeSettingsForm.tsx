@@ -28,7 +28,7 @@ const fallbackSettings: HomeSettings = {
   featuredDrop: {
     title: "THE MENTALIST DROP",
     label: "THE MENTALIST",
-    subtitle: "Read the signs. Pick your design. Wear the obsession.",
+    subtitle: "",
     buttonText: "Discover The Mentalist",
     buttonLink: "#mentalist-drop",
     maxProducts: 4,

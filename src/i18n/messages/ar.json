@@ -284,5 +284,13 @@
   "dropUpdates.emailLabel": "البريد الإلكتروني",
   "dropUpdates.emailPlaceholder": "you@example.com",
   "dropUpdates.success": "تم تسجيلك. سنبقيك على اطلاع.",
-  "dropUpdates.invalidEmail": "يرجى إدخال بريد إلكتروني صحيح."
+  "dropUpdates.invalidEmail": "يرجى إدخال بريد إلكتروني صحيح.",
+  "shop.mentalistPromo.brand": "THE MENTALIST",
+  "shop.mentalistPromo.heading": "عرض الباقة",
+  "shop.mentalistPromo.action": "اختر ما يعجبك",
+  "shop.mentalistPromo.tier1Label": "1 تيشيرت",
+  "shop.mentalistPromo.tier2Label": "2 تيشيرت",
+  "shop.mentalistPromo.tier3Label": "3 تيشيرتات",
+  "shop.mentalistPromo.saveLabel": "وفّر",
+  "shop.mentalistPromo.automaticDiscount": "يُطبّق الخصم تلقائيًا."
 }

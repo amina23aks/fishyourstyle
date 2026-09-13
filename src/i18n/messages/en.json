@@ -284,5 +284,13 @@
   "dropUpdates.emailLabel": "Email address",
   "dropUpdates.emailPlaceholder": "you@example.com",
   "dropUpdates.success": "You’re in. We’ll keep you updated.",
-  "dropUpdates.invalidEmail": "Please enter a valid email."
+  "dropUpdates.invalidEmail": "Please enter a valid email.",
+  "shop.mentalistPromo.brand": "THE MENTALIST",
+  "shop.mentalistPromo.heading": "PROMO PACK",
+  "shop.mentalistPromo.action": "PICK WHAT YOU WANT",
+  "shop.mentalistPromo.tier1Label": "1 TEE",
+  "shop.mentalistPromo.tier2Label": "2 TEES",
+  "shop.mentalistPromo.tier3Label": "3 TEES",
+  "shop.mentalistPromo.saveLabel": "SAVE",
+  "shop.mentalistPromo.automaticDiscount": "Discount applies automatically."
 }
