@@ -93,6 +93,8 @@
   "delivery.mode": "Mode de livraison",
   "delivery.home": "Livraison à domicile",
   "delivery.desk": "Stop Desk",
+  "delivery.homeDescription": "Livré à votre adresse",
+  "delivery.deskDescription": "Retrait au bureau du transporteur",
   "payment.cod": "Paiement à la livraison",
   "payment.codShort": "COD",
   "payment.codWithAbbrev": "Paiement à la livraison (COD)",

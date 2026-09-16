@@ -27,6 +27,7 @@ import { localizePathname } from "@/i18n/paths";
 import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
 import { runAfterNextPaint } from "@/lib/defer";
 import MobileWilayaSelect from "@/components/MobileWilayaSelect";
+import DeliveryModeCards from "@/components/DeliveryModeCards";
 
 type CartDrawerProps = {
   open: boolean;
@@ -64,12 +65,14 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
 
   const hasItems = items.length > 0;
 
-  const shippingPrice = useMemo(() => {
+  const shippingQuote = useMemo(() => {
     if (!form.wilaya) return null;
-    const wilayaData = getEconomicShippingByWilaya(form.wilaya);
-    if (!wilayaData) return null;
-    return deliveryMode === "home" ? wilayaData.home : wilayaData.desk;
-  }, [deliveryMode, form.wilaya]);
+    return getEconomicShippingByWilaya(form.wilaya) ?? null;
+  }, [form.wilaya]);
+
+  const shippingPrice = shippingQuote
+    ? deliveryMode === "home" ? shippingQuote.home : shippingQuote.desk
+    : null;
 
   const loyaltyDiscountAmount = useMemo(() => {
     if (!user || !loyaltyRewardAvailable) return 0;
@@ -526,38 +529,18 @@ export default function CartDrawer({ open, onClose }: CartDrawerProps) {
                     </div>
                     <div className="space-y-2">
                       <span className="text-xs text-sky-100">{t("cart.deliveryModeLabel")}</span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDeliveryMode("home");
-                            setDeliveryModeTouched(true);
-                          }}
-                          aria-pressed={deliveryMode === "home"}
-                          className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
-                            deliveryMode === "home"
-                              ? "border-white bg-white text-slate-900"
-                              : "border-white/20 bg-slate-950/70 text-white hover:border-white/40"
-                          }`}
-                        >
-                          {t("delivery.home")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDeliveryMode("desk");
-                            setDeliveryModeTouched(true);
-                          }}
-                          aria-pressed={deliveryMode === "desk"}
-                          className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
-                            deliveryMode === "desk"
-                              ? "border-white bg-white text-slate-900"
-                              : "border-white/20 bg-slate-950/70 text-white hover:border-white/40"
-                          }`}
-                        >
-                          {t("delivery.desk")}
-                        </button>
-                      </div>
+                      <DeliveryModeCards
+                        value={deliveryMode}
+                        quote={shippingQuote ?? undefined}
+                        onChange={(mode) => {
+                          setDeliveryMode(mode);
+                          setDeliveryModeTouched(true);
+                        }}
+                        homeLabel={t("delivery.home")}
+                        homeDescription={t("delivery.homeDescription")}
+                        deskLabel={t("delivery.desk")}
+                        deskDescription={t("delivery.deskDescription")}
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-sky-100" htmlFor="drawer-address">
