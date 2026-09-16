@@ -93,6 +93,8 @@
   "delivery.mode": "طريقة التوصيل",
   "delivery.home": "التوصيل إلى المنزل",
   "delivery.desk": "مكتب التوصيل (Stop Desk)",
+  "delivery.homeDescription": "التوصيل إلى عنوانك",
+  "delivery.deskDescription": "الاستلام من مكتب شركة التوصيل",
   "payment.cod": "الدفع عند الاستلام",
   "payment.codShort": "COD",
   "payment.codWithAbbrev": "الدفع عند الاستلام (COD)",

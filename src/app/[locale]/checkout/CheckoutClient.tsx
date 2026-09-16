@@ -25,6 +25,7 @@ import { localizePathname } from "@/i18n/paths";
 import { isValidAlgeriaPhone } from "@/lib/algeriaPhone";
 import { ALGERIA_WILAYAS, normalizeWilaya } from "@/data/algeriaWilayas";
 import MobileWilayaSelect from "@/components/MobileWilayaSelect";
+import DeliveryModeCards from "@/components/DeliveryModeCards";
 
 type CheckoutFormState = {
   fullName: string;
@@ -60,12 +61,14 @@ export default function CheckoutClient() {
 
   const hasItems = items.length > 0;
 
-  const shippingPrice = useMemo(() => {
+  const shippingQuote = useMemo(() => {
     if (!form.wilaya) return null;
-    const wilayaData = getEconomicShippingByWilaya(form.wilaya);
-    if (!wilayaData) return null;
-    return deliveryMode === "home" ? wilayaData.home : wilayaData.desk;
-  }, [deliveryMode, form.wilaya]);
+    return getEconomicShippingByWilaya(form.wilaya) ?? null;
+  }, [form.wilaya]);
+
+  const shippingPrice = shippingQuote
+    ? deliveryMode === "home" ? shippingQuote.home : shippingQuote.desk
+    : null;
 
   const loyaltyDiscountAmount = useMemo(() => {
     if (!user || !loyaltyRewardAvailable) return 0;
@@ -422,32 +425,15 @@ export default function CheckoutClient() {
 
                 <div className="space-y-1">
                   <span className="text-xs font-medium text-sky-100">{t("delivery.mode")}</span>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMode("home")}
-                      className={`rounded-full border px-3 py-1 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
-                        deliveryMode === "home"
-                          ? "border-white bg-white text-slate-900"
-                          : "border-white/25 bg-white/5 text-white hover:border-white/40"
-                      }`}
-                      aria-pressed={deliveryMode === "home"}
-                    >
-                      {t("delivery.home")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMode("desk")}
-                      className={`rounded-full border px-3 py-1 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
-                        deliveryMode === "desk"
-                          ? "border-white bg-white text-slate-900"
-                          : "border-white/25 bg-white/5 text-white hover:border-white/40"
-                      }`}
-                      aria-pressed={deliveryMode === "desk"}
-                    >
-                      {t("delivery.desk")}
-                    </button>
-                  </div>
+                  <DeliveryModeCards
+                    value={deliveryMode}
+                    quote={shippingQuote ?? undefined}
+                    onChange={setDeliveryMode}
+                    homeLabel={t("delivery.home")}
+                    homeDescription={t("delivery.homeDescription")}
+                    deskLabel={t("delivery.desk")}
+                    deskDescription={t("delivery.deskDescription")}
+                  />
                 </div>
 
                 <div className="space-y-1">

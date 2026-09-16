@@ -93,6 +93,8 @@
   "delivery.mode": "Delivery mode",
   "delivery.home": "Home Delivery",
   "delivery.desk": "Stop Desk",
+  "delivery.homeDescription": "Delivered to your address",
+  "delivery.deskDescription": "Pick up at courier desk",
   "payment.cod": "Cash on delivery",
   "payment.codShort": "COD",
   "payment.codWithAbbrev": "Cash on Delivery (COD)",
